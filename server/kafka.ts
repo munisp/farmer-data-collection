@@ -1,11 +1,11 @@
 import { Kafka, Producer, Consumer, Admin, logLevel } from 'kafkajs';
+import { logger } from './logger.js';
 
 const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || 'localhost:9093').split(',');
 const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID || 'farmer-app';
-
-console.log('[Kafka] Initializing Kafka client...');
-console.log(`  Brokers: ${KAFKA_BROKERS.join(', ')}`);
-console.log(`  Client ID: ${KAFKA_CLIENT_ID}`);
+let _kafkaUnavailable = false;
+let _lastKafkaAttempt = 0;
+const KAFKA_RETRY_INTERVAL_MS = 30_000;
 
 // Create Kafka instance
 export const kafka = new Kafka({
@@ -92,38 +92,49 @@ export interface KafkaEvent<T = any> {
 let producerInstance: Producer | null = null;
 let producerConnected = false;
 
-export async function getProducer(): Promise<Producer> {
+export async function getProducer(): Promise<Producer | null> {
+  if (_kafkaUnavailable && Date.now() - _lastKafkaAttempt < KAFKA_RETRY_INTERVAL_MS) return null;
+
   if (!producerInstance) {
     producerInstance = kafka.producer({
       allowAutoTopicCreation: true,
       transactionTimeout: 30000,
+      idempotent: true,
     });
   }
 
   if (!producerConnected) {
     try {
+      _lastKafkaAttempt = Date.now();
       await producerInstance.connect();
       producerConnected = true;
-      console.log('[Kafka] Producer connected successfully');
+      _kafkaUnavailable = false;
+      logger.info('[Kafka] Producer connected');
     } catch (error) {
-      console.error('[Kafka] Failed to connect producer:', error);
-      throw error;
+      _kafkaUnavailable = true;
+      logger.warn('[Kafka] Producer connection failed — degraded mode', { error: (error as Error).message });
+      return null;
     }
   }
 
   return producerInstance;
 }
 
-// Consumer factory
+export function isKafkaHealthy(): boolean {
+  return producerConnected && !_kafkaUnavailable;
+}
+
+// Consumer factory with configurable retry
 export async function createConsumer(groupId: string): Promise<Consumer> {
   const consumer = kafka.consumer({
     groupId,
     sessionTimeout: 30000,
     heartbeatInterval: 3000,
+    retry: { initialRetryTime: 200, retries: 5 },
   });
 
   await consumer.connect();
-  console.log(`[Kafka] Consumer connected: ${groupId}`);
+  logger.info(`[Kafka] Consumer connected: ${groupId}`);
 
   return consumer;
 }
@@ -131,24 +142,29 @@ export async function createConsumer(groupId: string): Promise<Consumer> {
 // Admin client for topic management
 let adminInstance: Admin | null = null;
 
-export async function getAdmin(): Promise<Admin> {
-  if (!adminInstance) {
-    adminInstance = kafka.admin();
-    await adminInstance.connect();
-    console.log('[Kafka] Admin client connected');
+export async function getAdmin(): Promise<Admin | null> {
+  try {
+    if (!adminInstance) {
+      adminInstance = kafka.admin();
+      await adminInstance.connect();
+      logger.info('[Kafka] Admin client connected');
+    }
+    return adminInstance;
+  } catch (error) {
+    logger.warn('[Kafka] Admin client failed', { error: (error as Error).message });
+    return null;
   }
-
-  return adminInstance;
 }
 
 // Publish event helper
-export async function publishEvent<T = any>(
+export async function publishEvent<T = unknown>(
   topic: string,
   event: KafkaEvent<T>
 ): Promise<void> {
   try {
     const producer = await getProducer();
-    
+    if (!producer) return; // graceful degradation
+
     await producer.send({
       topic,
       messages: [
@@ -165,21 +181,44 @@ export async function publishEvent<T = any>(
       ],
     });
 
-    console.log(`[Kafka] Event published: ${topic} - ${event.eventType} - ${event.entityType}:${event.entityId}`);
+    logger.debug('[Kafka] Event published', { topic, eventType: event.eventType, entityType: event.entityType });
   } catch (error) {
-    console.error('[Kafka] Failed to publish event:', error);
-    // Don't throw - we don't want to break the main flow if Kafka is down
+    logger.error('[Kafka] Failed to publish event', { topic, error: (error as Error).message });
+    // Publish to DLQ
+    await publishToDlq(topic, event, error as Error);
+  }
+}
+
+/**
+ * Dead-letter queue: re-publish failed messages to a .dlq topic.
+ */
+async function publishToDlq<T = unknown>(originalTopic: string, event: KafkaEvent<T>, err: Error): Promise<void> {
+  try {
+    const producer = await getProducer();
+    if (!producer) return;
+    await producer.send({
+      topic: `${originalTopic}.dlq`,
+      messages: [
+        {
+          key: `${event.entityType}:${event.entityId}`,
+          value: JSON.stringify({ originalTopic, event, error: err.message, timestamp: new Date().toISOString() }),
+        },
+      ],
+    });
+    logger.warn('[Kafka] Event sent to DLQ', { dlqTopic: `${originalTopic}.dlq`, eventId: event.eventId });
+  } catch {
+    // DLQ publish also failed — nothing more we can do
   }
 }
 
 // Create event helper
-export function createEvent<T = any>(
+export function createEvent<T = unknown>(
   eventType: string,
   entityType: string,
   entityId: string | number,
   userId: string | number,
   data: T,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): KafkaEvent<T> {
   return {
     eventId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -193,11 +232,11 @@ export function createEvent<T = any>(
   };
 }
 
-// Initialize topics
 export async function initializeTopics(): Promise<void> {
   try {
     const admin = await getAdmin();
-    
+    if (!admin) return;
+
     const existingTopics = await admin.listTopics();
     const topicsToCreate = Object.values(TOPICS).filter(
       topic => !existingTopics.includes(topic)
@@ -210,42 +249,31 @@ export async function initializeTopics(): Promise<void> {
           numPartitions: 3,
           replicationFactor: 1,
           configEntries: [
-            { name: 'retention.ms', value: '604800000' }, // 7 days
+            { name: 'retention.ms', value: '604800000' },
             { name: 'compression.type', value: 'snappy' },
           ],
         })),
       });
-
-      console.log(`[Kafka] Created topics: ${topicsToCreate.join(', ')}`);
-    } else {
-      console.log('[Kafka] All topics already exist');
+      logger.info('[Kafka] Created topics', { topics: topicsToCreate });
     }
   } catch (error) {
-    console.error('[Kafka] Failed to initialize topics:', error);
+    logger.error('[Kafka] Failed to initialize topics', { error: (error as Error).message });
   }
 }
 
-// Graceful shutdown
 export async function disconnectKafka(): Promise<void> {
   try {
     if (producerInstance && producerConnected) {
       await producerInstance.disconnect();
       producerConnected = false;
-      console.log('[Kafka] Producer disconnected');
+      logger.info('[Kafka] Producer disconnected');
     }
-
     if (adminInstance) {
       await adminInstance.disconnect();
       adminInstance = null;
-      console.log('[Kafka] Admin client disconnected');
+      logger.info('[Kafka] Admin client disconnected');
     }
   } catch (error) {
-    console.error('[Kafka] Error during disconnect:', error);
+    logger.error('[Kafka] Error during disconnect', { error: (error as Error).message });
   }
 }
-
-// Handle process termination
-process.on('SIGTERM', disconnectKafka);
-process.on('SIGINT', disconnectKafka);
-
-console.log('[Kafka] Client initialized');

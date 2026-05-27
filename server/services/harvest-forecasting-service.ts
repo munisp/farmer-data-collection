@@ -8,7 +8,7 @@ import { db } from "../db.js";
 import { weatherService } from "./weather-service.js";
 import { predictYield } from "./yieldPredictionService.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
 
 export interface HarvestForecast {
   id: string;

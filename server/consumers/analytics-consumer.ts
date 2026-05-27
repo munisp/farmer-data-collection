@@ -28,6 +28,9 @@ export async function startAnalyticsConsumer() {
   try {
     const consumer = await createConsumer('analytics-group');
     const redis = getRedisClient();
+    if (!redis) {
+      console.warn('[AnalyticsConsumer] Redis unavailable — analytics consumer will skip cache writes');
+    }
     
     await consumer.subscribe({
       topic: TOPICS.ANALYTICS,
@@ -44,7 +47,7 @@ export async function startAnalyticsConsumer() {
           const event = JSON.parse(message.value?.toString() || '{}');
           
           // Get current metrics
-          const metricsJson = await redis.get(METRICS_KEY);
+          const metricsJson = redis ? await redis.get(METRICS_KEY) : null;
           const metrics: AnalyticsMetrics = metricsJson 
             ? JSON.parse(metricsJson)
             : {
@@ -122,9 +125,8 @@ export async function startAnalyticsConsumer() {
           }
 
           // Track active users
-          if (event.userId) {
+          if (event.userId && redis) {
             await redis.sadd(ACTIVE_USERS_KEY, event.userId.toString());
-            // Set expiry to midnight
             const now = new Date();
             const midnight = new Date(now);
             midnight.setHours(24, 0, 0, 0);
@@ -136,7 +138,9 @@ export async function startAnalyticsConsumer() {
           metrics.lastUpdated = new Date().toISOString();
 
           // Save updated metrics
-          await redis.set(METRICS_KEY, JSON.stringify(metrics), 'EX', 3600); // 1 hour TTL
+          if (redis) {
+            await redis.set(METRICS_KEY, JSON.stringify(metrics), 'EX', 3600);
+          }
 
           console.log(`[AnalyticsConsumer] Updated metrics: ${entityType} ${eventType}`);
         } catch (error) {
@@ -160,6 +164,7 @@ export async function startAnalyticsConsumer() {
 export async function getAnalyticsMetrics(): Promise<AnalyticsMetrics | null> {
   try {
     const redis = getRedisClient();
+    if (!redis) return null;
     const metricsJson = await redis.get('analytics:metrics');
     
     if (!metricsJson) {

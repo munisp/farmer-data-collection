@@ -48,7 +48,7 @@ export async function startAuditTrailConsumer() {
           const producer = await getProducer();
           
           // Send each failed message to DLQ
-          for (const failedLog of currentBatch) {
+          if (producer) for (const failedLog of currentBatch) {
             await producer.send({
               topic: 'audit-trail-dlq',
               messages: [

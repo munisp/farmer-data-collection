@@ -6,7 +6,7 @@
 
 import { db } from "../db.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
 
 export type ContentType = 'question' | 'answer' | 'tip' | 'success_story' | 'tutorial' | 'discussion';
 export type ContentStatus = 'pending' | 'approved' | 'rejected' | 'flagged';

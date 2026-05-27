@@ -100,7 +100,11 @@ async function startServer() {
   // Initialize Redis connection for caching
   try {
     const redis = getRedisClient();
-    console.log('[Server] Redis client initialized for caching');
+    if (redis) {
+      console.log('[Server] Redis client initialized for caching');
+    } else {
+      console.warn('[Server] Redis unavailable — running without cache');
+    }
   } catch (error) {
     console.warn('[Server] Redis caching connection failed, continuing without cache:', error);
   }
@@ -117,11 +121,15 @@ async function startServer() {
   app.get('/health', async (_req, res) => {
     try {
       const redis = getRedisClient();
-      await redis.ping();
+      let redisStatus = 'disconnected';
+      if (redis) {
+        await redis.ping();
+        redisStatus = 'connected';
+      }
       const consumerHealth = getConsumerHealth();
       res.json({ 
         status: 'ok', 
-        redis: 'connected',
+        redis: redisStatus,
         consumers: consumerHealth
       });
     } catch (error) {
@@ -159,8 +167,12 @@ async function startServer() {
     try {
       const start = Date.now();
       const redis = getRedisClient();
-      await redis.ping();
-      checks.redis = { status: 'ok', latency: Date.now() - start };
+      if (redis) {
+        await redis.ping();
+        checks.redis = { status: 'ok', latency: Date.now() - start };
+      } else {
+        checks.redis = { status: 'unavailable' };
+      }
     } catch (error) {
       checks.redis = { status: 'unavailable' };
       // Redis is optional, don't fail readiness
@@ -311,32 +323,55 @@ async function startServer() {
     // }
   });
   
-    // Graceful shutdown
-    process.on('SIGTERM', async () => {
-      console.log('[Server] SIGTERM received, closing connections...');
-      shutdownCronJobs();
-      await stopKafkaConsumers();
-      await stopAllConsumers();
-      await shutdownLakehouse();
-      await closeRedis();
-      server.close(() => {
-        console.log('[Server] Server closed');
-        process.exit(0);
-      });
-    });
-  
-    process.on('SIGINT', async () => {
-      console.log('[Server] SIGINT received, closing connections...');
-      shutdownCronJobs();
-      await stopKafkaConsumers();
-      await stopAllConsumers();
-      await shutdownLakehouse();
-      await closeRedis();
-      server.close(() => {
-        console.log('[Server] Server closed');
-        process.exit(0);
-      });
-    });
+    // Graceful shutdown — close ALL connections
+    async function gracefulShutdown(signal: string) {
+      console.log(`[Server] ${signal} received, shutting down gracefully...`);
+      const timeout = setTimeout(() => {
+        console.error('[Server] Graceful shutdown timed out, forcing exit');
+        process.exit(1);
+      }, 15_000);
+
+      try {
+        shutdownCronJobs();
+        await Promise.allSettled([
+          stopKafkaConsumers(),
+          stopAllConsumers(),
+          shutdownLakehouse(),
+        ]);
+
+        // Close Redis
+        await closeRedis().catch(() => {});
+
+        // Close Kafka
+        const { disconnectKafka } = await import('./kafka.js');
+        await disconnectKafka().catch(() => {});
+
+        // Close database pool
+        const { closeDb } = await import('./db.js');
+        await closeDb().catch(() => {});
+
+        // Close TigerBeetle
+        const { closeTigerBeetle } = await import('./tigerbeetle-client.js');
+        if (typeof closeTigerBeetle === 'function') await closeTigerBeetle().catch(() => {});
+
+        // Close Dapr
+        const { stopDaprServer } = await import('./dapr-client.js');
+        await stopDaprServer().catch(() => {});
+
+        server.close(() => {
+          clearTimeout(timeout);
+          console.log('[Server] All connections closed');
+          process.exit(0);
+        });
+      } catch (err) {
+        console.error('[Server] Error during shutdown:', err);
+        clearTimeout(timeout);
+        process.exit(1);
+      }
+    }
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 startServer().catch(console.error);

@@ -70,8 +70,8 @@ class GPSLakehouseIngestion:
         )
         self.s3_endpoint = s3_endpoint or os.getenv("S3_ENDPOINT", "http://localhost:9000")
         self.s3_bucket = s3_bucket or os.getenv("LAKEHOUSE_BUCKET", "lakehouse")
-        self.s3_access_key = s3_access_key or os.getenv("S3_ACCESS_KEY", "minioadmin")
-        self.s3_secret_key = s3_secret_key or os.getenv("S3_SECRET_KEY", "minioadmin")
+        self.s3_access_key = s3_access_key or os.getenv("S3_ACCESS_KEY", "")
+        self.s3_secret_key = s3_secret_key or os.getenv("S3_SECRET_KEY", "")
         self.batch_size = batch_size
         
         self.conn = None

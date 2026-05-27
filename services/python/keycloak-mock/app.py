@@ -14,7 +14,7 @@ import os
 app = FastAPI(title="Mock Keycloak Service")
 
 # Secret key for JWT
-SECRET_KEY = "farmer-platform-secret-key-2024"
+SECRET_KEY = os.getenv("KEYCLOAK_MOCK_SECRET_KEY", "farmer-platform-secret-key-2024")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

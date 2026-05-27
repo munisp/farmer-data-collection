@@ -36,6 +36,7 @@ export async function startCacheInvalidationConsumer() {
 
           // Delete cache keys
           const redis = getRedisClient();
+          if (!redis) return;
           const deletedCount = await redis.del(...cacheKeys);
           
           console.log(

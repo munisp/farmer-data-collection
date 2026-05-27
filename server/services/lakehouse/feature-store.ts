@@ -253,6 +253,7 @@ export class FeatureStoreService {
 
     try {
       const redis = getRedisClient();
+      if (!redis) return null;
       const key = `features:${featureGroupName}:${entityId}`;
       const cached = await redis.get(key);
 
@@ -282,6 +283,7 @@ export class FeatureStoreService {
 
     try {
       const redis = getRedisClient();
+      if (!redis) return;
       const key = `features:${featureGroupName}:${entityId}`;
       await redis.set(key, JSON.stringify(features), 'EX', group.ttlSeconds);
     } catch (error) {

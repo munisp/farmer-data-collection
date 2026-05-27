@@ -8,7 +8,7 @@ import { eq, and } from "drizzle-orm";
 // Initialize Stripe only if API key is available
 const stripeApiKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeApiKey ? new Stripe(stripeApiKey, {
-  apiVersion: "2025-11-17.clover",
+  apiVersion: "2026-02-25.clover",
 }) : null;
 
 if (!stripe) {

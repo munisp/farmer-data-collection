@@ -1,9 +1,20 @@
 import { grpc } from '@permify/permify-node';
+import { logger } from './logger.js';
 
 const PERMIFY_ENDPOINT = process.env.PERMIFY_ENDPOINT || 'localhost:3476';
+let _permifyHealthy = true;
+let _lastHealthCheck = 0;
+const HEALTH_CACHE_MS = 15_000;
 
-console.log('[Permify] Initializing Permify client...');
-console.log(`  Endpoint: ${PERMIFY_ENDPOINT}`);
+// In-memory permission cache (TTL-based)
+const _permissionCache = new Map<string, { result: boolean; expires: number }>();
+const CACHE_TTL_MS = 10_000;
+
+function cacheKey(userId: string | number, resource: string, resourceId: string | number, action: string): string {
+  return `${userId}:${resource}:${resourceId}:${action}`;
+}
+
+logger.info('[Permify] Initializing', { endpoint: PERMIFY_ENDPOINT });
 
 // Create Permify client
 export const permify = grpc.newClient({
@@ -27,29 +38,26 @@ export async function checkPermission(
   action: string,
   tenantId: string = DEFAULT_TENANT_ID
 ): Promise<boolean> {
+  const key = cacheKey(userId, resource, resourceId, action);
+  const cached = _permissionCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.result;
+
   try {
     const response = await permify.permission.check({
       tenantId,
-      metadata: {
-        schemaVersion: '',
-        snapToken: '',
-        depth: 20,
-      },
-      entity: {
-        type: resource,
-        id: resourceId.toString(),
-      },
+      metadata: { schemaVersion: '', snapToken: '', depth: 20 },
+      entity: { type: resource, id: resourceId.toString() },
       permission: action,
-      subject: {
-        type: 'user',
-        id: userId.toString(),
-      },
+      subject: { type: 'user', id: userId.toString() },
     });
 
-    return response.can === grpc.base.CheckResult.CHECK_RESULT_ALLOWED;
+    const allowed = response.can === grpc.base.CheckResult.CHECK_RESULT_ALLOWED;
+    _permissionCache.set(key, { result: allowed, expires: Date.now() + CACHE_TTL_MS });
+    _permifyHealthy = true;
+    return allowed;
   } catch (error) {
-    console.error('[Permify] Permission check failed:', error);
-    // Fail closed - deny access on error
+    logger.error('[Permify] Permission check failed', { error: (error as Error).message, userId, resource, resourceId, action });
+    _permifyHealthy = false;
     return false;
   }
 }
@@ -86,9 +94,13 @@ export async function createRelationship(
       ],
     });
 
-    console.log(`[Permify] Created relationship: ${subjectType}:${subjectId} ${relation} ${resource}:${resourceId}`);
+    logger.info('[Permify] Relationship created', { subjectType, subjectId, relation, resource, resourceId });
+    // Invalidate cache for this resource
+    for (const [k] of _permissionCache) {
+      if (k.includes(`:${resource}:${resourceId}:`)) _permissionCache.delete(k);
+    }
   } catch (error) {
-    console.error('[Permify] Failed to create relationship:', error);
+    logger.error('[Permify] Failed to create relationship', { error: (error as Error).message });
     throw error;
   }
 }
@@ -120,9 +132,12 @@ export async function deleteRelationship(
       },
     });
 
-    console.log(`[Permify] Deleted relationship: ${subjectType}:${subjectId} ${relation} ${resource}:${resourceId}`);
+    logger.info('[Permify] Relationship deleted', { subjectType, subjectId, relation, resource, resourceId });
+    for (const [k] of _permissionCache) {
+      if (k.includes(`:${resource}:${resourceId}:`)) _permissionCache.delete(k);
+    }
   } catch (error) {
-    console.error('[Permify] Failed to delete relationship:', error);
+    logger.error('[Permify] Failed to delete relationship', { error: (error as Error).message });
     throw error;
   }
 }
@@ -154,7 +169,7 @@ export async function lookupResources(
 
     return response.entityIds || [];
   } catch (error) {
-    console.error('[Permify] Lookup resources failed:', error);
+    logger.error('[Permify] Lookup resources failed', { error: (error as Error).message });
     return [];
   }
 }
@@ -189,7 +204,7 @@ export async function lookupSubjects(
 
     return response.subjectIds || [];
   } catch (error) {
-    console.error('[Permify] Lookup subjects failed:', error);
+    logger.error('[Permify] Lookup subjects failed', { error: (error as Error).message });
     return [];
   }
 }
@@ -261,4 +276,10 @@ export function requirePermission(
   };
 }
 
-console.log('[Permify] Client initialized');
+export function isPermifyHealthy(): boolean {
+  return _permifyHealthy;
+}
+
+export function clearPermissionCache(): void {
+  _permissionCache.clear();
+}

@@ -1,223 +1,231 @@
 import Redis from 'ioredis';
+import { logger } from './logger.js';
 
-// Redis client singleton
 let redisClient: Redis | null = null;
+let _connectionFailed = false;
+let _lastReconnectAttempt = 0;
+const RECONNECT_INTERVAL_MS = 30_000;
 
 /**
- * Get or create Redis client
+ * Get or create Redis client with graceful degradation.
+ * Returns null when Redis is unavailable instead of throwing.
  */
-export function getRedisClient(): Redis {
-  if (!redisClient) {
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-    
-    console.log('[Redis] Connecting to Redis:', redisUrl.replace(/:[^:@]+@/, ':****@'));
-    
+export function getRedisClient(): Redis | null {
+  if (_connectionFailed) {
+    if (Date.now() - _lastReconnectAttempt < RECONNECT_INTERVAL_MS) return null;
+    // Attempt reconnect after interval
+    _connectionFailed = false;
+    redisClient = null;
+  }
+
+  if (redisClient && redisClient.status === 'ready') return redisClient;
+
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    logger.info('[Redis] REDIS_URL not set — running without cache');
+    _connectionFailed = true;
+    return null;
+  }
+
+  try {
+    logger.info('[Redis] Connecting', { url: redisUrl.replace(/:[^:@]+@/, ':****@') });
+
     redisClient = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 2,
+      enableReadyCheck: true,
+      lazyConnect: true,
+      connectTimeout: 3000,
       retryStrategy(times) {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
+        if (times > 3) {
+          _connectionFailed = true;
+          _lastReconnectAttempt = Date.now();
+          return null;
+        }
+        return Math.min(times * 100, 2000);
       },
       reconnectOnError(err) {
-        const targetError = 'READONLY';
-        if (err.message.includes(targetError)) {
-          // Reconnect when Redis is in readonly mode
-          return true;
-        }
-        return false;
+        return err.message.includes('READONLY');
       },
     });
 
     redisClient.on('connect', () => {
-      console.log('[Redis] Connected successfully');
+      _connectionFailed = false;
+      logger.info('[Redis] Connected successfully');
     });
 
     redisClient.on('error', (err) => {
-      console.error('[Redis] Error:', err.message);
+      if (!_connectionFailed) {
+        _connectionFailed = true;
+        _lastReconnectAttempt = Date.now();
+        logger.warn('[Redis] Connection failed — degraded mode', { error: err.message });
+      }
     });
 
     redisClient.on('close', () => {
-      console.log('[Redis] Connection closed');
+      logger.info('[Redis] Connection closed');
     });
-  }
 
-  return redisClient;
+    redisClient.connect().catch(() => {
+      _connectionFailed = true;
+      _lastReconnectAttempt = Date.now();
+    });
+
+    return redisClient;
+  } catch (err) {
+    _connectionFailed = true;
+    _lastReconnectAttempt = Date.now();
+    logger.warn('[Redis] Init failed', { error: (err as Error).message });
+    return null;
+  }
 }
 
-/**
- * Close Redis connection
- */
+export function isRedisHealthy(): boolean {
+  return !_connectionFailed && redisClient !== null && redisClient.status === 'ready';
+}
+
 export async function closeRedis(): Promise<void> {
   if (redisClient) {
-    await redisClient.quit();
+    try {
+      await redisClient.quit();
+    } catch {
+      redisClient.disconnect();
+    }
     redisClient = null;
-    console.log('[Redis] Connection closed gracefully');
+    _connectionFailed = false;
+    logger.info('[Redis] Connection closed gracefully');
   }
 }
 
 /**
- * Cache wrapper utilities
+ * Cache wrapper with graceful degradation — all operations return
+ * safe fallback values when Redis is unavailable.
  */
 export class CacheService {
-  private redis: Redis;
-  private defaultTTL: number = 300; // 5 minutes
+  private defaultTTL: number = 300;
 
   constructor(ttl?: number) {
-    this.redis = getRedisClient();
     if (ttl) this.defaultTTL = ttl;
   }
 
-  /**
-   * Get cached value
-   */
+  private getClient(): Redis | null {
+    return getRedisClient();
+  }
+
   async get<T>(key: string): Promise<T | null> {
+    const redis = this.getClient();
+    if (!redis) return null;
     try {
-      const value = await this.redis.get(key);
+      const value = await redis.get(key);
       if (!value) return null;
       return JSON.parse(value) as T;
     } catch (error) {
-      console.error(`[Cache] Error getting key ${key}:`, error);
+      logger.error(`[Cache] Error getting key ${key}`, { error: (error as Error).message });
       return null;
     }
   }
 
-  /**
-   * Set cached value with TTL
-   */
-  async set(key: string, value: any, ttl?: number): Promise<void> {
+  async set(key: string, value: unknown, ttl?: number): Promise<void> {
+    const redis = this.getClient();
+    if (!redis) return;
     try {
       const serialized = JSON.stringify(value);
       const expiry = ttl || this.defaultTTL;
-      await this.redis.setex(key, expiry, serialized);
+      await redis.setex(key, expiry, serialized);
     } catch (error) {
-      console.error(`[Cache] Error setting key ${key}:`, error);
+      logger.error(`[Cache] Error setting key ${key}`, { error: (error as Error).message });
     }
   }
 
-  /**
-   * Delete cached value
-   */
   async del(key: string): Promise<void> {
+    const redis = this.getClient();
+    if (!redis) return;
     try {
-      await this.redis.del(key);
+      await redis.del(key);
     } catch (error) {
-      console.error(`[Cache] Error deleting key ${key}:`, error);
+      logger.error(`[Cache] Error deleting key ${key}`, { error: (error as Error).message });
     }
   }
 
-  /**
-   * Delete multiple keys by pattern
-   */
   async delPattern(pattern: string): Promise<void> {
+    const redis = this.getClient();
+    if (!redis) return;
     try {
-      const keys = await this.redis.keys(pattern);
+      const keys = await redis.keys(pattern);
       if (keys.length > 0) {
-        await this.redis.del(...keys);
-        console.log(`[Cache] Deleted ${keys.length} keys matching pattern: ${pattern}`);
+        await redis.del(...keys);
+        logger.info(`[Cache] Deleted ${keys.length} keys matching pattern: ${pattern}`);
       }
     } catch (error) {
-      console.error(`[Cache] Error deleting pattern ${pattern}:`, error);
+      logger.error(`[Cache] Error deleting pattern ${pattern}`, { error: (error as Error).message });
     }
   }
 
-  /**
-   * Check if key exists
-   */
   async exists(key: string): Promise<boolean> {
+    const redis = this.getClient();
+    if (!redis) return false;
     try {
-      const result = await this.redis.exists(key);
-      return result === 1;
+      return (await redis.exists(key)) === 1;
     } catch (error) {
-      console.error(`[Cache] Error checking key ${key}:`, error);
+      logger.error(`[Cache] Error checking key ${key}`, { error: (error as Error).message });
       return false;
     }
   }
 
-  /**
-   * Get or set pattern: fetch from cache or compute and cache
-   */
-  async getOrSet<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    ttl?: number
-  ): Promise<T> {
-    // Try to get from cache
+  async getOrSet<T>(key: string, fetcher: () => Promise<T>, ttl?: number): Promise<T> {
     const cached = await this.get<T>(key);
-    if (cached !== null) {
-      console.log(`[Cache] HIT: ${key}`);
-      return cached;
-    }
-
-    // Cache miss - fetch data
-    console.log(`[Cache] MISS: ${key}`);
+    if (cached !== null) return cached;
     const data = await fetcher();
-    
-    // Store in cache
     await this.set(key, data, ttl);
-    
     return data;
   }
 
-  /**
-   * Increment counter
-   */
   async incr(key: string): Promise<number> {
+    const redis = this.getClient();
+    if (!redis) return 0;
     try {
-      return await this.redis.incr(key);
+      return await redis.incr(key);
     } catch (error) {
-      console.error(`[Cache] Error incrementing key ${key}:`, error);
+      logger.error(`[Cache] Error incrementing key ${key}`, { error: (error as Error).message });
       return 0;
     }
   }
 
-  /**
-   * Decrement counter
-   */
   async decr(key: string): Promise<number> {
+    const redis = this.getClient();
+    if (!redis) return 0;
     try {
-      return await this.redis.decr(key);
+      return await redis.decr(key);
     } catch (error) {
-      console.error(`[Cache] Error decrementing key ${key}:`, error);
+      logger.error(`[Cache] Error decrementing key ${key}`, { error: (error as Error).message });
       return 0;
     }
   }
 
-  /**
-   * Set expiration on existing key
-   */
   async expire(key: string, ttl: number): Promise<void> {
+    const redis = this.getClient();
+    if (!redis) return;
     try {
-      await this.redis.expire(key, ttl);
+      await redis.expire(key, ttl);
     } catch (error) {
-      console.error(`[Cache] Error setting expiration on key ${key}:`, error);
+      logger.error(`[Cache] Error setting expiration on key ${key}`, { error: (error as Error).message });
     }
   }
 
-  /**
-   * Get cache statistics
-   */
-  async getStats(): Promise<{
-    keys: number;
-    memory: string;
-    hits: string;
-    misses: string;
-  }> {
+  async getStats(): Promise<{ keys: number; memory: string; hits: string; misses: string }> {
+    const redis = this.getClient();
+    if (!redis) return { keys: 0, memory: '0B', hits: '0', misses: '0' };
     try {
-      const info = await this.redis.info('stats');
-      const dbsize = await this.redis.dbsize();
-      const memory = await this.redis.info('memory');
-
-      // Parse info strings
-      const stats = {
+      const info = await redis.info('stats');
+      const dbsize = await redis.dbsize();
+      const memory = await redis.info('memory');
+      return {
         keys: dbsize,
         memory: this.parseInfoValue(memory, 'used_memory_human'),
         hits: this.parseInfoValue(info, 'keyspace_hits'),
         misses: this.parseInfoValue(info, 'keyspace_misses'),
       };
-
-      return stats;
     } catch (error) {
-      console.error('[Cache] Error getting stats:', error);
+      logger.error('[Cache] Error getting stats', { error: (error as Error).message });
       return { keys: 0, memory: '0B', hits: '0', misses: '0' };
     }
   }
@@ -228,5 +236,4 @@ export class CacheService {
   }
 }
 
-// Export singleton instance
 export const cache = new CacheService();

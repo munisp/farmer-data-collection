@@ -687,8 +687,9 @@ export class USSDService {
             };
           }
         } else {
-          // Create new user with a default password
-          const defaultPassword = await bcrypt.hash("farmer123", 10);
+          // Create new user with a secure random default password
+          const randomPassword = require('crypto').randomBytes(16).toString('hex');
+          const defaultPassword = await bcrypt.hash(randomPassword, 10);
           
           const [newUser] = await db.insert(users).values({
             email: `${phoneNumber}@ussd.farmapp.com`,
@@ -1042,8 +1043,9 @@ export class USSDService {
         if (existingUser) {
           userId = existingUser.id;
         } else {
-          // Create new user with a default password (they can change it later via web)
-          const defaultPassword = await bcrypt.hash("farmer123", 10);
+          // Create new user with a secure random default password
+          const randomPwd = require('crypto').randomBytes(16).toString('hex');
+          const defaultPassword = await bcrypt.hash(randomPwd, 10);
           
           const [newUser] = await db.insert(users).values({
             email: `${phoneNumber}@ussd.farmapp.com`,

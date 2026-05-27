@@ -372,8 +372,8 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let endpoint = env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
-    let access_key = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".to_string());
-    let secret_key = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".to_string());
+    let access_key = env::var("S3_ACCESS_KEY").expect("S3_ACCESS_KEY must be set");
+    let secret_key = env::var("S3_SECRET_KEY").expect("S3_SECRET_KEY must be set");
     let bucket = env::var("S3_BUCKET").unwrap_or_else(|_| "farmer-uploads".to_string());
     let port = env::var("PORT").unwrap_or_else(|_| "8015".to_string());
 
