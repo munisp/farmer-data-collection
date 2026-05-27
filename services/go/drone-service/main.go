@@ -213,8 +213,8 @@ func (s *DroneService) GenerateFlightPlan(farmID int, boundary []Coordinate, fli
 
 // GenerateSprayPrescription creates variable-rate spray zones from NDVI data
 func (s *DroneService) GenerateSprayPrescription(farmID int, boundary []Coordinate, ndviZones []struct {
-	Polygon []Coordinate
-	NDVI    float64
+	Polygon []Coordinate `json:"polygon"`
+	NDVI    float64      `json:"ndvi"`
 }) *SprayPrescription {
 	zones := make([]SprayZone, 0)
 	totalVol := 0.0

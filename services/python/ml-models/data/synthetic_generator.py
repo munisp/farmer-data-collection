@@ -582,7 +582,7 @@ def generate_soil_health_data(n_samples: int = 3000) -> pd.DataFrame:
 # SOIL ANALYSIS MULTI-MODAL DATA (photo + lab + location)
 # ============================================================================
 
-SOIL_TYPES = {
+SOIL_TYPE_PROPERTIES = {
     "loamy": {
         "color_rgb": (0.35, 0.25, 0.18), "color_var": 0.06,
         "ph_mean": 6.5, "ph_std": 0.5, "cec_mean": 20, "cec_std": 5,
@@ -725,7 +725,7 @@ def generate_soil_multimodal_data(
         recommendation_labels: (N, 8) float32
         soil_type_names: list of str
     """
-    soil_type_names_list = list(SOIL_TYPES.keys())
+    soil_type_names_list = list(SOIL_TYPE_PROPERTIES.keys())
     n_types = len(soil_type_names_list)
 
     photos = np.zeros((n_samples, 3, img_size, img_size), dtype=np.float32)
@@ -739,7 +739,7 @@ def generate_soil_multimodal_data(
     for i in range(n_samples):
         # Pick soil type
         st_name = soil_type_names_list[i % n_types]
-        st = SOIL_TYPES[st_name]
+        st = SOIL_TYPE_PROPERTIES[st_name]
         type_names.append(st_name)
 
         # Generate photo
