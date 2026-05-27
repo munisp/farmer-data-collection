@@ -117,6 +117,28 @@ async function startServer() {
     console.warn('[Server] Redis rate limiting initialization failed, using in-memory fallback:', error);
   }
 
+  // ============ API Documentation (OpenAPI/Swagger) ============
+  app.get('/docs/openapi.json', (_req, res) => {
+    import('./openapi-docs.js').then(({ generateOpenAPISpec }) => {
+      res.json(generateOpenAPISpec());
+    }).catch(() => res.status(500).json({ error: 'Failed to generate spec' }));
+  });
+
+  app.get('/docs', (_req, res) => {
+    import('./openapi-docs.js').then(({ getSwaggerUIHTML }) => {
+      res.setHeader('Content-Type', 'text/html');
+      res.send(getSwaggerUIHTML('/docs/openapi.json'));
+    }).catch(() => res.status(500).send('Failed to load docs'));
+  });
+
+  // ============ GraphQL Gateway ============
+  app.get('/graphql/schema', (_req, res) => {
+    import('./graphql-gateway.js').then(({ generateGraphQLSchema }) => {
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(generateGraphQLSchema());
+    }).catch(() => res.status(500).send('Failed to generate schema'));
+  });
+
   // Liveness probe - basic health check
   app.get('/health', async (_req, res) => {
     try {

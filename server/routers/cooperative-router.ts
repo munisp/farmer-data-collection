@@ -534,4 +534,95 @@ export const cooperativeRouter = router({
         par90: Number(coop.par90) || 0,
       }));
     }),
+
+  // ======================== COLLECTIVE SELLING ========================
+
+  createCollectiveListing: publicProcedure
+    .input(z.object({
+      cooperativeId: z.number(),
+      cropType: z.string(),
+      totalQuantityKg: z.number().min(1),
+      pricePerKg: z.number().min(1),
+      currency: z.string().default("KES"),
+      qualityGrade: z.enum(["A", "B", "C"]),
+      harvestDate: z.string(),
+      memberContributions: z.array(z.object({
+        memberId: z.number(),
+        quantityKg: z.number(),
+      })),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const totalContributed = input.memberContributions.reduce((s, c) => s + c.quantityKg, 0);
+      if (totalContributed !== input.totalQuantityKg) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Member contributions (${totalContributed}kg) must equal total quantity (${input.totalQuantityKg}kg)`,
+        });
+      }
+
+      const listingId = `COL-${input.cooperativeId}-${Date.now()}`;
+      return {
+        listingId,
+        cooperativeId: input.cooperativeId,
+        cropType: input.cropType,
+        totalQuantityKg: input.totalQuantityKg,
+        pricePerKg: input.pricePerKg,
+        totalValue: input.totalQuantityKg * input.pricePerKg,
+        currency: input.currency,
+        qualityGrade: input.qualityGrade,
+        memberContributions: input.memberContributions,
+        memberCount: input.memberContributions.length,
+        status: "listed",
+        createdAt: new Date().toISOString(),
+      };
+    }),
+
+  getCollectiveListings: publicProcedure
+    .input(z.object({ cooperativeId: z.number() }))
+    .query(async () => {
+      return [] as Array<{
+        listingId: string;
+        cropType: string;
+        totalQuantityKg: number;
+        pricePerKg: number;
+        qualityGrade: string;
+        memberCount: number;
+        status: string;
+      }>;
+    }),
+
+  distributeRevenue: publicProcedure
+    .input(z.object({
+      listingId: z.string(),
+      totalRevenue: z.number(),
+      currency: z.string().default("KES"),
+      memberContributions: z.array(z.object({
+        memberId: z.number(),
+        quantityKg: z.number(),
+      })),
+    }))
+    .mutation(async ({ input }) => {
+      const totalKg = input.memberContributions.reduce((s, c) => s + c.quantityKg, 0);
+      const distributions = input.memberContributions.map(c => ({
+        memberId: c.memberId,
+        quantityKg: c.quantityKg,
+        sharePercent: Math.round((c.quantityKg / totalKg) * 10000) / 100,
+        amount: Math.round((c.quantityKg / totalKg) * input.totalRevenue),
+        currency: input.currency,
+      }));
+
+      return {
+        listingId: input.listingId,
+        totalRevenue: input.totalRevenue,
+        platformFee: Math.round(input.totalRevenue * 0.02),
+        netRevenue: Math.round(input.totalRevenue * 0.98),
+        distributions,
+        disbursementMethod: "mobile_money",
+        status: "distributed",
+      };
+    }),
 });

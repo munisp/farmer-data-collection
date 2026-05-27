@@ -64,6 +64,8 @@ import { marketplaceEnhancementsRouter } from "./routers/marketplace-enhancement
 import { whatsappAiRouter } from "./routers/whatsapp-ai-router.js";
 import { weatherAlertsRouter } from "./routers/weather-alerts-router.js";
 import { financialEnhancementsRouter } from "./routers/financial-enhancements-router.js";
+import { governmentSubsidyRouter } from "./routers/government-subsidy-router.js";
+import { platformAdvancedRouter } from "./routers/platform-advanced-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -149,6 +151,8 @@ export const appRouter = router({
   whatsappAi: whatsappAiRouter,
   weatherAlerts: weatherAlertsRouter,
   financialEnhancements: financialEnhancementsRouter,
+  governmentSubsidy: governmentSubsidyRouter,
+  platformAdvanced: platformAdvancedRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
