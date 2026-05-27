@@ -713,3 +713,6 @@ export * from './financial-schema';
 // Export SMS templates schema
 export * from './sms-templates-schema';
 export * from './sms-responses-schema';
+
+// Export supply chain & delivery schema
+export * from './supply-chain-schema';

@@ -126,6 +126,12 @@ const PortfolioAtRiskDashboard = lazy(() => import("./pages/PortfolioAtRiskDashb
 const InputYieldAnalytics = lazy(() => import("./pages/InputYieldAnalytics"));
 const LandSuitabilityAssessment = lazy(() => import("./pages/LandSuitabilityAssessment"));
 const FarmGeotagging = lazy(() => import("./pages/FarmGeotagging"));
+const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
+const MobileMoneyDashboard = lazy(() => import("./pages/MobileMoneyDashboard"));
+const ChamaGroupLending = lazy(() => import("./pages/ChamaGroupLending"));
+const ColdChainMonitoring = lazy(() => import("./pages/ColdChainMonitoring"));
+const PriceAlertsDashboard = lazy(() => import("./pages/PriceAlertsDashboard"));
+const SubscriptionBoxes = lazy(() => import("./pages/SubscriptionBoxes"));
 
 function Router() {
   return (
@@ -245,6 +251,12 @@ function Router() {
         <Route path="/portfolio-risk" component={PortfolioAtRiskDashboard} />
         <Route path="/input-yield-analytics" component={InputYieldAnalytics} />
         <Route path="/land-suitability" component={LandSuitabilityAssessment} />
+        <Route path="/delivery" component={DeliveryDashboard} />
+        <Route path="/mobile-money" component={MobileMoneyDashboard} />
+        <Route path="/chama" component={ChamaGroupLending} />
+        <Route path="/cold-chain" component={ColdChainMonitoring} />
+        <Route path="/price-alerts" component={PriceAlertsDashboard} />
+        <Route path="/subscriptions" component={SubscriptionBoxes} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

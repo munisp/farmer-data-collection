@@ -53,6 +53,13 @@ import { landSuitabilityRouter } from "./routers/land-suitability-router.js";
 import { farmerFeaturesRouter } from "./routers/farmer-features-router.js";
 import { satelliteImageryRouter } from "./satellite-imagery-router.js";
 import { fieldOverviewRouter } from "./routers/field-overview-router.js";
+import { mobileMoneyRouter } from "./routers/mobile-money-router.js";
+import { deliveryRouter } from "./routers/delivery-router.js";
+import { escrowRouter } from "./routers/escrow-router.js";
+import { chamaRouter } from "./routers/chama-router.js";
+import { subscriptionRouter } from "./routers/subscription-router.js";
+import { coldChainRouter } from "./routers/cold-chain-router.js";
+import { priceAlertsRouter } from "./routers/price-alerts-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -126,6 +133,14 @@ export const appRouter = router({
                                     farmerFeatures: farmerFeaturesRouter,
                                     satelliteImagery: satelliteImageryRouter,
                                     fieldOverview: fieldOverviewRouter,
+  // === Supply Chain Phase 1-4 Routers ===
+  mobileMoney: mobileMoneyRouter,
+  delivery: deliveryRouter,
+  escrow: escrowRouter,
+  chama: chamaRouter,
+  subscription: subscriptionRouter,
+  coldChain: coldChainRouter,
+  priceAlerts: priceAlertsRouter,
                                     sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
