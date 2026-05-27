@@ -1129,6 +1129,16 @@ function generateFallbackYieldTrend(fieldId: number, years: number) {
   const trendDirection = secondAvg > firstAvg + 0.02 ? 'improving' : 
                          secondAvg < firstAvg - 0.02 ? 'declining' : 'stable';
   
+  // Compute R² from linear regression of NDVI values
+  const n = ndviValues.length;
+  const mean = ndviValues.reduce((a, b) => a + b, 0) / n;
+  const ssTotal = ndviValues.reduce((s, v) => s + (v - mean) ** 2, 0);
+  const ssResidual = ndviValues.reduce((s, v, i) => {
+    const predicted = firstAvg + (secondAvg - firstAvg) * (i / (n - 1 || 1));
+    return s + (v - predicted) ** 2;
+  }, 0);
+  const rSquared = ssTotal > 0 ? Math.round((1 - ssResidual / ssTotal) * 1000) / 1000 : 0.5;
+  
   return {
     field_id: fieldId,
     source: 'fallback_simulation',
@@ -1142,7 +1152,7 @@ function generateFallbackYieldTrend(fieldId: number, years: number) {
       direction: trendDirection,
       annual_change_pct: Math.round(baseTrend * 10000) / 100,
       confidence: 0.7,
-      r_squared: 0.5 + Math.random() * 0.3,
+      r_squared: rSquared,
     },
     insights: [
       trendDirection === 'improving' 
