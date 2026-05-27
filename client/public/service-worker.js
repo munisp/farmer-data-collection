@@ -36,7 +36,22 @@ const OFFLINE_CAPABLE_ROUTES = [
   '/crops',
   '/farms',
   '/farmers',
+  '/my-listings',
+  '/my-orders',
+  '/my-sales',
+  '/delivery',
+  '/cold-chain',
+  '/chama',
+  '/mobile-money',
+  '/settings',
 ];
+
+// Maximum cache sizes per category
+const MAX_CACHE_ITEMS = {
+  API: 200,
+  IMAGES: 100,
+  DYNAMIC: 150,
+};
 
 // ============================================
 // INSTALL EVENT - Pre-cache static assets
@@ -96,8 +111,20 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   
-  // Skip non-GET requests
+  // For non-GET requests: attempt fetch, queue on failure (handled by OfflineDataManager)
   if (request.method !== 'GET') {
+    if (isApiRequest(url) && !navigator.onLine) {
+      event.respondWith(
+        new Response(
+          JSON.stringify({
+            error: 'queued',
+            message: 'Request queued for sync when online.',
+            offline: true,
+          }),
+          { status: 202, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+    }
     return;
   }
   
@@ -276,6 +303,10 @@ function isStaticAsset(url) {
 self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync triggered:', event.tag);
   
+  if (event.tag === 'sync-queue') {
+    event.waitUntil(syncRequestQueue());
+  }
+  
   if (event.tag === 'sync-harvests') {
     event.waitUntil(syncHarvests());
   }
@@ -288,6 +319,17 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(syncOrders());
   }
 });
+
+/**
+ * Process the IndexedDB request queue from OfflineDataManager
+ */
+async function syncRequestQueue() {
+  console.log('[SW] Processing offline request queue...');
+  const clients = await self.clients.matchAll();
+  clients.forEach(client => {
+    client.postMessage({ type: 'SYNC_QUEUE' });
+  });
+}
 
 async function syncHarvests() {
   console.log('[SW] Syncing harvests...');

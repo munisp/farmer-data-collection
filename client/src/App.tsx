@@ -6,6 +6,7 @@ import { Suspense, lazy, useState } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { PWAInstallPrompt, OnlineStatusIndicator, PWAUpdatePrompt } from "./components/PWAInstallPrompt";
+import { LowBandwidthProvider, ConnectionBanner } from "./components/LowBandwidthProvider";
 import { AuthProvider } from "./contexts/AuthContext";
 import { trpc, queryClient, getTRPCClient } from "./lib/trpc";
 import { WebSocketProvider } from "./contexts/WebSocketNotificationContext";
@@ -290,6 +291,7 @@ function AppShell() {
   const appContent = (
     <TutorialProvider>
       <Toaster />
+      {!isAuthRoute && <ConnectionBanner />}
       {!isAuthRoute && <OnlineStatusIndicator />}
       <Router />
       {!isAuthRoute && (
@@ -323,11 +325,13 @@ function App() {
           <AuthProvider>
             <LocalizationProvider>
               <ThemeProvider defaultTheme="light">
-                <TooltipProvider>
-                  <WebSocketProvider>
-                    <AppShell />
-                  </WebSocketProvider>
-                </TooltipProvider>
+                <LowBandwidthProvider>
+                  <TooltipProvider>
+                    <WebSocketProvider>
+                      <AppShell />
+                    </WebSocketProvider>
+                  </TooltipProvider>
+                </LowBandwidthProvider>
               </ThemeProvider>
             </LocalizationProvider>
           </AuthProvider>

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Languages } from "lucide-react";
@@ -19,10 +19,11 @@ import {
   ChevronRight,
   Coins
 } from "lucide-react";
-import { useState } from "react";
 import { APP_TITLE } from "@/const";
 import { SyncStatus } from "@/components/SyncStatus";
 import { useLocalization, CURRENCY_OPTIONS, LANGUAGE_OPTIONS, Currency, Language } from "@/contexts/LocalizationContext";
+import BottomNavBar, { getActiveCategory, type NavCategory } from "./BottomNavBar";
+import CategoryHub from "./CategoryHub";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -171,14 +172,47 @@ const adminNavItems = [
   { href: "/data-quality", label: "Data Quality", icon: BarChart3 },
 ];
 
+// Hub routes that show category grid instead of a specific page
+const HUB_ROUTES = ["/hub/farm", "/hub/market", "/hub/finance", "/hub/more"];
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location, setLocation] = useLocation();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const { settings, updateSettings, changeLanguage, t } = useLocalization();
 
   const isAdmin = user?.role === 'admin';
+  const [activeCategory, setActiveCategory] = useState<NavCategory>(() => getActiveCategory(location));
+  const [showCategoryHub, setShowCategoryHub] = useState(false);
+
+  // Update active category when route changes
+  useEffect(() => {
+    setActiveCategory(getActiveCategory(location));
+    setShowCategoryHub(false);
+  }, [location]);
+
+  const handleCategoryChange = useCallback((category: NavCategory) => {
+    if (category === "home") {
+      setLocation("/");
+      setShowCategoryHub(false);
+    } else if (category === activeCategory && !showCategoryHub) {
+      setShowCategoryHub(true);
+    } else {
+      setActiveCategory(category);
+      setShowCategoryHub(true);
+    }
+  }, [activeCategory, showCategoryHub, setLocation]);
+
+  const toggleSection = useCallback((title: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  }, []);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -318,13 +352,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-200px)]">
-          {/* Main Navigation Sections */}
-          {navSections.map((section, sectionIndex) => (
+          {/* Main Navigation Sections — collapsible */}
+          {navSections.map((section, sectionIndex) => {
+            const isCollapsed = collapsedSections.has(section.title);
+            return (
             <div key={section.title} className={sectionIndex > 0 ? "pt-3 mt-3 border-t border-border" : ""}>
-              <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {section.title}
-              </p>
-              {section.items.map((item) => {
+              <button
+                onClick={() => toggleSection(section.title)}
+                className="flex items-center justify-between w-full px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
+              >
+                <span>{section.title}</span>
+                {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              {!isCollapsed && section.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.href;
                 return (
@@ -345,7 +385,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 );
               })}
             </div>
-          ))}
+          );
+          })}
 
           {/* Admin Section */}
           {isAdmin && (
@@ -419,12 +460,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto flex flex-col">
+      <main className="flex-1 overflow-auto flex flex-col pb-16 md:pb-0">
         <SyncStatus />
         <div className="container py-4 md:py-8 flex-1 px-4">
-          {children}
+          {showCategoryHub ? <CategoryHub category={activeCategory} /> : children}
         </div>
       </main>
+
+      {/* Bottom Navigation Bar — mobile only */}
+      <BottomNavBar activeCategory={activeCategory} onCategoryChange={handleCategoryChange} />
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (

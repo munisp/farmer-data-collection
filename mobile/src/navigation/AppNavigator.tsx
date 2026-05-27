@@ -2,6 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthStore } from '@/stores/authStore';
+import { Platform, StyleSheet, View, Text } from 'react-native';
 
 // Auth screens
 import LoginScreen from '@/screens/auth/LoginScreen';
@@ -61,29 +62,44 @@ function AuthStack() {
   );
 }
 
-function HarvestStack() {
+// Tab icon component
+function TabIcon({ name, focused }: { name: string; focused: boolean }) {
+  const icons: Record<string, string> = {
+    Home: '\u{1F3E0}',
+    Farm: '\u{1F33E}',
+    Market: '\u{1F6D2}',
+    Finance: '\u{1F4B0}',
+    More: '\u{2699}',
+  };
+  return (
+    <View style={styles.tabIconContainer}>
+      {focused && <View style={styles.tabIndicator} />}
+      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icons[name] ?? '\u{2699}'}</Text>
+    </View>
+  );
+}
+
+// ===== Farm Stack (Crops, Livestock, Equipment, AI) =====
+function FarmStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HarvestList" component={HarvestListScreen} />
       <Stack.Screen name="HarvestDetail" component={HarvestDetailScreen} />
       <Stack.Screen name="HarvestCreate" component={HarvestCreateScreen} />
       <Stack.Screen name="HarvestEdit" component={HarvestEditScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function ExpenseStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ExpenseList" component={ExpenseListScreen} />
       <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} />
       <Stack.Screen name="ExpenseCreate" component={ExpenseCreateScreen} />
       <Stack.Screen name="ExpenseEdit" component={ExpenseEditScreen} />
+      <Stack.Screen name="YieldPrediction" component={YieldPredictionScreen} />
+      <Stack.Screen name="PriceForecast" component={PriceForecastScreen} />
+      <Stack.Screen name="FarmRegistration" component={FarmRegistrationScreen} />
     </Stack.Navigator>
   );
 }
 
-function MarketplaceStack() {
+// ===== Market Stack (Browse, Cart, Orders) =====
+function MarketStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MarketplaceBrowse" component={MarketplaceBrowseScreen} />
@@ -95,38 +111,23 @@ function MarketplaceStack() {
   );
 }
 
-function MLStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="YieldPrediction" component={YieldPredictionScreen} />
-      <Stack.Screen name="PriceForecast" component={PriceForecastScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function ProfileStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function FarmersStack() {
+// ===== Finance Stack (Loans, Payments) =====
+function FinanceStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="FarmerRegistration" component={FarmerRegistrationScreen} />
       <Stack.Screen name="FarmerProfile" component={FarmerProfileScreen} />
-      <Stack.Screen name="FarmRegistration" component={FarmRegistrationScreen} />
       <Stack.Screen name="LoanApplication" component={LoanApplicationScreen} />
     </Stack.Navigator>
   );
 }
 
-function JourneysStack() {
+// ===== More Stack (Profile, Settings, Journeys) =====
+function MoreStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="JourneyList" component={JourneyListScreen} />
       <Stack.Screen name="JourneyDetail" component={JourneyDetailScreen} />
     </Stack.Navigator>
@@ -135,18 +136,95 @@ function JourneysStack() {
 
 function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Journeys" component={JourneysStack} options={{ title: 'Journeys' }} />
-      <Tab.Screen name="Harvests" component={HarvestStack} />
-      <Tab.Screen name="Expenses" component={ExpenseStack} />
-      <Tab.Screen name="Farmers" component={FarmersStack} options={{ title: 'Farmers' }} />
-      <Tab.Screen name="Marketplace" component={MarketplaceStack} />
-      <Tab.Screen name="ML" component={MLStack} options={{ title: 'AI Tools' }} />
-      <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ title: 'Profile' }} />
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: '#166534',
+        tabBarInactiveTintColor: '#9ca3af',
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarHideOnKeyboard: true,
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="Home" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Farm"
+        component={FarmStack}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="Farm" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Market"
+        component={MarketStack}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="Market" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Finance"
+        component={FinanceStack}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="Finance" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="More"
+        component={MoreStack}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="More" focused={focused} />,
+        }}
+      />
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    height: Platform.OS === 'ios' ? 88 : 64,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+    paddingTop: 8,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  tabIconContainer: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    top: -10,
+    width: 24,
+    height: 2,
+    backgroundColor: '#166534',
+    borderRadius: 1,
+  },
+  tabIcon: {
+    fontSize: 20,
+    opacity: 0.6,
+  },
+  tabIconActive: {
+    opacity: 1,
+    transform: [{ scale: 1.1 }],
+  },
+});
 
 export default function AppNavigator() {
   const { isAuthenticated } = useAuthStore();
