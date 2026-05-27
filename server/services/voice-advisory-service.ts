@@ -341,7 +341,7 @@ class VoiceAdvisoryService {
   }): Promise<VoiceAdvisory> {
     const { category, title, content, priority, validDays, targetCrops, targetRegions } = params;
 
-    const advisoryId = `VA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const advisoryId = `VA-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     
     // Generate audio URLs for each language (would integrate with TTS service)
     const audioUrls: Record<SupportedLanguage, string> = {
@@ -446,7 +446,7 @@ class VoiceAdvisoryService {
   }): Promise<VoiceCall> {
     const { farmerId, farmerPhone, language } = params;
 
-    const callId = `CALL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const callId = `CALL-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const call: VoiceCall = {
       id: callId,
       farmerId,
@@ -532,7 +532,7 @@ class VoiceAdvisoryService {
   }): Promise<CallbackRequest> {
     const { farmerId, farmerPhone, farmerName, language, topic, urgency, voiceMessageUrl } = params;
 
-    const requestId = `CB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `CB-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const request: CallbackRequest = {
       id: requestId,
       farmerId,
@@ -563,7 +563,7 @@ class VoiceAdvisoryService {
   }): Promise<SMSAlert> {
     const { farmerId, phone, message, language, category } = params;
 
-    const alertId = `SMS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const alertId = `SMS-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const alert: SMSAlert = {
       id: alertId,
       farmerId,

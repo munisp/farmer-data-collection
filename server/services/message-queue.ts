@@ -1,3 +1,4 @@
+import crypto from "crypto";
 /**
  * Persistent Message Queue Service
  * 
@@ -627,7 +628,7 @@ export class MessageQueueService extends EventEmitter {
    * Generate message ID
    */
   private generateMessageId(): string {
-    return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    return `msg_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
   }
 
   /**

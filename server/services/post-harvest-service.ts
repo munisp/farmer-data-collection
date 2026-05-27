@@ -508,7 +508,7 @@ class PostHarvestService {
 
     const totalCost = quantity * facility.pricePerTonPerDay * days;
 
-    const bookingId = `SB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const bookingId = `SB-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const booking: StorageBooking = {
       id: bookingId,
       farmerId,
@@ -611,7 +611,7 @@ class PostHarvestService {
       recommendations.push('Suitable for premium markets and export');
     }
 
-    const assessmentId = `QA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const assessmentId = `QA-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const assessment: QualityAssessment = {
       id: assessmentId,
       cropName,
@@ -700,7 +700,7 @@ class PostHarvestService {
     const travelHours = distance / 50;
     const estimatedDeliveryDate = new Date(pickupDate.getTime() + travelHours * 60 * 60 * 1000);
 
-    const bookingId = `LB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const bookingId = `LB-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const booking: LogisticsBooking = {
       id: bookingId,
       farmerId,
@@ -784,7 +784,7 @@ class PostHarvestService {
       preventionRecommendations.push('Join a cooperative for shared cold storage access');
     }
 
-    const assessmentId = `LA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const assessmentId = `LA-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const assessment: LossAssessment = {
       id: assessmentId,
       farmerId,

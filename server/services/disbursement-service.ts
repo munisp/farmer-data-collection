@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { getDb } from "../db.js";
 import {
   loanDisbursements,
@@ -78,7 +79,7 @@ export class DisbursementService {
    */
   private generateDisbursementNumber(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const random = crypto.randomUUID().slice(0, 6).toUpperCase();
     return `DISB-${timestamp}-${random}`;
   }
 

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 /**
  * TigerBeetle Ledger Service
  * High-performance financial ledger for double-entry accounting
@@ -262,7 +263,7 @@ export class TigerBeetleLedger {
 
   async recordTransaction(input: LegacyTransactionInput): Promise<{ transactionId: string }> {
     const ledger = this.inferLedgerFromAccount(input.fromAccountId);
-    const transferId = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    const transferId = BigInt(Date.now()) * 1000n + BigInt(parseInt(crypto.randomUUID().slice(0, 3), 16) % 1000);
 
     await this.createTransfer({
       id: transferId,
@@ -311,7 +312,7 @@ export class TigerBeetleLedger {
     amount: bigint,
     reference: string
   ): Promise<bigint> {
-    const transferId = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    const transferId = BigInt(Date.now()) * 1000n + BigInt(parseInt(crypto.randomUUID().slice(0, 3), 16) % 1000);
 
     // Debit: Platform Loans Receivable (asset increases)
     // Credit: Platform Cash (asset decreases)
@@ -347,7 +348,7 @@ export class TigerBeetleLedger {
     interestAmount: bigint,
     reference: string
   ): Promise<bigint> {
-    const transferId = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    const transferId = BigInt(Date.now()) * 1000n + BigInt(parseInt(crypto.randomUUID().slice(0, 3), 16) % 1000);
     const totalAmount = principalAmount + interestAmount;
 
     // Debit: Platform Cash (asset increases)
@@ -398,7 +399,7 @@ export class TigerBeetleLedger {
     feeAmount: bigint,
     reference: string
   ): Promise<bigint> {
-    const transferId = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    const transferId = BigInt(Date.now()) * 1000n + BigInt(parseInt(crypto.randomUUID().slice(0, 3), 16) % 1000);
     const sellerAmount = amount - feeAmount;
 
     // Buyer pays

@@ -187,12 +187,14 @@ export class SatelliteImageryService {
     // Generate weekly NDVI values
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
-      // Simulate seasonal NDVI variation
+      // Deterministic seasonal NDVI variation based on day-of-year
       const dayOfYear = Math.floor((currentDate.getTime() - new Date(currentDate.getFullYear(), 0, 0).getTime()) / 86400000);
       const seasonalFactor = Math.sin((dayOfYear / 365) * 2 * Math.PI - Math.PI / 2) * 0.3 + 0.5;
-      const randomVariation = (Math.random() - 0.5) * 0.1;
+      // Deterministic variation based on week number for reproducibility
+      const weekNum = Math.floor(dayOfYear / 7);
+      const variation = ((weekNum % 7) - 3) * 0.015;
       
-      const meanNDVI = Math.max(0, Math.min(1, seasonalFactor + randomVariation));
+      const meanNDVI = Math.max(0, Math.min(1, seasonalFactor + variation));
       
       results.push({
         date: currentDate.toISOString().split('T')[0],
@@ -200,7 +202,7 @@ export class SatelliteImageryService {
         minNDVI: Math.max(0, meanNDVI - 0.15),
         maxNDVI: Math.min(1, meanNDVI + 0.15),
         healthCategory: this.getNDVIHealthCategory(meanNDVI),
-        cloudCoverage: Math.random() * 30,
+        cloudCoverage: Math.round(10 + (weekNum % 5) * 4),
       });
 
       currentDate.setDate(currentDate.getDate() + 7);
@@ -519,16 +521,20 @@ export class SatelliteImageryService {
       const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
       const seasonalTemp = 25 + Math.sin((dayOfYear / 365) * 2 * Math.PI) * 10;
       
+      // Deterministic weather based on day-of-year
+      const dayVar = dayOfYear % 7;
+      const isRainySeason = dayOfYear >= 90 && dayOfYear <= 300;
+
       data.push({
         date: date.toISOString().split('T')[0],
         temperature: {
-          min: Math.round(seasonalTemp - 5 + Math.random() * 3),
-          max: Math.round(seasonalTemp + 5 + Math.random() * 3),
-          avg: Math.round(seasonalTemp + Math.random() * 2),
+          min: Math.round(seasonalTemp - 5 + dayVar * 0.4),
+          max: Math.round(seasonalTemp + 5 + dayVar * 0.4),
+          avg: Math.round(seasonalTemp + dayVar * 0.3),
         },
-        precipitation: Math.random() < 0.3 ? Math.round(Math.random() * 20) : 0,
-        humidity: Math.round(60 + Math.random() * 30),
-        soilMoisture: Math.round(30 + Math.random() * 40),
+        precipitation: isRainySeason && dayVar < 2 ? Math.round(5 + dayVar * 4) : 0,
+        humidity: Math.round(isRainySeason ? 75 + dayVar * 2 : 55 + dayVar * 3),
+        soilMoisture: Math.round(isRainySeason ? 55 + dayVar * 3 : 35 + dayVar * 3),
       });
     }
 

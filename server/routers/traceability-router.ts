@@ -1,3 +1,4 @@
+import crypto from "crypto";
 /**
  * Supply Chain Traceability Router
  * Track agricultural products from farm to buyer with QR codes
@@ -114,7 +115,7 @@ export const traceabilityRouter = router({
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
       // Generate batch code
-      const batchCode = `BATCH-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const batchCode = `BATCH-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
       
       // Generate QR code data (URL to traceability page)
       const qrCode = `https://app.example.com/trace/${batchCode}`;
@@ -417,7 +418,7 @@ export const traceabilityRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
-      const receiptNumber = `WR-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const receiptNumber = `WR-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
       
       const [receipt] = await db
         .insert(warehouseReceipts)

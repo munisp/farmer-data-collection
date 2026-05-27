@@ -1,3 +1,4 @@
+import crypto from "crypto";
 /**
  * Loan Application Router
  * 
@@ -87,7 +88,7 @@ export const loanApplicationRouter = router({
           }
 
           // Generate application number
-      const applicationNumber = `APP-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const applicationNumber = `APP-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
       // Insert application
       const [application] = await db

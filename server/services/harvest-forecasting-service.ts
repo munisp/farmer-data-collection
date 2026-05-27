@@ -210,7 +210,7 @@ class HarvestForecastingService {
     // Generate recommendations
     const recommendations = this.generateRecommendations(cropKey, weatherRisks, expectedHarvestDate);
 
-    const forecastId = `HF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const forecastId = `HF-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const forecast: HarvestForecast = {
       id: forecastId,
       farmerId,
@@ -265,9 +265,9 @@ class HarvestForecastingService {
       const monthIndex = forecastDate.getMonth();
       const seasonalMultiplier = seasonalMultipliers[monthIndex];
 
-      // Add some randomness for market volatility
-      const volatilityFactor = 1 + (Math.random() * 0.2 - 0.1);
-      const predictedPrice = Math.round(basePrice * seasonalMultiplier * volatilityFactor);
+      // Deterministic volatility based on week index
+      const weekVolatility = 1 + ((i / 7) % 5 - 2) * 0.03; // ±6% based on week offset
+      const predictedPrice = Math.round(basePrice * seasonalMultiplier * weekVolatility);
 
       forecasts.push({
         date: forecastDate,

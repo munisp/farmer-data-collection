@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "./_core/trpc-base.js";
 import { goImageClient } from "./clients/go-image-client.js";
@@ -651,7 +652,7 @@ export const marketplaceRouter = router({
       }
       
       // Generate order number
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      const orderNumber = `ORD-${Date.now()}-${crypto.randomUUID().slice(0, 9).toUpperCase()}`;
       
       // Create order
       const [order] = await db.insert(marketplaceOrders).values({
@@ -1093,7 +1094,7 @@ export const marketplaceRouter = router({
         
         // Generate unique file key
         const timestamp = Date.now();
-        const randomSuffix = Math.random().toString(36).substring(7);
+        const randomSuffix = crypto.randomUUID().slice(0, 6);
         const fileExtension = input.fileName.split('.').pop() || 'jpg';
         const fileKey = `marketplace/${ctx.user.id}/${timestamp}-${randomSuffix}.${fileExtension}`;
         
@@ -1447,7 +1448,7 @@ export const marketplaceRouter = router({
       }
       
       // Generate order number
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      const orderNumber = `ORD-${Date.now()}-${crypto.randomUUID().slice(0, 9).toUpperCase()}`;
       
       // Create order
       const [order] = await db.insert(marketplaceOrders).values({

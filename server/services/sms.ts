@@ -58,7 +58,7 @@ export async function sendSMS(options: SendSMSOptions): Promise<SMSResult> {
       
       return {
         success: true,
-        messageId: `MOCK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        messageId: `MOCK_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
         cost: 'NGN 0.00 (Mock)',
         status: 'Mock Success',
       };

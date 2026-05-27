@@ -329,7 +329,7 @@ class LaborManagementService {
     bankAccount?: BankAccount;
     emergencyContact?: EmergencyContact;
   }): Promise<FarmWorker> {
-    const workerId = `WKR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const workerId = `WKR-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const worker: FarmWorker = {
       id: workerId,
@@ -396,7 +396,7 @@ class LaborManagementService {
     location?: string;
     equipment?: string[];
   }): Promise<FarmTask> {
-    const taskId = `TSK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const taskId = `TSK-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const task: FarmTask = {
       id: taskId,
@@ -532,7 +532,7 @@ class LaborManagementService {
         shiftDate.setDate(shiftDate.getDate() + (dayOffset % 6));
 
         const shift: WorkShift = {
-          id: `SHF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `SHF-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
           workerId: worker.id,
           workerName: `${worker.firstName} ${worker.lastName}`,
           date: shiftDate,
@@ -551,7 +551,7 @@ class LaborManagementService {
       dayOffset++;
     }
 
-    const scheduleId = `SCH-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const scheduleId = `SCH-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const schedule: WorkSchedule = {
       id: scheduleId,
       farmId,
@@ -646,7 +646,7 @@ class LaborManagementService {
       const regularPay = regularHours * hourlyRate;
       const overtimePay = overtimeHours * hourlyRate * 1.5; // 1.5x for overtime
 
-      const payrollId = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const payrollId = `PAY-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
       const payroll: PayrollRecord = {
         id: payrollId,
         farmId,

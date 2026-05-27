@@ -288,7 +288,7 @@ class CropInsuranceService {
   }): Promise<InsurancePolicy> {
     const { farmerId, farmId, cropId, quote, startDate } = params;
 
-    const policyId = `INS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const policyId = `INS-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 12); // 1 year policy
 
@@ -417,7 +417,7 @@ class CropInsuranceService {
     );
 
     const payout: InsurancePayout = {
-      id: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `PAY-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
       policyId,
       triggeredBy: triggeredPeril,
       amount: payoutAmount,
@@ -581,11 +581,24 @@ class CropInsuranceService {
   }
 
   private async assessHistoricalRisk(latitude: number, longitude: number, perils: InsurancePeril[]): Promise<number> {
-    // Would analyze historical weather/satellite data
-    // Returns a multiplier (1.0 = average risk, >1 = higher risk, <1 = lower risk)
+    // Risk multiplier based on location zone and perils covered
     try {
-      // Simplified - would use actual historical data
-      return 1.0 + (Math.random() * 0.4 - 0.2); // Random adjustment ±20%
+      const { weatherService } = await import("./weather-service.js");
+      const weather = await weatherService.getCurrentWeather(latitude, longitude);
+      if (!weather) return 1.0;
+      
+      let riskMultiplier = 1.0;
+      
+      // Adjust based on weather conditions
+      if (weather.humidity > 80) riskMultiplier += 0.1; // high humidity = more disease risk
+      if (weather.temperature > 35) riskMultiplier += 0.1; // extreme heat
+      if (weather.temperature < 5) riskMultiplier += 0.15; // frost risk
+      
+      // Adjust based on perils covered
+      if (perils.includes('flood' as InsurancePeril)) riskMultiplier += 0.05;
+      if (perils.includes('drought' as InsurancePeril)) riskMultiplier += 0.05;
+      
+      return Math.max(0.8, Math.min(1.3, riskMultiplier));
     } catch {
       return 1.0;
     }

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { router, publicProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
@@ -80,7 +81,7 @@ function verifyWebhookRequest(ctx: any): void {
  * Generate a correlation ID for request tracing
  */
 function generateCorrelationId(): string {
-  return `at-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `at-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 }
 
 export const africasTalkingRouter = router({

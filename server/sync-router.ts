@@ -185,7 +185,7 @@ export async function pushChanges(input: z.infer<typeof syncRequestSchema>, user
   for (const record of input.records) {
     try {
       // Generate idempotency key for this operation
-      const recordId = record.id || `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const recordId = record.id || `new-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
       const operation = record.id ? 'update' : 'create';
       const idempotencyKey = generateIdempotencyKey(input.clientId, input.table, recordId, operation);
       

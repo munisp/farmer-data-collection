@@ -471,7 +471,7 @@ export class KycService {
     const baseExtraction = {
       documentType,
       extractedAt: new Date().toISOString(),
-      tamperingScore: Math.random() * 0.2, // Low tampering score
+      tamperingScore: 0.05, // Default low tampering score — real value comes from OCR API
     };
 
     switch (documentType) {

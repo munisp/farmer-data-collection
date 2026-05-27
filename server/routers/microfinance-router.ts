@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
@@ -66,7 +67,7 @@ export const microfinanceRouter = router({
       }
 
       // Generate loan number
-      const loanNumber = `LN${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      const loanNumber = `LN${Date.now()}${crypto.randomInt(1000)}`;
 
       const [newLoan] = await db
         .insert(loans)

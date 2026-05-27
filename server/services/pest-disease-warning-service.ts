@@ -811,7 +811,7 @@ class PestDiseaseWarningService {
     latitude: number;
     longitude: number;
   }): Promise<OutbreakReport> {
-    const reportId = `OR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const reportId = `OR-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const report: OutbreakReport = {
       id: reportId,
@@ -1000,7 +1000,7 @@ class PestDiseaseWarningService {
       riskLevel >= 30 ? 'medium' : 'low';
 
     return {
-      id: `ALERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `ALERT-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
       type,
       name,
       severity,
@@ -1016,9 +1016,9 @@ class PestDiseaseWarningService {
         'Maintain field hygiene',
       ],
       treatmentOptions: data.treatments,
-      reportedCases: Math.floor(Math.random() * 50),
-      confirmedCases: Math.floor(Math.random() * 20),
-      firstReportedDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+      reportedCases: 0,
+      confirmedCases: 0,
+      firstReportedDate: new Date(),
       lastUpdated: new Date(),
       expectedDuration: '2-4 weeks',
       weatherConditions: [

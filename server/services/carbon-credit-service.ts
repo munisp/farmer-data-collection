@@ -388,7 +388,7 @@ class CarbonCreditService {
     // Generate recommendations
     const recommendations = this.generateCarbonRecommendations(emissionsBySource, practices, netEmissions);
 
-    const footprintId = `CF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const footprintId = `CF-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const footprint: CarbonFootprint = {
       id: footprintId,
       farmId,
@@ -533,7 +533,7 @@ class CarbonCreditService {
       throw new Error('Minimum 1 ton CO2e required for credit generation');
     }
 
-    const creditId = `CC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const creditId = `CC-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const credit: CarbonCredit = {
       id: creditId,
       farmId,
@@ -653,7 +653,7 @@ class CarbonCreditService {
     const overallRating: 'A' | 'B' | 'C' | 'D' | 'F' = 
       avgScore >= 80 ? 'A' : avgScore >= 60 ? 'B' : avgScore >= 40 ? 'C' : avgScore >= 20 ? 'D' : 'F';
 
-    const reportId = `EIR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const reportId = `EIR-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     return {
       id: reportId,
       farmId,

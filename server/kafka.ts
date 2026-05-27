@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Kafka, Producer, Consumer, Admin, logLevel } from 'kafkajs';
 import { logger } from './logger.js';
 
@@ -221,7 +222,7 @@ export function createEvent<T = unknown>(
   metadata?: Record<string, unknown>
 ): KafkaEvent<T> {
   return {
-    eventId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    eventId: `${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
     eventType,
     entityType,
     entityId,

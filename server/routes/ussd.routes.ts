@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import express from "express";
 import { ussdService } from "../services/ussd.service.js";
 import { USSDRequest } from "../../shared/ussd-types.js";
@@ -50,7 +51,7 @@ router.post("/test", async (req, res) => {
     }
 
     // Generate test session ID
-    const sessionId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `test_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
 
     const ussdRequest: USSDRequest = {
       sessionId,

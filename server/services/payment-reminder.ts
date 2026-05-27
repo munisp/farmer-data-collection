@@ -2,7 +2,7 @@ import { getDb } from "../db.js";
 import { loans, loanRepayments } from "../../drizzle/financial-schema.js";
 import { users } from "../../drizzle/schema.js";
 import { eq, and, lte, gte, isNull, sql } from "drizzle-orm";
-import { smsService } from "./sms-service.js";
+import { smsService } from "./sms.service.js";
 import { sendEmail } from "./email-service.js";
 
 /**
@@ -118,7 +118,7 @@ export class PaymentReminderService {
       const message = this.formatSMSMessage(payment);
       
       // Use SMS service to send message
-      const result = await smsService.sendSMS(payment.userPhone, message);
+      const result = await smsService.sendSMS({ to: payment.userPhone || '', message });
       
       if (result.success) {
         console.log(`[Payment Reminder SMS] Sent to ${payment.userPhone} (Message ID: ${result.messageId})`);

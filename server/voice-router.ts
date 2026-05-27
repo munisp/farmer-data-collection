@@ -434,6 +434,143 @@ async function handleRecordExpense(session: VoiceSession, dtmfDigits?: string): 
   return { response: builder.build() };
 }
 
+async function handleMarketplace(session: VoiceSession, dtmfDigits?: string): Promise<VoiceResponse> {
+  const builder = new VoiceResponseBuilder();
+
+  if (!session.userId) {
+    builder.say(getPrompt(session.language, 'notAuthenticated'));
+    updateSession(session, 'WELCOME');
+    return { response: builder.build() };
+  }
+
+  if (session.state === 'MARKETPLACE_MENU') {
+    if (!dtmfDigits) {
+      builder.getDigits(getPrompt(session.language, 'marketplaceMenu'), 1, 30, '#');
+      return { response: builder.build() };
+    }
+
+    switch (dtmfDigits) {
+      case '1': {
+        // Browse listings
+        try {
+          const listings = await getMarketplaceListings(5);
+          if (listings.length === 0) {
+            builder.say(getPrompt(session.language, 'noListings'));
+          } else {
+            for (const listing of listings) {
+              builder.say(`${listing.title}, ${listing.quantity} ${listing.unit} at ${listing.pricePerUnit} per unit.`);
+            }
+            builder.say('Press 1 to place an order on the first listing, or 0 to go back.');
+            updateSession(session, 'MARKETPLACE_ORDER', { listings });
+          }
+          builder.getDigits('', 1, 30, '#');
+        } catch {
+          builder.say(getPrompt(session.language, 'error'));
+        }
+        return { response: builder.build() };
+      }
+      case '2': {
+        // Create listing
+        updateSession(session, 'MARKETPLACE_CREATE_CROP');
+        builder.record(getPrompt(session.language, 'createListingCrop'), 30, 3, '#');
+        return { response: builder.build() };
+      }
+      case '0': {
+        updateSession(session, 'MAIN_MENU');
+        return handleMainMenu(session);
+      }
+      default: {
+        builder.say(getPrompt(session.language, 'invalidInput'));
+        builder.getDigits(getPrompt(session.language, 'marketplaceMenu'), 1, 30, '#');
+        return { response: builder.build() };
+      }
+    }
+  }
+
+  if (session.state === 'MARKETPLACE_CREATE_CROP') {
+    updateSession(session, 'MARKETPLACE_CREATE_QTY', { listingCrop: 'crop' });
+    builder.getDigits(getPrompt(session.language, 'createListingQuantity'), 10, 30, '#');
+    return { response: builder.build() };
+  }
+
+  if (session.state === 'MARKETPLACE_CREATE_QTY' && dtmfDigits) {
+    updateSession(session, 'MARKETPLACE_CREATE_PRICE', { listingQuantity: parseInt(dtmfDigits, 10) });
+    builder.getDigits(getPrompt(session.language, 'createListingPrice'), 10, 30, '#');
+    return { response: builder.build() };
+  }
+
+  if (session.state === 'MARKETPLACE_CREATE_PRICE' && dtmfDigits) {
+    try {
+      await createListing(session.userId, {
+        cropName: session.context.listingCrop || 'crop',
+        quantity: session.context.listingQuantity || 0,
+        pricePerKg: parseInt(dtmfDigits, 10),
+      });
+      updateSession(session, 'MAIN_MENU');
+      builder
+        .say(getPrompt(session.language, 'listingCreated'))
+        .getDigits(getPrompt(session.language, 'mainMenu'), 1, 30, '#');
+    } catch {
+      builder.say(getPrompt(session.language, 'error'));
+    }
+    return { response: builder.build() };
+  }
+
+  if (session.state === 'MARKETPLACE_ORDER' && dtmfDigits) {
+    if (dtmfDigits === '1') {
+      try {
+        const listings = session.context.listings || [];
+        if (listings.length > 0) {
+          await createOrder(session.userId, {
+            listingId: listings[0].id,
+            quantity: listings[0].quantity,
+            deliveryAddress: 'Voice order - address pending',
+          });
+          builder.say('Order placed successfully.');
+        } else {
+          builder.say(getPrompt(session.language, 'noListings'));
+        }
+      } catch {
+        builder.say(getPrompt(session.language, 'error'));
+      }
+    }
+    updateSession(session, 'MAIN_MENU');
+    builder.getDigits(getPrompt(session.language, 'mainMenu'), 1, 30, '#');
+    return { response: builder.build() };
+  }
+
+  // Default - show marketplace menu
+  updateSession(session, 'MARKETPLACE_MENU');
+  builder.getDigits(getPrompt(session.language, 'marketplaceMenu'), 1, 30, '#');
+  return { response: builder.build() };
+}
+
+async function handleOrders(session: VoiceSession): Promise<VoiceResponse> {
+  const builder = new VoiceResponseBuilder();
+
+  if (!session.userId) {
+    builder.say(getPrompt(session.language, 'notAuthenticated'));
+    updateSession(session, 'WELCOME');
+    return { response: builder.build() };
+  }
+
+  try {
+    const report = await getFinancialSummary(session.userId, 'month');
+
+    if (!report || (report.totalRevenue === 0 && report.totalExpenses === 0)) {
+      builder.say(getPrompt(session.language, 'noOrders'));
+    } else {
+      builder.say(`You have ${report.totalRevenue} in revenue this month from your orders.`);
+    }
+  } catch {
+    builder.say(getPrompt(session.language, 'noOrders'));
+  }
+
+  updateSession(session, 'MAIN_MENU');
+  builder.getDigits(getPrompt(session.language, 'mainMenu'), 1, 30, '#');
+  return { response: builder.build() };
+}
+
 async function handleFinancialReport(session: VoiceSession): Promise<VoiceResponse> {
   const builder = new VoiceResponseBuilder();
 
@@ -528,13 +665,9 @@ async function processVoiceCall(
       case '2':
         return handleRecordExpense(session);
       case '3':
-        // Marketplace - not implemented in voice yet
-        builder.say('Marketplace feature coming soon. Please use SMS or USSD.');
-        return handleMainMenu(session);
+        return handleMarketplace(session);
       case '4':
-        // Orders - not implemented in voice yet
-        builder.say('Orders feature coming soon. Please use SMS or USSD.');
-        return handleMainMenu(session);
+        return handleOrders(session);
       case '5':
         return handleFinancialReport(session);
       case '0':
@@ -555,6 +688,11 @@ async function processVoiceCall(
   // Handle harvest states
   if (session.state.startsWith('HARVEST_')) {
     return handleRecordHarvest(session, dtmfDigits);
+  }
+
+  // Handle marketplace states
+  if (session.state.startsWith('MARKETPLACE_')) {
+    return handleMarketplace(session, dtmfDigits);
   }
 
   // Handle expense states

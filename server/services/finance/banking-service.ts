@@ -1,3 +1,4 @@
+import crypto from "crypto";
 /**
  * Banking Service - Mojaloop Integration
  * 
@@ -567,7 +568,7 @@ export class BankingService {
    * Generate transfer ID (UUID-like)
    */
   private generateTransferId(): string {
-    return `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    return `TXN-${Date.now()}-${crypto.randomUUID().slice(0, 9).toUpperCase()}`;
   }
 }
 

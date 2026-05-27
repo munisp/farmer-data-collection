@@ -465,7 +465,7 @@ class WaterManagementService {
       },
     };
 
-    const scheduleId = `IS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const scheduleId = `IS-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const schedule: IrrigationSchedule = {
       id: scheduleId,
       farmId,
@@ -570,7 +570,7 @@ class WaterManagementService {
     const waterSavings = Math.round((Math.min(potentialHarvest, irrigationNeeds * 12) / (irrigationNeeds * 12)) * 100);
 
     return {
-      id: `RWH-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `RWH-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
       farmId,
       catchmentArea: roofArea,
       annualRainfall,
@@ -612,6 +612,7 @@ class WaterManagementService {
   async getSoilMoistureStatus(params: {
     farmId: number;
     cropName: string;
+    sensorMoisture?: number;
   }): Promise<{
     currentMoisture: number;
     optimalRange: { min: number; max: number };
@@ -620,15 +621,15 @@ class WaterManagementService {
     irrigationNeeded: boolean;
     urgency: 'immediate' | 'soon' | 'not_needed';
   }> {
-    const { farmId, cropName } = params;
+    const { farmId, cropName, sensorMoisture } = params;
 
     const cropKey = cropName.toLowerCase().replace(/\s+/g, '_');
     const cropReq = CROP_WATER_REQUIREMENTS[cropKey] || {
       optimalSoilMoisture: { min: 50, max: 70 },
     };
 
-    // Simulate sensor reading (would come from actual sensors)
-    const currentMoisture = 40 + Math.random() * 40; // 40-80%
+    // Use real sensor data if provided, otherwise use crop midpoint as baseline
+    const currentMoisture = sensorMoisture ?? (cropReq.optimalSoilMoisture.min + cropReq.optimalSoilMoisture.max) / 2;
 
     let status: 'too_dry' | 'optimal' | 'too_wet';
     let recommendation: string;
@@ -677,7 +678,7 @@ class WaterManagementService {
     coverageArea: number;
     flowRate: number;
   }): Promise<IrrigationSystem> {
-    const systemId = `IRRIG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const systemId = `IRRIG-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     // Calculate efficiency based on type
     const efficiencyByType: Record<IrrigationType, number> = {

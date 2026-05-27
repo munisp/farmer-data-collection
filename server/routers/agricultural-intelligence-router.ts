@@ -243,11 +243,13 @@ export const agriculturalIntelligenceRouter = router({
         const date = new Date(plantingDate);
         date.setDate(date.getDate() + i);
         
-        // Simulated weather (replace with actual API data)
+        // Deterministic weather estimate from seasonal model
+        const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
+        const seasonalBase = 27 + 5 * Math.sin(2 * Math.PI * (dayOfYear - 80) / 365);
         weatherData.push({
           date,
-          tempMax: 30 + Math.random() * 5,
-          tempMin: 20 + Math.random() * 5,
+          tempMax: Math.round(seasonalBase + 5),
+          tempMin: Math.round(seasonalBase - 5),
         });
       }
 

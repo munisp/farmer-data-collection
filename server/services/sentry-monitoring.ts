@@ -289,7 +289,7 @@ export function startSpan(
 export function correlationIdMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     const correlationId = req.headers['x-correlation-id'] as string || 
-      `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      `${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     // Set correlation ID on request
     (req as any).correlationId = correlationId;

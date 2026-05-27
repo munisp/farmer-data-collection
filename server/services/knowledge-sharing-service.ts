@@ -301,7 +301,7 @@ class KnowledgeSharingService {
     location?: { state: string; lga: string };
     crops?: string[];
   }): Promise<ForumPost> {
-    const postId = `POST-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const postId = `POST-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     // Get author badges
     const profile = this.farmerProfiles.get(params.authorId);
@@ -446,7 +446,7 @@ class KnowledgeSharingService {
     const profile = this.farmerProfiles.get(authorId);
     const authorBadges = profile?.badges.map(b => b.name) || [];
 
-    const commentId = `CMT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const commentId = `CMT-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const comment: Comment = {
       id: commentId,
       postId,
@@ -587,7 +587,7 @@ class KnowledgeSharingService {
     practicesUsed: string[];
     lessonsLearned: string[];
   }): Promise<SuccessStory> {
-    const storyId = `STORY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const storyId = `STORY-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const story: SuccessStory = {
       id: storyId,
@@ -669,7 +669,7 @@ class KnowledgeSharingService {
     languages: string[];
     contactPreference: Expert['contactPreference'];
   }): Promise<Expert> {
-    const expertId = `EXP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const expertId = `EXP-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const expert: Expert = {
       id: expertId,
@@ -740,7 +740,7 @@ class KnowledgeSharingService {
       throw new Error('Expert is not available');
     }
 
-    const sessionId = `SES-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `SES-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const session: ExpertSession = {
       id: sessionId,
       expertId: params.expertId,

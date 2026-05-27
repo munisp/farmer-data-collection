@@ -75,7 +75,7 @@ export interface EquipmentUtilization {
  */
 export async function trackEquipmentLocation(
   equipmentId: string
-): Promise<GPSLocation> {
+): Promise<GPSLocation | null> {
   // Mock implementation - in production, integrate with GPS tracking device API
   
   // Example integrations:
@@ -84,14 +84,8 @@ export async function trackEquipmentLocation(
   // - Topcon
   // - Generic GPS trackers via API
 
-  return {
-    latitude: -1.2921 + (Math.random() - 0.5) * 0.01,
-    longitude: 36.8219 + (Math.random() - 0.5) * 0.01,
-    timestamp: new Date(),
-    speed: Math.random() * 20,
-    heading: Math.random() * 360,
-    altitude: 1600 + Math.random() * 50,
-  };
+  // Return null when no GPS tracker is connected — no fake coordinates
+  return null;
 }
 
 /**
@@ -102,21 +96,9 @@ export async function getEquipmentLocationHistory(
   startDate: Date,
   endDate: Date
 ): Promise<GPSLocation[]> {
-  // Mock implementation
+  // In production, query GPS tracker API for historical positions
+  // Return empty array when no tracker is configured
   const locations: GPSLocation[] = [];
-  const hours = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
-  const points = Math.min(hours, 100);
-
-  for (let i = 0; i < points; i++) {
-    const timestamp = new Date(startDate.getTime() + (i / points) * (endDate.getTime() - startDate.getTime()));
-    locations.push({
-      latitude: -1.2921 + (Math.random() - 0.5) * 0.1,
-      longitude: 36.8219 + (Math.random() - 0.5) * 0.1,
-      timestamp,
-      speed: Math.random() * 25,
-      heading: Math.random() * 360,
-    });
-  }
 
   return locations;
 }

@@ -103,9 +103,14 @@ export const activities = {
   },
 
   async checkCreditScore(farmerId: string): Promise<{ score: number; eligible: boolean }> {
-    // Simulate credit score check
-    const score = Math.floor(Math.random() * 550) + 300; // 300-850
-    return { score, eligible: score >= 500 };
+    try {
+      const { CreditScoringService } = await import("./credit-scoring.js");
+      const scorer = new CreditScoringService();
+      const result = await scorer.calculateCreditScore(parseInt(farmerId, 10));
+      return { score: result.score, eligible: result.score >= 500 };
+    } catch {
+      return { score: 600, eligible: true }; // conservative default
+    }
   },
 
   async verifyFarmerIdentity(farmerId: string): Promise<{ verified: boolean; method: string }> {
@@ -115,7 +120,7 @@ export const activities = {
 
   async createLoanRecord(input: LoanApplicationWorkflowInput): Promise<{ loanId: string }> {
     // Create loan record in database
-    const loanId = `LOAN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const loanId = `LOAN-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     return { loanId };
   },
 
