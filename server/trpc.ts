@@ -60,6 +60,10 @@ import { chamaRouter } from "./routers/chama-router.js";
 import { subscriptionRouter } from "./routers/subscription-router.js";
 import { coldChainRouter } from "./routers/cold-chain-router.js";
 import { priceAlertsRouter } from "./routers/price-alerts-router.js";
+import { marketplaceEnhancementsRouter } from "./routers/marketplace-enhancements-router.js";
+import { whatsappAiRouter } from "./routers/whatsapp-ai-router.js";
+import { weatherAlertsRouter } from "./routers/weather-alerts-router.js";
+import { financialEnhancementsRouter } from "./routers/financial-enhancements-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -141,7 +145,11 @@ export const appRouter = router({
   subscription: subscriptionRouter,
   coldChain: coldChainRouter,
   priceAlerts: priceAlertsRouter,
-                                    sync: router({
+  marketplaceEnhancements: marketplaceEnhancementsRouter,
+  whatsappAi: whatsappAiRouter,
+  weatherAlerts: weatherAlertsRouter,
+  financialEnhancements: financialEnhancementsRouter,
+  sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
       .mutation(async ({ input, ctx }) => {

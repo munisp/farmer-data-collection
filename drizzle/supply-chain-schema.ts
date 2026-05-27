@@ -458,8 +458,11 @@ export const weatherStations = pgTable("weather_stations", {
   name: varchar("name", { length: 200 }).notNull(),
   latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
   longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  region: varchar("region", { length: 100 }),
   stationType: varchar("station_type", { length: 50 }).default("automated"),
   elevation: decimal("elevation", { precision: 8, scale: 2 }),
+  ownerId: integer("owner_id").references(() => users.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 20 }).default("active"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -494,3 +497,102 @@ export type ColdChainSensor = typeof coldChainSensors.$inferSelect;
 export type ColdChainReading = typeof coldChainReadings.$inferSelect;
 export type ConsumerProfile = typeof consumerProfiles.$inferSelect;
 export type WeatherStation = typeof weatherStations.$inferSelect;
+
+// ============================================================================
+// ADDITIONAL TABLES — Gap Fill
+// ============================================================================
+
+export const vehicles = pgTable("vehicles", {
+  id: serial("id").primaryKey(),
+  driverId: integer("driver_id").notNull().references(() => drivers.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(),
+  capacityKg: integer("capacity_kg").notNull(),
+  hasRefrigeration: boolean("has_refrigeration").default(false),
+  licensePlate: varchar("license_plate", { length: 20 }).notNull(),
+  make: varchar("make", { length: 50 }),
+  model: varchar("model", { length: 50 }),
+  year: integer("year"),
+  insuranceExpiry: timestamp("insurance_expiry"),
+  status: varchar("status", { length: 20 }).default("active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const equipmentBookings = pgTable("equipment_bookings", {
+  id: serial("id").primaryKey(),
+  cooperativeId: integer("cooperative_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  equipmentName: varchar("equipment_name", { length: 100 }).notNull(),
+  equipmentType: varchar("equipment_type", { length: 50 }).notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  dailyRate: integer("daily_rate").notNull(),
+  totalCost: integer("total_cost"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_equipment_bookings_coop").on(table.cooperativeId),
+]);
+
+export const savingsGoals = pgTable("savings_goals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 200 }).notNull(),
+  targetAmount: integer("target_amount").notNull(),
+  currentAmount: integer("current_amount").default(0).notNull(),
+  currency: varchar("currency", { length: 10 }).default("KES"),
+  autoDeductPct: decimal("auto_deduct_pct", { precision: 5, scale: 2 }).default("0"),
+  deadline: timestamp("deadline"),
+  status: varchar("status", { length: 20 }).default("active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const negotiationOffers = pgTable("negotiation_offers", {
+  id: serial("id").primaryKey(),
+  listingId: integer("listing_id").notNull(),
+  buyerId: integer("buyer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sellerId: integer("seller_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  offerPricePerUnit: integer("offer_price_per_unit").notNull(),
+  quantity: integer("quantity").notNull(),
+  message: text("message"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  counterPrice: integer("counter_price"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_negotiation_listing").on(table.listingId),
+  index("idx_negotiation_buyer").on(table.buyerId),
+]);
+
+export const insuranceClaims = pgTable("insurance_claims", {
+  id: serial("id").primaryKey(),
+  policyId: integer("policy_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  claimType: varchar("claim_type", { length: 50 }).notNull(),
+  triggerType: varchar("trigger_type", { length: 30 }).default("manual"),
+  triggerData: text("trigger_data"),
+  amount: integer("amount").notNull(),
+  currency: varchar("currency", { length: 10 }).default("KES"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  satelliteDataRef: varchar("satellite_data_ref", { length: 200 }),
+  weatherDataRef: varchar("weather_data_ref", { length: 200 }),
+  autoApproved: boolean("auto_approved").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const bulkDiscountTiers = pgTable("bulk_discount_tiers", {
+  id: serial("id").primaryKey(),
+  listingId: integer("listing_id").notNull(),
+  minQuantity: integer("min_quantity").notNull(),
+  discountPct: decimal("discount_pct", { precision: 5, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Vehicle = typeof vehicles.$inferSelect;
+export type EquipmentBooking = typeof equipmentBookings.$inferSelect;
+export type SavingsGoal = typeof savingsGoals.$inferSelect;
+export type NegotiationOffer = typeof negotiationOffers.$inferSelect;
+export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
+export type BulkDiscountTier = typeof bulkDiscountTiers.$inferSelect;
