@@ -590,9 +590,67 @@ export const bulkDiscountTiers = pgTable("bulk_discount_tiers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ============================================================================
+// SOIL ANALYSIS TABLES
+// ============================================================================
+
+export const soilTests = pgTable("soil_tests", {
+  id: serial("id").primaryKey(),
+  farmId: integer("farm_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  photoHash: varchar("photo_hash", { length: 64 }),
+  ph: decimal("ph", { precision: 5, scale: 2 }).notNull(),
+  nitrogenPpm: decimal("nitrogen_ppm", { precision: 8, scale: 2 }).notNull(),
+  phosphorusPpm: decimal("phosphorus_ppm", { precision: 8, scale: 2 }).notNull(),
+  potassiumPpm: decimal("potassium_ppm", { precision: 8, scale: 2 }).notNull(),
+  organicMatterPct: decimal("organic_matter_pct", { precision: 5, scale: 2 }).notNull(),
+  cecMeq100g: decimal("cec_meq_100g", { precision: 8, scale: 2 }).notNull(),
+  moisturePct: decimal("moisture_pct", { precision: 5, scale: 2 }).default("30"),
+  healthScore: decimal("health_score", { precision: 5, scale: 1 }).notNull(),
+  healthCategory: varchar("health_category", { length: 20 }).notNull(),
+  fertilityClass: varchar("fertility_class", { length: 20 }).notNull(),
+  recommendations: text("recommendations").notNull(), // JSON string
+  cropSuitability: text("crop_suitability"), // JSON string
+  labInterpretation: text("lab_interpretation"), // JSON string
+  inputMethod: varchar("input_method", { length: 20 }).default("manual"), // manual, bluetooth, nfc
+  deviceName: varchar("device_name", { length: 100 }),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  elevation: decimal("elevation", { precision: 8, scale: 2 }),
+  ndvi: decimal("ndvi", { precision: 5, scale: 3 }),
+  inferenceMs: decimal("inference_ms", { precision: 8, scale: 1 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_soil_tests_farm").on(table.farmId),
+  index("idx_soil_tests_user").on(table.userId),
+  index("idx_soil_tests_created").on(table.createdAt),
+]);
+
+export const soilHistory = pgTable("soil_history", {
+  id: serial("id").primaryKey(),
+  farmId: integer("farm_id").notNull(),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  avgHealthScore: decimal("avg_health_score", { precision: 5, scale: 1 }).notNull(),
+  trend: varchar("trend", { length: 20 }).notNull(), // improving, stable, degrading
+  testCount: integer("test_count").notNull().default(0),
+  avgPh: decimal("avg_ph", { precision: 5, scale: 2 }),
+  avgNitrogen: decimal("avg_nitrogen", { precision: 8, scale: 2 }),
+  avgPhosphorus: decimal("avg_phosphorus", { precision: 8, scale: 2 }),
+  avgPotassium: decimal("avg_potassium", { precision: 8, scale: 2 }),
+  avgOrganicMatter: decimal("avg_organic_matter", { precision: 5, scale: 2 }),
+  avgCec: decimal("avg_cec", { precision: 8, scale: 2 }),
+  improvementPlan: text("improvement_plan"), // JSON string
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_soil_history_farm").on(table.farmId),
+]);
+
 export type Vehicle = typeof vehicles.$inferSelect;
 export type EquipmentBooking = typeof equipmentBookings.$inferSelect;
 export type SavingsGoal = typeof savingsGoals.$inferSelect;
 export type NegotiationOffer = typeof negotiationOffers.$inferSelect;
 export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
 export type BulkDiscountTier = typeof bulkDiscountTiers.$inferSelect;
+export type SoilTest = typeof soilTests.$inferSelect;
+export type SoilHistory = typeof soilHistory.$inferSelect;

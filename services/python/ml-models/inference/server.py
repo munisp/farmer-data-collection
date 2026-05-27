@@ -40,6 +40,7 @@ from models.price_lstm import PriceLSTM
 from models.credit_scorer import CreditScorer
 from models.fraud_detector import FraudDetector
 from models.farmer_gnn import FarmerGraphNet
+from models.soil_health_model import SoilHealthModel, interpret_lab_readings, FERTILITY_CLASSES, RECOMMENDATION_LABELS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [inference] %(message)s")
 logger = logging.getLogger("inference")
@@ -166,6 +167,26 @@ def load_models():
         }
         logger.info(f"Loaded GNN ({model.get_num_params():,} params)")
 
+    # Soil Health Model
+    soil_path = WEIGHTS_DIR / "soil_health_model.pt"
+    if soil_path.exists():
+        ckpt = torch.load(soil_path, map_location=DEVICE, weights_only=False)
+        model = SoilHealthModel()
+        model.load_state_dict(ckpt["model_state_dict"])
+        model.eval()
+        _models["soil"] = model
+        _model_metadata["soil"] = {
+            "lab_mean": ckpt["lab_mean"],
+            "lab_std": ckpt["lab_std"],
+            "loc_mean": ckpt["loc_mean"],
+            "loc_std": ckpt["loc_std"],
+            "val_health_rmse": ckpt["val_health_rmse"],
+            "val_fertility_acc": ckpt["val_fertility_acc"],
+            "val_recommendation_acc": ckpt["val_recommendation_acc"],
+            "params": model.get_num_params(),
+        }
+        logger.info(f"Loaded soil health model ({model.get_num_params():,} params, RMSE={ckpt['val_health_rmse']:.2f})")
+
     logger.info(f"Total models loaded: {len(_models)}")
 
 
@@ -204,6 +225,22 @@ class CreditRequest(BaseModel):
 class FraudRequest(BaseModel):
     features: List[float] = Field(..., description="15 transaction features")
     threshold: float = Field(0.5, description="Classification threshold")
+
+class SoilRequest(BaseModel):
+    photo: Optional[List[List[List[float]]]] = Field(None, description="3×H×W soil photo tensor (optional)")
+    ph: float = Field(..., ge=0, le=14, description="Soil pH")
+    nitrogen_ppm: float = Field(..., ge=0, description="Nitrogen in ppm")
+    phosphorus_ppm: float = Field(..., ge=0, description="Phosphorus in ppm")
+    potassium_ppm: float = Field(..., ge=0, description="Potassium in ppm")
+    organic_matter_pct: float = Field(..., ge=0, le=100, description="Organic matter percentage")
+    cec_meq_100g: float = Field(..., ge=0, description="CEC in meq/100g")
+    moisture_pct: float = Field(30.0, ge=0, le=100, description="Soil moisture percentage")
+    latitude: Optional[float] = Field(None, description="Farm latitude")
+    longitude: Optional[float] = Field(None, description="Farm longitude")
+    elevation_m: Optional[float] = Field(None, description="Elevation in meters")
+    annual_rainfall_mm: Optional[float] = Field(None, description="Annual rainfall in mm")
+    avg_temperature_c: Optional[float] = Field(None, description="Average temperature in °C")
+    ndvi: Optional[float] = Field(None, description="NDVI from satellite (0-1)")
 
 
 # ============================================================================
@@ -357,6 +394,89 @@ async def predict_fraud(req: FraudRequest):
     result = _models["fraud"].predict(x, threshold=req.threshold)
     result["inference_ms"] = round((time.time() - t0) * 1000, 1)
     return result
+
+
+@app.post("/predict/soil")
+async def predict_soil(req: SoilRequest):
+    if "soil" not in _models:
+        raise HTTPException(503, "Soil health model not loaded. Run training first.")
+    t0 = time.time()
+    meta = _model_metadata["soil"]
+
+    # Build photo tensor
+    photo_tensor = None
+    if req.photo is not None:
+        photo_tensor = torch.tensor([req.photo], dtype=torch.float32)
+
+    # Build lab readings tensor and normalize
+    lab_raw = [req.ph, req.nitrogen_ppm, req.phosphorus_ppm, req.potassium_ppm,
+               req.organic_matter_pct, req.cec_meq_100g, req.moisture_pct]
+    lab_tensor = torch.tensor([lab_raw], dtype=torch.float32)
+    lab_mean = torch.tensor(meta["lab_mean"], dtype=torch.float32)
+    lab_std = torch.tensor(meta["lab_std"], dtype=torch.float32)
+    lab_tensor = (lab_tensor - lab_mean) / lab_std
+
+    # Build location tensor if coordinates provided
+    loc_tensor = None
+    if req.latitude is not None and req.longitude is not None:
+        loc_raw = [
+            req.latitude, req.longitude,
+            req.elevation_m or 500.0,
+            req.annual_rainfall_mm or 800.0,
+            req.avg_temperature_c or 22.0,
+            req.ndvi or 0.4,
+        ]
+        loc_tensor = torch.tensor([loc_raw], dtype=torch.float32)
+        loc_mean = torch.tensor(meta["loc_mean"], dtype=torch.float32)
+        loc_std = torch.tensor(meta["loc_std"], dtype=torch.float32)
+        loc_tensor = (loc_tensor - loc_mean) / loc_std
+
+    # Run inference
+    result = _models["soil"].predict(
+        photo=photo_tensor, lab=lab_tensor, location=loc_tensor
+    )
+
+    # Add deterministic lab reading interpretations
+    lab_readings = {
+        "ph": req.ph, "nitrogen_ppm": req.nitrogen_ppm,
+        "phosphorus_ppm": req.phosphorus_ppm, "potassium_ppm": req.potassium_ppm,
+        "organic_matter_pct": req.organic_matter_pct,
+        "cec_meq_100g": req.cec_meq_100g, "moisture_pct": req.moisture_pct,
+    }
+    result["lab_interpretation"] = interpret_lab_readings(lab_readings)
+    result["inference_ms"] = round((time.time() - t0) * 1000, 1)
+
+    # Crop suitability based on health score and readings
+    result["crop_suitability"] = _get_crop_suitability(
+        req.ph, req.nitrogen_ppm, req.phosphorus_ppm, req.potassium_ppm, result["health_score"]
+    )
+
+    return result
+
+
+def _get_crop_suitability(ph, n, p, k, health_score):
+    """Determine suitable crops based on soil chemistry."""
+    crops = []
+    if 5.5 <= ph <= 7.5 and n > 30:
+        crops.append({"crop": "maize", "suitability": "high" if health_score > 60 else "medium"})
+    if 6.0 <= ph <= 7.0 and p > 15:
+        crops.append({"crop": "tomato", "suitability": "high" if health_score > 65 else "medium"})
+    if 5.8 <= ph <= 7.0 and n > 20:
+        crops.append({"crop": "beans", "suitability": "high" if health_score > 50 else "medium"})
+    if 5.5 <= ph <= 6.8:
+        crops.append({"crop": "cassava", "suitability": "high" if health_score > 40 else "medium"})
+    if 4.5 <= ph <= 6.0 and k > 100:
+        crops.append({"crop": "tea", "suitability": "high" if health_score > 55 else "medium"})
+    if 5.0 <= ph <= 7.0 and n > 25 and p > 10:
+        crops.append({"crop": "coffee", "suitability": "high" if health_score > 60 else "medium"})
+    if 6.0 <= ph <= 7.5 and k > 80:
+        crops.append({"crop": "wheat", "suitability": "high" if health_score > 55 else "medium"})
+    if 5.5 <= ph <= 7.5:
+        crops.append({"crop": "sorghum", "suitability": "high" if health_score > 45 else "medium"})
+    if not crops:
+        crops.append({"crop": "cover_crops", "suitability": "recommended",
+                       "note": "Soil needs improvement before cash crop planting"})
+    return crops
 
 
 # ============================================================================

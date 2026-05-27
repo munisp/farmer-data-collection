@@ -66,6 +66,7 @@ import { weatherAlertsRouter } from "./routers/weather-alerts-router.js";
 import { financialEnhancementsRouter } from "./routers/financial-enhancements-router.js";
 import { governmentSubsidyRouter } from "./routers/government-subsidy-router.js";
 import { platformAdvancedRouter } from "./routers/platform-advanced-router.js";
+import { soilAnalysisRouter } from "./routers/soil-analysis-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -153,6 +154,7 @@ export const appRouter = router({
   financialEnhancements: financialEnhancementsRouter,
   governmentSubsidy: governmentSubsidyRouter,
   platformAdvanced: platformAdvancedRouter,
+  soilAnalysis: soilAnalysisRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)

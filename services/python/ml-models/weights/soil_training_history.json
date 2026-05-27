@@ -1,0 +1,202 @@
+[
+  {
+    "epoch": 1,
+    "train_loss": 2.249137671470642,
+    "train_health_rmse": 13.503187748324658,
+    "train_fertility_acc": 0.79575,
+    "val_health_rmse": 5.813089016582651,
+    "val_fertility_acc": 0.848,
+    "val_recommendation_acc": 0.856625,
+    "lr": 0.001
+  },
+  {
+    "epoch": 2,
+    "train_loss": 1.7358438892364503,
+    "train_health_rmse": 5.329402149650678,
+    "train_fertility_acc": 0.863,
+    "val_health_rmse": 3.984491748595313,
+    "val_fertility_acc": 0.866,
+    "val_recommendation_acc": 0.875625,
+    "lr": 0.001
+  },
+  {
+    "epoch": 3,
+    "train_loss": 1.6404056282043458,
+    "train_health_rmse": 4.675711080714594,
+    "train_fertility_acc": 0.87225,
+    "val_health_rmse": 3.746900096782217,
+    "val_fertility_acc": 0.896,
+    "val_recommendation_acc": 0.87925,
+    "lr": 0.001
+  },
+  {
+    "epoch": 4,
+    "train_loss": 1.5993438892364502,
+    "train_health_rmse": 4.613569266803093,
+    "train_fertility_acc": 0.87675,
+    "val_health_rmse": 3.813780036212217,
+    "val_fertility_acc": 0.891,
+    "val_recommendation_acc": 0.87775,
+    "lr": 0.001
+  },
+  {
+    "epoch": 5,
+    "train_loss": 1.5831364612579346,
+    "train_health_rmse": 4.391065346579108,
+    "train_fertility_acc": 0.8745,
+    "val_health_rmse": 3.725755070238209,
+    "val_fertility_acc": 0.893,
+    "val_recommendation_acc": 0.8795,
+    "lr": 0.001
+  },
+  {
+    "epoch": 6,
+    "train_loss": 1.5751639833450317,
+    "train_health_rmse": 4.505157670708247,
+    "train_fertility_acc": 0.88475,
+    "val_health_rmse": 3.59517963106712,
+    "val_fertility_acc": 0.895,
+    "val_recommendation_acc": 0.879625,
+    "lr": 0.001
+  },
+  {
+    "epoch": 7,
+    "train_loss": 1.5576924562454224,
+    "train_health_rmse": 4.282181149092942,
+    "train_fertility_acc": 0.8835,
+    "val_health_rmse": 3.6073847315951215,
+    "val_fertility_acc": 0.889,
+    "val_recommendation_acc": 0.886,
+    "lr": 0.001
+  },
+  {
+    "epoch": 8,
+    "train_loss": 1.5520304775238036,
+    "train_health_rmse": 4.33801820594014,
+    "train_fertility_acc": 0.89475,
+    "val_health_rmse": 3.5718580694456508,
+    "val_fertility_acc": 0.889,
+    "val_recommendation_acc": 0.88975,
+    "lr": 0.001
+  },
+  {
+    "epoch": 9,
+    "train_loss": 1.5498259983062743,
+    "train_health_rmse": 4.373454074122924,
+    "train_fertility_acc": 0.883,
+    "val_health_rmse": 3.601017145254156,
+    "val_fertility_acc": 0.884,
+    "val_recommendation_acc": 0.889,
+    "lr": 0.001
+  },
+  {
+    "epoch": 10,
+    "train_loss": 1.5423841123580933,
+    "train_health_rmse": 4.293067258263474,
+    "train_fertility_acc": 0.8885,
+    "val_health_rmse": 3.5832841121495975,
+    "val_fertility_acc": 0.89,
+    "val_recommendation_acc": 0.889875,
+    "lr": 0.001
+  },
+  {
+    "epoch": 11,
+    "train_loss": 1.5289500255584716,
+    "train_health_rmse": 4.126404174676475,
+    "train_fertility_acc": 0.8945,
+    "val_health_rmse": 3.698925937233922,
+    "val_fertility_acc": 0.894,
+    "val_recommendation_acc": 0.888125,
+    "lr": 0.001
+  },
+  {
+    "epoch": 12,
+    "train_loss": 1.5358496589660644,
+    "train_health_rmse": 4.357494080072235,
+    "train_fertility_acc": 0.89075,
+    "val_health_rmse": 3.495987805300987,
+    "val_fertility_acc": 0.89,
+    "val_recommendation_acc": 0.88775,
+    "lr": 0.001
+  },
+  {
+    "epoch": 13,
+    "train_loss": 1.529693977355957,
+    "train_health_rmse": 4.198515123367386,
+    "train_fertility_acc": 0.8915,
+    "val_health_rmse": 3.5608784975768595,
+    "val_fertility_acc": 0.895,
+    "val_recommendation_acc": 0.8885,
+    "lr": 0.001
+  },
+  {
+    "epoch": 14,
+    "train_loss": 1.5182962369918824,
+    "train_health_rmse": 4.150294514833526,
+    "train_fertility_acc": 0.8985,
+    "val_health_rmse": 3.7427564339803183,
+    "val_fertility_acc": 0.893,
+    "val_recommendation_acc": 0.891,
+    "lr": 0.001
+  },
+  {
+    "epoch": 15,
+    "train_loss": 1.5304189443588256,
+    "train_health_rmse": 4.19486408993974,
+    "train_fertility_acc": 0.892,
+    "val_health_rmse": 3.6737973831975355,
+    "val_fertility_acc": 0.888,
+    "val_recommendation_acc": 0.89,
+    "lr": 0.001
+  },
+  {
+    "epoch": 16,
+    "train_loss": 1.516303963661194,
+    "train_health_rmse": 4.134138296214504,
+    "train_fertility_acc": 0.9,
+    "val_health_rmse": 3.4651452925679496,
+    "val_fertility_acc": 0.884,
+    "val_recommendation_acc": 0.891875,
+    "lr": 0.001
+  },
+  {
+    "epoch": 17,
+    "train_loss": 1.5156178569793701,
+    "train_health_rmse": 4.013930145363167,
+    "train_fertility_acc": 0.896,
+    "val_health_rmse": 3.6887200184033144,
+    "val_fertility_acc": 0.882,
+    "val_recommendation_acc": 0.89125,
+    "lr": 0.001
+  },
+  {
+    "epoch": 18,
+    "train_loss": 1.5094507293701172,
+    "train_health_rmse": 4.163687771885741,
+    "train_fertility_acc": 0.905,
+    "val_health_rmse": 3.5868322091508893,
+    "val_fertility_acc": 0.887,
+    "val_recommendation_acc": 0.889125,
+    "lr": 0.001
+  },
+  {
+    "epoch": 19,
+    "train_loss": 1.510315450668335,
+    "train_health_rmse": 3.9946376857327692,
+    "train_fertility_acc": 0.901,
+    "val_health_rmse": 3.5452568169193297,
+    "val_fertility_acc": 0.886,
+    "val_recommendation_acc": 0.889375,
+    "lr": 0.001
+  },
+  {
+    "epoch": 20,
+    "train_loss": 1.5113230838775635,
+    "train_health_rmse": 4.278470790126254,
+    "train_fertility_acc": 0.89775,
+    "val_health_rmse": 3.4661339730485685,
+    "val_fertility_acc": 0.888,
+    "val_recommendation_acc": 0.888875,
+    "lr": 0.0005
+  }
+]

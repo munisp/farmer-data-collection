@@ -532,7 +532,7 @@ def generate_graph_data(
 
 
 # ============================================================================
-# SOIL HEALTH DATA
+# SOIL HEALTH DATA (tabular - legacy)
 # ============================================================================
 
 def generate_soil_health_data(n_samples: int = 3000) -> pd.DataFrame:
@@ -579,6 +579,215 @@ def generate_soil_health_data(n_samples: int = 3000) -> pd.DataFrame:
 
 
 # ============================================================================
+# SOIL ANALYSIS MULTI-MODAL DATA (photo + lab + location)
+# ============================================================================
+
+SOIL_TYPES = {
+    "loamy": {
+        "color_rgb": (0.35, 0.25, 0.18), "color_var": 0.06,
+        "ph_mean": 6.5, "ph_std": 0.5, "cec_mean": 20, "cec_std": 5,
+        "om_mean": 3.5, "om_std": 1.0, "n_mean": 60, "p_mean": 25, "k_mean": 150,
+        "moisture_mean": 30, "health_base": 75,
+    },
+    "clay": {
+        "color_rgb": (0.55, 0.30, 0.15), "color_var": 0.04,
+        "ph_mean": 7.0, "ph_std": 0.6, "cec_mean": 35, "cec_std": 8,
+        "om_mean": 2.5, "om_std": 0.8, "n_mean": 45, "p_mean": 15, "k_mean": 200,
+        "moisture_mean": 40, "health_base": 55,
+    },
+    "sandy": {
+        "color_rgb": (0.65, 0.55, 0.40), "color_var": 0.08,
+        "ph_mean": 6.0, "ph_std": 0.7, "cec_mean": 8, "cec_std": 3,
+        "om_mean": 1.2, "om_std": 0.5, "n_mean": 25, "p_mean": 10, "k_mean": 80,
+        "moisture_mean": 15, "health_base": 40,
+    },
+    "silt": {
+        "color_rgb": (0.45, 0.38, 0.28), "color_var": 0.05,
+        "ph_mean": 6.8, "ph_std": 0.4, "cec_mean": 18, "cec_std": 4,
+        "om_mean": 3.0, "om_std": 0.9, "n_mean": 55, "p_mean": 22, "k_mean": 140,
+        "moisture_mean": 35, "health_base": 65,
+    },
+    "volcanic": {
+        "color_rgb": (0.20, 0.15, 0.12), "color_var": 0.03,
+        "ph_mean": 5.5, "ph_std": 0.6, "cec_mean": 28, "cec_std": 6,
+        "om_mean": 5.0, "om_std": 1.5, "n_mean": 80, "p_mean": 35, "k_mean": 180,
+        "moisture_mean": 28, "health_base": 80,
+    },
+    "laterite": {
+        "color_rgb": (0.60, 0.22, 0.10), "color_var": 0.04,
+        "ph_mean": 5.0, "ph_std": 0.5, "cec_mean": 12, "cec_std": 4,
+        "om_mean": 1.8, "om_std": 0.6, "n_mean": 30, "p_mean": 8, "k_mean": 100,
+        "moisture_mean": 22, "health_base": 35,
+    },
+}
+
+AFRICAN_FARM_LOCATIONS = [
+    {"lat": -1.29, "lon": 36.82, "elev": 1795, "rain": 869, "temp": 17.6, "ndvi": 0.45},  # Nairobi, KE
+    {"lat": 0.35, "lon": 32.58, "elev": 1189, "rain": 1230, "temp": 21.3, "ndvi": 0.55},  # Kampala, UG
+    {"lat": -6.17, "lon": 35.74, "elev": 1119, "rain": 572, "temp": 22.8, "ndvi": 0.38},  # Dodoma, TZ
+    {"lat": 9.05, "lon": 7.49, "elev": 476, "rain": 1180, "temp": 25.5, "ndvi": 0.50},   # Abuja, NG
+    {"lat": 6.52, "lon": 3.37, "elev": 41, "rain": 1425, "temp": 26.8, "ndvi": 0.42},    # Lagos, NG
+    {"lat": 9.02, "lon": 38.75, "elev": 2355, "rain": 1089, "temp": 15.9, "ndvi": 0.48},  # Addis, ET
+    {"lat": -1.95, "lon": 30.06, "elev": 1567, "rain": 1028, "temp": 19.8, "ndvi": 0.52},  # Kigali, RW
+    {"lat": -15.39, "lon": 28.32, "elev": 1279, "rain": 836, "temp": 20.5, "ndvi": 0.35},  # Lusaka, ZM
+    {"lat": -13.97, "lon": 33.79, "elev": 1050, "rain": 892, "temp": 22.1, "ndvi": 0.40},  # Lilongwe, MW
+    {"lat": -25.75, "lon": 28.19, "elev": 1339, "rain": 674, "temp": 18.7, "ndvi": 0.32},  # Pretoria, ZA
+]
+
+
+def _generate_soil_photo(soil_type: dict, img_size: int = 64) -> np.ndarray:
+    """Generate a synthetic soil photo tensor (3, H, W) with realistic color and texture."""
+    r_base, g_base, b_base = soil_type["color_rgb"]
+    var = soil_type["color_var"]
+
+    img = np.zeros((3, img_size, img_size), dtype=np.float32)
+
+    # Base color with spatial noise (soil grain texture)
+    for c, base in enumerate([r_base, g_base, b_base]):
+        channel = np.random.normal(base, var, (img_size, img_size)).astype(np.float32)
+        # Add low-frequency variation (clumps, moisture patches)
+        freq = np.random.randint(2, 6)
+        x = np.linspace(0, freq * np.pi, img_size)
+        y = np.linspace(0, freq * np.pi, img_size)
+        xx, yy = np.meshgrid(x, y)
+        pattern = np.sin(xx + np.random.uniform(0, 2*np.pi)) * np.cos(yy + np.random.uniform(0, 2*np.pi))
+        channel += (pattern * var * 0.5).astype(np.float32)
+        # Add high-frequency grain noise
+        grain = np.random.normal(0, var * 0.3, (img_size, img_size)).astype(np.float32)
+        channel += grain
+        img[c] = np.clip(channel, 0.0, 1.0)
+
+    # Moisture darkening effect
+    moisture_factor = soil_type["moisture_mean"] / 100.0
+    if np.random.random() < 0.4:
+        # Simulate wet patches
+        cx, cy = np.random.randint(10, img_size-10, 2)
+        radius = np.random.randint(8, 20)
+        yy_grid, xx_grid = np.ogrid[:img_size, :img_size]
+        mask = ((xx_grid - cx)**2 + (yy_grid - cy)**2) < radius**2
+        img[:, mask] *= (1 - moisture_factor * 0.3)
+
+    return img
+
+
+def _compute_soil_labels(ph, n, p, k, om, cec, moisture, health_base):
+    """Compute multi-output labels for soil health model."""
+    # Health score (0-100)
+    score = health_base
+    score += max(-15, min(10, -(abs(ph - 6.5) * 6)))  # pH penalty/bonus
+    score += min(8, n / 15)                              # N contribution
+    score += min(6, p / 8)                               # P contribution
+    score += min(6, k / 40)                              # K contribution
+    score += min(8, om * 2)                               # OM contribution
+    score += min(5, cec / 8)                              # CEC contribution
+    score -= max(0, abs(moisture - 30) * 0.3)             # moisture penalty
+    score = np.clip(score + np.random.normal(0, 3), 0, 100)
+
+    # Fertility class (0-4): very_low, low, medium, high, very_high
+    if score >= 80:
+        fertility = 4
+    elif score >= 60:
+        fertility = 3
+    elif score >= 40:
+        fertility = 2
+    elif score >= 20:
+        fertility = 1
+    else:
+        fertility = 0
+
+    # Recommendation labels (8 binary)
+    recs = np.zeros(8, dtype=np.float32)
+    if ph < 5.5:   recs[0] = 1.0   # add_lime
+    if ph > 7.5:   recs[1] = 1.0   # add_sulfur
+    if n < 40:     recs[2] = 1.0   # add_nitrogen
+    if p < 15:     recs[3] = 1.0   # add_phosphorus
+    if k < 100:    recs[4] = 1.0   # add_potassium
+    if om < 2.0:   recs[5] = 1.0   # add_organic_matter
+    if moisture > 50 or (cec > 35 and moisture > 35):
+        recs[6] = 1.0               # improve_drainage
+    if moisture < 15 or om < 1.5:
+        recs[7] = 1.0               # add_mulch
+
+    return round(float(score), 1), fertility, recs
+
+
+def generate_soil_multimodal_data(
+    n_samples: int = 5000, img_size: int = 64,
+) -> Dict:
+    """Generate multi-modal soil analysis training data.
+
+    Returns dict with:
+        photos: (N, 3, H, W) float32 photo tensors
+        lab_readings: (N, 7) float32 [pH, N, P, K, OM, CEC, moisture]
+        locations: (N, 6) float32 [lat, lon, elev, rain, temp, ndvi]
+        health_scores: (N,) float32
+        fertility_classes: (N,) int64 (0-4)
+        recommendation_labels: (N, 8) float32
+        soil_type_names: list of str
+    """
+    soil_type_names_list = list(SOIL_TYPES.keys())
+    n_types = len(soil_type_names_list)
+
+    photos = np.zeros((n_samples, 3, img_size, img_size), dtype=np.float32)
+    lab_readings = np.zeros((n_samples, 7), dtype=np.float32)
+    locations = np.zeros((n_samples, 6), dtype=np.float32)
+    health_scores = np.zeros(n_samples, dtype=np.float32)
+    fertility_classes = np.zeros(n_samples, dtype=np.int64)
+    rec_labels = np.zeros((n_samples, 8), dtype=np.float32)
+    type_names = []
+
+    for i in range(n_samples):
+        # Pick soil type
+        st_name = soil_type_names_list[i % n_types]
+        st = SOIL_TYPES[st_name]
+        type_names.append(st_name)
+
+        # Generate photo
+        photos[i] = _generate_soil_photo(st, img_size)
+
+        # Generate lab readings
+        ph = np.clip(np.random.normal(st["ph_mean"], st["ph_std"]), 3.5, 9.5)
+        n_val = max(5, np.random.normal(st["n_mean"], st["n_mean"] * 0.3))
+        p_val = max(2, np.random.normal(st["p_mean"], st["p_mean"] * 0.3))
+        k_val = max(20, np.random.normal(st["k_mean"], st["k_mean"] * 0.25))
+        om = np.clip(np.random.normal(st["om_mean"], st["om_std"]), 0.1, 10)
+        cec = max(2, np.random.normal(st["cec_mean"], st["cec_std"]))
+        moisture = np.clip(np.random.normal(st["moisture_mean"], 8), 2, 65)
+
+        lab_readings[i] = [ph, n_val, p_val, k_val, om, cec, moisture]
+
+        # Pick location
+        loc = AFRICAN_FARM_LOCATIONS[i % len(AFRICAN_FARM_LOCATIONS)]
+        # Add jitter (±0.5 degrees, ±50m elev, ±100mm rain, ±2°C temp, ±0.1 NDVI)
+        locations[i] = [
+            loc["lat"] + np.random.normal(0, 0.2),
+            loc["lon"] + np.random.normal(0, 0.2),
+            loc["elev"] + np.random.normal(0, 50),
+            max(100, loc["rain"] + np.random.normal(0, 100)),
+            loc["temp"] + np.random.normal(0, 2),
+            np.clip(loc["ndvi"] + np.random.normal(0, 0.1), 0, 1),
+        ]
+
+        # Compute labels
+        score, fert, recs = _compute_soil_labels(
+            ph, n_val, p_val, k_val, om, cec, moisture, st["health_base"]
+        )
+        health_scores[i] = score
+        fertility_classes[i] = fert
+        rec_labels[i] = recs
+
+    return {
+        "photos": photos,
+        "lab_readings": lab_readings,
+        "locations": locations,
+        "health_scores": health_scores,
+        "fertility_classes": fertility_classes,
+        "recommendation_labels": rec_labels,
+        "soil_type_names": type_names,
+    }
+
+
+# ============================================================================
 # CLI: Generate all datasets
 # ============================================================================
 
@@ -620,9 +829,24 @@ if __name__ == "__main__":
         json.dump(graph, f)
     print(f"  → {len(graph['nodes'])} nodes, {len(graph['edges'])} edges")
 
-    print("Generating soil health data...")
+    print("Generating soil health data (tabular)...")
     soil_df = generate_soil_health_data(3000)
     soil_df.to_parquet(os.path.join(output_dir, "soil_health.parquet"), index=False)
     print(f"  → {len(soil_df)} records")
+
+    print("Generating soil multi-modal data (photo + lab + location)...")
+    soil_mm = generate_soil_multimodal_data(5000, img_size=64)
+    np.savez_compressed(
+        os.path.join(output_dir, "soil_multimodal.npz"),
+        photos=soil_mm["photos"],
+        lab_readings=soil_mm["lab_readings"],
+        locations=soil_mm["locations"],
+        health_scores=soil_mm["health_scores"],
+        fertility_classes=soil_mm["fertility_classes"],
+        recommendation_labels=soil_mm["recommendation_labels"],
+    )
+    with open(os.path.join(output_dir, "soil_type_names.json"), "w") as f:
+        json.dump(soil_mm["soil_type_names"], f)
+    print(f"  → {len(soil_mm['photos'])} multi-modal samples, {len(set(soil_mm['soil_type_names']))} soil types")
 
     print("\nAll synthetic datasets generated successfully!")
