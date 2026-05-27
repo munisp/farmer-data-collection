@@ -67,6 +67,10 @@ import { financialEnhancementsRouter } from "./routers/financial-enhancements-ro
 import { governmentSubsidyRouter } from "./routers/government-subsidy-router.js";
 import { platformAdvancedRouter } from "./routers/platform-advanced-router.js";
 import { soilAnalysisRouter } from "./routers/soil-analysis-router.js";
+import { droneRouter } from "./routers/drone-router.js";
+import { equipmentFleetRouter } from "./routers/equipment-fleet-router.js";
+import { agriLlmRouter } from "./routers/agri-llm-router.js";
+import { iotGatewayRouter } from "./routers/iot-gateway-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -155,6 +159,11 @@ export const appRouter = router({
   governmentSubsidy: governmentSubsidyRouter,
   platformAdvanced: platformAdvancedRouter,
   soilAnalysis: soilAnalysisRouter,
+  // === Next-Gen AI Equipment & LLM Routers ===
+  drone: droneRouter,
+  equipmentFleet: equipmentFleetRouter,
+  agriLlm: agriLlmRouter,
+  iotGateway: iotGatewayRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)

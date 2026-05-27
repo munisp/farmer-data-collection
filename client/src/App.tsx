@@ -132,6 +132,10 @@ const ChamaGroupLending = lazy(() => import("./pages/ChamaGroupLending"));
 const ColdChainMonitoring = lazy(() => import("./pages/ColdChainMonitoring"));
 const PriceAlertsDashboard = lazy(() => import("./pages/PriceAlertsDashboard"));
 const SubscriptionBoxes = lazy(() => import("./pages/SubscriptionBoxes"));
+const DroneFlightDashboard = lazy(() => import("./pages/DroneFlightDashboard"));
+const EquipmentFleetDashboard = lazy(() => import("./pages/EquipmentFleetDashboard"));
+const IoTSensorDashboard = lazy(() => import("./pages/IoTSensorDashboard"));
+const AIAdvisorDashboard = lazy(() => import("./pages/AIAdvisorDashboard"));
 
 function Router() {
   return (
@@ -257,6 +261,11 @@ function Router() {
         <Route path="/cold-chain" component={ColdChainMonitoring} />
         <Route path="/price-alerts" component={PriceAlertsDashboard} />
         <Route path="/subscriptions" component={SubscriptionBoxes} />
+        {/* === Next-Gen AI Equipment & LLM Pages === */}
+        <Route path="/drone-operations" component={DroneFlightDashboard} />
+        <Route path="/equipment-fleet" component={EquipmentFleetDashboard} />
+        <Route path="/iot-sensors" component={IoTSensorDashboard} />
+        <Route path="/ai-advisor" component={AIAdvisorDashboard} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

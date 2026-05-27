@@ -646,6 +646,304 @@ export const soilHistory = pgTable("soil_history", {
   index("idx_soil_history_farm").on(table.farmId),
 ]);
 
+// ============================================================================
+// DRONE & UAV TABLES
+// ============================================================================
+
+export const droneFlights = pgTable("drone_flights", {
+  id: serial("id").primaryKey(),
+  farmId: integer("farm_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  droneModel: varchar("drone_model", { length: 100 }),
+  droneSerial: varchar("drone_serial", { length: 100 }),
+  flightType: varchar("flight_type", { length: 30 }).notNull(), // survey, spray, scout, seed, monitor
+  plannedAreaHa: decimal("planned_area_ha", { precision: 8, scale: 2 }),
+  actualAreaHa: decimal("actual_area_ha", { precision: 8, scale: 2 }),
+  altitudeM: decimal("altitude_m", { precision: 6, scale: 1 }),
+  speedMs: decimal("speed_ms", { precision: 4, scale: 1 }),
+  flightPathWkt: text("flight_path_wkt"), // PostGIS LINESTRING WKT
+  coveragePolygonWkt: text("coverage_polygon_wkt"), // PostGIS POLYGON WKT
+  startTime: timestamp("start_time"),
+  endTime: timestamp("end_time"),
+  durationMinutes: decimal("duration_minutes", { precision: 8, scale: 1 }),
+  batteryStartPct: decimal("battery_start_pct", { precision: 5, scale: 1 }),
+  batteryEndPct: decimal("battery_end_pct", { precision: 5, scale: 1 }),
+  imagesCaptured: integer("images_captured"),
+  sprayVolumeLiters: decimal("spray_volume_liters", { precision: 8, scale: 2 }),
+  chemicalUsed: varchar("chemical_used", { length: 200 }),
+  applicationRateLha: decimal("application_rate_l_ha", { precision: 8, scale: 2 }),
+  windSpeedMs: decimal("wind_speed_ms", { precision: 5, scale: 1 }),
+  windDirection: varchar("wind_direction", { length: 10 }),
+  temperature: decimal("temperature", { precision: 5, scale: 1 }),
+  humidity: decimal("humidity", { precision: 5, scale: 1 }),
+  status: varchar("status", { length: 20 }).default("planned"), // planned, in_progress, completed, aborted
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_drone_flights_farm").on(table.farmId),
+  index("idx_drone_flights_status").on(table.status),
+]);
+
+export const droneImagery = pgTable("drone_imagery", {
+  id: serial("id").primaryKey(),
+  flightId: integer("flight_id").references(() => droneFlights.id),
+  farmId: integer("farm_id").notNull(),
+  imageType: varchar("image_type", { length: 30 }), // rgb, ndvi, thermal, multispectral, orthomosaic
+  filePath: varchar("file_path", { length: 500 }),
+  fileSize: integer("file_size"),
+  bboxWkt: text("bbox_wkt"), // PostGIS POLYGON bounding box
+  resolutionCm: decimal("resolution_cm", { precision: 5, scale: 1 }),
+  processed: boolean("processed").default(false),
+  processingEngine: varchar("processing_engine", { length: 50 }), // opendronemap, pix4d, dronedeploy
+  ndviMean: decimal("ndvi_mean", { precision: 5, scale: 3 }),
+  ndviMin: decimal("ndvi_min", { precision: 5, scale: 3 }),
+  ndviMax: decimal("ndvi_max", { precision: 5, scale: 3 }),
+  anomaliesDetected: integer("anomalies_detected").default(0),
+  plantCount: integer("plant_count"),
+  weedCoverage: decimal("weed_coverage_pct", { precision: 5, scale: 2 }),
+  cropHealthScore: decimal("crop_health_score", { precision: 5, scale: 1 }),
+  processingTimeS: decimal("processing_time_s", { precision: 8, scale: 1 }),
+  metadata: text("metadata"), // JSON: camera settings, GPS exif, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_drone_imagery_flight").on(table.flightId),
+  index("idx_drone_imagery_farm").on(table.farmId),
+]);
+
+// ============================================================================
+// EQUIPMENT TELEMETRY TABLES
+// ============================================================================
+
+export const equipmentTelemetry = pgTable("equipment_telemetry", {
+  id: serial("id").primaryKey(),
+  equipmentId: integer("equipment_id").notNull(),
+  equipmentType: varchar("equipment_type", { length: 30 }).notNull(), // tractor, drone, sprayer, harvester, irrigation
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  speedKmh: decimal("speed_kmh", { precision: 5, scale: 1 }),
+  headingDeg: decimal("heading_deg", { precision: 5, scale: 1 }),
+  altitudeM: decimal("altitude_m", { precision: 8, scale: 2 }),
+  engineRpm: integer("engine_rpm"),
+  fuelRateLph: decimal("fuel_rate_lph", { precision: 6, scale: 2 }),
+  fuelLevelPct: decimal("fuel_level_pct", { precision: 5, scale: 1 }),
+  ptoSpeedRpm: integer("pto_speed_rpm"),
+  engineHours: decimal("engine_hours", { precision: 10, scale: 1 }),
+  implementStatus: text("implement_status"), // JSON: ISOBUS process data
+  diagnosticCodes: text("diagnostic_codes"), // JSON: DTC codes
+  operatorId: integer("operator_id"),
+  fieldId: integer("field_id"),
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_telemetry_equipment").on(table.equipmentId),
+  index("idx_telemetry_recorded").on(table.recordedAt),
+]);
+
+export const equipmentMaintenancePredictions = pgTable("equipment_maintenance_predictions", {
+  id: serial("id").primaryKey(),
+  equipmentId: integer("equipment_id").notNull(),
+  componentName: varchar("component_name", { length: 100 }).notNull(),
+  predictedFailureDate: timestamp("predicted_failure_date"),
+  confidencePct: decimal("confidence_pct", { precision: 5, scale: 1 }),
+  currentWearPct: decimal("current_wear_pct", { precision: 5, scale: 1 }),
+  recommendedAction: varchar("recommended_action", { length: 200 }),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).default("KES"),
+  priority: varchar("priority", { length: 20 }).default("medium"), // low, medium, high, critical
+  resolved: boolean("resolved").default(false),
+  resolvedAt: timestamp("resolved_at"),
+  modelVersion: varchar("model_version", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_maint_pred_equipment").on(table.equipmentId),
+]);
+
+// ============================================================================
+// AI CONVERSATION TABLES
+// ============================================================================
+
+export const aiConversations = pgTable("ai_conversations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  farmId: integer("farm_id"),
+  sessionId: varchar("session_id", { length: 64 }),
+  channel: varchar("channel", { length: 20 }).notNull(), // whatsapp, ussd, voice, app, sms
+  language: varchar("language", { length: 10 }).default("en"),
+  query: text("query").notNull(),
+  queryType: varchar("query_type", { length: 30 }), // crop_diagnosis, soil_advice, market_price, weather, general
+  response: text("response").notNull(),
+  modelUsed: varchar("model_used", { length: 50 }),
+  contextSources: text("context_sources"), // JSON: which RAG docs were used
+  confidence: decimal("confidence", { precision: 5, scale: 3 }),
+  feedbackRating: integer("feedback_rating"), // 1-5 from farmer
+  feedbackText: text("feedback_text"),
+  inferenceMs: decimal("inference_ms", { precision: 8, scale: 1 }),
+  tokensUsed: integer("tokens_used"),
+  photoAttached: boolean("photo_attached").default(false),
+  photoAnalysis: text("photo_analysis"), // JSON: disease/soil analysis result
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_ai_conv_user").on(table.userId),
+  index("idx_ai_conv_session").on(table.sessionId),
+  index("idx_ai_conv_channel").on(table.channel),
+]);
+
+// ============================================================================
+// PRESCRIPTION MAP TABLES
+// ============================================================================
+
+export const prescriptionMaps = pgTable("prescription_maps", {
+  id: serial("id").primaryKey(),
+  farmId: integer("farm_id").notNull(),
+  fieldId: integer("field_id"),
+  mapType: varchar("map_type", { length: 30 }).notNull(), // seeding, fertilizer, spray, irrigation, lime
+  source: varchar("source", { length: 30 }).notNull(), // soil_analysis, drone_ndvi, satellite, manual, ai_generated
+  zones: text("zones").notNull(), // JSON: array of {polygon_wkt, rate, unit, product}
+  totalAreaHa: decimal("total_area_ha", { precision: 8, scale: 2 }),
+  inputProduct: varchar("input_product", { length: 200 }),
+  totalQuantity: decimal("total_quantity", { precision: 10, scale: 2 }),
+  unit: varchar("unit", { length: 20 }),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).default("KES"),
+  generatedBy: varchar("generated_by", { length: 50 }),
+  applied: boolean("applied").default(false),
+  appliedAt: timestamp("applied_at"),
+  appliedByEquipmentId: integer("applied_by_equipment_id"),
+  applicationMethod: varchar("application_method", { length: 30 }), // drone, tractor, manual
+  actualQuantityUsed: decimal("actual_quantity_used", { precision: 10, scale: 2 }),
+  effectivenessScore: decimal("effectiveness_score", { precision: 5, scale: 1 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_prescription_farm").on(table.farmId),
+  index("idx_prescription_type").on(table.mapType),
+]);
+
+// ============================================================================
+// IOT SENSOR TABLES
+// ============================================================================
+
+export const iotDevices = pgTable("iot_devices", {
+  id: serial("id").primaryKey(),
+  farmId: integer("farm_id").notNull(),
+  deviceEui: varchar("device_eui", { length: 32 }), // LoRaWAN EUI
+  deviceName: varchar("device_name", { length: 100 }).notNull(),
+  deviceType: varchar("device_type", { length: 30 }).notNull(), // soil_sensor, weather_station, water_level, livestock_collar, camera_trap
+  protocol: varchar("protocol", { length: 20 }).notNull(), // lorawan, mqtt, ble, modbus, wifi
+  manufacturer: varchar("manufacturer", { length: 100 }),
+  model: varchar("model", { length: 100 }),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  batteryPct: decimal("battery_pct", { precision: 5, scale: 1 }),
+  lastSeenAt: timestamp("last_seen_at"),
+  firmwareVersion: varchar("firmware_version", { length: 30 }),
+  status: varchar("status", { length: 20 }).default("active"), // active, offline, maintenance, decommissioned
+  config: text("config"), // JSON: reporting interval, thresholds, calibration
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_iot_devices_farm").on(table.farmId),
+  index("idx_iot_devices_eui").on(table.deviceEui),
+]);
+
+export const iotReadings = pgTable("iot_readings", {
+  id: serial("id").primaryKey(),
+  deviceId: integer("device_id").notNull().references(() => iotDevices.id),
+  readingType: varchar("reading_type", { length: 30 }).notNull(), // temperature, humidity, soil_moisture, soil_temp, rainfall, wind_speed, water_level, ndvi
+  value: decimal("value", { precision: 12, scale: 4 }).notNull(),
+  unit: varchar("unit", { length: 20 }).notNull(),
+  quality: varchar("quality", { length: 20 }).default("good"), // good, suspect, calibration_needed
+  rawValue: decimal("raw_value", { precision: 12, scale: 4 }),
+  rssi: integer("rssi"), // signal strength for LoRaWAN
+  snr: decimal("snr", { precision: 5, scale: 1 }), // signal-to-noise
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_iot_readings_device").on(table.deviceId),
+  index("idx_iot_readings_time").on(table.recordedAt),
+  index("idx_iot_readings_type").on(table.readingType),
+]);
+
+// ============================================================================
+// EQUIPMENT-AS-A-SERVICE MARKETPLACE
+// ============================================================================
+
+export const equipmentListings = pgTable("equipment_listings", {
+  id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  equipmentType: varchar("equipment_type", { length: 30 }).notNull(), // tractor, drone, sprayer, harvester, irrigation, planter
+  brand: varchar("brand", { length: 100 }),
+  model: varchar("model", { length: 100 }),
+  yearManufactured: integer("year_manufactured"),
+  horsePower: integer("horse_power"),
+  attachments: text("attachments"), // JSON: available implements
+  pricePerHour: decimal("price_per_hour", { precision: 10, scale: 2 }),
+  pricePerHa: decimal("price_per_ha", { precision: 10, scale: 2 }),
+  pricePerDay: decimal("price_per_day", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).default("KES"),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  serviceRadius: decimal("service_radius_km", { precision: 6, scale: 1 }),
+  availability: text("availability"), // JSON: calendar/schedule
+  operatorIncluded: boolean("operator_included").default(true),
+  insuranceCovered: boolean("insurance_covered").default(false),
+  avgRating: decimal("avg_rating", { precision: 3, scale: 2 }),
+  totalBookings: integer("total_bookings").default(0),
+  status: varchar("status", { length: 20 }).default("available"), // available, booked, maintenance, inactive
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_equip_listing_owner").on(table.ownerId),
+  index("idx_equip_listing_type").on(table.equipmentType),
+]);
+
+export const equipmentRentals = pgTable("equipment_rentals", {
+  id: serial("id").primaryKey(),
+  listingId: integer("listing_id").notNull().references(() => equipmentListings.id),
+  renterId: integer("renter_id").notNull().references(() => users.id),
+  farmId: integer("farm_id").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  totalHours: decimal("total_hours", { precision: 8, scale: 1 }),
+  totalArea: decimal("total_area_ha", { precision: 8, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).default("KES"),
+  paymentStatus: varchar("payment_status", { length: 20 }).default("pending"), // pending, paid, refunded
+  paymentMethod: varchar("payment_method", { length: 20 }),
+  operatorName: varchar("operator_name", { length: 100 }),
+  workCompleted: text("work_completed"), // JSON: area covered, tasks done
+  renterRating: integer("renter_rating"),
+  ownerRating: integer("owner_rating"),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, confirmed, in_progress, completed, cancelled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_equip_rental_listing").on(table.listingId),
+  index("idx_equip_rental_renter").on(table.renterId),
+]);
+
+// ============================================================================
+// DIGITAL TWIN / FARM SIMULATION
+// ============================================================================
+
+export const farmDigitalTwins = pgTable("farm_digital_twins", {
+  id: serial("id").primaryKey(),
+  farmId: integer("farm_id").notNull(),
+  twinVersion: integer("twin_version").default(1),
+  boundaryWkt: text("boundary_wkt"), // PostGIS POLYGON
+  elevationModelPath: varchar("elevation_model_path", { length: 500 }),
+  soilMapPath: varchar("soil_map_path", { length: 500 }),
+  drainageModelPath: varchar("drainage_model_path", { length: 500 }),
+  ndviTimeseriesPath: varchar("ndvi_timeseries_path", { length: 500 }),
+  fieldZones: text("field_zones"), // JSON: management zones with properties
+  cropHistory: text("crop_history"), // JSON: what was planted where, when
+  yieldHistory: text("yield_history"), // JSON: yield data by zone
+  soilSamples: text("soil_samples"), // JSON: georeferenced soil test results
+  weatherStationId: integer("weather_station_id"),
+  iotDeviceIds: text("iot_device_ids"), // JSON: array of device IDs
+  lastSimulationAt: timestamp("last_simulation_at"),
+  simulationResults: text("simulation_results"), // JSON: latest sim output
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_digital_twin_farm").on(table.farmId),
+]);
+
 export type Vehicle = typeof vehicles.$inferSelect;
 export type EquipmentBooking = typeof equipmentBookings.$inferSelect;
 export type SavingsGoal = typeof savingsGoals.$inferSelect;
@@ -654,3 +952,13 @@ export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
 export type BulkDiscountTier = typeof bulkDiscountTiers.$inferSelect;
 export type SoilTest = typeof soilTests.$inferSelect;
 export type SoilHistory = typeof soilHistory.$inferSelect;
+export type DroneFlight = typeof droneFlights.$inferSelect;
+export type DroneImagery = typeof droneImagery.$inferSelect;
+export type EquipmentTelemetry = typeof equipmentTelemetry.$inferSelect;
+export type AiConversation = typeof aiConversations.$inferSelect;
+export type PrescriptionMap = typeof prescriptionMaps.$inferSelect;
+export type IotDevice = typeof iotDevices.$inferSelect;
+export type IotReading = typeof iotReadings.$inferSelect;
+export type EquipmentListing = typeof equipmentListings.$inferSelect;
+export type EquipmentRental = typeof equipmentRentals.$inferSelect;
+export type FarmDigitalTwin = typeof farmDigitalTwins.$inferSelect;
