@@ -1,0 +1,13 @@
+# Trained model weights (binary, regenerate with: python -m training.train_all)
+weights/*.pt
+
+# Generated synthetic datasets (regenerate with: python data/synthetic_generator.py)
+data/generated/
+
+# Feature store and model registry (runtime data)
+data/feature_store/
+data/model_registry/
+
+# Python
+__pycache__/
+*.pyc
