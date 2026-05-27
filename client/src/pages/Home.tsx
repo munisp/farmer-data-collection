@@ -46,11 +46,21 @@ export default function Home() {
 
   const statsQuery = trpc.dashboard.getStats.useQuery(
     { userId },
-    { enabled: Number.isFinite(userId) && userId > 0 }
+    {
+      enabled: Number.isFinite(userId) && userId > 0,
+      retry: false,
+      staleTime: 30_000,
+      refetchOnMount: false,
+    }
   );
   const activityQuery = trpc.dashboard.getRecentActivities.useQuery(
     { userId, limit: 6 },
-    { enabled: Number.isFinite(userId) && userId > 0 }
+    {
+      enabled: Number.isFinite(userId) && userId > 0,
+      retry: false,
+      staleTime: 30_000,
+      refetchOnMount: false,
+    }
   );
 
   const stats = useMemo(() => {
@@ -92,12 +102,15 @@ export default function Home() {
     { icon: BarChart3, label: "Analytics", color: "bg-orange-500", onClick: () => setLocation("/analytics") },
   ];
 
-  if (!user || statsQuery.isLoading || activityQuery.isLoading) {
+  const isQueryPending = (statsQuery.isLoading && !statsQuery.isError) ||
+    (activityQuery.isLoading && !activityQuery.isError);
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin text-emerald-600 mx-auto" />
-          <p className="mt-3 text-sm text-muted-foreground">Loading dashboard...</p>
+          <p className="mt-3 text-sm text-muted-foreground">Authenticating...</p>
         </div>
       </div>
     );

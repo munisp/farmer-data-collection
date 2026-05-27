@@ -188,12 +188,14 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
         { href: "/cooperatives", label: "Cooperatives", icon: Users, description: "Co-op dashboard" },
         { href: "/field-agent", label: "Field Agent", icon: Briefcase, description: "Agent tasks" },
         { href: "/farmer-verification", label: "Verify", icon: UserCheck, description: "KYC checks" },
+        { href: "/kyc", label: "KYC/KYB", icon: Shield, description: "Identity verification", badge: "NEW" },
       ],
     },
     {
       title: "Admin",
       cards: [
         { href: "/admin", label: "Admin", icon: Shield, description: "Administration" },
+        { href: "/admin/kyc", label: "KYC Admin", icon: Shield, description: "Review verifications" },
         { href: "/data-quality", label: "Data Quality", icon: BarChart3, description: "Quality checks" },
         { href: "/risk-compliance", label: "Compliance", icon: Shield, description: "Risk & AML" },
       ],

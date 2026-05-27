@@ -26,6 +26,7 @@ import {
   Package,
   FileText,
   Settings,
+  Shield,
 } from "lucide-react";
 
 // Guided Onboarding Wizard
@@ -74,6 +75,14 @@ const personas: PersonaConfig[] = [
         icon: <Users className="h-5 w-5" />,
         action: "Complete Profile",
         path: "/settings/profile",
+      },
+      {
+        id: "kyc",
+        title: "Verify Your Identity",
+        description: "Complete KYC verification to access loans, trading, and financial services",
+        icon: <Shield className="h-5 w-5" />,
+        action: "Start Verification",
+        path: "/kyc",
       },
       {
         id: "farm",
@@ -134,6 +143,14 @@ const personas: PersonaConfig[] = [
         path: "/settings/cooperative",
       },
       {
+        id: "kyb",
+        title: "Business Verification (KYB)",
+        description: "Verify your cooperative registration and director details for compliance",
+        icon: <Shield className="h-5 w-5" />,
+        action: "Start KYB Verification",
+        path: "/kyc",
+      },
+      {
         id: "members",
         title: "Add Member Farmers",
         description: "Import or register your cooperative members",
@@ -189,6 +206,14 @@ const personas: PersonaConfig[] = [
         icon: <Users className="h-5 w-5" />,
         action: "Complete Profile",
         path: "/settings/profile",
+      },
+      {
+        id: "kyc",
+        title: "Identity Verification",
+        description: "Verify your identity to access financial operations",
+        icon: <Shield className="h-5 w-5" />,
+        action: "Start Verification",
+        path: "/kyc",
       },
       {
         id: "products",

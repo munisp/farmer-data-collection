@@ -49,6 +49,12 @@ export default function Dashboard() {
     profitMargin: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [loadTimeout, setLoadTimeout] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoadTimeout(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!isInitialized || !user) return;
@@ -125,7 +131,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!isInitialized || loading) {
+  if ((!isInitialized || loading) && !loadTimeout) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">

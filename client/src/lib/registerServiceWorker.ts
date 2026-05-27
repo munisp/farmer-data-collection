@@ -1,21 +1,26 @@
 export function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker
-        .register('/service-worker.js')
-        .then((registration) => {
-          console.log('Service Worker registered successfully:', registration.scope);
-          
-          // Check for updates periodically
-          setInterval(() => {
-            registration.update();
-          }, 60000); // Check every minute
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
-    });
-  }
+  if (!('serviceWorker' in navigator)) return;
+
+  // In dev mode, VitePWA plugin handles SW registration via devOptions.enabled
+  // Only register the custom service-worker.js in production builds
+  const isDev = import.meta.env.DEV;
+
+  window.addEventListener('load', () => {
+    const swUrl = isDev ? '/dev-sw.js?dev-sw' : '/service-worker.js';
+
+    navigator.serviceWorker
+      .register(swUrl, isDev ? { type: 'module' } : undefined)
+      .then((registration) => {
+        console.log(`Service Worker registered (${isDev ? 'dev' : 'prod'}):`, registration.scope);
+
+        setInterval(() => {
+          registration.update();
+        }, 60000);
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+      });
+  });
 }
 
 export function unregisterServiceWorker() {

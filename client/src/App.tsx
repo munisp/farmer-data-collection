@@ -137,6 +137,8 @@ const DroneFlightDashboard = lazy(() => import("./pages/DroneFlightDashboard"));
 const EquipmentFleetDashboard = lazy(() => import("./pages/EquipmentFleetDashboard"));
 const IoTSensorDashboard = lazy(() => import("./pages/IoTSensorDashboard"));
 const AIAdvisorDashboard = lazy(() => import("./pages/AIAdvisorDashboard"));
+const KycVerification = lazy(() => import("./pages/KycVerification"));
+const KycAdminDashboard = lazy(() => import("./pages/KycAdminDashboard"));
 
 function Router() {
   return (
@@ -267,6 +269,9 @@ function Router() {
         <Route path="/equipment-fleet" component={EquipmentFleetDashboard} />
         <Route path="/iot-sensors" component={IoTSensorDashboard} />
         <Route path="/ai-advisor" component={AIAdvisorDashboard} />
+        {/* === KYC/KYB Verification === */}
+        <Route path="/kyc" component={KycVerification} />
+        <Route path="/admin/kyc" component={KycAdminDashboard} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
