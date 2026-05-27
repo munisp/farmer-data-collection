@@ -1,0 +1,397 @@
+{
+  "dashboard": {
+    "title": "SLA Monitoring Dashboard",
+    "tags": ["sla", "monitoring", "executive"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "99.9% Uptime SLA Compliance",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "(1 - (sum(rate(http_requests_total{status=~\"5..\"}[30d])) / sum(rate(http_requests_total[30d])))) * 100",
+            "legendFormat": "Uptime %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "justifyMode": "center",
+          "orientation": "horizontal"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 3,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 99.0, "color": "yellow"},
+                {"value": 99.9, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "MTTR (Mean Time To Recovery)",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
+        "targets": [
+          {
+            "expr": "avg(incident_recovery_time_seconds) / 60",
+            "legendFormat": "MTTR (minutes)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "justifyMode": "center"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "m",
+            "decimals": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 15, "color": "yellow"},
+                {"value": 30, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Error Budget Remaining",
+        "type": "gauge",
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0},
+        "targets": [
+          {
+            "expr": "(1 - (sum(rate(http_requests_total{status=~\"5..\"}[30d])) / sum(rate(http_requests_total[30d])))) / 0.999 * 100",
+            "legendFormat": "Budget %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 25, "color": "yellow"},
+                {"value": 50, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "API Latency SLI (p95)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) * 1000",
+            "legendFormat": "p95 latency",
+            "refId": "A"
+          },
+          {
+            "expr": "500",
+            "legendFormat": "SLO: 500ms",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "ms", "label": "Latency"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [500], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "60s",
+          "handler": 1,
+          "name": "API Latency SLO Breach",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 5,
+        "title": "Availability SLI",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+        "targets": [
+          {
+            "expr": "(1 - (sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])))) * 100",
+            "legendFormat": "Availability %",
+            "refId": "A"
+          },
+          {
+            "expr": "99.9",
+            "legendFormat": "SLO: 99.9%",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 99, "max": 100},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Request Throughput SLI",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m]))",
+            "legendFormat": "Requests/sec",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Throughput"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Error Rate SLI",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
+            "legendFormat": "Error rate %",
+            "refId": "A"
+          },
+          {
+            "expr": "0.1",
+            "legendFormat": "SLO: 0.1%",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Error Rate"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [0.1], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "60s",
+          "handler": 1,
+          "name": "Error Rate SLO Breach",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 8,
+        "title": "Incidents by Severity (30 days)",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 22},
+        "targets": [
+          {
+            "expr": "sum(incident_total{severity=\"P0\"}) by (severity)",
+            "legendFormat": "{{severity}}",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(incident_total{severity=\"P1\"}) by (severity)",
+            "legendFormat": "{{severity}}",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(incident_total{severity=\"P2\"}) by (severity)",
+            "legendFormat": "{{severity}}",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "SLA Breach Events",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 16, "x": 8, "y": 22},
+        "targets": [
+          {
+            "expr": "sla_breach_total",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Time": "Timestamp",
+                "sli": "SLI",
+                "severity": "Severity",
+                "duration": "Duration"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Deployment Frequency",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 30},
+        "targets": [
+          {
+            "expr": "sum(increase(deployment_total[7d]))",
+            "legendFormat": "Deployments/week",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Change Failure Rate",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 30},
+        "targets": [
+          {
+            "expr": "sum(deployment_failed_total) / sum(deployment_total) * 100",
+            "legendFormat": "Failure rate %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 15, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Lead Time for Changes",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 30},
+        "targets": [
+          {
+            "expr": "avg(deployment_lead_time_hours)",
+            "legendFormat": "Lead time (hours)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "h",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 24, "color": "yellow"},
+                {"value": 168, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 13,
+        "title": "Time to Restore Service",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 30},
+        "targets": [
+          {
+            "expr": "avg(incident_recovery_time_seconds) / 3600",
+            "legendFormat": "Restore time (hours)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "h",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 24, "color": "red"}
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

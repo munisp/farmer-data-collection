@@ -1,0 +1,108 @@
+// Permify Authorization Schema for Farmer Data Collection
+// This schema defines entities, relations, and permissions
+
+entity user {}
+
+entity organization {
+    // Relations
+    relation admin @user
+    relation member @user
+    
+    // Permissions
+    permission view = admin or member
+    permission edit = admin
+    permission delete = admin
+    permission invite_member = admin
+}
+
+entity farmer {
+    // Relations
+    relation owner @user
+    relation organization @organization
+    relation viewer @user
+    
+    // Permissions
+    permission view = owner or viewer or organization.member
+    permission edit = owner or organization.admin
+    permission delete = owner or organization.admin
+    permission share = owner or organization.admin
+}
+
+entity farm {
+    // Relations
+    relation owner @user
+    relation farmer @farmer
+    relation organization @organization
+    relation viewer @user
+    
+    // Permissions
+    permission view = owner or viewer or farmer.owner or organization.member
+    permission edit = owner or farmer.owner or organization.admin
+    permission delete = owner or farmer.owner or organization.admin
+    permission manage_crops = owner or farmer.owner
+    permission manage_livestock = owner or farmer.owner
+}
+
+entity crop {
+    // Relations
+    relation owner @user
+    relation farm @farm
+    relation organization @organization
+    
+    // Permissions
+    permission view = owner or farm.owner or organization.member
+    permission edit = owner or farm.owner or organization.admin
+    permission delete = owner or farm.owner or organization.admin
+    permission record_harvest = owner or farm.owner
+}
+
+entity livestock {
+    // Relations
+    relation owner @user
+    relation farm @farm
+    relation organization @organization
+    
+    // Permissions
+    permission view = owner or farm.owner or organization.member
+    permission edit = owner or farm.owner or organization.admin
+    permission delete = owner or farm.owner or organization.admin
+    permission record_health = owner or farm.owner
+}
+
+entity harvest {
+    // Relations
+    relation owner @user
+    relation crop @crop
+    relation organization @organization
+    
+    // Permissions
+    permission view = owner or crop.owner or organization.member
+    permission edit = owner or crop.owner or organization.admin
+    permission delete = owner or crop.owner or organization.admin
+}
+
+entity expense {
+    // Relations
+    relation owner @user
+    relation farm @farm
+    relation organization @organization
+    
+    // Permissions
+    permission view = owner or farm.owner or organization.member
+    permission edit = owner or farm.owner or organization.admin
+    permission delete = owner or farm.owner or organization.admin
+    permission approve = organization.admin
+}
+
+entity report {
+    // Relations
+    relation owner @user
+    relation organization @organization
+    relation viewer @user
+    
+    // Permissions
+    permission view = owner or viewer or organization.member
+    permission edit = owner or organization.admin
+    permission delete = owner or organization.admin
+    permission export = owner or organization.admin
+}

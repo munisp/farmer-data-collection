@@ -1,0 +1,255 @@
+=== INFRASTRUCTURE MATRIX ===
+
+=== kafka ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/pnpm-lock.yaml
+/home/ubuntu/farmer-data-collection/docker-compose.production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.phase1.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/configmap.yaml
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+/home/ubuntu/farmer-data-collection/k8s/orchestrator-deployment.yaml
+Config files:
+/home/ubuntu/farmer-data-collection/config/apisix/config.yaml
+/home/ubuntu/farmer-data-collection/config/prometheus/prometheus.yml
+/home/ubuntu/farmer-data-collection/config/dapr/secrets.json
+/home/ubuntu/farmer-data-collection/config/dapr/pubsub.yaml
+/home/ubuntu/farmer-data-collection/config/dapr/components/pubsub.yaml
+/home/ubuntu/farmer-data-collection/config/grafana/dashboards/middleware-overview.json
+Service code:
+/home/ubuntu/farmer-data-collection/services/marketplace-service/main.go
+/home/ubuntu/farmer-data-collection/services/marketplace-service/go.mod
+/home/ubuntu/farmer-data-collection/services/auth-service/main.go
+/home/ubuntu/farmer-data-collection/services/notification-service/main.py
+/home/ubuntu/farmer-data-collection/services/notification-service/requirements.txt
+
+=== dapr ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/pnpm-lock.yaml
+/home/ubuntu/farmer-data-collection/docker-compose.production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.phase1.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+Config files:
+/home/ubuntu/farmer-data-collection/config/dapr/config.yaml
+/home/ubuntu/farmer-data-collection/config/dapr/secrets.yaml
+/home/ubuntu/farmer-data-collection/config/dapr/statestore.yaml
+/home/ubuntu/farmer-data-collection/config/dapr/pubsub.yaml
+/home/ubuntu/farmer-data-collection/config/dapr/components/secrets.yaml
+/home/ubuntu/farmer-data-collection/config/dapr/components/statestore.yaml
+/home/ubuntu/farmer-data-collection/config/dapr/components/pubsub.yaml
+/home/ubuntu/farmer-data-collection/config/grafana/dashboards/middleware-overview.json
+Service code:
+/home/ubuntu/farmer-data-collection/services/go/orchestrator-coordinator/main.go
+/home/ubuntu/farmer-data-collection/services/go/dapr-service/go.mod
+/home/ubuntu/farmer-data-collection/services/go/dapr-service/go.sum
+/home/ubuntu/farmer-data-collection/services/go/dapr-service/main.go
+/home/ubuntu/farmer-data-collection/services/orchestrator/README.md
+
+=== fluvio ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+K8s manifests:
+  None
+Config files:
+/home/ubuntu/farmer-data-collection/config/grafana/dashboards/middleware-overview.json
+Service code:
+/home/ubuntu/farmer-data-collection/services/go/orchestrator-coordinator/main.go
+/home/ubuntu/farmer-data-collection/services/go/fluvio-streaming/main.go
+/home/ubuntu/farmer-data-collection/services/go/fluvio-streaming/go.mod
+/home/ubuntu/farmer-data-collection/services/orchestrator/README.md
+/home/ubuntu/farmer-data-collection/services/orchestrator/main.go
+
+=== temporal ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/pnpm-lock.yaml
+/home/ubuntu/farmer-data-collection/docker-compose.production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/configmap.yaml
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+/home/ubuntu/farmer-data-collection/k8s/orchestrator-deployment.yaml
+Config files:
+/home/ubuntu/farmer-data-collection/config/on-call-rotation.yml
+/home/ubuntu/farmer-data-collection/config/grafana/dashboards/middleware-overview.json
+/home/ubuntu/farmer-data-collection/config/grafana/provisioning/alerting/contact-points.yml
+/home/ubuntu/farmer-data-collection/config/grafana/provisioning/alerting/alerts.yml
+Service code:
+/home/ubuntu/farmer-data-collection/services/orchestrator/README.md
+/home/ubuntu/farmer-data-collection/services/go/orchestrator-coordinator/main.go
+/home/ubuntu/farmer-data-collection/services/orchestrator/main.go
+/home/ubuntu/farmer-data-collection/services/orchestrator/go.mod
+/home/ubuntu/farmer-data-collection/services/python/temporal-workflows/worker.py
+
+=== keycloak ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/pnpm-lock.yaml
+/home/ubuntu/farmer-data-collection/docker-compose.phase1.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+Config files:
+/home/ubuntu/farmer-data-collection/config/apisix/apisix.yaml
+/home/ubuntu/farmer-data-collection/config/apisix/config.yaml
+Service code:
+/home/ubuntu/farmer-data-collection/services/auth-service/main.go
+/home/ubuntu/farmer-data-collection/services/orchestrator/README.md
+/home/ubuntu/farmer-data-collection/services/go/orchestrator-coordinator/main.go
+/home/ubuntu/farmer-data-collection/services/orchestrator/main.go
+/home/ubuntu/farmer-data-collection/services/orchestrator/middleware/manager.go
+
+=== permify ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/pnpm-lock.yaml
+/home/ubuntu/farmer-data-collection/docker-compose.phase1.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+Config files:
+/home/ubuntu/farmer-data-collection/config/permify/schema.perm
+Service code:
+/home/ubuntu/farmer-data-collection/services/go/orchestrator-coordinator/main.go
+/home/ubuntu/farmer-data-collection/services/orchestrator/README.md
+/home/ubuntu/farmer-data-collection/services/orchestrator/main.go
+/home/ubuntu/farmer-data-collection/services/python/permify-mock/app.py
+/home/ubuntu/farmer-data-collection/services/orchestrator/middleware/manager.go
+
+=== redis ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/pnpm-lock.yaml
+/home/ubuntu/farmer-data-collection/docker-compose.yml
+/home/ubuntu/farmer-data-collection/docker-compose.security.yml
+/home/ubuntu/farmer-data-collection/docker-compose.production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.phase1.yml
+/home/ubuntu/farmer-data-collection/docker-compose.prod.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/configmap.yaml
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+/home/ubuntu/farmer-data-collection/k8s/orchestrator-deployment.yaml
+Config files:
+/home/ubuntu/farmer-data-collection/config/dapr/secrets.json
+/home/ubuntu/farmer-data-collection/config/dapr/statestore.yaml
+/home/ubuntu/farmer-data-collection/config/prometheus/prometheus.yml
+/home/ubuntu/farmer-data-collection/config/dapr/components/statestore.yaml
+/home/ubuntu/farmer-data-collection/config/grafana/dashboards/middleware-overview.json
+Service code:
+/home/ubuntu/farmer-data-collection/services/marketplace-service/main.go
+/home/ubuntu/farmer-data-collection/services/marketplace-service/go.mod
+/home/ubuntu/farmer-data-collection/services/auth-service/main.go
+/home/ubuntu/farmer-data-collection/services/auth-service/go.mod
+/home/ubuntu/farmer-data-collection/services/notification-service/main.py
+
+=== apisix ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/docker-compose.yml
+/home/ubuntu/farmer-data-collection/docker-compose.production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.phase1.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+Config files:
+/home/ubuntu/farmer-data-collection/config/grafana/dashboards/middleware-overview.json
+/home/ubuntu/farmer-data-collection/config/apisix/config.yaml
+/home/ubuntu/farmer-data-collection/config/apisix/apisix.yaml
+/home/ubuntu/farmer-data-collection/config/prometheus/prometheus.yml
+Service code:
+/home/ubuntu/farmer-data-collection/services/go/apisix-gateway/main.go
+/home/ubuntu/farmer-data-collection/services/go/apisix-gateway/go.mod
+/home/ubuntu/farmer-data-collection/services/go/orchestrator-coordinator/main.go
+/home/ubuntu/farmer-data-collection/services/python/apisix-mock/app.py
+/home/ubuntu/farmer-data-collection/services/orchestrator/main.go
+
+=== tigerbeetle ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/pnpm-lock.yaml
+/home/ubuntu/farmer-data-collection/docker-compose.production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+/home/ubuntu/farmer-data-collection/docker-compose.enterprise.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+Config files:
+  None
+Service code:
+/home/ubuntu/farmer-data-collection/services/go/orchestrator-coordinator/main.go
+/home/ubuntu/farmer-data-collection/services/go/tigerbeetle-service/go.mod
+/home/ubuntu/farmer-data-collection/services/go/tigerbeetle-service/Dockerfile
+/home/ubuntu/farmer-data-collection/services/go/tigerbeetle-service/main.go
+/home/ubuntu/farmer-data-collection/services/python/temporal-workflows/worker_journeys.py
+
+=== lakehouse ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+Config files:
+  None
+Service code:
+/home/ubuntu/farmer-data-collection/services/go/orchestrator-coordinator/main.go
+/home/ubuntu/farmer-data-collection/services/python/apisix-mock/app.py
+/home/ubuntu/farmer-data-collection/services/python/lakehouse-service/app/main.py
+/home/ubuntu/farmer-data-collection/services/python/temporal-workflows/worker_journeys.py
+/home/ubuntu/farmer-data-collection/services/orchestrator/README.md
+
+=== openappsec ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/docker-compose.security.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-production.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+Config files:
+  None
+Service code:
+
+=== kubernetes ===
+Docker-compose files:
+/home/ubuntu/farmer-data-collection/docker-compose.security.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha.yml
+/home/ubuntu/farmer-data-collection/docker-compose.ha-optimized.yml
+K8s manifests:
+/home/ubuntu/farmer-data-collection/k8s/ha-production-deployment.yaml
+Config files:
+  None
+Service code:
+/home/ubuntu/farmer-data-collection/services/orchestrator/README.md
+
+=== openstack ===
+Docker-compose files:
+  None
+K8s manifests:
+  None
+Config files:
+  None
+Service code:

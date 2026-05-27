@@ -1,0 +1,15 @@
+{
+  "query": "SELECT column_name, column_default, data_type FROM information_schema.columns WHERE table_name = 'sms_scheduled_messages' AND column_name = 'cost' ORDER BY ordinal_position;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NzNswwN3cq6gauf.c04d1ab767e1 --database PqpBBu22GW6k9Mt8Xb9kd6 --execute SELECT column_name, column_default, data_type FROM information_schema.columns WHERE table_name = 'sms_scheduled_messages' AND column_name = 'cost' ORDER BY ordinal_position;",
+  "rows": [
+    {
+      "column_name": "cost",
+      "column_default": "0",
+      "data_type": "int"
+    }
+  ],
+  "messages": [],
+  "stdout": "column_name\tcolumn_default\tdata_type\ncost\t0\tint\n",
+  "stderr": "",
+  "execution_time_ms": 1155
+}

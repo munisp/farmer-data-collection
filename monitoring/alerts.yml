@@ -1,0 +1,225 @@
+groups:
+  - name: service_health
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 2 minutes."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} is experiencing {{ $value | humanizePercentage }} error rate."
+
+  - name: performance
+    interval: 30s
+    rules:
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time on {{ $labels.job }}"
+          description: "95th percentile response time is {{ $value }}s on {{ $labels.job }}."
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "{{ $labels.job }} is using {{ $value | humanizePercentage }} CPU."
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 / 1024 > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "{{ $labels.job }} is using {{ $value }}GB of memory."
+
+  - name: database
+    interval: 30s
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 1 minute."
+
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of database connections"
+          description: "PostgreSQL has {{ $value }} active connections."
+
+      - alert: SlowQueries
+        expr: rate(pg_stat_statements_mean_exec_time[5m]) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query execution time is {{ $value }}ms."
+
+  - name: cache
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache has been down for more than 1 minute."
+
+      - alert: LowCacheHitRate
+        expr: rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) < 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low Redis cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}."
+
+      - alert: HighRedisMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis is using {{ $value | humanizePercentage }} of available memory."
+
+  - name: temporal
+    interval: 30s
+    rules:
+      - alert: TemporalWorkflowFailures
+        expr: rate(temporal_workflow_failed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Temporal workflow failure rate"
+          description: "Temporal is experiencing {{ $value }} workflow failures per second."
+
+      - alert: TemporalTaskQueueBacklog
+        expr: temporal_task_queue_backlog > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Temporal task queue backlog"
+          description: "Temporal has {{ $value }} pending tasks in the queue."
+
+  - name: user_journeys
+    interval: 30s
+    rules:
+      - alert: HighJourneyFailureRate
+        expr: rate(user_journey_failed_total[10m]) / rate(user_journey_started_total[10m]) > 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High user journey failure rate"
+          description: "{{ $value | humanizePercentage }} of user journeys are failing."
+
+      - alert: SlowJourneyCompletion
+        expr: histogram_quantile(0.95, rate(user_journey_duration_seconds_bucket[10m])) > 300
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow user journey completion"
+          description: "95th percentile journey completion time is {{ $value }}s."
+
+  - name: messaging
+    interval: 30s
+    rules:
+      - alert: HighUSSDErrorRate
+        expr: rate(ussd_errors_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High USSD error rate"
+          description: "USSD channel is experiencing {{ $value }} errors per second."
+
+      - alert: HighSMSErrorRate
+        expr: rate(sms_errors_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High SMS error rate"
+          description: "SMS channel is experiencing {{ $value }} errors per second."
+
+      - alert: HighWhatsAppErrorRate
+        expr: rate(whatsapp_errors_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High WhatsApp error rate"
+          description: "WhatsApp channel is experiencing {{ $value }} errors per second."
+
+  - name: ai_services
+    interval: 30s
+    rules:
+      - alert: OllamaServiceDown
+        expr: up{job="ollama"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ollama AI service is down"
+          description: "Ollama service has been down for more than 2 minutes."
+
+      - alert: SlowAIInference
+        expr: histogram_quantile(0.95, rate(ollama_inference_duration_seconds_bucket[5m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow AI inference times"
+          description: "95th percentile AI inference time is {{ $value }}s."
+
+  - name: financial
+    interval: 30s
+    rules:
+      - alert: TigerBeetleDown
+        expr: up{job="tigerbeetle"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TigerBeetle ledger is down"
+          description: "Financial ledger service has been down for more than 1 minute."
+
+      - alert: HighTransactionFailureRate
+        expr: rate(tigerbeetle_transaction_failed_total[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High transaction failure rate"
+          description: "{{ $value | humanizePercentage }} of financial transactions are failing."

@@ -1,0 +1,99 @@
+# Prometheus Configuration for Farmer Data Collection Platform
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'farmer-platform'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # APISIX API Gateway metrics
+  - job_name: 'apisix'
+    static_configs:
+      - targets: ['apisix:9091']
+    metrics_path: '/apisix/prometheus/metrics'
+
+  # Auth Service
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:3001']
+    metrics_path: '/metrics'
+
+  # Farmer Service
+  - job_name: 'farmer-service'
+    static_configs:
+      - targets: ['farmer-service:3002']
+    metrics_path: '/metrics'
+
+  # Farm Service
+  - job_name: 'farm-service'
+    static_configs:
+      - targets: ['farm-service:3003']
+    metrics_path: '/metrics'
+
+  # Crop Service
+  - job_name: 'crop-service'
+    static_configs:
+      - targets: ['crop-service:3004']
+    metrics_path: '/metrics'
+
+  # Livestock Service
+  - job_name: 'livestock-service'
+    static_configs:
+      - targets: ['livestock-service:3005']
+    metrics_path: '/metrics'
+
+  # Harvest Service
+  - job_name: 'harvest-service'
+    static_configs:
+      - targets: ['harvest-service:3006']
+    metrics_path: '/metrics'
+
+  # Expense Service
+  - job_name: 'expense-service'
+    static_configs:
+      - targets: ['expense-service:3007']
+    metrics_path: '/metrics'
+
+  # Analytics Service
+  - job_name: 'analytics-service'
+    static_configs:
+      - targets: ['analytics-service:3008']
+    metrics_path: '/metrics'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+
+  # Kafka Exporter
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9092']
+
+  # Node Exporter (if available)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']

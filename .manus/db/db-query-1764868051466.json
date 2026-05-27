@@ -1,0 +1,90 @@
+{
+  "query": "SELECT column_name, column_default, data_type FROM information_schema.columns WHERE table_name = 'sms_scheduled_messages' ORDER BY ordinal_position;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NzNswwN3cq6gauf.c04d1ab767e1 --database PqpBBu22GW6k9Mt8Xb9kd6 --execute SELECT column_name, column_default, data_type FROM information_schema.columns WHERE table_name = 'sms_scheduled_messages' ORDER BY ordinal_position;",
+  "rows": [
+    {
+      "column_name": "id",
+      "column_default": "NULL",
+      "data_type": "bigint"
+    },
+    {
+      "column_name": "template_id",
+      "column_default": "NULL",
+      "data_type": "int"
+    },
+    {
+      "column_name": "recipient_phone",
+      "column_default": "NULL",
+      "data_type": "varchar"
+    },
+    {
+      "column_name": "recipient_name",
+      "column_default": "NULL",
+      "data_type": "varchar"
+    },
+    {
+      "column_name": "message",
+      "column_default": "NULL",
+      "data_type": "text"
+    },
+    {
+      "column_name": "scheduled_for",
+      "column_default": "NULL",
+      "data_type": "timestamp"
+    },
+    {
+      "column_name": "status",
+      "column_default": "pending",
+      "data_type": "varchar"
+    },
+    {
+      "column_name": "sent_at",
+      "column_default": "NULL",
+      "data_type": "timestamp"
+    },
+    {
+      "column_name": "delivery_status",
+      "column_default": "NULL",
+      "data_type": "varchar"
+    },
+    {
+      "column_name": "message_id",
+      "column_default": "NULL",
+      "data_type": "varchar"
+    },
+    {
+      "column_name": "error_message",
+      "column_default": "NULL",
+      "data_type": "text"
+    },
+    {
+      "column_name": "cost",
+      "column_default": "0",
+      "data_type": "int"
+    },
+    {
+      "column_name": "metadata",
+      "column_default": "NULL",
+      "data_type": "text"
+    },
+    {
+      "column_name": "created_by",
+      "column_default": "NULL",
+      "data_type": "int"
+    },
+    {
+      "column_name": "created_at",
+      "column_default": "CURRENT_TIMESTAMP",
+      "data_type": "timestamp"
+    },
+    {
+      "column_name": "updated_at",
+      "column_default": "CURRENT_TIMESTAMP",
+      "data_type": "timestamp"
+    }
+  ],
+  "messages": [],
+  "stdout": "column_name\tcolumn_default\tdata_type\nid\tNULL\tbigint\ntemplate_id\tNULL\tint\nrecipient_phone\tNULL\tvarchar\nrecipient_name\tNULL\tvarchar\nmessage\tNULL\ttext\nscheduled_for\tNULL\ttimestamp\nstatus\tpending\tvarchar\nsent_at\tNULL\ttimestamp\ndelivery_status\tNULL\tvarchar\nmessage_id\tNULL\tvarchar\nerror_message\tNULL\ttext\ncost\t0\tint\nmetadata\tNULL\ttext\ncreated_by\tNULL\tint\ncreated_at\tCURRENT_TIMESTAMP\ttimestamp\nupdated_at\tCURRENT_TIMESTAMP\ttimestamp\n",
+  "stderr": "",
+  "execution_time_ms": 28544
+}

@@ -1,0 +1,175 @@
+groups:
+  - name: farmer_platform_alerts
+    interval: 30s
+    rules:
+      # HTTP Error Rate Alerts
+      - alert: HighHTTPErrorRate
+        expr: rate(http_request_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "HTTP error rate is {{ $value }} errors/sec for {{ $labels.method }} {{ $labels.route }}"
+
+      - alert: CriticalHTTPErrorRate
+        expr: rate(http_request_errors_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical HTTP error rate detected"
+          description: "HTTP error rate is {{ $value }} errors/sec for {{ $labels.method }} {{ $labels.route }}"
+
+      # Response Time Alerts
+      - alert: SlowHTTPResponses
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow HTTP responses detected"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.method }} {{ $labels.route }}"
+
+      # Database Alerts
+      - alert: HighDatabaseQueryErrors
+        expr: rate(db_query_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database query error rate"
+          description: "Database error rate is {{ $value }} errors/sec for {{ $labels.operation }} on {{ $labels.table }}"
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time is {{ $value }}s for {{ $labels.operation }} on {{ $labels.table }}"
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: db_connection_pool_used / db_connection_pool_size > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "{{ $value | humanizePercentage }} of database connections are in use"
+
+      # Health Check Alerts
+      - alert: ComponentUnhealthy
+        expr: health_check_status == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Component health check failed"
+          description: "Component {{ $labels.component }} is unhealthy"
+
+      # Event Loop Lag Alerts
+      - alert: HighEventLoopLag
+        expr: nodejs_eventloop_lag_seconds > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High event loop lag detected"
+          description: "Event loop lag is {{ $value }}s, indicating server overload"
+
+      - alert: CriticalEventLoopLag
+        expr: nodejs_eventloop_lag_seconds > 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical event loop lag detected"
+          description: "Event loop lag is {{ $value }}s, server may be unresponsive"
+
+      # Memory Alerts
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes > 1e9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Process is using {{ $value | humanize }}B of memory"
+
+      - alert: CriticalMemoryUsage
+        expr: process_resident_memory_bytes > 2e9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Process is using {{ $value | humanize }}B of memory, may run out of memory soon"
+
+      # Sync Alerts
+      - alert: HighSyncConflictRate
+        expr: rate(sync_conflicts_total[5m]) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High sync conflict rate detected"
+          description: "Sync conflict rate is {{ $value }} conflicts/sec for {{ $labels.entity_type }}"
+
+      - alert: SyncFailures
+        expr: rate(sync_operations_total{status="error"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sync operation failures detected"
+          description: "Sync failure rate is {{ $value }} failures/sec for {{ $labels.operation }}"
+
+      # Authentication Alerts
+      - alert: HighAuthenticationFailureRate
+        expr: rate(auth_failures_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Auth failure rate is {{ $value }} failures/sec for {{ $labels.method }}, possible brute force attack"
+
+      - alert: CriticalAuthenticationFailureRate
+        expr: rate(auth_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical authentication failure rate"
+          description: "Auth failure rate is {{ $value }} failures/sec for {{ $labels.method }}, likely brute force attack in progress"
+
+      # SMS Alerts
+      - alert: HighSMSFailureRate
+        expr: rate(sms_messages_sent_total{status="failed"}[5m]) / rate(sms_messages_sent_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High SMS failure rate detected"
+          description: "{{ $value | humanizePercentage }} of SMS messages are failing"
+
+      - alert: HighSMSCost
+        expr: rate(sms_message_cost_total[1h]) > 100
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "High SMS cost detected"
+          description: "SMS cost is {{ $value }} per hour, may exceed budget"
+
+      # Service Availability
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.job }} is not responding to health checks"

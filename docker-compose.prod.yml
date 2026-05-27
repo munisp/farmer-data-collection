@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: farmer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: farmer_data
+      POSTGRES_USER: ${DB_USER:-farmer_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-farmer_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - farmer-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: farmer-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - farmer-network
+
+  # Application Server
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: farmer-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER:-farmer_user}:${DB_PASSWORD}@postgres:5432/farmer_data
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - farmer-network
+    volumes:
+      - app_logs:/app/logs
+
+  # Nginx Reverse Proxy (optional, for HTTPS)
+  nginx:
+    image: nginx:alpine
+    container_name: farmer-nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - farmer-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  farmer-network:
+    driver: bridge

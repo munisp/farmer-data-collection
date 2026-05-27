@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS savings_accounts (\n  id SERIAL PRIMARY KEY,\n  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  farmer_id INTEGER,\n  account_number VARCHAR(50) NOT NULL UNIQUE,\n  account_name VARCHAR(200) NOT NULL,\n  account_type VARCHAR(50) NOT NULL DEFAULT 'regular',\n  balance INTEGER NOT NULL DEFAULT 0,\n  interest_rate INTEGER NOT NULL DEFAULT 0,\n  minimum_balance INTEGER DEFAULT 0,\n  status VARCHAR(20) NOT NULL DEFAULT 'active',\n  opened_at TIMESTAMP NOT NULL DEFAULT NOW(),\n  closed_at TIMESTAMP,\n  created_at TIMESTAMP NOT NULL DEFAULT NOW(),\n  updated_at TIMESTAMP NOT NULL DEFAULT NOW()\n);\n\nCREATE INDEX IF NOT EXISTS savings_accounts_user_id_idx ON savings_accounts(user_id);\nCREATE INDEX IF NOT EXISTS savings_accounts_status_idx ON savings_accounts(status);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NzNswwN3cq6gauf.c04d1ab767e1 --database PqpBBu22GW6k9Mt8Xb9kd6 --execute CREATE TABLE IF NOT EXISTS savings_accounts (\n  id SERIAL PRIMARY KEY,\n  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  farmer_id INTEGER,\n  account_number VARCHAR(50) NOT NULL UNIQUE,\n  account_name VARCHAR(200) NOT NULL,\n  account_type VARCHAR(50) NOT NULL DEFAULT 'regular',\n  balance INTEGER NOT NULL DEFAULT 0,\n  interest_rate INTEGER NOT NULL DEFAULT 0,\n  minimum_balance INTEGER DEFAULT 0,\n  status VARCHAR(20) NOT NULL DEFAULT 'active',\n  opened_at TIMESTAMP NOT NULL DEFAULT NOW(),\n  closed_at TIMESTAMP,\n  created_at TIMESTAMP NOT NULL DEFAULT NOW(),\n  updated_at TIMESTAMP NOT NULL DEFAULT NOW()\n);\n\nCREATE INDEX IF NOT EXISTS savings_accounts_user_id_idx ON savings_accounts(user_id);\nCREATE INDEX IF NOT EXISTS savings_accounts_status_idx ON savings_accounts(status);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1943
+}

@@ -1,0 +1,729 @@
+version: '3.8'
+
+# Comprehensive Docker Compose for Local Development
+# Run with: docker compose -f docker-compose.dev.yml up -d
+
+services:
+  # PostgreSQL - Primary Database
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: farmer-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: farmer_data
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis - Cache and Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: farmer-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Kafka - Event Streaming (KRaft mode - no Zookeeper)
+  kafka:
+    image: bitnami/kafka:3.6
+    container_name: farmer-kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9094
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9094,EXTERNAL://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_NUM_PARTITIONS=3
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=1
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    volumes:
+      - kafka-data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Keycloak - Identity Management
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: farmer-keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_HEALTH_ENABLED: true
+    command: start-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Permify - Authorization Service
+  permify:
+    image: ghcr.io/permify/permify:latest
+    container_name: farmer-permify
+    ports:
+      - "3476:3476"
+      - "3478:3478"
+    environment:
+      PERMIFY_DATABASE_ENGINE: postgres
+      PERMIFY_DATABASE_URI: postgres://postgres:postgres@postgres:5432/permify?sslmode=disable
+    command: serve
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3476/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # APISIX - API Gateway
+  apisix:
+    image: apache/apisix:3.7.0-debian
+    container_name: farmer-apisix
+    ports:
+      - "9080:9080"
+      - "9443:9443"
+      - "9180:9180"
+    volumes:
+      - ./config/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    depends_on:
+      - redis
+    environment:
+      - APISIX_STAND_ALONE=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: farmer-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Grafana - Metrics Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: farmer-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Temporal - Workflow Orchestration
+  temporal:
+    image: temporalio/auto-setup:1.22
+    container_name: farmer-temporal
+    ports:
+      - "7233:7233"
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=postgres
+      - POSTGRES_SEEDS=postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Temporal Web UI
+  temporal-ui:
+    image: temporalio/ui:2.21.3
+    container_name: farmer-temporal-ui
+    ports:
+      - "8088:8080"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    depends_on:
+      - temporal
+    restart: unless-stopped
+
+  # ML Service - AI/ML Models
+  ml-service:
+    build: ./ml-service
+    container_name: farmer-ml-service
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ML_SERVICE_PORT=8001
+    depends_on:
+      - redis
+    volumes:
+      - ./ml-service/cache:/app/cache
+      - ml-models:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # ============================================
+  # Go Microservices
+  # ============================================
+
+  # Go Loan Orchestrator - Loan Processing Service
+  loan-orchestrator:
+    build:
+      context: ./services/go/loan-orchestrator
+      dockerfile: Dockerfile
+    container_name: farmer-loan-orchestrator
+    ports:
+      - "8010:8010"
+    environment:
+      - PORT=8010
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:9092
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TIGERBEETLE_ADDRESS=tigerbeetle:3000
+      - KEYCLOAK_URL=http://keycloak:8080
+      - PERMIFY_URL=http://permify:3476
+    depends_on:
+      - redis
+      - kafka
+      - temporal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Go Image Service - Image Processing
+  image-service:
+    build:
+      context: ./services/go/image-service
+      dockerfile: Dockerfile
+    container_name: farmer-image-service
+    ports:
+      - "8011:8011"
+    environment:
+      - PORT=8011
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Go Realtime Service - WebSocket/SSE
+  realtime-service:
+    build:
+      context: ./services/go/realtime-service
+      dockerfile: Dockerfile
+    container_name: farmer-realtime-service
+    ports:
+      - "8012:8012"
+    environment:
+      - PORT=8012
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      - redis
+      - kafka
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8012/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Go Dapr Service - Service Mesh
+  dapr-service:
+    build:
+      context: ./services/go/dapr-service
+      dockerfile: Dockerfile
+    container_name: farmer-dapr-service
+    ports:
+      - "8013:8013"
+    environment:
+      - PORT=8013
+      - DAPR_HTTP_PORT=3500
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8013/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Go Fluvio Streaming - Event Streaming
+  fluvio-streaming:
+    build:
+      context: ./services/go/fluvio-streaming
+      dockerfile: Dockerfile
+    container_name: farmer-fluvio-streaming
+    ports:
+      - "8014:8014"
+    environment:
+      - PORT=8014
+      - FLUVIO_ENDPOINT=http://fluvio:9003
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8014/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================
+  # Rust Microservices
+  # ============================================
+
+  # Rust Image Processor - High-Performance Image Processing
+  rust-image-processor:
+    build:
+      context: ./services/rust/image-processor
+      dockerfile: Dockerfile
+    container_name: farmer-rust-image-processor
+    ports:
+      - "8015:8015"
+    environment:
+      - PORT=8015
+      - S3_ENDPOINT=http://rustfs:9000
+      - S3_ACCESS_KEY=rustfsadmin
+      - S3_SECRET_KEY=rustfsadmin
+      - S3_BUCKET=farmer-uploads
+      - RUST_LOG=info
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8015/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================
+  # Python Microservices
+  # ============================================
+
+  # Python Loan Worker - Loan Processing Worker
+  loan-worker:
+    build:
+      context: ./services/python/loan-worker
+      dockerfile: Dockerfile
+    container_name: farmer-loan-worker
+    ports:
+      - "8020:8020"
+    environment:
+      - PORT=8020
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:9092
+      - TEMPORAL_ADDRESS=temporal:7233
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/farmer_data
+    depends_on:
+      - redis
+      - kafka
+      - temporal
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Python Temporal Workflows - Workflow Workers
+  temporal-worker:
+    build:
+      context: ./services/python/temporal-workflows
+      dockerfile: Dockerfile
+    container_name: farmer-temporal-worker
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/farmer_data
+    depends_on:
+      temporal:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Python Ollama Service - LLM Integration
+  ollama-service:
+    build:
+      context: ./services/python/ollama-service
+      dockerfile: Dockerfile
+    container_name: farmer-ollama-service
+    ports:
+      - "8021:8021"
+    environment:
+      - PORT=8021
+      - OLLAMA_HOST=http://ollama:11434
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8021/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Python Lakehouse Service - Data Lake Integration
+  lakehouse-service:
+    build:
+      context: ./services/python/lakehouse-service
+      dockerfile: Dockerfile
+    container_name: farmer-lakehouse-service
+    ports:
+      - "8022:8022"
+    environment:
+      - PORT=8022
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/farmer_data
+      - OBJECT_STORAGE_PROVIDER=rustfs
+      - S3_ENDPOINT=http://rustfs:9000
+      - S3_ACCESS_KEY=rustfsadmin
+      - S3_SECRET_KEY=rustfsadmin
+      - S3_REGION=us-east-1
+      - S3_FORCE_PATH_STYLE=true
+    depends_on:
+      - redis
+      - postgres
+      - rustfs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8022/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================
+  # Lakehouse Infrastructure - PRODUCTION READY
+  # ============================================
+
+  # MinIO - S3-Compatible Object Storage for Lakehouse (Legacy)
+  # Set OBJECT_STORAGE_PROVIDER=minio to use MinIO
+  minio:
+    image: minio/minio:latest
+    container_name: farmer-minio
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - minio
+
+  # MinIO Client - Create buckets on startup (for MinIO)
+  minio-init:
+    image: minio/mc:latest
+    container_name: farmer-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb myminio/farmer-lakehouse --ignore-existing;
+      mc mb myminio/farmer-lakehouse-bronze --ignore-existing;
+      mc mb myminio/farmer-lakehouse-silver --ignore-existing;
+      mc mb myminio/farmer-lakehouse-gold --ignore-existing;
+      mc mb myminio/farmer-lakehouse-features --ignore-existing;
+      mc mb myminio/farmer-ml-models --ignore-existing;
+      mc mb myminio/farmer-embeddings --ignore-existing;
+      echo 'MinIO Buckets created successfully';
+      exit 0;
+      "
+    profiles:
+      - minio
+
+  # ============================================
+  # RustFS - High-Performance S3-Compatible Object Storage (Rust)
+  # 2.3x faster than MinIO for 4KB payloads
+  # Set OBJECT_STORAGE_PROVIDER=rustfs to use RustFS (default)
+  # ============================================
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: farmer-rustfs
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - RUSTFS_ROOT_USER=rustfsadmin
+      - RUSTFS_ROOT_PASSWORD=rustfsadmin
+    volumes:
+      - rustfs-data:/data
+      - rustfs-logs:/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # RustFS Client - Create buckets on startup using AWS CLI (S3-compatible)
+  rustfs-init:
+    image: amazon/aws-cli:latest
+    container_name: farmer-rustfs-init
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      - AWS_ACCESS_KEY_ID=rustfsadmin
+      - AWS_SECRET_ACCESS_KEY=rustfsadmin
+      - AWS_DEFAULT_REGION=us-east-1
+    entrypoint: >
+      /bin/sh -c "
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://farmer-lakehouse --region us-east-1 || true;
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://farmer-lakehouse-bronze --region us-east-1 || true;
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://farmer-lakehouse-silver --region us-east-1 || true;
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://farmer-lakehouse-gold --region us-east-1 || true;
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://farmer-lakehouse-features --region us-east-1 || true;
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://farmer-ml-models --region us-east-1 || true;
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://farmer-embeddings --region us-east-1 || true;
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://farmer-uploads --region us-east-1 || true;
+      echo 'RustFS Buckets created successfully';
+      exit 0;
+      "
+
+  # Ollama - Local LLM for AI/ML/DL/LLM Integration
+  ollama:
+    image: ollama/ollama:latest
+    container_name: farmer-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # DuckDB - Embedded Analytics Database for Lakehouse Queries
+  # Note: DuckDB runs embedded in the application, no separate container needed
+  # This is a placeholder for documentation purposes
+
+  # ============================================
+  # ERPNext - Enterprise Resource Planning
+  # ============================================
+
+  # MariaDB - Required for ERPNext
+  mariadb:
+    image: mariadb:10.6
+    container_name: farmer-mariadb
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: erpnext
+      MYSQL_USER: erpnext
+      MYSQL_PASSWORD: erpnext
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-padmin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ERPNext - Full ERP System (HR, Accounting, Stock, Agriculture)
+  erpnext:
+    image: frappe/erpnext:v15
+    container_name: farmer-erpnext
+    ports:
+      - "8000:8000"
+    environment:
+      - FRAPPE_SITE_NAME_HEADER=erpnext.local
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - REDIS_CACHE=redis://redis:6379/0
+      - REDIS_QUEUE=redis://redis:6379/1
+      - REDIS_SOCKETIO=redis://redis:6379/2
+      - SOCKETIO_PORT=9000
+    volumes:
+      - erpnext-sites:/home/frappe/frappe-bench/sites
+      - erpnext-logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/method/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+
+  # ERPNext Worker - Background Jobs
+  erpnext-worker:
+    image: frappe/erpnext:v15
+    container_name: farmer-erpnext-worker
+    command: bench worker --queue default,short,long
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - REDIS_CACHE=redis://redis:6379/0
+      - REDIS_QUEUE=redis://redis:6379/1
+    volumes:
+      - erpnext-sites:/home/frappe/frappe-bench/sites
+      - erpnext-logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      - erpnext
+    restart: unless-stopped
+
+  # ERPNext Scheduler - Scheduled Tasks
+  erpnext-scheduler:
+    image: frappe/erpnext:v15
+    container_name: farmer-erpnext-scheduler
+    command: bench schedule
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - REDIS_CACHE=redis://redis:6379/0
+      - REDIS_QUEUE=redis://redis:6379/1
+    volumes:
+      - erpnext-sites:/home/frappe/frappe-bench/sites
+      - erpnext-logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      - erpnext
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  kafka-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  ml-models:
+    driver: local
+  minio-data:
+    driver: local
+  ollama-data:
+    driver: local
+  mariadb-data:
+    driver: local
+  erpnext-sites:
+    driver: local
+  erpnext-logs:
+    driver: local
+  rustfs-data:
+    driver: local
+  rustfs-logs:
+    driver: local
+
+networks:
+  default:
+    name: farmer-network

@@ -1,0 +1,182 @@
+{
+  "dashboard": {
+    "title": "Farmer Platform - Service Health",
+    "tags": ["farmer", "health", "services"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Uptime",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN"},
+              {"type": "value", "value": "1", "text": "UP"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate (req/s)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{job}} - {{method}} {{path}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate (%)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) * 100",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Error Rate"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [5], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Error Rate Alert",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 4,
+        "title": "Response Time (p95)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Response Time"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "CPU Usage (%)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "CPU Usage"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Memory Usage (GB)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024 / 1024",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "decgbytes", "label": "Memory"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Database Connections",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "pg_stat_database_numbackends",
+            "legendFormat": "{{datname}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Connections"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Redis Cache Hit Rate (%)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100",
+            "legendFormat": "Cache Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Hit Rate"},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}

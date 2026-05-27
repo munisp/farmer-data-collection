@@ -1,0 +1,296 @@
+version: '3.8'
+
+services:
+  # Temporal Server
+  temporal:
+    image: temporalio/auto-setup:1.22.4
+    container_name: temporal
+    depends_on:
+      - postgresql
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    volumes:
+      - ./config/temporal:/etc/temporal/config/dynamicconfig
+    networks:
+      - farmer-network
+
+  # Temporal Web UI
+  temporal-web:
+    image: temporalio/web:2.21.3
+    container_name: temporal-web
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8088:8088"
+    networks:
+      - farmer-network
+
+  # Temporal Admin Tools
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.22.4
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    stdin_open: true
+    tty: true
+    networks:
+      - farmer-network
+
+  # Orchestrator Service (Go)
+  orchestrator:
+    build:
+      context: ./services/orchestrator
+      dockerfile: Dockerfile
+    container_name: orchestrator
+    depends_on:
+      - temporal
+      - kafka
+      - redis
+      - postgresql
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - KAFKA_BROKERS=kafka:9092
+      - REDIS_HOST=redis:6379
+      - POSTGRES_HOST=postgresql:5432
+      - POSTGRES_DB=farmer_data
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - DAPR_HTTP_PORT=3500
+      - APISIX_GATEWAY=http://apisix:9080
+      - TIGERBEETLE_ADDRESS=tigerbeetle:3000
+    ports:
+      - "8089:8089"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  # Feature Services
+  iot-service:
+    build:
+      context: ./services/features/iot-sensors
+      dockerfile: Dockerfile
+    container_name: iot-service
+    environment:
+      - MQTT_BROKER=mqtt://mosquitto:1883
+      - TEMPORAL_HOST=temporal:7233
+      - KAFKA_BROKERS=kafka:9092
+    ports:
+      - "8090:8090"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  satellite-service:
+    build:
+      context: ./services/features/satellite-imagery
+      dockerfile: Dockerfile
+    container_name: satellite-service
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - REDIS_HOST=redis:6379
+    ports:
+      - "8091:8091"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  export-docs-service:
+    build:
+      context: ./services/features/export-docs
+      dockerfile: Dockerfile
+    container_name: export-docs-service
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - POSTGRES_HOST=postgresql:5432
+    ports:
+      - "8092:8092"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  multi-currency-service:
+    build:
+      context: ./services/features/multi-currency
+      dockerfile: Dockerfile
+    container_name: multi-currency-service
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - REDIS_HOST=redis:6379
+      - TIGERBEETLE_ADDRESS=tigerbeetle:3000
+    ports:
+      - "8093:8093"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  carbon-credits-service:
+    build:
+      context: ./services/features/carbon-credits
+      dockerfile: Dockerfile
+    container_name: carbon-credits-service
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - POSTGRES_HOST=postgresql:5432
+    ports:
+      - "8094:8094"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  certification-service:
+    build:
+      context: ./services/features/certification
+      dockerfile: Dockerfile
+    container_name: certification-service
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - POSTGRES_HOST=postgresql:5432
+    ports:
+      - "8095:8095"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  equipment-rental-service:
+    build:
+      context: ./services/features/equipment-rental
+      dockerfile: Dockerfile
+    container_name: equipment-rental-service
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - POSTGRES_HOST=postgresql:5432
+      - TIGERBEETLE_ADDRESS=tigerbeetle:3000
+    ports:
+      - "8096:8096"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  cold-storage-service:
+    build:
+      context: ./services/features/cold-storage
+      dockerfile: Dockerfile
+    container_name: cold-storage-service
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - POSTGRES_HOST=postgresql:5432
+      - IOT_SERVICE=http://iot-service:8090
+    ports:
+      - "8097:8097"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  # MQTT Broker for IoT
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-logs:/mosquitto/log
+    networks:
+      - farmer-network
+
+  # PostgreSQL (shared by Temporal and app)
+  postgresql:
+    image: postgres:15-alpine
+    container_name: postgresql
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=farmer_data
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - farmer-network
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    networks:
+      - farmer-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - farmer-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - farmer-network
+
+  # APISIX Gateway
+  apisix:
+    image: apache/apisix:3.7.0-debian
+    container_name: apisix
+    ports:
+      - "9080:9080"
+      - "9443:9443"
+    volumes:
+      - ./config/apisix/config.yaml:/usr/local/apisix/conf/config.yaml
+    networks:
+      - farmer-network
+
+  # TigerBeetle (Financial Ledger)
+  tigerbeetle:
+    image: ghcr.io/tigerbeetle/tigerbeetle:latest
+    container_name: tigerbeetle
+    command: start --addresses=0.0.0.0:3000 /data/0_0.tigerbeetle
+    ports:
+      - "3000:3000"
+    volumes:
+      - tigerbeetle-data:/data
+    networks:
+      - farmer-network
+
+volumes:
+  postgres-data:
+  redis-data:
+  mosquitto-data:
+  mosquitto-logs:
+  tigerbeetle-data:
+
+networks:
+  farmer-network:
+    driver: bridge

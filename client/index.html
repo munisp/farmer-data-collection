@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#166534" />
+    <meta name="description" content="Modern agricultural finance platform for farmers, cooperatives, and financial institutions" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AgriFinance" />
+    <meta name="application-name" content="AgriFinance" />
+    <meta name="msapplication-TileColor" content="#166534" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#166534" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <title>AgriFinance - Farmer Data Collection Platform</title>
+    
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then((registration) => {
+              console.log('[App] Service Worker registered:', registration.scope);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('[App] New service worker installing...');
+                
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New content available, show update notification
+                    console.log('[App] New content available, refresh to update');
+                    
+                    // Dispatch custom event for the app to handle
+                    window.dispatchEvent(new CustomEvent('sw-update-available', {
+                      detail: { registration }
+                    }));
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.error('[App] Service Worker registration failed:', error);
+            });
+          
+          // Handle service worker messages
+          navigator.serviceWorker.addEventListener('message', (event) => {
+            console.log('[App] Message from SW:', event.data);
+            
+            if (event.data.type === 'SYNC_HARVESTS') {
+              window.dispatchEvent(new CustomEvent('sync-harvests'));
+            }
+            if (event.data.type === 'SYNC_EXPENSES') {
+              window.dispatchEvent(new CustomEvent('sync-expenses'));
+            }
+            if (event.data.type === 'SYNC_ORDERS') {
+              window.dispatchEvent(new CustomEvent('sync-orders'));
+            }
+          });
+        });
+      }
+      
+      // Handle online/offline status
+      window.addEventListener('online', () => {
+        console.log('[App] Back online');
+        document.body.classList.remove('offline');
+        window.dispatchEvent(new CustomEvent('app-online'));
+      });
+      
+      window.addEventListener('offline', () => {
+        console.log('[App] Gone offline');
+        document.body.classList.add('offline');
+        window.dispatchEvent(new CustomEvent('app-offline'));
+      });
+    </script>
+    
+  </body>
+
+</html>

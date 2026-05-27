@@ -1,0 +1,202 @@
+{
+  "dashboard": {
+    "title": "Farmer Data Collection Platform",
+    "tags": ["farmer", "agriculture", "production"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "HTTP Request Rate",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}} - {{status_code}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "title": "HTTP Request Duration (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{method}} {{route}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "title": "HTTP Error Rate",
+        "targets": [
+          {
+            "expr": "rate(http_request_errors_total[5m])",
+            "legendFormat": "{{method}} {{route}} - {{error_type}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "title": "Database Query Duration (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{operation}} {{table}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "title": "Database Connection Pool",
+        "targets": [
+          {
+            "expr": "db_connection_pool_size",
+            "legendFormat": "Pool Size"
+          },
+          {
+            "expr": "db_connection_pool_used",
+            "legendFormat": "Used Connections"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "title": "Active Users",
+        "targets": [
+          {
+            "expr": "active_users",
+            "legendFormat": "Active (24h)"
+          },
+          {
+            "expr": "total_users",
+            "legendFormat": "Total"
+          }
+        ],
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16}
+      },
+      {
+        "title": "Total Loans by Status",
+        "targets": [
+          {
+            "expr": "total_loans",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 16}
+      },
+      {
+        "title": "Sync Operations",
+        "targets": [
+          {
+            "expr": "rate(sync_operations_total[5m])",
+            "legendFormat": "{{operation}} - {{status}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "title": "Sync Conflicts",
+        "targets": [
+          {
+            "expr": "rate(sync_conflicts_total[5m])",
+            "legendFormat": "{{entity_type}} - {{resolution}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "title": "Authentication Attempts",
+        "targets": [
+          {
+            "expr": "rate(auth_attempts_total[5m])",
+            "legendFormat": "{{method}} - {{status}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "title": "Authentication Failures",
+        "targets": [
+          {
+            "expr": "rate(auth_failures_total[5m])",
+            "legendFormat": "{{method}} - {{reason}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      },
+      {
+        "title": "SMS Messages Sent",
+        "targets": [
+          {
+            "expr": "rate(sms_messages_sent_total[5m])",
+            "legendFormat": "{{type}} - {{status}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40}
+      },
+      {
+        "title": "SMS Cost",
+        "targets": [
+          {
+            "expr": "rate(sms_message_cost_total[5m])",
+            "legendFormat": "{{type}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40}
+      },
+      {
+        "title": "Event Loop Lag",
+        "targets": [
+          {
+            "expr": "nodejs_eventloop_lag_seconds",
+            "legendFormat": "Lag (seconds)"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 48}
+      },
+      {
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes",
+            "legendFormat": "Resident Memory"
+          },
+          {
+            "expr": "nodejs_heap_size_used_bytes",
+            "legendFormat": "Heap Used"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48}
+      },
+      {
+        "title": "Health Check Status",
+        "targets": [
+          {
+            "expr": "health_check_status",
+            "legendFormat": "{{component}}"
+          }
+        ],
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 56}
+      }
+    ],
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}

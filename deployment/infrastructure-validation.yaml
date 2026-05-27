@@ -1,0 +1,285 @@
+# Infrastructure Validation Configuration
+# This file defines health checks and validation rules for all infrastructure services
+
+version: "1.0"
+name: "ag-fintech-infrastructure-validation"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    name: "PostgreSQL Database"
+    type: "database"
+    required: true
+    health_check:
+      type: "tcp"
+      host: "${POSTGRES_HOST:-localhost}"
+      port: 5432
+      timeout_seconds: 10
+    validation:
+      - name: "Connection test"
+        query: "SELECT 1"
+      - name: "Schema version check"
+        query: "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"
+        expected_min: 50
+      - name: "PostGIS extension"
+        query: "SELECT PostGIS_Version()"
+
+  # Redis Cache
+  redis:
+    name: "Redis Cache"
+    type: "cache"
+    required: true
+    health_check:
+      type: "tcp"
+      host: "${REDIS_HOST:-localhost}"
+      port: 6379
+      timeout_seconds: 5
+    validation:
+      - name: "PING test"
+        command: "PING"
+        expected: "PONG"
+      - name: "Memory usage"
+        command: "INFO memory"
+        check: "used_memory_human"
+
+  # Kafka Message Broker
+  kafka:
+    name: "Apache Kafka"
+    type: "message_broker"
+    required: true
+    health_check:
+      type: "tcp"
+      host: "${KAFKA_BROKER:-localhost}"
+      port: 9092
+      timeout_seconds: 10
+    validation:
+      - name: "Broker connectivity"
+        check: "broker_list"
+      - name: "Topic existence"
+        topics:
+          - "farmer-events"
+          - "loan-events"
+          - "payment-events"
+          - "notification-events"
+          - "sync-events"
+    ha_config:
+      min_replicas: 3
+      replication_factor: 3
+      min_insync_replicas: 2
+      acks: "all"
+
+  # Keycloak Identity Provider
+  keycloak:
+    name: "Keycloak IAM"
+    type: "identity"
+    required: true
+    health_check:
+      type: "http"
+      url: "${KEYCLOAK_URL:-http://localhost:8080}/health/ready"
+      expected_status: 200
+      timeout_seconds: 15
+    validation:
+      - name: "Realm exists"
+        endpoint: "/admin/realms/farmer-platform"
+      - name: "Client configured"
+        endpoint: "/admin/realms/farmer-platform/clients"
+    ha_config:
+      mode: "cluster"
+      min_nodes: 2
+      session_replication: true
+
+  # Temporal Workflow Engine
+  temporal:
+    name: "Temporal Workflow"
+    type: "workflow"
+    required: false
+    health_check:
+      type: "grpc"
+      host: "${TEMPORAL_HOST:-localhost}"
+      port: 7233
+      timeout_seconds: 10
+    validation:
+      - name: "Namespace exists"
+        namespace: "farmer-platform"
+      - name: "Worker registered"
+        task_queue: "farmer-tasks"
+    ha_config:
+      frontend_replicas: 2
+      history_replicas: 3
+      matching_replicas: 2
+      worker_replicas: 2
+
+  # Dapr Sidecar
+  dapr:
+    name: "Dapr Runtime"
+    type: "sidecar"
+    required: false
+    health_check:
+      type: "http"
+      url: "${DAPR_HTTP_PORT:-http://localhost:3500}/v1.0/healthz"
+      expected_status: 204
+      timeout_seconds: 5
+    validation:
+      - name: "State store configured"
+        component: "statestore"
+      - name: "Pub/sub configured"
+        component: "pubsub"
+    ha_config:
+      placement_replicas: 3
+      sentry_replicas: 3
+
+  # APISIX Gateway
+  apisix:
+    name: "Apache APISIX"
+    type: "gateway"
+    required: true
+    health_check:
+      type: "http"
+      url: "${APISIX_ADMIN_URL:-http://localhost:9180}/apisix/admin/routes"
+      expected_status: 200
+      timeout_seconds: 10
+    validation:
+      - name: "Routes configured"
+        min_routes: 10
+      - name: "Upstreams healthy"
+        check: "upstream_health"
+      - name: "Rate limiting enabled"
+        plugin: "limit-req"
+    ha_config:
+      replicas: 2
+      etcd_cluster_size: 3
+
+  # TigerBeetle Financial Database
+  tigerbeetle:
+    name: "TigerBeetle"
+    type: "financial_db"
+    required: false
+    health_check:
+      type: "tcp"
+      host: "${TIGERBEETLE_HOST:-localhost}"
+      port: 3000
+      timeout_seconds: 10
+    validation:
+      - name: "Cluster healthy"
+        check: "cluster_status"
+    ha_config:
+      replicas: 6
+      replication_quorum: 4
+
+  # Permify Authorization
+  permify:
+    name: "Permify"
+    type: "authorization"
+    required: false
+    health_check:
+      type: "grpc"
+      host: "${PERMIFY_HOST:-localhost}"
+      port: 3478
+      timeout_seconds: 5
+    validation:
+      - name: "Schema loaded"
+        check: "schema_version"
+    ha_config:
+      replicas: 2
+
+  # Fluvio Streaming
+  fluvio:
+    name: "Fluvio"
+    type: "streaming"
+    required: false
+    health_check:
+      type: "tcp"
+      host: "${FLUVIO_HOST:-localhost}"
+      port: 9003
+      timeout_seconds: 10
+    validation:
+      - name: "SPU healthy"
+        check: "spu_status"
+    ha_config:
+      spu_replicas: 3
+      sc_replicas: 2
+
+# Validation Rules
+validation_rules:
+  # Pre-deployment checks
+  pre_deployment:
+    - name: "Database migrations applied"
+      check: "migration_version"
+      expected_min: 15
+    - name: "Environment variables set"
+      required_vars:
+        - "DATABASE_URL"
+        - "REDIS_URL"
+        - "JWT_SECRET"
+        - "STRIPE_SECRET_KEY"
+        - "AFRICASTALKING_API_KEY"
+    - name: "SSL certificates valid"
+      check: "ssl_expiry"
+      min_days: 30
+
+  # Post-deployment checks
+  post_deployment:
+    - name: "API health endpoint"
+      url: "/health"
+      expected_status: 200
+    - name: "tRPC endpoint"
+      url: "/api/trpc"
+      expected_status: 200
+    - name: "WebSocket connectivity"
+      url: "ws://localhost:3001/socket.io/"
+      check: "connection"
+
+  # Performance thresholds
+  performance:
+    - name: "API response time"
+      endpoint: "/api/trpc/auth.me"
+      max_latency_ms: 500
+    - name: "Database query time"
+      query: "SELECT COUNT(*) FROM users"
+      max_latency_ms: 100
+    - name: "Redis latency"
+      command: "PING"
+      max_latency_ms: 10
+
+# Alerting Configuration
+alerting:
+  channels:
+    - type: "slack"
+      webhook: "${SLACK_WEBHOOK_URL}"
+      severity: ["critical", "warning"]
+    - type: "email"
+      recipients: ["ops@farmerplatform.com"]
+      severity: ["critical"]
+    - type: "pagerduty"
+      service_key: "${PAGERDUTY_SERVICE_KEY}"
+      severity: ["critical"]
+
+  rules:
+    - name: "Service down"
+      condition: "health_check_failed"
+      severity: "critical"
+      cooldown_minutes: 5
+    - name: "High latency"
+      condition: "latency > threshold * 2"
+      severity: "warning"
+      cooldown_minutes: 15
+    - name: "Disk space low"
+      condition: "disk_usage > 80%"
+      severity: "warning"
+      cooldown_minutes: 60
+
+# Runbook References
+runbooks:
+  postgres:
+    connection_failed: "docs/runbooks/postgres-connection.md"
+    replication_lag: "docs/runbooks/postgres-replication.md"
+    disk_full: "docs/runbooks/postgres-disk.md"
+  redis:
+    connection_failed: "docs/runbooks/redis-connection.md"
+    memory_full: "docs/runbooks/redis-memory.md"
+  kafka:
+    broker_down: "docs/runbooks/kafka-broker.md"
+    consumer_lag: "docs/runbooks/kafka-consumer-lag.md"
+  keycloak:
+    auth_failed: "docs/runbooks/keycloak-auth.md"
+    session_issues: "docs/runbooks/keycloak-sessions.md"

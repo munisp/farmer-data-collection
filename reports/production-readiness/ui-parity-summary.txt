@@ -1,0 +1,118 @@
+## Client Pages
+total=119
+zero_api=46
+weak_crud=28
+no_search_signal=46
+top_zero_api:
+- pages/AIDiagnostics.tsx
+- pages/Achievements.tsx
+- pages/AdminDashboard.tsx
+- pages/AdvancedAnalytics.tsx
+- pages/BorrowerDashboard.tsx
+- pages/BulkExport.tsx
+- pages/CropWizard.tsx
+- pages/Crops.tsx
+- pages/Dashboard.tsx
+- pages/DataQualityDashboard.tsx
+- pages/EquipmentTracker.tsx
+- pages/EventAnalytics.tsx
+- pages/Expenses.tsx
+- pages/FarmInputs.tsx
+- pages/FarmerDetailPage.tsx
+- pages/FarmerFinancialProfile.tsx
+- pages/FarmerVerification.tsx
+- pages/Farmers.tsx
+- pages/FarmersEnhanced.tsx
+- pages/FarmersMapView.tsx
+- pages/Farms.tsx
+- pages/FieldAgentDashboard.tsx
+- pages/GroupBuying.tsx
+- pages/Harvests.tsx
+- pages/Home.tsx
+- pages/KycAdminDashboard.tsx
+- pages/KycVerification.tsx
+- pages/Livestock.tsx
+- pages/LoginKeycloak.tsx
+- pages/MultiFarmDashboard.tsx
+top_weak_crud:
+- pages/AdvancedAnalytics.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/CropWizard.tsx :: {'create': False, 'read': False, 'update': False, 'delete': False, 'search': True}
+- pages/Dashboard.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/DisbursementAnalytics.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/InputYieldAnalytics.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': True}
+- pages/LandSuitabilityAssessment.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': True}
+- pages/Login.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/LoginKeycloak.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/Messages.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/ModelBenchmarks.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/NotFound.tsx :: {'create': False, 'read': False, 'update': False, 'delete': True, 'search': False}
+- pages/NotificationPreferences.tsx :: {'create': False, 'read': True, 'update': True, 'delete': False, 'search': False}
+- pages/PriceForecast.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/Register.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/ReviewAnalytics.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/SpatialAnalytics.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': True}
+- pages/SpatialReports.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/WeatherDashboard.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/YieldPrediction.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/YieldPredictor.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/admin/AdminAuditLogs.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/admin/AdminDashboard.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/admin/AdminOverview.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/admin/AnalyticsDashboard.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/admin/WorkflowDetail.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/admin/WorkflowList.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': True}
+- pages/crops/CropDashboard.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- pages/journeys/JourneyTracker.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+
+## Mobile Screens
+total=37
+zero_api=37
+weak_crud=15
+no_search_signal=29
+top_zero_api:
+- screens/HomeScreen.tsx
+- screens/admin/AdminDashboardScreen.tsx
+- screens/admin/WorkflowDetailScreen.tsx
+- screens/admin/WorkflowListScreen.tsx
+- screens/analytics/AnalyticsDashboard.tsx
+- screens/auth/LoginScreen.tsx
+- screens/auth/RegisterScreen.tsx
+- screens/carbon/CarbonCredits.tsx
+- screens/cooperative/CooperativeManagement.tsx
+- screens/crops/CropDashboardScreen.tsx
+- screens/crops/CropWizardScreen.tsx
+- screens/expenses/ExpenseCreateScreen.tsx
+- screens/expenses/ExpenseDetailScreen.tsx
+- screens/expenses/ExpenseEditScreen.tsx
+- screens/expenses/ExpenseListScreen.tsx
+- screens/farmers/FarmerProfileScreen.tsx
+- screens/farmers/FarmerRegistrationScreen.tsx
+- screens/farms/FarmRegistrationScreen.tsx
+- screens/harvests/HarvestCreateScreen.tsx
+- screens/harvests/HarvestDetailScreen.tsx
+- screens/harvests/HarvestEditScreen.tsx
+- screens/harvests/HarvestListScreen.tsx
+- screens/journeys/JourneyDetailScreen.tsx
+- screens/journeys/JourneyListScreen.tsx
+- screens/journeys/JourneyTrackerScreen.tsx
+- screens/loans/LoanApplicationScreen.tsx
+- screens/marketplace/CartScreen.tsx
+- screens/marketplace/CheckoutScreen.tsx
+- screens/marketplace/MarketplaceBrowseScreen.tsx
+- screens/marketplace/MarketplaceDetailScreen.tsx
+top_weak_crud:
+- screens/admin/AdminDashboardScreen.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/admin/WorkflowDetailScreen.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/admin/WorkflowListScreen.tsx :: {'create': False, 'read': True, 'update': False, 'delete': False, 'search': True}
+- screens/auth/LoginScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/auth/RegisterScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/cooperative/CooperativeManagement.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/crops/CropDashboardScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/crops/CropWizardScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/expenses/ExpenseListScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/journeys/JourneyTrackerScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/marketplace/CheckoutScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/marketplace/MarketplaceDetailScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/ml/PriceForecastScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/ml/YieldPredictionScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}
+- screens/profile/SettingsScreen.tsx :: {'create': True, 'read': True, 'update': False, 'delete': False, 'search': False}

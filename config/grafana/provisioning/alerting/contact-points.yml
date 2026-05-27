@@ -1,0 +1,32 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: PagerDuty Critical
+    receivers:
+      - uid: pagerduty_critical
+        type: pagerduty
+        settings:
+          integrationKey: ${PAGERDUTY_INTEGRATION_KEY}
+          severity: critical
+          class: workflow_failure
+          component: temporal_orchestrator
+
+  - orgId: 1
+    name: Slack Alerts
+    receivers:
+      - uid: slack_alerts
+        type: slack
+        settings:
+          url: ${SLACK_WEBHOOK_URL}
+          title: "{{ .GroupLabels.alertname }}"
+          text: "{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+
+  - orgId: 1
+    name: Email Ops Team
+    receivers:
+      - uid: email_ops
+        type: email
+        settings:
+          addresses: ops-team@example.com
+          singleEmail: true

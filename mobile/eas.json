@@ -1,0 +1,67 @@
+{
+  "cli": {
+    "version": ">= 13.2.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium",
+        "simulator": true,
+        "bundleIdentifier": "com.farmerdata.app.dev"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "gradleCommand": ":app:assembleDebug",
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium",
+        "simulator": false,
+        "bundleIdentifier": "com.farmerdata.app.preview"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "preview"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium",
+        "bundleIdentifier": "com.farmerdata.app"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "APP_VARIANT": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "1234567890",
+        "appleTeamId": "ABCDE12345"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

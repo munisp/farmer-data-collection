@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS farm_profiles (\n  id SERIAL PRIMARY KEY,\n  user_id INTEGER NOT NULL REFERENCES users(id),\n  farm_name VARCHAR(255) NOT NULL,\n  farm_size DECIMAL(10,2) NOT NULL,\n  location_lat DECIMAL(10,8),\n  location_lng DECIMAL(11,8),\n  soil_type VARCHAR(100),\n  water_source VARCHAR(100),\n  created_at TIMESTAMP DEFAULT NOW() NOT NULL,\n  updated_at TIMESTAMP DEFAULT NOW() NOT NULL\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NzNswwN3cq6gauf.c04d1ab767e1 --database PqpBBu22GW6k9Mt8Xb9kd6 --execute CREATE TABLE IF NOT EXISTS farm_profiles (\n  id SERIAL PRIMARY KEY,\n  user_id INTEGER NOT NULL REFERENCES users(id),\n  farm_name VARCHAR(255) NOT NULL,\n  farm_size DECIMAL(10,2) NOT NULL,\n  location_lat DECIMAL(10,8),\n  location_lng DECIMAL(11,8),\n  soil_type VARCHAR(100),\n  water_source VARCHAR(100),\n  created_at TIMESTAMP DEFAULT NOW() NOT NULL,\n  updated_at TIMESTAMP DEFAULT NOW() NOT NULL\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1625
+}

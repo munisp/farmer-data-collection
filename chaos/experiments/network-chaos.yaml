@@ -1,0 +1,88 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay-experiment
+  namespace: default
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+  delay:
+    latency: '100ms'
+    correlation: '25'
+    jitter: '10ms'
+  duration: '2m'
+  scheduler:
+    cron: '@every 4h'
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-loss-experiment
+  namespace: default
+spec:
+  action: loss
+  mode: one
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+      'tier': 'backend'
+  loss:
+    loss: '10'
+    correlation: '25'
+  duration: '1m'
+  scheduler:
+    cron: '@every 6h'
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-partition-experiment
+  namespace: default
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+      'tier': 'backend'
+  direction: to
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - default
+      labelSelectors:
+        'app': 'postgres'
+  duration: '30s'
+  scheduler:
+    cron: '@every 8h'
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-bandwidth-experiment
+  namespace: default
+spec:
+  action: bandwidth
+  mode: one
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+  bandwidth:
+    rate: '1mbps'
+    limit: 20000
+    buffer: 10000
+  duration: '1m'
+  scheduler:
+    cron: '@every 12h'

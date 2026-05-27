@@ -1,0 +1,2752 @@
+
+> farmer-data-collection@1.0.0 test /home/ubuntu/farmer-data-collection
+> DATABASE_URL=postgresql://postgres:postgres@localhost:5432/farmer_data vitest run
+
+
+ RUN  v2.1.9 /home/ubuntu/farmer-data-collection
+
+ ↓ server/__tests__/phase118-integration.test.ts (30 tests | 30 skipped)
+stdout | server/__tests__/messaging-service.test.ts > Messaging Service - Authentication
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/messaging-channels.test.ts > USSD Flow - Complete User Journey
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/integration.test.ts > Integration Tests
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/auth.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/auth.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/inventory-router.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/inventory-router.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stdout | server/__tests__/auth.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+ ❯ server/__tests__/messaging-channels.test.ts (34 tests | 5 skipped) 633ms
+ ✓ server/__tests__/integration.test.ts (17 tests) 797ms
+   ✓ Integration Tests > Authentication > should validate user credentials 312ms
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+ ✓ server/__tests__/messaging-service.test.ts (37 tests) 833ms
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/sync-improved.test.ts > Sync Router - Improved
+[Database] Connected to PostgreSQL database
+
+stdout | tests/marketplace.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+ ✓ server/__tests__/sync-improved.test.ts (6 tests) 132ms
+stdout | server/__tests__/hr-router.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+stdout | tests/marketplace.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | tests/marketplace.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | tests/marketplace.test.ts
+[Redis] Error: 
+
+stdout | tests/marketplace.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/hr-router.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/hr-router.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | server/__tests__/hr-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/hr-router.test.ts
+[Redis] Connection closed
+
+stdout | tests/marketplace.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | tests/marketplace.test.ts
+[Redis] Connection closed
+
+stderr | tests/marketplace.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/hr-router.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stderr | server/__tests__/hr-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/hr-router.test.ts
+[Redis] Connection closed
+
+stdout | tests/marketplace.test.ts
+[Redis] Connection closed
+
+stderr | tests/marketplace.test.ts
+[Redis] Error: 
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/hr-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/hr-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+stderr | tests/marketplace.test.ts
+[Redis] Error: 
+
+stdout | tests/marketplace.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/hr-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/hr-router.test.ts
+[Redis] Connection closed
+
+stdout | tests/marketplace.test.ts
+[Redis] Connection closed
+
+stderr | tests/marketplace.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/inventory-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/hr-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/hr-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/inventory-router.test.ts > Inventory Router - Item Management > should create inventory item
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/auth.test.ts > Authentication
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Registration > should register a new user with valid credentials
+[Auth] Request for: authtest_1765106848127_dxxkd3@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/microfinance-procedures.test.ts > Microfinance Procedures
+[Database] Connected to PostgreSQL database
+
+stdout | tests/marketplace.test.ts
+[Redis] Connection closed
+
+stderr | tests/marketplace.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Registration > should fail to register with duplicate email
+[Auth] Request for: authtest_1765106848311_ehfag@example.com
+[Auth] Database connection: OK
+
+ ✓ server/__tests__/microfinance-procedures.test.ts (13 tests) 219ms
+stdout | server/__tests__/hr-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/hr-router.test.ts
+[Redis] Error: 
+
+ ✓ server/__tests__/inventory-router.test.ts (17 tests) 280ms
+stderr | server/__tests__/auth.test.ts > Authentication > User Registration > should fail to register with duplicate email
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Registration > should fail to register with duplicate email
+[Redis] Connection closed
+[Auth] Request for: authtest_1765106848311_ehfag@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Registration > should hash password before storing
+[Auth] Request for: authtest_1765106848480_sgt9mb@example.com
+[Auth] Database connection: OK
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | tests/marketplace.test.ts
+[Redis] Error: 
+
+stdout | tests/marketplace.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/hr-router.test.ts > HR Router - Employee Management > should create employee with valid data
+[Database] Connected to PostgreSQL database
+
+stderr | server/__tests__/hr-router.test.ts > HR Router - Employee Management > should create employee with valid data
+[Redis] Error: 
+
+stdout | server/__tests__/hr-router.test.ts > HR Router - Employee Management > should create employee with valid data
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should login with correct credentials
+[Auth] Request for: login_1765106848582_y4wxu@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should login with correct credentials
+[Auth] Request for: login_1765106848582_y4wxu@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Kafka Event Streaming > should have Kafka client module
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+ ✓ server/__tests__/hr-router.test.ts (14 tests) 135ms
+stdout | tests/marketplace.test.ts > Marketplace - Products
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should login with correct credentials
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: true
+[Auth] Comparing password...
+[Auth] Password valid: true
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with incorrect password
+[Auth] Request for: login_1765106848789_uxwnpk@example.com
+[Auth] Database connection: OK
+
+stderr | tests/marketplace.test.ts > Marketplace - Products
+Cleanup error: DrizzleQueryError: Failed query: delete from "marketplace_reviews" where  = 
+params: 
+    at NodePgPreparedQuery.queryWithCache (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cleanupTestData (/home/ubuntu/farmer-data-collection/tests/marketplace.test.ts:94:5)
+    ... 4 lines matching cause stack trace ...
+    at runFiles (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/vitest@2.1.9_@types+node@24.7.0_lightningcss@1.30.1/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11 {
+  query: 'delete from "marketplace_reviews" where  = ',
+  params: [],
+  cause: error: syntax error at or near "="
+      at /home/ubuntu/farmer-data-collection/node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:149:14
+      at NodePgPreparedQuery.queryWithCache (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12)
+      at cleanupTestData (/home/ubuntu/farmer-data-collection/tests/marketplace.test.ts:94:5)
+      at /home/ubuntu/farmer-data-collection/tests/marketplace.test.ts:115:5
+      at callSuiteHook (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:964:22)
+      at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1214:7)
+      at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+      at runFiles (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5) {
+    length: 90,
+    severity: 'ERROR',
+    code: '42601',
+    detail: undefined,
+    hint: undefined,
+    position: '42',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'scan.l',
+    line: '1176',
+    routine: 'scanner_yyerror'
+  }
+}
+
+stdout | tests/marketplace.test.ts > Marketplace - Orders > should list buyer orders
+[Database] Connected to PostgreSQL database
+
+ ❯ tests/marketplace.test.ts (24 tests | 13 failed | 7 skipped) 204ms
+   × Marketplace - Orders > should create an order 6ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "items",
+      0,
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Orders > should list buyer orders 20ms
+     → expected 0 to be greater than 0
+   × Marketplace - Orders > should get order details 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "id"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Orders > should confirm order payment 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Orders > should seller confirm order 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Orders > should update order status to shipped 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Orders > should buyer confirm delivery 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Reviews > should create a product review 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  },
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "revieweeId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  },
+  {
+    "code": "invalid_value",
+    "values": [
+      "buyer_to_seller",
+      "seller_to_buyer"
+    ],
+    "path": [
+      "reviewType"
+    ],
+    "message": "Invalid option: expected one of \"buyer_to_seller\"|\"seller_to_buyer\""
+  }
+]
+   × Marketplace - Reviews > should list product reviews 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Reviews > should calculate average rating 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "id"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Analytics > should get seller sales summary 3ms
+     → expected 0 to be greater than 0
+   × Marketplace - Inventory Management > should update product inventory 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+   × Marketplace - Inventory Management > should deactivate out-of-stock product 1ms
+     → [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with incorrect password
+[Auth] Request for: login_1765106848789_uxwnpk@example.com
+[Auth] Database connection: OK
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: true
+[Auth] Comparing password...
+[Auth] Password valid: false
+[Auth] Invalid password
+
+stderr | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with incorrect password
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with incorrect password
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with non-existent email
+[Auth] Request for: login_1765106848977_vup3w5@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with non-existent email
+[Auth] Request for: nonexistent@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with non-existent email
+[Auth] User query successful, found: NO
+[Auth] User not found
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with invalid email format
+[Auth] Request for: login_1765106849077_mylitu@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Kafka Event Streaming > should have audit trail router
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with empty password
+[Auth] Request for: login_1765106849171_sc1pi@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Permify Authorization > should have Permify client module
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should return valid JWT token on successful login
+[Auth] Request for: login_1765106849264_em4a1f@example.com
+[Auth] Database connection: OK
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should return valid JWT token on successful login
+[Auth] Request for: login_1765106849264_em4a1f@example.com
+[Auth] Database connection: OK
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: true
+[Auth] Comparing password...
+[Auth] Password valid: true
+
+stderr | server/__tests__/auth.test.ts > Authentication > User Login > should return valid JWT token on successful login
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should return valid JWT token on successful login
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with inactive user account
+[Auth] Request for: login_1765106849642_5f0dl@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with inactive user account
+[Auth] Request for: login_1765106849642_5f0dl@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > User Login > should fail to login with inactive user account
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: false
+[Auth] Account is inactive
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return current user with valid token
+[Auth] Request for: me_1765106849770_dtt8cg@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/advanced-features.test.ts > Advanced Features > Automated Moderation > should reject spam reviews
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return current user with valid token
+[Auth.me] Token received: YES (length: 229)
+[Auth.me] Token decoded successfully, userId: 2720
+[Auth.me] User found: YES (id: 2720, email: me_1765106849770_dtt8cg@example.com)
+[Auth.me] Returning user data: Me Test
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null with invalid token
+[Auth] Request for: me_1765106850003_jm2tb5@example.com
+[Auth] Database connection: OK
+
+ ✓ server/__tests__/advanced-features.test.ts (23 tests) 80ms
+(node:144978) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Dapr Service Mesh > should have Dapr client module
+[Dapr] Initializing Dapr client...
+  Host: 127.0.0.1
+  HTTP Port: 3500
+  gRPC Port: 50001
+[Dapr] Client initialized
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > TigerBeetle Financial Ledger > should have TigerBeetle client module
+[TigerBeetle] Initializing TigerBeetle client...
+  Cluster ID: 0
+  Replica Addresses: 3000
+[TigerBeetle] Client module initialized
+
+stderr | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null with invalid token
+[Auth.me] Error: JsonWebTokenError: invalid token
+    at Object.module.exports [as verify] (/home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:82:17)
+    at /home/ubuntu/farmer-data-collection/server/trpc.ts:204:27
+    at resolveMiddleware (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:571:28)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:26)
+    at Object.next (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:646:16)
+    at inputValidatorMiddleware (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:206:19)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20)
+    at procedure (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20)
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null with invalid token
+[Auth.me] Token received: YES (length: 18)
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Error: 
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Connection closed
+
+stdout | tests/microfinance.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null with expired token
+[Auth] Request for: me_1765106850103_p6dil@example.com
+[Auth] Database connection: OK
+
+stderr | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null with expired token
+[Redis] Error: 
+[Auth.me] Error: TokenExpiredError: jwt expired
+    at /home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:190:21
+    at getSecret (/home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:97:14)
+    at Object.module.exports [as verify] (/home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:101:10)
+    at /home/ubuntu/farmer-data-collection/server/trpc.ts:204:27
+    at resolveMiddleware (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:571:28)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:26)
+    at Object.next (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:646:16)
+    at inputValidatorMiddleware (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:206:19)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20) {
+  expiredAt: 2025-12-07T10:27:30.000Z
+}
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null with expired token
+[Redis] Connection closed
+[Auth.me] Token received: YES (length: 228)
+
+stdout | server/__tests__/accounting-router.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stderr | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Error: 
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Connection closed
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null for inactive user
+[Auth] Request for: me_1765106850205_qfuwvp@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null for inactive user
+[Auth.me] Token received: YES (length: 229)
+[Auth.me] Token decoded successfully, userId: 2723
+[Auth.me] User found: YES (id: 2723, email: me_1765106850205_qfuwvp@example.com)
+[Auth.me] User not found or inactive
+
+stdout | tests/microfinance.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | tests/microfinance.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | tests/microfinance.test.ts
+[Redis] Error: 
+
+stdout | tests/microfinance.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/accounting-router.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/accounting-router.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null for deleted user
+[Auth] Request for: me_1765106850304_x2o7y@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null for deleted user
+[Auth.me] Token received: YES (length: 228)
+[Auth.me] Token decoded successfully, userId: 2724
+[Auth.me] User found: NO
+[Auth.me] User not found or inactive
+
+stderr | server/__tests__/accounting-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/accounting-router.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Connection closed
+
+stderr | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Error: 
+
+stdout | tests/microfinance.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | tests/microfinance.test.ts
+[Redis] Connection closed
+
+stderr | tests/microfinance.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null with empty token
+[Auth] Request for: me_1765106850397_dgo5im@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > Get Current User (me) > should return null with empty token
+[Auth.me] Token received: NO
+[Auth.me] No token, returning null
+
+stdout | server/__tests__/auth.test.ts > Authentication > JWT Token Validation > should create token with correct payload structure
+[Auth] Request for: token_1765106850507@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/accounting-router.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | server/__tests__/accounting-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/accounting-router.test.ts
+[Redis] Error: 
+
+stdout | tests/microfinance.test.ts
+[Redis] Connection closed
+
+stderr | tests/microfinance.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts > Authentication > JWT Token Validation > should create token with 7 day expiration
+[Auth] Request for: expiry_1765106850632@example.com
+[Auth] Database connection: OK
+
+stderr | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Error: 
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Connection closed
+
+stdout | server/__tests__/accounting-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/accounting-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts > Authentication > Password Security > should not expose password in API responses
+[Auth] Request for: security_1765106850735@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth.test.ts > Authentication > Password Security > should not expose password in API responses
+[Auth] Request for: security_1765106850735@example.com
+[Auth] Database connection: OK
+
+stdout | tests/microfinance.test.ts
+[Redis] Connection closed
+
+stderr | tests/microfinance.test.ts
+[Redis] Error: 
+
+stderr | server/tests/communication-channels.test.ts
+[SMS] No SMS provider configured. SMS functionality will be disabled.
+
+stderr | server/tests/communication-channels.test.ts
+[WhatsApp] No WhatsApp provider configured. WhatsApp functionality will be disabled.
+
+stderr | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Error: 
+
+stdout | server/__tests__/enterprise-integration.test.ts > Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router
+[Redis] Connection closed
+
+stdout | server/tests/communication-channels.test.ts > Communication Channels Integration > USSD Service > should show main menu for new session
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/accounting-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/accounting-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth.test.ts > Authentication > Password Security > should not expose password in API responses
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: true
+[Auth] Comparing password...
+
+stdout | server/__tests__/auth.test.ts > Authentication > Password Security > should not expose password in API responses
+[Auth] Password valid: true
+[Auth.me] Token received: YES (length: 228)
+[Auth.me] Token decoded successfully, userId: 2728
+
+stdout | server/__tests__/auth.test.ts > Authentication > Password Security > should not expose password in API responses
+[Auth.me] User found: YES (id: 2728, email: security_1765106850735@example.com)
+[Auth.me] Returning user data: Security Test
+
+stdout | server/__tests__/auth.test.ts > Authentication > Password Security > should use bcrypt for password hashing
+[Auth] Request for: bcrypt_1765106850965@example.com
+[Auth] Database connection: OK
+[Redis] Connection closed
+
+stderr | server/__tests__/auth.test.ts > Authentication > Password Security > should use bcrypt for password hashing
+[Redis] Error: 
+
+stdout | server/tests/communication-channels.test.ts > Communication Channels Integration > SMS Service > should check SMS service availability
+SMS Service Available: false
+SMS Providers: []
+
+stdout | server/tests/communication-channels.test.ts > Communication Channels Integration > WhatsApp Service > should check WhatsApp service availability
+WhatsApp Service Available: false
+WhatsApp Providers: []
+
+ ✓ server/__tests__/enterprise-integration.test.ts (25 tests) 2472ms
+   ✓ Enterprise Infrastructure Integration > Dapr Service Mesh > should have Dapr client module 735ms
+   ✓ Enterprise Infrastructure Integration > Integration with tRPC Router > should have audit trail router in app router 985ms
+stdout | server/__tests__/auth.test.ts > Authentication > Role Assignment > should assign farmer role by default on registration
+[Auth] Request for: role_1765106851090@example.com
+[Auth] Database connection: OK
+
+stdout | process.stopAllConsumers (/home/ubuntu/farmer-data-collection/server/kafka-consumers.ts:184:11)
+[Kafka Consumers] Stopping all consumers...
+
+stdout | process.stopAllConsumers (/home/ubuntu/farmer-data-collection/server/kafka-consumers.ts:206:11)
+[Kafka Consumers] All consumers stopped
+
+ ✓ server/tests/communication-channels.test.ts (18 tests) 208ms
+stdout | tests/microfinance.test.ts
+[Redis] Connection closed
+
+stderr | tests/microfinance.test.ts
+[Redis] Error: 
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/accounting-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/accounting-router.test.ts
+[Redis] Error: 
+
+ ✓ server/__tests__/auth.test.ts (25 tests) 3127ms
+   ✓ Authentication > User Login > should return valid JWT token on successful login 378ms
+stdout | server/__tests__/accounting-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/accounting-router.test.ts
+[Redis] Error: 
+
+stdout | tests/microfinance.test.ts > Microfinance - Loans
+[Database] Connected to PostgreSQL database
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | tests/microfinance.test.ts > Microfinance - Loans
+[Redis] Error: 
+
+stdout | tests/microfinance.test.ts > Microfinance - Loans
+[Redis] Connection closed
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Double-Entry Validation > should accept balanced journal entry
+[Database] Connected to PostgreSQL database
+
+ ✓ server/__tests__/trpc.test.ts (15 tests) 48ms
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Double-Entry Validation > should accept balanced journal entry
+[Accounting] Created journal entry JE-2025-00147 for user 1
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Account Balances > should calculate account balance correctly
+[Accounting] Created journal entry JE-2025-00148 for user 1
+
+stderr | tests/microfinance.test.ts > Microfinance - Loans
+Cleanup error: DrizzleQueryError: Failed query: delete from $1 where $2
+params: repayments,[object Object]
+    at NodePgPreparedQuery.queryWithCache (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cleanupTestData (/home/ubuntu/farmer-data-collection/tests/microfinance.test.ts:75:5)
+    ... 4 lines matching cause stack trace ...
+    at runFiles (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/vitest@2.1.9_@types+node@24.7.0_lightningcss@1.30.1/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11 {
+  query: 'delete from $1 where $2',
+  params: [ 'repayments', { userId: undefined } ],
+  cause: error: syntax error at or near "$1"
+      at /home/ubuntu/farmer-data-collection/node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:149:14
+      at NodePgPreparedQuery.queryWithCache (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12)
+      at cleanupTestData (/home/ubuntu/farmer-data-collection/tests/microfinance.test.ts:75:5)
+      at /home/ubuntu/farmer-data-collection/tests/microfinance.test.ts:96:5
+      at callSuiteHook (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:964:22)
+      at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1214:7)
+      at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+      at runFiles (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5) {
+    length: 91,
+    severity: 'ERROR',
+    code: '42601',
+    detail: undefined,
+    hint: undefined,
+    position: '13',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'scan.l',
+    line: '1176',
+    routine: 'scanner_yyerror'
+  }
+}
+
+stdout | tests/microfinance.test.ts > Microfinance - Repayments
+[Database] Connected to PostgreSQL database
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Journal Entry Posting > should post journal entry and update balances
+[Accounting] Created journal entry JE-2025-00149 for user 1
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Journal Entry Posting > should post journal entry and update balances
+[Accounting] Posted journal entry JE-2025-00149
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Journal Entry Posting > should reverse journal entry
+[Accounting] Created journal entry JE-2025-00150 for user 1
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Journal Entry Posting > should reverse journal entry
+[Accounting] Posted journal entry JE-2025-00150
+
+stderr | server/__tests__/accounting-router.test.ts > Accounting Router - Journal Entry Posting > should reverse journal entry
+[Redis] Error: 
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Journal Entry Posting > should reverse journal entry
+[Redis] Connection closed
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Journal Entry Posting > should reverse journal entry
+[Accounting] Created journal entry JE-2025-00151 for user 1
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - Journal Entry Posting > should reverse journal entry
+[Accounting] Posted journal entry JE-2025-00151
+[Accounting] Reversed journal entry JE-2025-00150
+
+stdout | server/__tests__/accounting-router.test.ts > Accounting Router - User Isolation > should isolate journal entries by user
+[Accounting] Created journal entry JE-2025-00152 for user 1
+
+ ✓ server/__tests__/accounting-router.test.ts (11 tests) 247ms
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | tests/microfinance.test.ts > Microfinance - Savings
+[Redis] Connection closed
+
+stderr | tests/microfinance.test.ts > Microfinance - Savings
+[Redis] Error: 
+
+ ✓ server/__tests__/validation.test.ts (27 tests) 15ms
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+ ❯ tests/microfinance.test.ts (21 tests | 21 skipped) 643ms
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | server/__tests__/analytics-enhancements.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/analytics-enhancements.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-analytics.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+ ❯ server/routers/__tests__/sms-templates-router.test.ts (0 test)
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/analytics-enhancements.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-analytics.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/review-analytics.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | server/__tests__/review-analytics.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-analytics.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/analytics-enhancements.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/review-analytics.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | server/__tests__/review-analytics.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-analytics.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/analytics-enhancements.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-router.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/review-analytics.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-analytics.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth-integration.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/analytics-router.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/analytics-router.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stdout | server/__tests__/review-analytics.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-analytics.test.ts
+[Redis] Error: 
+
+stderr | server/__tests__/analytics-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-router.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/auth-integration.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/auth-integration.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | server/__tests__/auth-integration.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth-integration.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/analytics-enhancements.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/analytics-enhancements.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-router.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stderr | server/__tests__/analytics-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-router.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/loan-approval.test.ts > Loan Approval Workflow
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/auth-integration.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | server/__tests__/auth-integration.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth-integration.test.ts
+[Redis] Error: 
+
+ ✓ server/__tests__/loan-approval.test.ts (6 tests) 108ms
+stdout | server/__tests__/analytics-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/analytics-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-analytics.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-analytics.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-enhancements.test.ts > Analytics Enhancements
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/auth-integration.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth-integration.test.ts
+[Redis] Error: 
+
+ ✓ server/__tests__/analytics-enhancements.test.ts (6 tests) 211ms
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/analytics-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/analytics-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-analytics.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-analytics.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/auth-integration.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth-integration.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-analytics.test.ts > Review Analytics Router
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/analytics-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/analytics-router.test.ts
+[Redis] Error: 
+
+ ❯ server/__tests__/review-analytics.test.ts (9 tests | 9 skipped) 102ms
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth-integration.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/auth-integration.test.ts
+[Redis] Error: 
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Registration > should successfully register a new user
+[Auth] Request for: test-1765106854019@example.com
+[Database] Connected to PostgreSQL database
+[Auth] Database connection: OK
+
+stdout | server/__tests__/analytics-router.test.ts > Analytics Router
+[Database] Connected to PostgreSQL database
+
+stderr | server/__tests__/analytics-router.test.ts > Analytics Router
+[Redis] Error: 
+
+stdout | server/__tests__/analytics-router.test.ts > Analytics Router
+[Redis] Connection closed
+
+stdout | server/__tests__/new-features.test.ts > New Features Tests
+[Database] Connected to PostgreSQL database
+
+ ✓ server/__tests__/analytics-router.test.ts (6 tests) 199ms
+stderr | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Registration > should successfully register a new user
+[Redis] Error: 
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Registration > should successfully register a new user
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Registration > should not allow duplicate email registration
+[Auth] Request for: test-1765106854019@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Login > should successfully login with correct credentials
+[Auth] Request for: test-1765106854019@example.com
+[Auth] Database connection: OK
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Login > should successfully login with correct credentials
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: true
+[Auth] Comparing password...
+[Auth] Password valid: true
+
+ ✓ server/__tests__/new-features.test.ts (6 tests) 370ms
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Login > should reject login with incorrect password
+[Auth] Request for: test-1765106854019@example.com
+[Auth] Database connection: OK
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: true
+[Auth] Comparing password...
+[Auth] Password valid: false
+[Auth] Invalid password
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Login > should reject login with non-existent email
+[Auth] Request for: nonexistent@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Login > should reject login with non-existent email
+[Auth] User query successful, found: NO
+[Auth] User not found
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Token Verification
+[Auth] Request for: test-1765106854019@example.com
+[Auth] Database connection: OK
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Token Verification
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: true
+[Auth] Comparing password...
+[Auth] Password valid: true
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Token Verification > should verify valid token and return user data
+[Redis] Connection closed
+[Auth.me] Token received: YES (length: 223)
+[Auth.me] Token decoded successfully, userId: 2742
+
+stderr | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Token Verification > should verify valid token and return user data
+[Redis] Error: 
+[Keycloak] Token verification failed: error in secret or public key callback: 
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Token Verification > should verify valid token and return user data
+[Auth.me] User found: YES (id: 2742, email: test-1765106854019@example.com)
+[Auth.me] Returning user data: Test User
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Token Verification > should return null for invalid token
+[Auth.me] Token received: YES (length: 13)
+
+stderr | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Token Verification > should return null for invalid token
+[Keycloak] Token verification failed: jwt malformed
+[Auth.me] Error: JsonWebTokenError: jwt malformed
+    at Object.module.exports [as verify] (/home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:70:17)
+    at /home/ubuntu/farmer-data-collection/server/trpc.ts:204:27
+    at resolveMiddleware (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:571:28)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:26)
+    at Object.next (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:646:16)
+    at inputValidatorMiddleware (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:206:19)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20)
+    at procedure (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20)
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Token Verification > should return null when no token provided
+[Auth.me] Token received: NO
+[Auth.me] No token, returning null
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Data Isolation
+[Auth] Request for: user1-1765106854487@example.com
+[Auth] Database connection: OK
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Data Isolation
+[Auth] Request for: user2-1765106854588@example.com
+[Auth] Database connection: OK
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Data Isolation > should isolate user data between different users
+[Keycloak] Token verification failed: error in secret or public key callback: 
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Data Isolation > should isolate user data between different users
+[Auth.me] Token received: YES (length: 224)
+[Auth.me] Token decoded successfully, userId: 2743
+
+stderr | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Data Isolation > should isolate user data between different users
+[Keycloak] Token verification failed: error in secret or public key callback: 
+
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > User Data Isolation > should isolate user data between different users
+[Auth.me] User found: YES (id: 2743, email: user1-1765106854487@example.com)
+[Auth.me] Returning user data: User One
+[Auth.me] Token received: YES (length: 224)
+[Auth.me] Token decoded successfully, userId: 2744
+[Auth.me] User found: YES (id: 2744, email: user2-1765106854588@example.com)
+[Auth.me] Returning user data: User Two
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | server/__tests__/keycloak-integration.test.ts > Keycloak Authentication Integration > Legacy JWT Token Verification > should reject invalid legacy JWT token
+[JWT] Token verification failed: JsonWebTokenError: invalid token
+    at Object.module.exports [as verify] (/home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:82:17)
+    at Module.verifyLegacyToken (/home/ubuntu/farmer-data-collection/server/keycloak-auth.ts:91:25)
+    at /home/ubuntu/farmer-data-collection/server/__tests__/keycloak-integration.test.ts:35:23
+    at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+
+stderr | server/__tests__/keycloak-integration.test.ts > Keycloak Authentication Integration > Legacy JWT Token Verification > should reject expired legacy JWT token
+[JWT] Token verification failed: TokenExpiredError: jwt expired
+    at /home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:190:21
+    at getSecret (/home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:97:14)
+    at Object.module.exports [as verify] (/home/ubuntu/farmer-data-collection/node_modules/.pnpm/jsonwebtoken@9.0.2/node_modules/jsonwebtoken/verify.js:101:10)
+    at Module.verifyLegacyToken (/home/ubuntu/farmer-data-collection/server/keycloak-auth.ts:91:25)
+    at /home/ubuntu/farmer-data-collection/server/__tests__/keycloak-integration.test.ts:51:23
+    at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  expiredAt: 2025-12-07T11:27:33.000Z
+}
+
+stderr | server/__tests__/keycloak-integration.test.ts > Keycloak Authentication Integration > Keycloak Token Verification > should handle Keycloak token verification gracefully when Keycloak is not available
+[Keycloak] Token verification failed: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13484:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Module.verifyKeycloakToken (/home/ubuntu/farmer-data-collection/server/keycloak-auth.ts:66:24)
+    at /home/ubuntu/farmer-data-collection/server/__tests__/keycloak-integration.test.ts:153:22
+    at file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5) {
+  [cause]: AggregateError: 
+      at internalConnectMultiple (node:net:1139:18)
+      at afterConnectMultiple (node:net:1712:7) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+
+ ✓ server/__tests__/keycloak-integration.test.ts (12 tests) 66ms
+stdout | server/__tests__/auth-integration.test.ts > Authentication Integration Tests > Security > should not return password hash in user data
+[Auth] Request for: test-1765106854019@example.com
+[Auth] Database connection: OK
+[Auth] User query successful, found: YES
+[Auth] User found, checking active status: true
+[Auth] Comparing password...
+[Auth] Password valid: true
+
+ ✓ server/__tests__/auth-integration.test.ts (13 tests) 815ms
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/sync.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/farmer-crud.test.ts > Farmer CRUD Operations
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/sync.test.ts > Sync Functionality
+[Database] Connected to PostgreSQL database
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+ ✓ server/__tests__/farmer-crud.test.ts (6 tests) 218ms
+ ✓ server/__tests__/sync.test.ts (4 tests) 111ms
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | server/__tests__/review-purchase-verification.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-purchase-verification.test.ts
+[Redis] Error: 
+
+stderr | server/__tests__/review-purchase-verification.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-purchase-verification.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Error: 
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Keycloak] Configuration loaded:
+  URL: http://localhost:8080
+  Realm: farmer-realm
+  Client ID: farmer-api
+  Client Secret: Not configured
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-purchase-verification.test.ts
+[Redis] Error: 
+
+stderr | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Connection closed
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Kafka] Initializing Kafka client...
+  Brokers: localhost:9093
+  Client ID: farmer-app
+[Kafka] Client initialized
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Connecting to Redis: redis://localhost:6379
+
+stderr | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Connection closed
+
+stderr | server/routers/__tests__/health-router.test.ts
+[Redis] Error: 
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Connection closed
+
+stdout | server/__tests__/review-purchase-verification.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/review-purchase-verification.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Error: 
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Permify] Initializing Permify client...
+  Endpoint: localhost:3476
+[Permify] Client initialized
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Redis] Connection closed
+
+stderr | server/routers/__tests__/health-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/review-purchase-verification.test.ts > Product Review Purchase Verification
+[Database] Connected to PostgreSQL database
+
+ ❯ server/__tests__/review-purchase-verification.test.ts (4 tests | 4 skipped) 92ms
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Error: 
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Redis] Connection closed
+
+stderr | server/routers/__tests__/health-router.test.ts
+[Redis] Error: 
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+ ✓ server/auth.test.ts (7 tests) 834ms
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Error: 
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Redis] Connection closed
+
+stderr | server/routers/__tests__/health-router.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/ml-predictions-farm-data.test.ts
+[Redis] Error: 
+
+stdout | server/__tests__/ml-predictions-farm-data.test.ts > ML Predictions with Real Farm Data
+[Database] Connected to PostgreSQL database
+
+ ✓ server/__tests__/ml-predictions-farm-data.test.ts (4 tests) 88ms
+stdout | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Connection closed
+
+stderr | server/__tests__/marketplace-image-upload.test.ts
+[Redis] Error: 
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Redis] Connection closed
+
+stderr | server/routers/__tests__/health-router.test.ts
+[Redis] Error: 
+
+Sourcemap for "/home/ubuntu/farmer-data-collection/node_modules/.pnpm/node-cron@4.2.1/node_modules/node-cron/dist/esm/node-cron.js" points to missing source files
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+ ✓ server/__tests__/review-enhancements.test.ts (2 tests) 6ms
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/__tests__/marketplace-image-upload.test.ts > Marketplace Image Upload
+[Database] Connected to PostgreSQL database
+
+stderr | server/__tests__/marketplace-image-upload.test.ts > Marketplace Image Upload > should reject invalid base64 data
+[Marketplace] Image upload error: Error: Invalid base64 data format
+    at /home/ubuntu/farmer-data-collection/server/marketplace-router.ts:943:17
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at resolveMiddleware (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:571:22)
+    at callRecursive (file:///home/ubuntu/farmer-data-collection/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20)
+
+ ✓ server/__tests__/marketplace-image-upload.test.ts (3 tests) 98ms
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stdout | server/routers/__tests__/health-router.test.ts
+[Redis] Connection closed
+
+stderr | server/routers/__tests__/health-router.test.ts
+[Redis] Error: 
+
+ ✓ server/__tests__/final-review-features.test.ts (3 tests) 4ms
+stdout | server/routers/__tests__/health-router.test.ts > Health Router > health.check > should return health status with all checks
+[Database] Connected to PostgreSQL database
+
+stdout | server/services/__tests__/payment-reminder-cron.test.ts > Payment Reminder Cron Service > should trigger payment reminders successfully
+[Payment Reminder] Starting daily payment reminder check...
+[Payment Reminder] Found 1 upcoming payment(s)
+[Payment Reminder] Sent reminder to John Doe for loan LN-2024-001
+[Payment Reminder] Completed: 1 sent, 0 failed
+
+stdout | server/services/__tests__/payment-reminder-cron.test.ts > Payment Reminder Cron Service > should call sendPaymentReminder with correct parameters
+[Payment Reminder] Starting daily payment reminder check...
+[Payment Reminder] Found 1 upcoming payment(s)
+[Payment Reminder] Sent reminder to John Doe for loan LN-2024-001
+[Payment Reminder] Completed: 1 sent, 0 failed
+
+stdout | server/services/__tests__/payment-reminder-cron.test.ts > Payment Reminder Cron Service > should handle errors gracefully
+[Payment Reminder] Starting daily payment reminder check...
+[Payment Reminder] No upcoming payments found
+
+stderr | server/services/__tests__/payment-reminder-cron.test.ts > Payment Reminder Cron Service > should handle errors gracefully
+[Payment Reminder] Database not available
+
+ ✓ server/services/__tests__/payment-reminder-cron.test.ts (3 tests) 9ms
+ ✓ server/routers/__tests__/health-router.test.ts (14 tests) 62ms
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+stderr | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:36:15)
+[Redis] Error: 
+
+stdout | EventEmitter.<anonymous> (/home/ubuntu/farmer-data-collection/server/redis.ts:40:15)
+[Redis] Connection closed
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 10 ⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Products
+Error: Failed query: insert into "users" ("id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at") values (default, $1, $2, $3, $4, default, $5, default, default, default) returning "id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at"
+params: marketplace-seller@example.com,$2b$10$Q.rL4FaxwV9AB5WE0fe2geVdSd9uGyYta.VGe9pvWqoI3iUsUGDRS,Test,Seller,farmer
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestUsers tests/marketplace.test.ts:44:20
+     42|   // Create seller
+     43|   const hashedPassword1 = await bcrypt.hash(testSeller.password, 10);
+     44|   const [seller] = await db
+       |                    ^
+     45|     .insert(users)
+     46|     .values({
+ ❯ tests/marketplace.test.ts:109:5
+
+Caused by: error: duplicate key value violates unique constraint "users_email_unique"
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestUsers tests/marketplace.test.ts:44:20
+ ❯ tests/marketplace.test.ts:109:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 228, severity: 'ERROR', code: '23505', detail: 'Key (email)=(marketplace-seller@example.com) already exists.', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'users', column: undefined, dataType: undefined, constraint: 'users_email_unique', file: 'nbtinsert.c', line: '663', routine: '_bt_check_unique' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/23]⎯
+
+ FAIL  tests/microfinance.test.ts > Microfinance - Loans
+Error: Failed query: insert into "users" ("id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at") values (default, $1, $2, $3, $4, default, $5, $6, default, default) returning "id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at"
+params: microfinance-test@example.com,$2b$10$ZMnr382GGk2ODV0wozBCzORGMVt8iJzUFwdSbNQbGw.7fxIIool6W,Microfinance,Test,farmer,true
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+     35|   // Create test user
+     36|   const hashedPassword = await bcrypt.hash(testUser.password, 10);
+     37|   const [user] = await db
+       |                  ^
+     38|     .insert(users)
+     39|     .values({
+ ❯ tests/microfinance.test.ts:91:17
+
+Caused by: error: duplicate key value violates unique constraint "users_email_unique"
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+ ❯ tests/microfinance.test.ts:91:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 227, severity: 'ERROR', code: '23505', detail: 'Key (email)=(microfinance-test@example.com) already exists.', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'users', column: undefined, dataType: undefined, constraint: 'users_email_unique', file: 'nbtinsert.c', line: '663', routine: '_bt_check_unique' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/23]⎯
+
+ FAIL  tests/microfinance.test.ts > Microfinance - Repayments
+Error: Failed query: insert into "users" ("id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at") values (default, $1, $2, $3, $4, default, $5, $6, default, default) returning "id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at"
+params: microfinance-test@example.com,$2b$10$PHjLv9gVn1FdmpFab9JEMefk4CoqJOZDNPNlU1Ma37wdGJokw18By,Microfinance,Test,farmer,true
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+     35|   // Create test user
+     36|   const hashedPassword = await bcrypt.hash(testUser.password, 10);
+     37|   const [user] = await db
+       |                  ^
+     38|     .insert(users)
+     39|     .values({
+ ❯ tests/microfinance.test.ts:174:17
+
+Caused by: error: duplicate key value violates unique constraint "users_email_unique"
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+ ❯ tests/microfinance.test.ts:174:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 227, severity: 'ERROR', code: '23505', detail: 'Key (email)=(microfinance-test@example.com) already exists.', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'users', column: undefined, dataType: undefined, constraint: 'users_email_unique', file: 'nbtinsert.c', line: '663', routine: '_bt_check_unique' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/23]⎯
+
+ FAIL  tests/microfinance.test.ts > Microfinance - Credit Scores
+Error: Failed query: insert into "users" ("id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at") values (default, $1, $2, $3, $4, default, $5, $6, default, default) returning "id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at"
+params: microfinance-test@example.com,$2b$10$rvQ2FuXXitt6cvnrRphjxOavyxaiDDkEb0oZHRKOf/Zmj8Zm09ZKK,Microfinance,Test,farmer,true
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+     35|   // Create test user
+     36|   const hashedPassword = await bcrypt.hash(testUser.password, 10);
+     37|   const [user] = await db
+       |                  ^
+     38|     .insert(users)
+     39|     .values({
+ ❯ tests/microfinance.test.ts:218:17
+
+Caused by: error: duplicate key value violates unique constraint "users_email_unique"
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+ ❯ tests/microfinance.test.ts:218:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 227, severity: 'ERROR', code: '23505', detail: 'Key (email)=(microfinance-test@example.com) already exists.', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'users', column: undefined, dataType: undefined, constraint: 'users_email_unique', file: 'nbtinsert.c', line: '663', routine: '_bt_check_unique' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/23]⎯
+
+ FAIL  tests/microfinance.test.ts > Microfinance - Savings
+Error: Failed query: insert into "users" ("id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at") values (default, $1, $2, $3, $4, default, $5, $6, default, default) returning "id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at"
+params: microfinance-test@example.com,$2b$10$nc//8lKrbYdXvaPVJA6c5OfXyjbRZoLrDmReB.6fobGKCkwERL5CK,Microfinance,Test,farmer,true
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+     35|   // Create test user
+     36|   const hashedPassword = await bcrypt.hash(testUser.password, 10);
+     37|   const [user] = await db
+       |                  ^
+     38|     .insert(users)
+     39|     .values({
+ ❯ tests/microfinance.test.ts:254:17
+
+Caused by: error: duplicate key value violates unique constraint "users_email_unique"
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+ ❯ tests/microfinance.test.ts:254:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 227, severity: 'ERROR', code: '23505', detail: 'Key (email)=(microfinance-test@example.com) already exists.', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'users', column: undefined, dataType: undefined, constraint: 'users_email_unique', file: 'nbtinsert.c', line: '663', routine: '_bt_check_unique' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/23]⎯
+
+ FAIL  tests/microfinance.test.ts > Microfinance - Loan Analytics
+Error: Failed query: insert into "users" ("id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at") values (default, $1, $2, $3, $4, default, $5, $6, default, default) returning "id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at"
+params: microfinance-test@example.com,$2b$10$DdpGfVE.kV9ACgm0Z5J1.OUv8mm4/istzd8AWKznGPz4PudmpLBlS,Microfinance,Test,farmer,true
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+     35|   // Create test user
+     36|   const hashedPassword = await bcrypt.hash(testUser.password, 10);
+     37|   const [user] = await db
+       |                  ^
+     38|     .insert(users)
+     39|     .values({
+ ❯ tests/microfinance.test.ts:329:17
+
+Caused by: error: duplicate key value violates unique constraint "users_email_unique"
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ createTestContext tests/microfinance.test.ts:37:18
+ ❯ tests/microfinance.test.ts:329:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 227, severity: 'ERROR', code: '23505', detail: 'Key (email)=(microfinance-test@example.com) already exists.', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'users', column: undefined, dataType: undefined, constraint: 'users_email_unique', file: 'nbtinsert.c', line: '663', routine: '_bt_check_unique' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/23]⎯
+
+ FAIL  server/__tests__/messaging-channels.test.ts > Data Isolation Between Users
+Error: Failed query: insert into "users" ("id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at") values (default, $1, $2, $3, $4, default, $5, $6, default, default) returning "id", "email", "password", "first_name", "last_name", "phone_number", "role", "is_active", "created_at", "updated_at"
+params: +2348888888888@phone.local,019a26bdb22f5ee150aa7a1ec8e825a7595ba5d46f52f68db31061eec12dacc6,User,One,farmer,true
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ Module.registerUserByPhone server/services/messaging-service.ts:75:18
+     73| 
+     74|   // Create user account
+     75|   const [user] = await db
+       |                  ^
+     76|     .insert(users)
+     77|     .values({
+ ❯ server/__tests__/messaging-channels.test.ts:574:19
+
+Caused by: error: duplicate key value violates unique constraint "users_email_unique"
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ Module.registerUserByPhone server/services/messaging-service.ts:75:18
+ ❯ server/__tests__/messaging-channels.test.ts:574:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 224, severity: 'ERROR', code: '23505', detail: 'Key (email)=(+2348888888888@phone.local) already exists.', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'users', column: undefined, dataType: undefined, constraint: 'users_email_unique', file: 'nbtinsert.c', line: '663', routine: '_bt_check_unique' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/23]⎯
+
+ FAIL  server/__tests__/review-analytics.test.ts > Review Analytics Router
+Error: Failed query: insert into "produce_listings" ("id", "user_id", "farm_id", "crop_id", "title", "description", "category", "quantity", "unit", "price_per_unit", "total_price", "organic", "certification", "available_from", "available_until", "delivery_options", "location", "photos", "status", "views", "created_at", "updated_at") values (default, $1, default, default, $2, default, $3, $4, $5, $6, default, $7, default, default, default, $8, default, $9, $10, default, default, default) returning "id", "user_id", "farm_id", "crop_id", "title", "description", "category", "quantity", "unit", "price_per_unit", "total_price", "organic", "certification", "available_from", "available_until", "delivery_options", "location", "photos", "status", "views", "created_at", "updated_at"
+params: 2739,Test Product,vegetables,100,kg,50000,false,{"pickup":true},[],active
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ server/__tests__/review-analytics.test.ts:42:23
+     40| 
+     41|     // Create listing
+     42|     const [listing] = await db!.insert(produceListings).values({
+       |                       ^
+     43|       userId: regularUserId,
+     44|       title: 'Test Product',
+
+Caused by: error: null value in column "total_price" of relation "produce_listings" violates not-null constraint
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ server/__tests__/review-analytics.test.ts:42:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 412, severity: 'ERROR', code: '23502', detail: 'Failing row contains (400, 2739, null, null, Test Product, null, vegetables, 100, kg, 50000, null, f, null, null, null, {"pickup":true}, null, [], active, 0, 2025-12-07 06:27:33.659026, 2025-12-07 06:27:33.659026).', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'produce_listings', column: 'total_price', dataType: undefined, constraint: undefined, file: 'execMain.c', line: '1886', routine: 'ExecConstraints' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/23]⎯
+
+ FAIL  server/__tests__/review-purchase-verification.test.ts > Product Review Purchase Verification
+Error: Failed query: insert into "produce_listings" ("id", "user_id", "farm_id", "crop_id", "title", "description", "category", "quantity", "unit", "price_per_unit", "total_price", "organic", "certification", "available_from", "available_until", "delivery_options", "location", "photos", "status", "views", "created_at", "updated_at") values (default, $1, default, default, $2, default, $3, $4, $5, $6, default, $7, default, default, default, $8, default, $9, $10, default, default, default) returning "id", "user_id", "farm_id", "crop_id", "title", "description", "category", "quantity", "unit", "price_per_unit", "total_price", "organic", "certification", "available_from", "available_until", "delivery_options", "location", "photos", "status", "views", "created_at", "updated_at"
+params: 2749,Test Tomatoes,vegetables,100,kg,50000,false,{"pickup":true,"delivery":false,"shipping":false},[],active
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:73:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ server/__tests__/review-purchase-verification.test.ts:43:23
+     41| 
+     42|     // Create listing
+     43|     const [listing] = await db!.insert(produceListings).values({
+       |                       ^
+     44|       userId: sellerId,
+     45|       title: 'Test Tomatoes',
+
+Caused by: error: null value in column "total_price" of relation "produce_listings" violates not-null constraint
+ ❯ node_modules/.pnpm/pg-pool@3.10.1_pg@8.16.3/node_modules/pg-pool/index.js:45:11
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:161:13
+ ❯ NodePgPreparedQuery.queryWithCache node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/pg-core/session.ts:71:12
+ ❯ node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.14_@opentelemetry+api@1.9.0_@types+pg@8.15._9834effa6b9a230e0a5d22e524ececa8/node_modules/src/node-postgres/session.ts:154:19
+ ❯ server/__tests__/review-purchase-verification.test.ts:43:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 447, severity: 'ERROR', code: '23502', detail: 'Failing row contains (401, 2749, null, null, Test Tomatoes, null, vegetables, 100, kg, 50000, null, f, null, null, null, {"pickup":true,"delivery":false,"shipping":false}, null, [], active, 0, 2025-12-07 06:27:36.430375, 2025-12-07 06:27:36.430375).', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: 'public', table: 'produce_listings', column: 'total_price', dataType: undefined, constraint: undefined, file: 'execMain.c', line: '1886', routine: 'ExecConstraints' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/23]⎯
+
+ FAIL  server/routers/__tests__/sms-templates-router.test.ts [ server/routers/__tests__/sms-templates-router.test.ts ]
+Error: Failed to load url ../../test-utils (resolved id: ../../test-utils) in /home/ubuntu/farmer-data-collection/server/routers/__tests__/sms-templates-router.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@5.4.20_@types+node@24.7.0_lightningcss@1.30.1/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:51968:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/23]⎯
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Orders > should create an order
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "items",
+      0,
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:215:20
+    213| 
+    214|   it('should create an order', async () => {
+    215|     const result = await buyerCaller.marketplace.createOrder({
+       |                    ^
+    216|       items: [
+    217|         {
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "items",
+      0,
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'items', +0, 'productId' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'items', +0, 'productId' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Orders > should list buyer orders
+AssertionError: expected 0 to be greater than 0
+ ❯ tests/marketplace.test.ts:244:27
+    242|     expect(result).toBeDefined();
+    243|     expect(Array.isArray(result)).toBe(true);
+    244|     expect(result.length).toBeGreaterThan(0);
+       |                           ^
+    245|     expect(result[0].buyerId).toBe(buyerId);
+    246|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Orders > should get order details
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "id"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:249:20
+    247| 
+    248|   it('should get order details', async () => {
+    249|     const result = await buyerCaller.marketplace.getOrder({ id: orderI…
+       |                    ^
+    250| 
+    251|     expect(result).toBeDefined();
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "id"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'id' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'id' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Orders > should confirm order payment
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:258:20
+    256| 
+    257|   it('should confirm order payment', async () => {
+    258|     const result = await buyerCaller.marketplace.confirmPayment({
+       |                    ^
+    259|       orderId,
+    260|       paymentReference: 'PAY123456',
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Orders > should seller confirm order
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:269:20
+    267| 
+    268|   it('should seller confirm order', async () => {
+    269|     const result = await sellerCaller.marketplace.confirmOrder({
+       |                    ^
+    270|       orderId,
+    271|       estimatedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * …
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Orders > should update order status to shipped
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:279:20
+    277| 
+    278|   it('should update order status to shipped', async () => {
+    279|     const result = await sellerCaller.marketplace.updateOrderStatus({
+       |                    ^
+    280|       orderId,
+    281|       status: 'shipped',
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Orders > should buyer confirm delivery
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:291:20
+    289| 
+    290|   it('should buyer confirm delivery', async () => {
+    291|     const result = await buyerCaller.marketplace.confirmDelivery({
+       |                    ^
+    292|       orderId,
+    293|     });
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Reviews > should create a product review
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  },
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "revieweeId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  },
+  {
+    "code": "invalid_value",
+    "values": [
+      "buyer_to_seller",
+      "seller_to_buyer"
+    ],
+    "path": [
+      "reviewType"
+    ],
+    "message": "Invalid option: expected one of \"buyer_to_seller\"|\"seller_to_buyer\""
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:309:20
+    307| 
+    308|   it('should create a product review', async () => {
+    309|     const result = await buyerCaller.marketplace.createReview({
+       |                    ^
+    310|       productId,
+    311|       orderId,
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "orderId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  },
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "revieweeId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  },
+  {
+    "code": "invalid_value",
+    "values": [
+      "buyer_to_seller",
+      "seller_to_buyer"
+    ],
+    "path": [
+      "reviewType"
+    ],
+    "message": "Invalid option: expected one of \"buyer_to_seller\"|\"seller_to_buyer\""
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' }, { expected: 'number', code: 'invalid_type', path: [ 'revieweeId' ], message: 'Invalid input: expected number, received undefined' }, { code: 'invalid_value', values: [ 'buyer_to_seller', 'seller_to_buyer' ], path: [ 'reviewType' ], message: 'Invalid option: expected one of "buyer_to_seller"|"seller_to_buyer"' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'orderId' ], message: 'Invalid input: expected number, received undefined' }, { expected: 'number', code: 'invalid_type', path: [ 'revieweeId' ], message: 'Invalid input: expected number, received undefined' }, { code: 'invalid_value', values: [ 'buyer_to_seller', 'seller_to_buyer' ], path: [ 'reviewType' ], message: 'Invalid option: expected one of "buyer_to_seller"|"seller_to_buyer"' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Reviews > should list product reviews
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:322:20
+    320| 
+    321|   it('should list product reviews', async () => {
+    322|     const result = await buyerCaller.marketplace.getProductReviews({
+       |                    ^
+    323|       productId,
+    324|     });
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'productId' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'productId' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Reviews > should calculate average rating
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "id"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:333:20
+    331| 
+    332|   it('should calculate average rating', async () => {
+    333|     const result = await buyerCaller.marketplace.getProduct({ id: prod…
+       |                    ^
+    334| 
+    335|     expect(result).toBeDefined();
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "id"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'id' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'id' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Analytics > should get seller sales summary
+AssertionError: expected 0 to be greater than 0
+ ❯ tests/marketplace.test.ts:353:32
+    351| 
+    352|     expect(result).toBeDefined();
+    353|     expect(result.totalOrders).toBeGreaterThan(0);
+       |                                ^
+    354|     expect(result.totalRevenue).toBeGreaterThan(0);
+    355|     expect(result.averageOrderValue).toBeGreaterThan(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Inventory Management > should update product inventory
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:392:20
+    390| 
+    391|   it('should update product inventory', async () => {
+    392|     const result = await sellerCaller.marketplace.updateInventory({
+       |                    ^
+    393|       productId,
+    394|       quantityChange: -5, // Sold 5 units
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'productId' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'productId' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/23]⎯
+
+ FAIL  tests/marketplace.test.ts > Marketplace - Inventory Management > should deactivate out-of-stock product
+TRPCError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:191:15
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+ ❯ procedure node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:673:20
+ ❯ node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/router.ts:474:20
+ ❯ tests/marketplace.test.ts:413:5
+    411|   it('should deactivate out-of-stock product', async () => {
+    412|     // First, set quantity to 0
+    413|     await sellerCaller.marketplace.updateInventory({
+       |     ^
+    414|       productId,
+    415|       quantityChange: -85,
+
+Caused by: ZodError: [
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "productId"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  }
+]
+ ❯ inputValidatorMiddleware node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/middleware.ts:189:29
+ ❯ callRecursive node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.6.3/node_modules/@trpc/server/src/unstable-core-do-not-import/procedureBuilder.ts:633:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { _zod: { traits: { constructor: 'Function<Set>', has: 'Function<has>', add: 'Function<add>', delete: 'Function<delete>', clear: 'Function<clear>', entries: 'Function<entries>', forEach: 'Function<forEach>', size: 2, values: 'Function<values>', keys: 'Function<values>', union: 'Function<union>', intersection: 'Function<intersection>', difference: 'Function<difference>', symmetricDifference: 'Function<symmetricDifference>', isSubsetOf: 'Function<isSubsetOf>', isSupersetOf: 'Function<isSupersetOf>', isDisjointFrom: 'Function<isDisjointFrom>' }, constr: 'Function<ZodError>', def: [ { expected: 'number', code: 'invalid_type', path: [ 'productId' ], message: 'Invalid input: expected number, received undefined' } ], deferred: [] }, issues: [ { expected: 'number', code: 'invalid_type', path: [ 'productId' ], message: 'Invalid input: expected number, received undefined' } ], format: 'Function<value>', flatten: 'Function<value>', addIssue: 'Function<value>', addIssues: 'Function<value>', isEmpty: false }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/23]⎯
+
+ Test Files  6 failed | 28 passed | 1 skipped (35)
+      Tests  13 failed | 376 passed | 76 skipped (465)
+   Start at  06:27:24
+   Duration  13.73s (transform 2.50s, setup 0ms, collect 34.54s, tests 13.47s, environment 9ms, prepare 3.49s)
+
+ ELIFECYCLE  Test failed. See above for more details.

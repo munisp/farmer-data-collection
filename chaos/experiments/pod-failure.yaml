@@ -1,0 +1,54 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-failure-experiment
+  namespace: default
+spec:
+  action: pod-failure
+  mode: one
+  duration: '30s'
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+  scheduler:
+    cron: '@every 1h'
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-experiment
+  namespace: default
+spec:
+  action: pod-kill
+  mode: fixed
+  value: '1'
+  duration: '10s'
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+      'tier': 'backend'
+  scheduler:
+    cron: '@every 2h'
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: container-kill-experiment
+  namespace: default
+spec:
+  action: container-kill
+  mode: one
+  containerNames:
+    - backend
+  duration: '15s'
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+  scheduler:
+    cron: '@every 3h'

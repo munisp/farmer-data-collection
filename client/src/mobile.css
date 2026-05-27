@@ -1,0 +1,256 @@
+/* Mobile Optimization - Touch-Friendly UI */
+
+/* Minimum touch target size: 44x44px (Apple HIG) / 48x48px (Material Design) */
+@media (max-width: 768px) {
+  /* Buttons */
+  button,
+  .btn,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  /* Form inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="password"],
+  input[type="date"],
+  input[type="time"],
+  textarea,
+  select {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    border-radius: 8px;
+  }
+
+  /* Larger tap targets for icons */
+  .icon-button,
+  [class*="icon"] {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  /* Card touch targets */
+  .card-clickable,
+  [role="link"] {
+    min-height: 60px;
+    padding: 16px;
+  }
+
+  /* Navigation items */
+  nav a,
+  nav button {
+    min-height: 48px;
+    padding: 12px 16px;
+    font-size: 16px;
+  }
+
+  /* Increase spacing between interactive elements */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  /* Better spacing for lists */
+  li {
+    padding: 12px 0;
+  }
+
+  /* Optimize tables for mobile */
+  table {
+    font-size: 14px;
+  }
+
+  td,
+  th {
+    padding: 12px 8px;
+  }
+
+  /* Larger checkboxes and radio buttons */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 24px;
+    height: 24px;
+    margin-right: 12px;
+  }
+
+  /* Modal/Dialog optimization */
+  [role="dialog"] {
+    max-width: 95vw;
+    margin: 8px;
+  }
+
+  /* Sticky headers for better navigation */
+  .mobile-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--background);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Bottom navigation for mobile */
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--background);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 0;
+    z-index: 50;
+  }
+
+  .mobile-bottom-nav button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 48px;
+    font-size: 12px;
+  }
+
+  /* Optimize marketplace cards for mobile */
+  .marketplace-card {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .marketplace-card img {
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+
+  /* Touch-friendly pagination */
+  .pagination button {
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0 4px;
+  }
+
+  /* Optimize forms for thumb reach */
+  .form-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--background);
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+  }
+
+  .form-actions button {
+    flex: 1;
+    min-height: 48px;
+  }
+
+  /* Better spacing for mobile content */
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Optimize dropdowns for mobile */
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
+    padding-right: 40px;
+  }
+
+  /* Optimize search bars */
+  .search-input {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 16px 12px 44px;
+    font-size: 16px;
+    border-radius: 24px;
+  }
+
+  /* Better mobile modals */
+  .mobile-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 90vh;
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+  }
+
+  /* Optimize tabs for mobile */
+  .tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-button {
+    min-width: 120px;
+    min-height: 44px;
+    padding: 12px 20px;
+  }
+}
+
+/* Extra small devices (phones in portrait) */
+@media (max-width: 480px) {
+  /* Even larger touch targets for small screens */
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 48px;
+  }
+
+  /* Full-width buttons on small screens */
+  .mobile-full-width {
+    width: 100%;
+  }
+
+  /* Stack elements vertically */
+  .mobile-stack {
+    flex-direction: column;
+  }
+
+  .mobile-stack > * {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+}
+
+/* Landscape orientation optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Reduce vertical spacing in landscape */
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    min-height: 40px;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevent zoom on focus */
+  }
+}

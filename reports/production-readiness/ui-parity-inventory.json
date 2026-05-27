@@ -1,0 +1,2227 @@
+{
+  "client_pages": [
+    {
+      "path": "pages/AIDiagnostics.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/AccountingDashboard.tsx",
+      "api_ref_count": 5,
+      "api_refs": [
+        "accounting.createJournalEntry",
+        "accounting.getBalanceSheet",
+        "accounting.getCashFlow",
+        "accounting.getJournalEntries",
+        "accounting.getProfitAndLoss"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Achievements.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/AdminApplicationReview.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "fetch(",
+        "loanApplication.getAllApplications",
+        "loanApplication.updateApplicationStatus"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/AdminDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/AdminDisbursements.tsx",
+      "api_ref_count": 6,
+      "api_refs": [
+        "disbursement.cancel",
+        "disbursement.create",
+        "disbursement.getAll",
+        "disbursement.process",
+        "microfinance.getAllLenders",
+        "microfinance.getAllPendingLoans"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/AdvancedAnalytics.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/AgentTasksDashboard.tsx",
+      "api_ref_count": 9,
+      "api_refs": [
+        "agentProductivity.createTask",
+        "agentProductivity.endRoute",
+        "agentProductivity.getDashboardStats",
+        "agentProductivity.getPerformanceMetrics",
+        "agentProductivity.getTasks",
+        "agentProductivity.getTodaysTasks",
+        "agentProductivity.getVisits",
+        "agentProductivity.startRoute",
+        "agentProductivity.updateTaskStatus"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/AgriculturalIntelligenceDashboard.tsx",
+      "api_ref_count": 5,
+      "api_refs": [
+        "agriculturalIntelligence.getCropGrowthStatus",
+        "agriculturalIntelligence.getCropRisks",
+        "agriculturalIntelligence.getIPMRecommendations",
+        "agriculturalIntelligence.getIrrigationRecommendation",
+        "agriculturalIntelligence.getSoilMoisture"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/AgriculturalModels.tsx",
+      "api_ref_count": 5,
+      "api_refs": [
+        "fetch("
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/Analytics.tsx",
+      "api_ref_count": 7,
+      "api_refs": [
+        "analytics.getDashboardSummary",
+        "analytics.getHistoricalTrends",
+        "analytics.getPeriodComparison",
+        "analytics.getRealTimeMetrics",
+        "fetch("
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/BankingDashboard.tsx",
+      "api_ref_count": 7,
+      "api_refs": [
+        "banking.createBankAccount",
+        "banking.createPaymentRequest",
+        "banking.getBankAccounts",
+        "banking.getBankTransactions",
+        "banking.getMojaloopTransactions",
+        "banking.getPaymentRequests",
+        "banking.initiateMojaloopTransfer"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/BorrowerDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/BorrowerRiskAssessment.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "riskAssessment.getAllRiskProfiles"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/BulkExport.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Checkout.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "marketplace.createOrderFromCart",
+        "marketplace.getCart",
+        "stripeMarketplace.createCheckoutSession"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/CooperativeDashboard.tsx",
+      "api_ref_count": 10,
+      "api_refs": [
+        "cooperative.addMember",
+        "cooperative.create",
+        "cooperative.getById",
+        "cooperative.getDashboardStats",
+        "cooperative.getLoans",
+        "cooperative.getMeetings",
+        "cooperative.getMembers",
+        "cooperative.getTransactions",
+        "cooperative.list",
+        "cooperative.recordTransaction"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/CreditScoreDashboard.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "microfinance.getCreditScoreFactors",
+        "microfinance.getCreditScoreHistory"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/CreditScoreView.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "creditScoring.calculateScore",
+        "creditScoring.getBandInfo",
+        "creditScoring.getHistory",
+        "creditScoring.getScore"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/CropWizard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": false,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Crops.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Dashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/DataQualityDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/DisbursementAnalytics.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "disbursement.getAnalytics"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/EquipmentTracker.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/EventAnalytics.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ExchangeDashboard.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "exchange.getMyTraderProfile",
+        "exchange.listCommodities"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ExchangeMyOrders.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "exchange.cancelOrder",
+        "exchange.getMyOrders"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ExchangeMyTrades.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "exchange.getMyTraderProfile",
+        "exchange.getMyTrades"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ExchangeTrade.tsx",
+      "api_ref_count": 6,
+      "api_refs": [
+        "exchange.getCommodity",
+        "exchange.getMyPositions",
+        "exchange.getMyTraderProfile",
+        "exchange.getOrderBook",
+        "exchange.getRecentTrades",
+        "exchange.placeOrder"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Expenses.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ExportScheduler.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "fetch("
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FarmDetail.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "spatial.getAllBoundariesGeoJSON"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FarmGeotagging.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "dashboard.getFarms",
+        "dashboard.updateFarm",
+        "spatial.getAllBoundariesGeoJSON",
+        "spatial.importBoundaryFromGeoJSON"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FarmInputs.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FarmerDetailPage.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FarmerFinancialProfile.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/FarmerOnboardingWizard.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "farmers.create"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FarmerVerification.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Farmers.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FarmersEnhanced.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FarmersMapView.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Farms.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FieldAgentDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FieldOverview.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "fetch("
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/FinancialReports.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "financialReports.getExpenseByCategory",
+        "financialReports.getFinancialSummary",
+        "financialReports.getMonthlyTrends",
+        "financialReports.getRevenueVsExpense"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/GPSTracking.tsx",
+      "api_ref_count": 5,
+      "api_refs": [
+        "gpsTracking.deleteDevice",
+        "gpsTracking.getDeviceTracks",
+        "gpsTracking.getDevices",
+        "gpsTracking.getTrackStatistics",
+        "gpsTracking.registerDevice"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/GroupBuying.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/HRDashboard.tsx",
+      "api_ref_count": 10,
+      "api_refs": [
+        "hr.calculatePayroll",
+        "hr.createEmployee",
+        "hr.createTimeEntry",
+        "hr.deleteEmployee",
+        "hr.getEmployees",
+        "hr.getHRStats",
+        "hr.getPayrollRecords",
+        "hr.getTimeEntries",
+        "hr.processPayroll",
+        "hr.updateEmployee"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/Harvests.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Home.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/InputYieldAnalytics.tsx",
+      "api_ref_count": 6,
+      "api_refs": [
+        "analytics.getCropPerformance",
+        "analytics.getInputBreakdown",
+        "analytics.getInputYieldOverview",
+        "analytics.getOutliers",
+        "analytics.getRegionalPerformance",
+        "analytics.getSeasonalTrends"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/InventoryDashboard.tsx",
+      "api_ref_count": 13,
+      "api_refs": [
+        "inventory.createInventoryItem",
+        "inventory.createInventoryTransaction",
+        "inventory.createSupplier",
+        "inventory.deleteInventoryItem",
+        "inventory.deleteSupplier",
+        "inventory.getInventoryItems",
+        "inventory.getInventoryStats",
+        "inventory.getInventoryTransactions",
+        "inventory.getInventoryValuation",
+        "inventory.getLowStockItems",
+        "inventory.getSuppliers",
+        "inventory.updateInventoryItem",
+        "inventory.updateSupplier"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/KycAdminDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/KycVerification.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/LandSuitabilityAssessment.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "landSuitability.assessForCrop",
+        "landSuitability.findSuitableCrops",
+        "landSuitability.getAllCrops",
+        "landSuitability.getCropCategories"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/LenderComparison.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "microfinance.getAllLenders",
+        "microfinance.getLenderComparison"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/LenderDetail.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "microfinance.getLenderById"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/Livestock.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/LoanApplicationForm.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "loanApplication.submitApplication",
+        "loanApplication.uploadDocument"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/LoanApprovals.tsx",
+      "api_ref_count": 5,
+      "api_refs": [
+        "fetch(",
+        "microfinance.approveLoan",
+        "microfinance.getAllPendingLoans",
+        "microfinance.rejectLoan"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/LoanCalculator.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "microfinance.getAllLenders"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/Login.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "auth.login"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/LoginKeycloak.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/MarketplaceBrowse.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "fetch(",
+        "marketplace.addToCart",
+        "marketplace.searchListings"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/MarketplaceListing.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "marketplace.createListing",
+        "marketplace.getListing",
+        "marketplace.updateListing",
+        "marketplace.uploadImage"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/Messages.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "marketplace.getConversations",
+        "marketplace.getMessages",
+        "marketplace.sendMessage"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/MicrofinanceDashboard.tsx",
+      "api_ref_count": 8,
+      "api_refs": [
+        "microfinance.applyForLoan",
+        "microfinance.getAllLenders",
+        "microfinance.getCreditScoreBreakdown",
+        "microfinance.getCreditScoreHistory",
+        "microfinance.getMyCreditScore",
+        "microfinance.getMyLoans",
+        "microfinance.makeRepayment",
+        "microfinance.refreshCreditScore"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ModelBenchmarks.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "mlModels.getBenchmarkHistory",
+        "mlModels.listModels"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/ModelDownloads.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "fetch(",
+        "mlModels.getUserDownloads",
+        "mlModels.markAsInstalled"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ModelLibrary.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "mlModels.downloadModel",
+        "mlModels.getModelPacks",
+        "mlModels.getPopularModels",
+        "mlModels.listModels"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ModerationAnalytics.tsx",
+      "api_ref_count": 7,
+      "api_refs": [
+        "moderationAnalytics.getAccuracyMetrics",
+        "moderationAnalytics.getActivityTimeline",
+        "moderationAnalytics.getModerationQueue",
+        "moderationAnalytics.getModeratorPerformance",
+        "moderationAnalytics.getOverview",
+        "moderationAnalytics.getRuleEffectiveness",
+        "moderationAnalytics.getSentimentTrends"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/MultiFarmDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/MyApplications.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "loanApplication.getMyApplications"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/MyListings.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "fetch(",
+        "marketplace.deleteListing",
+        "marketplace.getMyListings"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/MyLoans.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "disbursement.getByLoan",
+        "microfinance.getAllLenders",
+        "microfinance.getMyLoans"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/MyOrders.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "marketplace.getMyOrders"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/MySales.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "fetch(",
+        "marketplace.getMySales",
+        "marketplace.updateOrderStatus"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/NotFound.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": false,
+        "update": false,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/NotificationCenter.tsx",
+      "api_ref_count": 11,
+      "api_refs": [
+        "notification.acknowledgeWeatherAlert",
+        "notification.createPriceAlert",
+        "notification.deletePriceAlert",
+        "notification.getPreferences",
+        "notification.getPriceAlerts",
+        "notification.getUnreadCount",
+        "notification.getWeatherAlerts",
+        "notification.list",
+        "notification.markAllAsRead",
+        "notification.markAsRead",
+        "notification.updatePreferences"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/NotificationPreferences.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "fetch("
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/OfflineConflictResolution.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/OnboardingWizard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/PortfolioAtRiskDashboard.tsx",
+      "api_ref_count": 5,
+      "api_refs": [
+        "agentProductivity.getPerformanceMetrics",
+        "cooperative.getParByCooperative",
+        "microfinance.getAtRiskLoans",
+        "microfinance.getParByRegion",
+        "microfinance.getPortfolioStats"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/PrecisionAgDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/PriceForecast.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "mlPredictions.forecastPrice"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/ProductDetail.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "marketplace.addToCart",
+        "marketplace.getListing"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/QuickFarmerRegistration.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/Register.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "auth.register"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/RepaymentTracking.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "microfinance.getMyLoans",
+        "microfinance.getRepaymentSchedule",
+        "microfinance.makePayment"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/Reports.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ReviewAnalytics.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "reviewAnalytics.getModerationStats",
+        "reviewAnalytics.getOverview",
+        "reviewAnalytics.getTopReviewers",
+        "reviewAnalytics.getVerificationStats"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/RiskComplianceDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/SatelliteImagery.tsx",
+      "api_ref_count": 5,
+      "api_refs": [
+        "satelliteImagery.getNitrogenAssessment",
+        "satelliteImagery.getServiceHealth",
+        "satelliteImagery.getTimeSeries",
+        "satelliteImagery.getVegetationIndices",
+        "satelliteImagery.getWaterStressAssessment"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/SellerAnalytics.tsx",
+      "api_ref_count": 2,
+      "api_refs": [
+        "marketplace.getMyListings",
+        "marketplace.getMySales"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/ShoppingCart.tsx",
+      "api_ref_count": 7,
+      "api_refs": [
+        "fetch(",
+        "marketplace.clearCart",
+        "marketplace.getCart",
+        "marketplace.removeFromCart",
+        "marketplace.updateCartItemQuantity"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/SmsManagement.tsx",
+      "api_ref_count": 7,
+      "api_refs": [
+        "microfinance.getActiveLoans",
+        "sms.getDeliveryLogs",
+        "sms.getStatistics",
+        "sms.sendBulkPaymentReminders",
+        "sms.sendManualMessage",
+        "sms.sendPaymentReminderManual",
+        "smsTemplates.getAll"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/SpatialAnalytics.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "spatial.getTotalFarmArea"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/SpatialReports.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "spatial.getAreaByDistrict",
+        "spatial.getFarmDensityByRegion",
+        "spatial.getTotalFarmArea"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/TraceabilityDashboard.tsx",
+      "api_ref_count": 5,
+      "api_refs": [
+        "traceability.createBatch",
+        "traceability.getStats",
+        "traceability.listBatches",
+        "traceability.listCollectionCenters",
+        "traceability.listWarehouses"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/TransactionHistory.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "marketplace.getMyOrders"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/UserJourneys.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/UserSettings.tsx",
+      "api_ref_count": 3,
+      "api_refs": [
+        "fetch(",
+        "sms.getNotificationPreferences",
+        "sms.updateNotificationPreferences"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/WeatherDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/YieldPrediction.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/YieldPredictor.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "mlPredictions.predictYield"
+      ],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/admin/AdminAuditLogs.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "admin.getAuditLogs"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/admin/AdminDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/admin/AdminOverview.tsx",
+      "api_ref_count": 1,
+      "api_refs": [
+        "admin.getSystemAnalytics"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/admin/AdminUsers.tsx",
+      "api_ref_count": 4,
+      "api_refs": [
+        "admin.getUserDetails",
+        "admin.getUsers",
+        "admin.updateUser",
+        "fetch("
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/admin/AnalyticsDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/admin/ERPNextIntegration.tsx",
+      "api_ref_count": 9,
+      "api_refs": [
+        "erpnext.configureSyncEntity",
+        "erpnext.getConfig",
+        "erpnext.getSyncConfig",
+        "erpnext.getSyncHistory",
+        "erpnext.getSyncStats",
+        "erpnext.getSyncStatus",
+        "erpnext.saveConfig",
+        "erpnext.testConnection",
+        "erpnext.triggerSync"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/admin/SmsAnalytics.tsx",
+      "api_ref_count": 8,
+      "api_refs": [
+        "smsAnalytics.getCostProjections",
+        "smsAnalytics.getDeliveryByHourOfDay",
+        "smsAnalytics.getDeliveryTrends",
+        "smsAnalytics.getMessageTypeBreakdown",
+        "smsAnalytics.getOverallStats",
+        "smsAnalytics.getRecipientEngagement",
+        "smsAnalytics.getScheduledStats",
+        "smsAnalytics.getTemplateUsageStats"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/admin/SmsScheduling.tsx",
+      "api_ref_count": 6,
+      "api_refs": [
+        "fetch(",
+        "smsTemplates.cancelScheduled",
+        "smsTemplates.list",
+        "smsTemplates.listScheduled",
+        "smsTemplates.scheduleMessage"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/admin/SmsTemplates.tsx",
+      "api_ref_count": 9,
+      "api_refs": [
+        "fetch(",
+        "smsTemplates.create",
+        "smsTemplates.delete",
+        "smsTemplates.getTemplateTypes",
+        "smsTemplates.list",
+        "smsTemplates.preview",
+        "smsTemplates.update"
+      ],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/admin/WorkflowDetail.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/admin/WorkflowList.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "pages/crops/CropDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "pages/journeys/JourneyTracker.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    }
+  ],
+  "mobile_screens": [
+    {
+      "path": "screens/HomeScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/admin/AdminDashboardScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/admin/WorkflowDetailScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/admin/WorkflowListScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": false,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "screens/analytics/AnalyticsDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/auth/LoginScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/auth/RegisterScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/carbon/CarbonCredits.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/cooperative/CooperativeManagement.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/crops/CropDashboardScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/crops/CropWizardScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/expenses/ExpenseCreateScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/expenses/ExpenseDetailScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/expenses/ExpenseEditScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/expenses/ExpenseListScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/farmers/FarmerProfileScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "screens/farmers/FarmerRegistrationScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/farms/FarmRegistrationScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/harvests/HarvestCreateScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/harvests/HarvestDetailScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/harvests/HarvestEditScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/harvests/HarvestListScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/journeys/JourneyDetailScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "screens/journeys/JourneyListScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "screens/journeys/JourneyTrackerScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/loans/LoanApplicationScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "screens/marketplace/CartScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": true
+      }
+    },
+    {
+      "path": "screens/marketplace/CheckoutScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/marketplace/MarketplaceBrowseScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": true
+      }
+    },
+    {
+      "path": "screens/marketplace/MarketplaceDetailScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/marketplace/OrdersScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": true,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/ml/PriceForecastScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/ml/YieldPredictionScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/profile/ProfileScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/profile/SettingsScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/settings/BiometricSettingsScreen.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false,
+        "search": false
+      }
+    },
+    {
+      "path": "screens/traceability/TraceabilityDashboard.tsx",
+      "api_ref_count": 0,
+      "api_refs": [],
+      "crud_signals": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false,
+        "search": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,787 @@
+---
+# Kubernetes Production-Ready HA Deployment
+# All services configured with proper resource limits, probes, and replicas
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: farmer-platform
+
+---
+# PostgreSQL StatefulSet with HA
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: farmer-platform
+spec:
+  serviceName: postgres
+  replicas: 3
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: farmer_data
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - farmer_user
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - farmer_user
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 50Gi
+
+---
+# Redis StatefulSet with HA
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: farmer-platform
+spec:
+  serviceName: redis
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        command:
+        - redis-server
+        - --requirepass
+        - $(REDIS_PASSWORD)
+        - --appendonly
+        - "yes"
+        - --maxmemory
+        - "2gb"
+        - --maxmemory-policy
+        - allkeys-lru
+        ports:
+        - containerPort: 6379
+          name: redis
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        volumeMounts:
+        - name: redis-storage
+          mountPath: /data
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# Kafka StatefulSet with HA
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: farmer-platform
+spec:
+  serviceName: kafka
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+      - name: kafka
+        image: confluentinc/cp-kafka:7.5.0
+        ports:
+        - containerPort: 9092
+          name: kafka
+        env:
+        - name: KAFKA_BROKER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: zookeeper:2181
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: PLAINTEXT://$(POD_NAME).kafka:9092
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: "3"
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+          value: "3"
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+          value: "2"
+        - name: KAFKA_DEFAULT_REPLICATION_FACTOR
+          value: "3"
+        - name: KAFKA_MIN_INSYNC_REPLICAS
+          value: "2"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: kafka-storage
+          mountPath: /var/lib/kafka/data
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        livenessProbe:
+          exec:
+            command:
+            - kafka-broker-api-versions
+            - --bootstrap-server
+            - localhost:9092
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - kafka-broker-api-versions
+            - --bootstrap-server
+            - localhost:9092
+          initialDelaySeconds: 30
+          periodSeconds: 10
+  volumeClaimTemplates:
+  - metadata:
+      name: kafka-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# Keycloak Deployment with HA
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: farmer-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:23.0
+        command:
+        - /opt/keycloak/bin/kc.sh
+        - start
+        - --optimized
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: KC_DB
+          value: postgres
+        - name: KC_DB_URL
+          value: jdbc:postgresql://postgres-keycloak:5432/keycloak
+        - name: KC_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-secret
+              key: username
+        - name: KC_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-secret
+              key: password
+        - name: KEYCLOAK_ADMIN
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-secret
+              key: username
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-secret
+              key: password
+        - name: KC_PROXY
+          value: edge
+        - name: KC_HEALTH_ENABLED
+          value: "true"
+        - name: KC_METRICS_ENABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+
+---
+# Permify Deployment with HA
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: permify
+  namespace: farmer-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: permify
+  template:
+    metadata:
+      labels:
+        app: permify
+    spec:
+      containers:
+      - name: permify
+        image: ghcr.io/permify/permify:latest
+        command:
+        - permify
+        - serve
+        ports:
+        - containerPort: 3476
+          name: http
+        - containerPort: 3478
+          name: grpc
+        env:
+        - name: PERMIFY_DATABASE_ENGINE
+          value: postgres
+        - name: PERMIFY_DATABASE_URI
+          valueFrom:
+            secretKeyRef:
+              name: permify-db-secret
+              key: uri
+        - name: PERMIFY_HTTP_PORT
+          value: "3476"
+        - name: PERMIFY_GRPC_PORT
+          value: "3478"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 3476
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 3476
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Temporal Deployment with HA
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal
+  namespace: farmer-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: temporal
+  template:
+    metadata:
+      labels:
+        app: temporal
+    spec:
+      containers:
+      - name: temporal
+        image: temporalio/auto-setup:1.22.0
+        ports:
+        - containerPort: 7233
+          name: grpc
+        env:
+        - name: DB
+          value: postgresql
+        - name: DB_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: temporal-db-secret
+              key: username
+        - name: POSTGRES_PWD
+          valueFrom:
+            secretKeyRef:
+              name: temporal-db-secret
+              key: password
+        - name: POSTGRES_SEEDS
+          value: postgres-temporal
+        - name: NUM_HISTORY_SHARDS
+          value: "4"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        livenessProbe:
+          exec:
+            command:
+            - tctl
+            - --address
+            - localhost:7233
+            - cluster
+            - health
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - tctl
+            - --address
+            - localhost:7233
+            - cluster
+            - health
+          initialDelaySeconds: 30
+          periodSeconds: 10
+
+---
+# APISIX Deployment with HA
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+  namespace: farmer-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: apisix
+  template:
+    metadata:
+      labels:
+        app: apisix
+    spec:
+      containers:
+      - name: apisix
+        image: apache/apisix:3.7.0-debian
+        ports:
+        - containerPort: 9080
+          name: http
+        - containerPort: 9443
+          name: https
+        - containerPort: 9180
+          name: admin
+        volumeMounts:
+        - name: apisix-config
+          mountPath: /usr/local/apisix/conf/config.yaml
+          subPath: config.yaml
+        - name: apisix-routes
+          mountPath: /usr/local/apisix/conf/apisix.yaml
+          subPath: apisix.yaml
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: apisix-config
+        configMap:
+          name: apisix-config
+      - name: apisix-routes
+        configMap:
+          name: apisix-routes
+
+---
+# TigerBeetle StatefulSet with HA
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tigerbeetle
+  namespace: farmer-platform
+spec:
+  serviceName: tigerbeetle
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tigerbeetle
+  template:
+    metadata:
+      labels:
+        app: tigerbeetle
+    spec:
+      containers:
+      - name: tigerbeetle
+        image: ghcr.io/tigerbeetle/tigerbeetle:latest
+        command:
+        - tigerbeetle
+        - start
+        - --addresses=0.0.0.0:3000
+        - --cache-grid-gb=1
+        - /var/lib/tigerbeetle/data
+        ports:
+        - containerPort: 3000
+          name: tigerbeetle
+        volumeMounts:
+        - name: tigerbeetle-storage
+          mountPath: /var/lib/tigerbeetle
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        livenessProbe:
+          tcpSocket:
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: tigerbeetle-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 50Gi
+
+---
+# Dapr Placement Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dapr-placement
+  namespace: farmer-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dapr-placement
+  template:
+    metadata:
+      labels:
+        app: dapr-placement
+    spec:
+      containers:
+      - name: dapr-placement
+        image: daprio/dapr:1.12.0
+        command:
+        - ./placement
+        - -port
+        - "50006"
+        - -log-level
+        - info
+        ports:
+        - containerPort: 50006
+          name: placement
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Lakehouse Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lakehouse
+  namespace: farmer-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lakehouse
+  template:
+    metadata:
+      labels:
+        app: lakehouse
+    spec:
+      containers:
+      - name: lakehouse
+        image: farmer-lakehouse:latest
+        ports:
+        - containerPort: 8085
+          name: http
+        env:
+        - name: KAFKA_BROKERS
+          value: kafka-0.kafka:9092,kafka-1.kafka:9092,kafka-2.kafka:9092
+        - name: REDIS_URL
+          value: redis://redis-0.redis:6379
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: uri
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8085
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8085
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# OpenAppSec WAF Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openappsec
+  namespace: farmer-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: openappsec
+  template:
+    metadata:
+      labels:
+        app: openappsec
+    spec:
+      containers:
+      - name: openappsec
+        image: ghcr.io/openappsec/agent:latest
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 443
+          name: https
+        env:
+        - name: OPENAPPSEC_MODE
+          value: prevent
+        - name: OPENAPPSEC_LOG_LEVEL
+          value: info
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# HorizontalPodAutoscaler for dynamic scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: apisix-hpa
+  namespace: farmer-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: apisix
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: keycloak-hpa
+  namespace: farmer-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: keycloak
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lakehouse-hpa
+  namespace: farmer-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: lakehouse
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70

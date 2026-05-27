@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Redis - In-memory cache and session store
+  redis:
+    image: redis:7-alpine
+    container_name: farmer-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # APISIX API Gateway
+  apisix:
+    image: apache/apisix:3.7.0-debian
+    container_name: farmer-apisix
+    ports:
+      - "9080:9080"   # HTTP
+      - "9443:9443"   # HTTPS
+      - "9180:9180"   # Admin API
+    volumes:
+      - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    depends_on:
+      - redis
+    environment:
+      - APISIX_STAND_ALONE=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: farmer-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # ML Service - IBM Granite Geospatial Models
+  ml-service:
+    build: ./ml-service
+    container_name: farmer-ml-service
+    ports:
+      - "8001:8001"
+    environment:
+      - SENTINEL_HUB_CLIENT_ID=${SENTINEL_HUB_CLIENT_ID}
+      - SENTINEL_HUB_CLIENT_SECRET=${SENTINEL_HUB_CLIENT_SECRET}
+      - SENTINEL_HUB_INSTANCE_ID=${SENTINEL_HUB_INSTANCE_ID}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ML_SERVICE_PORT=8001
+    depends_on:
+      - redis
+    volumes:
+      - ./ml-service/cache:/app/cache
+      - ml-models:/root/.cache/huggingface  # Cache Hugging Face models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  ml-models:
+    driver: local

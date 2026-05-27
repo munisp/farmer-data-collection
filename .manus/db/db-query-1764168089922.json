@@ -1,0 +1,9 @@
+{
+  "query": "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('crop_calendar', 'pest_disease_risks', 'soil_moisture_readings', 'irrigation_recommendations') ORDER BY table_name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NzNswwN3cq6gauf.c04d1ab767e1 --database PqpBBu22GW6k9Mt8Xb9kd6 --execute SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('crop_calendar', 'pest_disease_risks', 'soil_moisture_readings', 'irrigation_recommendations') ORDER BY table_name;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 63
+}

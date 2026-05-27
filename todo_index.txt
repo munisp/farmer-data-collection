@@ -1,0 +1,57 @@
+/home/ubuntu/farmer-data-collection/server/messaging-router.ts:531:          // TODO: Send SMS with code
+/home/ubuntu/farmer-data-collection/server/messaging-router.ts:699:        // TODO: Send SMS with verification code
+/home/ubuntu/farmer-data-collection/server/messaging-router.ts:769:        // TODO: Send verification code via SMS
+/home/ubuntu/farmer-data-collection/server/messaging-router.ts:1272:        // TODO: Send WhatsApp response via Africa's Talking API
+/home/ubuntu/farmer-data-collection/server/notifications/smart-notifications.ts:128:      // TODO: Query expense_statistics table when available
+/home/ubuntu/farmer-data-collection/server/notifications/smart-notifications.ts:253:      // TODO: Also send via SMS/Email if enabled in user preferences
+/home/ubuntu/farmer-data-collection/server/notifications/smart-notifications.ts:265:    // TODO: Integrate with SMS provider (Twilio, Africa's Talking, etc.)
+/home/ubuntu/farmer-data-collection/server/notifications/smart-notifications.ts:273:    // TODO: Integrate with email provider (SendGrid, AWS SES, etc.)
+/home/ubuntu/farmer-data-collection/server/notifications/smart-notifications.ts:281:    // TODO: Fetch from database
+/home/ubuntu/farmer-data-collection/server/routes/whatsapp.routes.ts:233:          // TODO: Process incoming WhatsApp message
+/home/ubuntu/farmer-data-collection/server/routes/whatsapp.routes.ts:248:          // TODO: Update message delivery status in database
+/home/ubuntu/farmer-data-collection/server/routes/whatsapp.routes.ts:296:    // TODO: Update message status in database
+/home/ubuntu/farmer-data-collection/server/routes/sms.routes.ts:125:    // TODO: Update SMS notification status in database
+/home/ubuntu/farmer-data-collection/server/routes/sms.routes.ts:151:    // TODO: Process incoming SMS (e.g., for SMS-based data collection)
+/home/ubuntu/farmer-data-collection/server/consumers/notification-consumer.ts:31:          // TODO: Implement notification sending logic
+/home/ubuntu/farmer-data-collection/server/moderation-workflow-router.ts:58:      // TODO: Send notification to reviewer
+/home/ubuntu/farmer-data-collection/server/moderation-workflow-router.ts:113:      // TODO: Send notification to reviewer with rejection reason
+/home/ubuntu/farmer-data-collection/server/moderation-workflow-router.ts:120:      // TODO: Send email notification
+/home/ubuntu/farmer-data-collection/server/moderation-workflow-router.ts:369:      // TODO: Create appeal record
+/home/ubuntu/farmer-data-collection/server/moderation-workflow-router.ts:377:      // TODO: Notify admins
+/home/ubuntu/farmer-data-collection/server/moderation-workflow-router.ts:451:      // TODO: Update appeal status and review if approved
+/home/ubuntu/farmer-data-collection/server/review-responses-router.ts:79:        // TODO: Integrate with notification system
+/home/ubuntu/farmer-data-collection/server/__tests__/marketplace-image-upload.test.ts:16: * Tests the uploadImage procedure that was implemented to replace TODO
+/home/ubuntu/farmer-data-collection/server/services/payment-reminder.service.ts:33:      borrowerName: sql<string>`''`, // TODO: Join with users table
+/home/ubuntu/farmer-data-collection/server/services/payment-reminder.service.ts:34:      borrowerEmail: sql<string>`''`, // TODO: Join with users table
+/home/ubuntu/farmer-data-collection/server/services/payment-reminder.service.ts:35:      borrowerPhone: sql<string>`''`, // TODO: Join with users table
+/home/ubuntu/farmer-data-collection/server/services/payment-reminder.service.ts:337:  // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
+/home/ubuntu/farmer-data-collection/server/services/payment-reminder.service.ts:351:  // TODO: Integrate with SMS service (Twilio, Africa's Talking, etc.)
+/home/ubuntu/farmer-data-collection/server/services/cdn-service.ts:223:  // TODO: Implement actual cache purge based on provider
+/home/ubuntu/farmer-data-collection/server/services/risk-assessment.service.ts:155:  // TODO: Get actual income from user profile
+/home/ubuntu/farmer-data-collection/server/services/analytics-service.ts:115:      avgResponseTime: 0, // TODO: Calculate from response_time_ms field
+/home/ubuntu/farmer-data-collection/server/services/analytics-service.ts:410:    avgResponseTime: 0, // TODO: Calculate from response_time_ms field
+/home/ubuntu/farmer-data-collection/server/services/finance/microfinance-service.ts:199:      paymentNumber: 1, // TODO: Calculate actual payment number
+/home/ubuntu/farmer-data-collection/server/services/crop-disease-ai-service.ts:286:  // TODO: Add crop_analyses table to schema and implement proper insert
+/home/ubuntu/farmer-data-collection/server/services/crop-disease-ai-service.ts:309:  // TODO: Add crop_analyses table to schema and implement proper query
+/home/ubuntu/farmer-data-collection/server/services/erpnext/erpnext-sync-service.ts:757:      // TODO: Implement logic to update platform entities
+/home/ubuntu/farmer-data-collection/server/services/africas-talking.ts:85:      // TODO: Save to database via API call
+/home/ubuntu/farmer-data-collection/server/services/africas-talking.ts:128:      // TODO: Save harvest record via API call
+/home/ubuntu/farmer-data-collection/server/services/africas-talking.ts:170:      // TODO: Save expense record via API call
+/home/ubuntu/farmer-data-collection/server/services/africas-talking.ts:184:    // TODO: Fetch farm summary from database
+/home/ubuntu/farmer-data-collection/server/services/africas-talking.ts:197:    // TODO: Fetch weather from API
+/home/ubuntu/farmer-data-collection/server/routers/erpnext-router.ts:49:            apiKey: input.apiKey, // TODO: Encrypt before storing
+/home/ubuntu/farmer-data-collection/server/routers/erpnext-router.ts:50:            apiSecret: input.apiSecret, // TODO: Encrypt before storing
+/home/ubuntu/farmer-data-collection/server/routers/erpnext-router.ts:59:          apiKey: input.apiKey, // TODO: Encrypt before storing
+/home/ubuntu/farmer-data-collection/server/routers/erpnext-router.ts:60:          apiSecret: input.apiSecret, // TODO: Encrypt before storing
+/home/ubuntu/farmer-data-collection/server/routers/erpnext-router.ts:328:      pendingSync: 0, // TODO: Calculate from sync queue
+/home/ubuntu/farmer-data-collection/server/routers/loan-application-router.ts:246:    // TODO: Add admin role check
+/home/ubuntu/farmer-data-collection/server/routers/loan-application-router.ts:279:      // TODO: Add admin role check
+/home/ubuntu/farmer-data-collection/server/routers/loan-application-router.ts:339:      // TODO: Add admin role check
+/home/ubuntu/farmer-data-collection/server/services/finance/banking-service.ts:93:    // TODO: Call Mojaloop Party Lookup API to verify account
+/home/ubuntu/farmer-data-collection/server/services/finance/banking-service.ts:158:    // TODO: Call Mojaloop Transfer API via Go microservice
+/home/ubuntu/farmer-data-collection/server/services/finance/banking-service.ts:203:    // TODO: Generate actual QR code image
+/home/ubuntu/farmer-data-collection/server/routers/africas-talking-router.ts:139:      // TODO: Update message status in database
+/home/ubuntu/farmer-data-collection/client/src/pages/BorrowerDashboard.tsx:83:    // TODO: Implement API call to save preferences
+/home/ubuntu/farmer-data-collection/client/src/pages/NotificationPreferences.tsx:75:      // TODO: Load from API
+/home/ubuntu/farmer-data-collection/client/src/pages/NotificationPreferences.tsx:96:      // TODO: Save to API
+/home/ubuntu/farmer-data-collection/client/src/components/FarmBoundaryViewer.tsx:137:        // TODO: Implement batch import

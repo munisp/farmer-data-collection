@@ -1,0 +1,791 @@
+version: '3.9'
+
+# Production-Ready High Availability Configuration
+# All services configured with proper restart policies, resource limits, healthchecks, and replication
+
+networks:
+  farmer-ha-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  postgres-data:
+  postgres-replica-data:
+  postgres-keycloak-data:
+  postgres-temporal-data:
+  redis-master-data:
+  redis-replica-data:
+  kafka-1-data:
+  kafka-2-data:
+  kafka-3-data:
+  zookeeper-data:
+  tigerbeetle-data:
+  etcd-data:
+
+services:
+  # ============================================================================
+  # POSTGRESQL HA CLUSTER (Master-Replica)
+  # ============================================================================
+  
+  postgres-master:
+    image: postgres:16-alpine
+    container_name: farmer-postgres-master
+    environment:
+      POSTGRES_DB: farmer_data
+      POSTGRES_USER: farmer_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-farmer_pass}
+      POSTGRES_REPLICATION_MODE: master
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replicator_pass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farmer_user -d farmer_data"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  postgres-replica:
+    image: postgres:16-alpine
+    container_name: farmer-postgres-replica
+    environment:
+      POSTGRES_MASTER_SERVICE: postgres-master
+      POSTGRES_REPLICATION_MODE: replica
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replicator_pass}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-replica-data:/var/lib/postgresql/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # REDIS HA CLUSTER (Sentinel Mode)
+  # ============================================================================
+  
+  redis-master:
+    image: redis:7-alpine
+    container_name: farmer-redis-master
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-redis_pass}
+      --masterauth ${REDIS_PASSWORD:-redis_pass}
+      --appendonly yes
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-master-data:/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      replicas: 1
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-replica:
+    image: redis:7-alpine
+    container_name: farmer-redis-replica
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-redis_pass}
+      --masterauth ${REDIS_PASSWORD:-redis_pass}
+      --replicaof redis-master 6379
+      --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-replica-data:/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # KAFKA HA CLUSTER (3 Brokers)
+  # ============================================================================
+  
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: farmer-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 5
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka-1:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: farmer-kafka-1
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "29092:29092"
+    volumes:
+      - kafka-1-data:/var/lib/kafka/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  kafka-2:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: farmer-kafka-2
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092,PLAINTEXT_HOST://localhost:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+    ports:
+      - "29093:29093"
+    volumes:
+      - kafka-2-data:/var/lib/kafka/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  kafka-3:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: farmer-kafka-3
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092,PLAINTEXT_HOST://localhost:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+    ports:
+      - "29094:29094"
+    volumes:
+      - kafka-3-data:/var/lib/kafka/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ============================================================================
+  # KEYCLOAK HA (with dedicated PostgreSQL)
+  # ============================================================================
+  
+  postgres-keycloak:
+    image: postgres:16-alpine
+    container_name: farmer-postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-keycloak-data:/var/lib/postgresql/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: farmer-keycloak
+    command: start --optimized
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass}
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_pass}
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_PROXY: edge
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ============================================================================
+  # PERMIFY HA
+  # ============================================================================
+  
+  permify:
+    image: ghcr.io/permify/permify:latest
+    container_name: farmer-permify
+    command: serve
+    environment:
+      PERMIFY_DATABASE_ENGINE: postgres
+      PERMIFY_DATABASE_URI: postgres://farmer_user:${POSTGRES_PASSWORD:-farmer_pass}@postgres-master:5432/farmer_data?sslmode=disable
+      PERMIFY_HTTP_PORT: 3476
+      PERMIFY_GRPC_PORT: 3478
+      PERMIFY_LOG_LEVEL: info
+    ports:
+      - "3476:3476"
+      - "3478:3478"
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3476/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # TEMPORAL HA (with dedicated PostgreSQL)
+  # ============================================================================
+  
+  postgres-temporal:
+    image: postgres:16-alpine
+    container_name: farmer-postgres-temporal
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD:-temporal_pass}
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-temporal-data:/var/lib/postgresql/data
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  temporal:
+    image: temporalio/auto-setup:1.22.0
+    container_name: farmer-temporal
+    depends_on:
+      postgres-temporal:
+        condition: service_healthy
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: ${TEMPORAL_DB_PASSWORD:-temporal_pass}
+      POSTGRES_SEEDS: postgres-temporal
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+      NUM_HISTORY_SHARDS: 4
+    ports:
+      - "7233:7233"
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ============================================================================
+  # APISIX HA (with etcd cluster)
+  # ============================================================================
+  
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: farmer-etcd
+    environment:
+      ETCD_ENABLE_V2: "true"
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: "http://etcd:2379"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+    ports:
+      - "2379:2379"
+    volumes:
+      - etcd-data:/bitnami/etcd
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  apisix:
+    image: apache/apisix:3.7.0-debian
+    container_name: farmer-apisix
+    volumes:
+      - ./config/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./config/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    ports:
+      - "9080:9080"
+      - "9443:9443"
+      - "9180:9180"
+    depends_on:
+      etcd:
+        condition: service_healthy
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # TIGERBEETLE HA
+  # ============================================================================
+  
+  tigerbeetle:
+    image: ghcr.io/tigerbeetle/tigerbeetle:latest
+    container_name: farmer-tigerbeetle
+    command: start --addresses=0.0.0.0:3000 --cache-grid-gb=1 /var/lib/tigerbeetle/data
+    ports:
+      - "3001:3000"
+    volumes:
+      - tigerbeetle-data:/var/lib/tigerbeetle
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+      replicas: 3
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # DAPR HA
+  # ============================================================================
+  
+  dapr-placement:
+    image: daprio/dapr:1.12.0
+    container_name: farmer-dapr-placement
+    command: ["./placement", "-port", "50006", "-log-level", "info"]
+    ports:
+      - "50006:50006"
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: 3
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # FLUVIO HA
+  # ============================================================================
+  
+  fluvio:
+    image: infinyon/fluvio:latest
+    container_name: farmer-fluvio
+    command: cluster start --local
+    ports:
+      - "9003:9003"
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "fluvio", "version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # OBSERVABILITY STACK
+  # ============================================================================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: farmer-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: farmer-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_ROOT_URL: http://localhost:3333
+    ports:
+      - "3333:3000"
+    volumes:
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: farmer-jaeger
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: :9411
+      SPAN_STORAGE_TYPE: badger
+      BADGER_EPHEMERAL: false
+      BADGER_DIRECTORY_VALUE: /badger/data
+      BADGER_DIRECTORY_KEY: /badger/key
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ============================================================================
+  # LAKEHOUSE SERVICE
+  # ============================================================================
+  
+  lakehouse:
+    build: ./services/python/lakehouse-service
+    container_name: farmer-lakehouse
+    ports:
+      - "8085:8085"
+    environment:
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      REDIS_URL: redis://redis-master:6379
+      DATABASE_URL: postgresql://farmer_user:${POSTGRES_PASSWORD:-farmer_pass}@postgres-master:5432/farmer_data
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+      - redis-master
+      - postgres-master
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # OPENAPPSEC WAF
+  # ============================================================================
+  
+  openappsec:
+    image: ghcr.io/openappsec/agent:latest
+    container_name: farmer-openappsec
+    ports:
+      - "8086:80"
+      - "8087:443"
+    environment:
+      OPENAPPSEC_MODE: prevent
+      OPENAPPSEC_LOG_LEVEL: info
+    networks:
+      - farmer-ha-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

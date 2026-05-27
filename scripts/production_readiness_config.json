@@ -1,0 +1,69 @@
+{
+  "ignore_dirs": [
+    ".git",
+    "node_modules",
+    "dist",
+    "coverage",
+    ".next",
+    ".turbo",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".idea",
+    ".vscode",
+    "build",
+    "target",
+    ".expo",
+    "reports"
+  ],
+  "domain_weights": {
+    "feature_completeness": 0.24,
+    "code_quality": 0.16,
+    "service_integration": 0.14,
+    "security": 0.16,
+    "infrastructure": 0.12,
+    "delivery_pipeline": 0.10,
+    "documentation_maintainability": 0.08
+  },
+  "thresholds": {
+    "frontend_pages_min": 10,
+    "frontend_components_min": 20,
+    "backend_modules_min": 20,
+    "service_dirs_min": 5,
+    "test_ratio_min": 0.12,
+    "typed_ratio_min": 0.55,
+    "env_vars_min": 12,
+    "docs_count_min": 5,
+    "ops_scripts_min": 5,
+    "integration_tags_min": 5
+  },
+  "hardcoded_secret_allowlist": [
+    "example",
+    "placeholder",
+    "changeme",
+    "your-secret",
+    "your_secret",
+    "dummy",
+    "sample",
+    "test",
+    "postgres:postgres",
+    "demo123",
+    "ussd-user-no-password",
+    "erpnext_sync"
+  ],
+  "service_keywords": {
+    "database": ["postgres", "mysql", "drizzle", "typeorm", "sequelize", "mongodb", "sqlite"],
+    "cache": ["redis", "cache"],
+    "messaging": ["kafka", "rabbitmq", "sqs", "pubsub", "nats", "bullmq"],
+    "storage": ["s3", "bucket", "minio", "blob"],
+    "auth": ["auth", "jwt", "keycloak", "oauth", "passport", "session"],
+    "payments": ["stripe", "paystack", "flutterwave", "mojaloop"],
+    "communications": ["sms", "email", "twilio", "africastalking", "notification"],
+    "observability": ["prometheus", "grafana", "otel", "opentelemetry", "logstash", "metrics"],
+    "orchestration": ["kubernetes", "docker", "compose", "helm", "apisix", "dapr"],
+    "realtime": ["websocket", "socket.io", "eventsource", "sse"],
+    "ml_ai": ["ml", "model", "inference", "predict", "tensorflow", "pytorch", "ollama"],
+    "weather_gis": ["weather", "satellite", "gps", "map", "geotag", "spatial"]
+  },
+  "risk_file_limit": 40
+}

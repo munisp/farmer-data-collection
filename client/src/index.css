@@ -1,0 +1,771 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   AGRIFINANCE DESIGN SYSTEM
+   Modern Ag-Fintech Color Palette & Tokens
+   ============================================ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Extended Color Palette */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  
+  /* Surface Colors */
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-overlay: var(--surface-overlay);
+}
+
+:root {
+  /* Primary: Deep Forest Green - Trust, Growth, Agriculture */
+  --primary: oklch(0.45 0.12 145);
+  --primary-foreground: oklch(0.98 0.01 145);
+  
+  /* Accent: Warm Gold/Amber - Harvest, Prosperity, Finance */
+  --accent: oklch(0.75 0.15 75);
+  --accent-foreground: oklch(0.25 0.05 75);
+  
+  /* Secondary: Cool Slate - Professional, Modern */
+  --secondary: oklch(0.96 0.005 250);
+  --secondary-foreground: oklch(0.35 0.02 250);
+  
+  /* Semantic Colors */
+  --success: oklch(0.55 0.15 145);
+  --success-foreground: oklch(0.98 0.01 145);
+  --warning: oklch(0.75 0.15 55);
+  --warning-foreground: oklch(0.25 0.05 55);
+  --info: oklch(0.55 0.12 230);
+  --info-foreground: oklch(0.98 0.01 230);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  /* Surfaces */
+  --background: oklch(0.985 0.002 250);
+  --foreground: oklch(0.2 0.02 250);
+  --surface: oklch(1 0 0);
+  --surface-elevated: oklch(1 0 0);
+  --surface-overlay: oklch(0.98 0.002 250);
+  
+  /* Cards */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 250);
+  
+  /* Muted */
+  --muted: oklch(0.96 0.005 250);
+  --muted-foreground: oklch(0.5 0.02 250);
+  
+  /* Borders & Inputs */
+  --border: oklch(0.92 0.005 250);
+  --input: oklch(0.94 0.005 250);
+  --ring: oklch(0.45 0.12 145);
+  
+  /* Sidebar */
+  --sidebar: oklch(0.18 0.03 250);
+  --sidebar-foreground: oklch(0.92 0.01 250);
+  --sidebar-primary: oklch(0.55 0.12 145);
+  --sidebar-primary-foreground: oklch(0.98 0.01 145);
+  --sidebar-accent: oklch(0.25 0.03 250);
+  --sidebar-accent-foreground: oklch(0.92 0.01 250);
+  --sidebar-border: oklch(0.28 0.03 250);
+  --sidebar-ring: oklch(0.55 0.12 145);
+  
+  /* Charts - Harmonious palette */
+  --chart-1: oklch(0.55 0.12 145); /* Primary green */
+  --chart-2: oklch(0.65 0.15 75);  /* Gold */
+  --chart-3: oklch(0.55 0.12 230); /* Blue */
+  --chart-4: oklch(0.6 0.15 25);   /* Coral */
+  --chart-5: oklch(0.55 0.12 300); /* Purple */
+  
+  /* Radius */
+  --radius: 0.75rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+  --shadow-glow: 0 0 20px -5px oklch(0.45 0.12 145 / 0.3);
+}
+
+.dark {
+  /* Primary: Lighter green for dark mode */
+  --primary: oklch(0.6 0.12 145);
+  --primary-foreground: oklch(0.15 0.02 145);
+  
+  /* Accent: Warm Gold */
+  --accent: oklch(0.7 0.12 75);
+  --accent-foreground: oklch(0.15 0.03 75);
+  
+  /* Secondary */
+  --secondary: oklch(0.22 0.02 250);
+  --secondary-foreground: oklch(0.85 0.01 250);
+  
+  /* Semantic Colors */
+  --success: oklch(0.6 0.12 145);
+  --success-foreground: oklch(0.15 0.02 145);
+  --warning: oklch(0.7 0.12 55);
+  --warning-foreground: oklch(0.15 0.03 55);
+  --info: oklch(0.6 0.1 230);
+  --info-foreground: oklch(0.15 0.02 230);
+  --destructive: oklch(0.6 0.18 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  /* Surfaces */
+  --background: oklch(0.13 0.02 250);
+  --foreground: oklch(0.92 0.01 250);
+  --surface: oklch(0.17 0.02 250);
+  --surface-elevated: oklch(0.2 0.02 250);
+  --surface-overlay: oklch(0.15 0.02 250);
+  
+  /* Cards */
+  --card: oklch(0.17 0.02 250);
+  --card-foreground: oklch(0.92 0.01 250);
+  --popover: oklch(0.17 0.02 250);
+  --popover-foreground: oklch(0.92 0.01 250);
+  
+  /* Muted */
+  --muted: oklch(0.22 0.02 250);
+  --muted-foreground: oklch(0.65 0.02 250);
+  
+  /* Borders & Inputs */
+  --border: oklch(0.28 0.02 250);
+  --input: oklch(0.22 0.02 250);
+  --ring: oklch(0.6 0.12 145);
+  
+  /* Charts */
+  --chart-1: oklch(0.6 0.12 145);
+  --chart-2: oklch(0.7 0.12 75);
+  --chart-3: oklch(0.6 0.1 230);
+  --chart-4: oklch(0.65 0.12 25);
+  --chart-5: oklch(0.6 0.1 300);
+  
+  /* Sidebar */
+  --sidebar: oklch(0.12 0.02 250);
+  --sidebar-foreground: oklch(0.88 0.01 250);
+  --sidebar-primary: oklch(0.6 0.12 145);
+  --sidebar-primary-foreground: oklch(0.15 0.02 145);
+  --sidebar-accent: oklch(0.2 0.02 250);
+  --sidebar-accent-foreground: oklch(0.92 0.01 250);
+  --sidebar-border: oklch(0.25 0.02 250);
+  --sidebar-ring: oklch(0.6 0.12 145);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    line-height: 1.6;
+  }
+  
+  /* Typography Scale */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    @apply font-bold tracking-tight;
+    line-height: 1.2;
+  }
+  
+  h1 { @apply text-3xl md:text-4xl lg:text-5xl; }
+  h2 { @apply text-2xl md:text-3xl; }
+  h3 { @apply text-xl md:text-2xl; }
+  h4 { @apply text-lg md:text-xl; }
+  h5 { @apply text-base md:text-lg font-semibold; }
+  h6 { @apply text-sm md:text-base font-semibold; }
+  
+  /* Paragraph styling */
+  p {
+    @apply text-muted-foreground;
+    line-height: 1.7;
+  }
+  
+  /* Link styling */
+  a:not([class]) {
+    @apply text-primary hover:text-primary/80 transition-colors;
+  }
+  
+  /* Selection styling */
+  ::selection {
+    background: oklch(0.45 0.12 145 / 0.2);
+    color: oklch(0.2 0.02 250);
+  }
+  
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  /**
+   * Custom container utility that centers content and adds responsive padding.
+   *
+   * This overrides Tailwind's default container behavior to:
+   * - Auto-center content (mx-auto)
+   * - Add responsive horizontal padding
+   * - Set max-width for large screens
+   *
+   * Usage: <div className="container">...</div>
+   *
+   * For custom widths, use max-w-* utilities directly:
+   * <div className="max-w-6xl mx-auto px-4">...</div>
+   */
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem; /* 16px - mobile padding */
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem; /* 32px - desktop padding */
+      padding-right: 2rem;
+      max-width: 1280px; /* Standard content width */
+    }
+  }
+
+  /* Tutorial highlight effect */
+  .tutorial-highlight {
+    position: relative;
+    z-index: 45;
+    box-shadow: 0 0 0 4px oklch(var(--primary)), 0 0 0 8px oklch(var(--primary) / 0.3);
+    border-radius: 0.5rem;
+    animation: pulse-highlight 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-highlight {
+    0%, 100% {
+      box-shadow: 0 0 0 4px oklch(var(--primary)), 0 0 0 8px oklch(var(--primary) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 0 4px oklch(var(--primary)), 0 0 0 12px oklch(var(--primary) / 0.2);
+    }
+  }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    /* Ensure touch targets are at least 44x44px */
+    button, a[role="button"], [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Improve tap highlighting */
+    button, a {
+      -webkit-tap-highlight-color: oklch(var(--primary) / 0.2);
+    }
+
+    /* Better spacing for mobile forms */
+    input, textarea, select {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    /* Optimize table scrolling on mobile */
+    .table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Touch-friendly controls */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Loading skeleton animation */
+  @keyframes skeleton-loading {
+    0% {
+      background-position: -200px 0;
+    }
+    100% {
+      background-position: calc(200px + 100%) 0;
+    }
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      oklch(var(--muted)) 0%,
+      oklch(var(--muted-foreground) / 0.1) 50%,
+      oklch(var(--muted)) 100%
+    );
+    background-size: 200px 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+  }
+
+  /* Success animation */
+  @keyframes success-bounce {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+
+  .success-animation {
+    animation: success-bounce 0.5s ease-in-out;
+  }
+
+  /* Smooth transitions for interactive elements */
+  button, a, [role="button"] {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Improve focus visibility for accessibility */
+  *:focus-visible {
+    outline: 2px solid oklch(var(--ring));
+    outline-offset: 2px;
+  }
+  
+  /* ============================================
+     MODERN CARD STYLES
+     ============================================ */
+  
+  .card-modern {
+    @apply bg-card rounded-xl border border-border/50;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease-out;
+  }
+  
+  .card-modern:hover {
+    box-shadow: var(--shadow-md);
+    border-color: oklch(var(--border) / 0.8);
+  }
+  
+  .card-elevated {
+    @apply bg-card rounded-xl;
+    box-shadow: var(--shadow-md);
+    border: 1px solid oklch(var(--border) / 0.3);
+  }
+  
+  .card-glass {
+    @apply rounded-xl;
+    background: oklch(1 0 0 / 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid oklch(var(--border) / 0.5);
+  }
+  
+  .dark .card-glass {
+    background: oklch(0.17 0.02 250 / 0.7);
+  }
+  
+  /* ============================================
+     GRADIENT BACKGROUNDS
+     ============================================ */
+  
+  .gradient-primary {
+    background: linear-gradient(135deg, oklch(0.45 0.12 145) 0%, oklch(0.35 0.1 145) 100%);
+  }
+  
+  .gradient-accent {
+    background: linear-gradient(135deg, oklch(0.75 0.15 75) 0%, oklch(0.65 0.12 55) 100%);
+  }
+  
+  .gradient-hero {
+    background: linear-gradient(135deg, oklch(0.45 0.12 145) 0%, oklch(0.4 0.1 160) 50%, oklch(0.35 0.08 180) 100%);
+  }
+  
+  .gradient-subtle {
+    background: linear-gradient(180deg, oklch(0.985 0.002 250) 0%, oklch(0.97 0.005 250) 100%);
+  }
+  
+  .dark .gradient-subtle {
+    background: linear-gradient(180deg, oklch(0.13 0.02 250) 0%, oklch(0.15 0.02 250) 100%);
+  }
+  
+  /* ============================================
+     STAT CARD STYLES
+     ============================================ */
+  
+  .stat-card {
+    @apply bg-card rounded-xl p-6 border border-border/50;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease-out;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .stat-card-value {
+    @apply text-3xl font-bold tracking-tight;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  
+  .stat-card-label {
+    @apply text-sm text-muted-foreground font-medium;
+  }
+  
+  .stat-card-trend {
+    @apply text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  
+  .stat-card-trend.positive {
+    @apply bg-success/10 text-success;
+  }
+  
+  .stat-card-trend.negative {
+    @apply bg-destructive/10 text-destructive;
+  }
+  
+  /* ============================================
+     BUTTON ENHANCEMENTS
+     ============================================ */
+  
+  .btn-glow {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .btn-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0%, oklch(1 0 0 / 0.1) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-out;
+  }
+  
+  .btn-glow:hover::before {
+    transform: translateX(100%);
+  }
+  
+  /* ============================================
+     PAGE LAYOUT COMPONENTS
+     ============================================ */
+  
+  .page-header {
+    @apply mb-8;
+  }
+  
+  .page-header-title {
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-foreground;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  
+  .page-header-description {
+    @apply text-muted-foreground mt-1;
+  }
+  
+  .page-section {
+    @apply mb-8;
+  }
+  
+  .page-section-title {
+    @apply text-lg font-semibold text-foreground mb-4;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  
+  /* ============================================
+     DATA TABLE ENHANCEMENTS
+     ============================================ */
+  
+  .table-modern {
+    @apply w-full;
+  }
+  
+  .table-modern thead {
+    @apply bg-muted/50;
+  }
+  
+  .table-modern th {
+    @apply text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 text-left;
+  }
+  
+  .table-modern td {
+    @apply px-4 py-4 text-sm;
+  }
+  
+  .table-modern tbody tr {
+    @apply border-b border-border/50 transition-colors;
+  }
+  
+  .table-modern tbody tr:hover {
+    @apply bg-muted/30;
+  }
+  
+  /* ============================================
+     EMPTY STATE
+     ============================================ */
+  
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 px-4 text-center;
+  }
+  
+  .empty-state-icon {
+    @apply w-16 h-16 text-muted-foreground/50 mb-4;
+  }
+  
+  .empty-state-title {
+    @apply text-lg font-semibold text-foreground mb-2;
+  }
+  
+  .empty-state-description {
+    @apply text-sm text-muted-foreground max-w-sm;
+  }
+  
+  /* ============================================
+     BADGE STYLES
+     ============================================ */
+  
+  .badge-success {
+    @apply bg-success/10 text-success border-success/20;
+  }
+  
+  .badge-warning {
+    @apply bg-warning/10 text-warning border-warning/20;
+  }
+  
+  .badge-info {
+    @apply bg-info/10 text-info border-info/20;
+  }
+  
+  .badge-destructive {
+    @apply bg-destructive/10 text-destructive border-destructive/20;
+  }
+  
+  /* ============================================
+     ANIMATIONS
+     ============================================ */
+  
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slide-up {
+    from { 
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-in-right {
+    from { 
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes scale-in {
+    from { 
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to { 
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.4s ease-out;
+  }
+  
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+  
+  /* Staggered animation delays */
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+  .stagger-5 { animation-delay: 0.25s; }
+  .stagger-6 { animation-delay: 0.3s; }
+  
+  /* ============================================
+     SIDEBAR MODERN STYLES
+     ============================================ */
+  
+  .sidebar-modern {
+    @apply bg-sidebar text-sidebar-foreground;
+    box-shadow: 1px 0 0 0 oklch(var(--sidebar-border));
+  }
+  
+  .sidebar-nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all;
+    color: oklch(var(--sidebar-foreground) / 0.7);
+  }
+  
+  .sidebar-nav-item:hover {
+    @apply bg-sidebar-accent;
+    color: var(--sidebar-foreground);
+  }
+  
+  .sidebar-nav-item.active {
+    @apply bg-sidebar-primary text-sidebar-primary-foreground;
+  }
+  
+  .sidebar-nav-group {
+    @apply mb-6;
+  }
+  
+  .sidebar-nav-group-title {
+    @apply text-xs font-semibold uppercase tracking-wider px-3 mb-2;
+    color: oklch(var(--sidebar-foreground) / 0.5);
+  }
+  
+  /* ============================================
+     FORM ENHANCEMENTS
+     ============================================ */
+  
+  .input-modern {
+    @apply w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground;
+    @apply focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all;
+  }
+  
+  .input-modern::placeholder {
+    @apply text-muted-foreground/60;
+  }
+  
+  .label-modern {
+    @apply text-sm font-medium text-foreground mb-1.5 block;
+  }
+  
+  .form-group {
+    @apply mb-5;
+  }
+  
+  /* ============================================
+     LOADING STATES
+     ============================================ */
+  
+  .skeleton-text {
+    @apply h-4 rounded bg-muted animate-pulse;
+  }
+  
+  .skeleton-title {
+    @apply h-8 rounded bg-muted animate-pulse;
+  }
+  
+  .skeleton-card {
+    @apply rounded-xl bg-muted animate-pulse;
+  }
+  
+  .skeleton-avatar {
+    @apply rounded-full bg-muted animate-pulse;
+  }
+  
+  /* Shimmer effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      oklch(var(--muted)) 0%,
+      oklch(var(--muted-foreground) / 0.08) 50%,
+      oklch(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}

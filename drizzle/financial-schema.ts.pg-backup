@@ -1,0 +1,696 @@
+import { mysqlTable, serial, integer, varchar, text, timestamp, boolean, index, unique, decimal } from "drizzle-orm/mysql-core";
+import { users, farms, crops } from "./schema";
+
+// ============================================================================
+// ACCOUNTING MODULE - Double-Entry Bookkeeping
+// ============================================================================
+
+// Journal Entries - Main accounting entries
+export const journalEntries = mysqlTable("journal_entries", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  entryNumber: varchar("entry_number", { length: 50 }).notNull().unique(),
+  entryDate: timestamp("entry_date").notNull(),
+  description: text("description").notNull(),
+  reference: varchar("reference", { length: 100 }), // Invoice #, Receipt #, etc.
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, posted, reversed
+  createdBy: integer("created_by").references(() => users.id),
+  postedAt: timestamp("posted_at"),
+  reversedAt: timestamp("reversed_at"),
+  reversalReason: text("reversal_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("journal_entries_user_id_idx").on(table.userId),
+  entryDateIdx: index("journal_entries_entry_date_idx").on(table.entryDate),
+  statusIdx: index("journal_entries_status_idx").on(table.status),
+}));
+
+// Journal Entry Lines - Debit and Credit lines
+export const journalEntryLines = mysqlTable("journal_entry_lines", {
+  id: int("id").primaryKey(),
+  journalEntryId: integer("journal_entry_id").notNull().references(() => journalEntries.id, { onDelete: "cascade" }),
+  accountCode: varchar("account_code", { length: 20 }).notNull(),
+  debit: integer("debit").notNull().default(0), // in cents
+  credit: integer("credit").notNull().default(0), // in cents
+  description: text("description"),
+  farmId: integer("farm_id").references(() => farms.id),
+  cropId: integer("crop_id").references(() => crops.id),
+  costCenter: varchar("cost_center", { length: 50 }), // e.g., "North Field", "Maize 2024"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  journalEntryIdIdx: index("journal_entry_lines_journal_entry_id_idx").on(table.journalEntryId),
+  accountCodeIdx: index("journal_entry_lines_account_code_idx").on(table.accountCode),
+}));
+
+// Account Balances - Cached balances for performance
+export const accountBalancesNew = mysqlTable("account_balances_new", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  accountCode: varchar("account_code", { length: 20 }).notNull(),
+  balance: integer("balance").notNull().default(0), // in cents
+  currency: varchar("currency", { length: 3 }).notNull().default("NGN"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  fiscalYear: integer("fiscal_year").notNull(),
+}, (table) => ({
+  uniqueUserAccount: unique().on(table.userId, table.accountCode, table.fiscalYear),
+  userIdIdx: index("account_balances_new_user_id_idx").on(table.userId),
+}));
+
+// Financial Periods - For period closing
+export const financialPeriods = mysqlTable("financial_periods", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  periodName: varchar("period_name", { length: 50 }).notNull(), // "Q1 2024", "Jan 2024"
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("open"), // open, closed, locked
+  closedAt: timestamp("closed_at"),
+  closedBy: integer("closed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("financial_periods_user_id_idx").on(table.userId),
+}));
+
+// ============================================================================
+// ERP - INVENTORY MANAGEMENT
+// ============================================================================
+
+// Suppliers - Vendor management
+export const suppliers = mysqlTable("suppliers", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 200 }).notNull(),
+  contactPerson: varchar("contact_person", { length: 200 }),
+  phoneNumber: varchar("phone_number", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  address: text("address"),
+  paymentTerms: varchar("payment_terms", { length: 100 }), // "Net 30", "COD"
+  rating: integer("rating"), // 1-5 stars
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("suppliers_user_id_idx").on(table.userId),
+}));
+
+// Inventory Items - Seeds, fertilizer, equipment
+export const inventoryItems = mysqlTable("inventory_items", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  itemType: varchar("item_type", { length: 50 }).notNull(), // seed, fertilizer, pesticide, equipment
+  itemName: varchar("item_name", { length: 200 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  unit: varchar("unit", { length: 50 }).notNull(), // kg, liters, bags, pieces
+  quantityOnHand: integer("quantity_on_hand").notNull().default(0),
+  reorderLevel: integer("reorder_level").notNull().default(0),
+  reorderQuantity: integer("reorder_quantity").notNull().default(0),
+  unitCost: integer("unit_cost").notNull(), // in cents
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  storageLocation: varchar("storage_location", { length: 100 }),
+  expiryDate: timestamp("expiry_date"),
+  batchNumber: varchar("batch_number", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("inventory_items_user_id_idx").on(table.userId),
+  itemTypeIdx: index("inventory_items_item_type_idx").on(table.itemType),
+}));
+
+// Inventory Transactions - Purchases, usage, adjustments
+export const inventoryTransactions = mysqlTable("inventory_transactions", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  itemId: integer("item_id").notNull().references(() => inventoryItems.id, { onDelete: "cascade" }),
+  transactionType: varchar("transaction_type", { length: 50 }).notNull(), // purchase, usage, adjustment, transfer
+  quantity: integer("quantity").notNull(),
+  unitCost: integer("unit_cost"), // in cents
+  totalCost: integer("total_cost"), // in cents
+  transactionDate: timestamp("transaction_date").notNull(),
+  reference: varchar("reference", { length: 100 }), // PO #, Work Order #
+  farmId: integer("farm_id").references(() => farms.id),
+  cropId: integer("crop_id").references(() => crops.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("inventory_transactions_user_id_idx").on(table.userId),
+  itemIdIdx: index("inventory_transactions_item_id_idx").on(table.itemId),
+  transactionDateIdx: index("inventory_transactions_transaction_date_idx").on(table.transactionDate),
+}));
+
+// ============================================================================
+// ERP - WORK ORDER MANAGEMENT
+// ============================================================================
+
+// Work Orders - Tasks to be done on farm
+export const workOrders = mysqlTable("work_orders", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workOrderNumber: varchar("work_order_number", { length: 50 }).notNull().unique(),
+  farmId: integer("farm_id").notNull().references(() => farms.id, { onDelete: "cascade" }),
+  cropId: integer("crop_id").references(() => crops.id),
+  taskType: varchar("task_type", { length: 100 }).notNull(), // planting, irrigation, fertilization, spraying, harvesting
+  description: text("description").notNull(),
+  scheduledDate: timestamp("scheduled_date").notNull(),
+  completedDate: timestamp("completed_date"),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, in_progress, completed, cancelled
+  assignedTo: integer("assigned_to").references(() => users.id),
+  estimatedCost: integer("estimated_cost"), // in cents
+  actualCost: integer("actual_cost"), // in cents
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("work_orders_user_id_idx").on(table.userId),
+  farmIdIdx: index("work_orders_farm_id_idx").on(table.farmId),
+  statusIdx: index("work_orders_status_idx").on(table.status),
+}));
+
+// Work Order Items - Materials used in work orders
+export const workOrderItems = mysqlTable("work_order_items", {
+  id: int("id").primaryKey(),
+  workOrderId: integer("work_order_id").notNull().references(() => workOrders.id, { onDelete: "cascade" }),
+  itemId: integer("item_id").notNull().references(() => inventoryItems.id, { onDelete: "restrict" }),
+  quantityPlanned: integer("quantity_planned").notNull(),
+  quantityUsed: integer("quantity_used"),
+  unitCost: integer("unit_cost").notNull(), // in cents
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  workOrderIdIdx: index("work_order_items_work_order_id_idx").on(table.workOrderId),
+}));
+
+// ============================================================================
+// ERP - ASSET MANAGEMENT
+// ============================================================================
+
+// Fixed Assets - Equipment, land, buildings
+export const fixedAssets = mysqlTable("fixed_assets", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  assetType: varchar("asset_type", { length: 50 }).notNull(), // equipment, land, building, vehicle
+  assetName: varchar("asset_name", { length: 200 }).notNull(),
+  description: text("description"),
+  purchaseDate: timestamp("purchase_date").notNull(),
+  purchaseCost: integer("purchase_cost").notNull(), // in cents
+  salvageValue: integer("salvage_value").notNull().default(0), // in cents
+  usefulLife: integer("useful_life").notNull(), // in years
+  depreciationMethod: varchar("depreciation_method", { length: 50 }).notNull().default("straight_line"),
+  accumulatedDepreciation: integer("accumulated_depreciation").notNull().default(0), // in cents
+  currentValue: integer("current_value").notNull(), // in cents
+  location: varchar("location", { length: 200 }),
+  serialNumber: varchar("serial_number", { length: 100 }),
+  condition: varchar("condition", { length: 50 }), // excellent, good, fair, poor
+  maintenanceSchedule: text("maintenance_schedule"),
+  lastMaintenanceDate: timestamp("last_maintenance_date"),
+  nextMaintenanceDate: timestamp("next_maintenance_date"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("fixed_assets_user_id_idx").on(table.userId),
+  assetTypeIdx: index("fixed_assets_asset_type_idx").on(table.assetType),
+}));
+
+// Depreciation Schedule - Calculated depreciation
+export const depreciationSchedule = mysqlTable("depreciation_schedule", {
+  id: int("id").primaryKey(),
+  assetId: integer("asset_id").notNull().references(() => fixedAssets.id, { onDelete: "cascade" }),
+  periodDate: timestamp("period_date").notNull(),
+  depreciationAmount: integer("depreciation_amount").notNull(), // in cents
+  accumulatedDepreciation: integer("accumulated_depreciation").notNull(), // in cents
+  bookValue: integer("book_value").notNull(), // in cents
+  journalEntryId: integer("journal_entry_id").references(() => journalEntries.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  assetIdIdx: index("depreciation_schedule_asset_id_idx").on(table.assetId),
+}));
+
+// ============================================================================
+// ERP - TIME & ATTENDANCE
+// ============================================================================
+
+// Employees - Worker registry
+export const employees = mysqlTable("employees", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  employeeNumber: varchar("employee_number", { length: 50 }).notNull().unique(),
+  fullName: varchar("full_name", { length: 200 }).notNull(),
+  phoneNumber: varchar("phone_number", { length: 20 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  role: varchar("role", { length: 100 }).notNull(), // laborer, supervisor, driver, etc.
+  hourlyRate: integer("hourly_rate"), // in cents
+  hireDate: timestamp("hire_date").notNull(),
+  terminationDate: timestamp("termination_date"),
+  isActive: boolean("is_active").notNull().default(true),
+  biometricId: varchar("biometric_id", { length: 100 }), // For fingerprint/face recognition
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("employees_user_id_idx").on(table.userId),
+  phoneNumberIdx: index("employees_phone_number_idx").on(table.phoneNumber),
+}));
+
+// Time Entries - Clock in/out records
+export const timeEntries = mysqlTable("time_entries", {
+  id: int("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  clockIn: timestamp("clock_in").notNull(),
+  clockOut: timestamp("clock_out"),
+  hoursWorked: decimal("hours_worked", { precision: 5, scale: 2 }),
+  workType: varchar("work_type", { length: 100 }), // regular, overtime, weekend
+  farmId: integer("farm_id").references(() => farms.id),
+  cropId: integer("crop_id").references(() => crops.id),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  clockInLocation: text("clock_in_location"), // GPS coordinates
+  clockOutLocation: text("clock_out_location"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  employeeIdIdx: index("time_entries_employee_id_idx").on(table.employeeId),
+  clockInIdx: index("time_entries_clock_in_idx").on(table.clockIn),
+}));
+
+// Attendance Records - Daily attendance summary
+export const attendanceRecords = mysqlTable("attendance_records", {
+  id: int("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  date: timestamp("date").notNull(),
+  status: varchar("status", { length: 20 }).notNull(), // present, absent, late, on_leave
+  clockInTime: timestamp("clock_in_time"),
+  clockOutTime: timestamp("clock_out_time"),
+  hoursWorked: decimal("hours_worked", { precision: 5, scale: 2 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  employeeIdIdx: index("attendance_records_employee_id_idx").on(table.employeeId),
+  dateIdx: index("attendance_records_date_idx").on(table.date),
+  uniqueEmployeeDate: unique().on(table.employeeId, table.date),
+}));
+
+// Shifts - Work shift definitions
+export const shifts = mysqlTable("shifts", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  shiftName: varchar("shift_name", { length: 100 }).notNull(),
+  startTime: varchar("start_time", { length: 10 }).notNull(), // "08:00"
+  endTime: varchar("end_time", { length: 10 }).notNull(), // "17:00"
+  daysOfWeek: text("days_of_week").notNull(), // JSON array: ["Mon", "Tue", "Wed"]
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("shifts_user_id_idx").on(table.userId),
+}));
+
+// Employee Allowances - Housing, transport, etc.
+export const employeeAllowances = mysqlTable("employee_allowances", {
+  id: int("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(), // housing, transport, medical, etc.
+  amount: integer("amount").notNull(), // in cents
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  employeeIdIdx: index("employee_allowances_employee_id_idx").on(table.employeeId),
+  uniqueEmployeeTypeMonthYear: unique().on(table.employeeId, table.type, table.month, table.year),
+}));
+
+// Employee Loans - Staff loans and deductions
+export const employeeLoans = mysqlTable("employee_loans", {
+  id: int("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(), // Total loan amount in cents
+  monthlyDeduction: integer("monthly_deduction").notNull(), // Monthly deduction in cents
+  startMonth: integer("start_month").notNull(), // 1-12
+  startYear: integer("start_year").notNull(),
+  reason: text("reason"),
+  remainingBalance: integer("remaining_balance").notNull(), // Remaining balance in cents
+  status: varchar("status", { length: 20 }).notNull().default("active"), // active, paid_off, cancelled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  employeeIdIdx: index("employee_loans_employee_id_idx").on(table.employeeId),
+  statusIdx: index("employee_loans_status_idx").on(table.status),
+}));
+
+// Leave Requests - Vacation, sick leave, etc.
+export const leaveRequests = mysqlTable("leave_requests", {
+  id: int("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  leaveType: varchar("leave_type", { length: 50 }).notNull(), // sick, vacation, personal, emergency
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  daysRequested: integer("days_requested"),
+  reason: text("reason"),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, approved, rejected
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  employeeIdIdx: index("leave_requests_employee_id_idx").on(table.employeeId),
+  statusIdx: index("leave_requests_status_idx").on(table.status),
+}));
+
+// Payroll Records - Salary/wage payments
+export const payrollRecords = mysqlTable("payroll_records", {
+  id: int("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  hoursWorked: decimal("hours_worked", { precision: 6, scale: 2 }).notNull(),
+  regularHours: decimal("regular_hours", { precision: 6, scale: 2 }),
+  overtimeHours: decimal("overtime_hours", { precision: 6, scale: 2 }),
+  hourlyRate: integer("hourly_rate").notNull(), // in cents
+  grossPay: integer("gross_pay").notNull(), // in cents
+  deductions: integer("deductions").default(0), // in cents
+  netPay: integer("net_pay").notNull(), // in cents
+  paymentDate: timestamp("payment_date"),
+  paymentMethod: varchar("payment_method", { length: 50 }), // cash, bank_transfer, mobile_money
+  paymentReference: varchar("payment_reference", { length: 100 }),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, paid, cancelled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  employeeIdIdx: index("payroll_records_employee_id_idx").on(table.employeeId),
+  periodEndIdx: index("payroll_records_period_end_idx").on(table.periodEnd),
+}));
+
+// ============================================================================
+// BANKING - MOJALOOP INTEGRATION
+// ============================================================================
+
+// Bank Accounts - Linked bank accounts
+export const bankAccounts = mysqlTable("bank_accounts", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  accountNumber: varchar("account_number", { length: 50 }).notNull(),
+  accountName: varchar("account_name", { length: 200 }).notNull(),
+  bankName: varchar("bank_name", { length: 200 }),
+  bankCode: varchar("bank_code", { length: 20 }),
+  accountType: varchar("account_type", { length: 50 }).default("savings"), // savings, checking, mobile_money
+  mojaloopPartyId: varchar("mojaloop_party_id", { length: 100 }), // Mojaloop party identifier
+  mojaloopPartyIdType: varchar("mojaloop_party_id_type", { length: 50 }), // MSISDN, ACCOUNT_ID, etc.
+  isVerified: boolean("is_verified").notNull().default(false),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("bank_accounts_user_id_idx").on(table.userId),
+  accountNumberIdx: index("bank_accounts_account_number_idx").on(table.accountNumber),
+}));
+
+// Bank Transactions - Transaction history
+export const bankTransactions = mysqlTable("bank_transactions", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  accountId: integer("account_id").references(() => bankAccounts.id),
+  transactionType: varchar("transaction_type", { length: 50 }).notNull(), // transfer_in, transfer_out, payment, refund
+  amount: integer("amount").notNull(), // in cents
+  currency: varchar("currency", { length: 3 }).notNull().default("NGN"),
+  reference: varchar("reference", { length: 100 }),
+  description: text("description"),
+  mojaloopTransactionId: varchar("mojaloop_transaction_id", { length: 100 }),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, completed, failed, reversed
+  transactionDate: timestamp("transaction_date").notNull(),
+  completedAt: timestamp("completed_at"),
+  failureReason: text("failure_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("bank_transactions_user_id_idx").on(table.userId),
+  transactionDateIdx: index("bank_transactions_transaction_date_idx").on(table.transactionDate),
+  statusIdx: index("bank_transactions_status_idx").on(table.status),
+}));
+
+// Mojaloop Transactions - Detailed Mojaloop transaction data
+export const mojaloopTransactions = mysqlTable("mojaloop_transactions", {
+  id: int("id").primaryKey(),
+  bankTransactionId: integer("bank_transaction_id").references(() => bankTransactions.id, { onDelete: "cascade" }),
+  transferId: varchar("transfer_id", { length: 100 }).notNull().unique(),
+  quoteId: varchar("quote_id", { length: 100 }),
+  transactionId: varchar("transaction_id", { length: 100 }),
+  payerPartyIdType: varchar("payer_party_id_type", { length: 50 }),
+  payerPartyId: varchar("payer_party_id", { length: 100 }),
+  payeePartyIdType: varchar("payee_party_id_type", { length: 50 }),
+  payeePartyId: varchar("payee_party_id", { length: 100 }),
+  amount: integer("amount").notNull(), // in cents
+  currency: varchar("currency", { length: 3 }).notNull(),
+  transactionType: varchar("transaction_type", { length: 50 }),
+  note: text("note"),
+  status: varchar("status", { length: 20 }).notNull(), // pending, completed, failed
+  errorCode: varchar("error_code", { length: 50 }),
+  errorDescription: text("error_description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  transferIdIdx: index("mojaloop_transactions_transfer_id_idx").on(table.transferId),
+}));
+
+// Payment Requests - QR code payments, pull payments
+export const paymentRequests = mysqlTable("payment_requests", {
+  id: int("id").primaryKey(),
+  payeeId: integer("payee_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  payerId: integer("payer_id").references(() => users.id),
+  amount: integer("amount").notNull(), // in cents
+  currency: varchar("currency", { length: 3 }).notNull().default("NGN"),
+  description: text("description"),
+  qrCode: text("qr_code"), // Base64 encoded QR code
+  qrCodeData: text("qr_code_data"), // JSON data for QR code
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, paid, expired, cancelled
+  expiresAt: timestamp("expires_at"),
+  paidAt: timestamp("paid_at"),
+  bankTransactionId: integer("bank_transaction_id").references(() => bankTransactions.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  payeeIdIdx: index("payment_requests_payee_id_idx").on(table.payeeId),
+  statusIdx: index("payment_requests_status_idx").on(table.status),
+}));
+
+// ============================================================================
+// MICROFINANCE - LOAN MANAGEMENT
+// ============================================================================
+
+// Lenders - Microfinance institutions
+export const lenders = mysqlTable("lenders", {
+  id: int("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // microfinance, bank, cooperative, ngo
+  contactPerson: varchar("contact_person", { length: 200 }),
+  phoneNumber: varchar("phone_number", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  address: text("address"),
+  interestRateRange: varchar("interest_rate_range", { length: 50 }), // "12-18%"
+  maxLoanAmount: integer("max_loan_amount"), // in cents
+  minLoanAmount: integer("min_loan_amount"), // in cents
+  maxTermMonths: integer("max_term_months").default(60), // maximum loan term in months
+  mojaloopPartyId: varchar("mojaloop_party_id", { length: 100 }),
+  apiEndpoint: varchar("api_endpoint", { length: 500 }),
+  apiKey: varchar("api_key", { length: 200 }),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Loans - Loan records
+export const loans = mysqlTable("loans", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  loanNumber: varchar("loan_number", { length: 50 }).notNull().unique(),
+  lenderId: integer("lender_id").notNull().references(() => lenders.id, { onDelete: "restrict" }),
+  loanType: varchar("loan_type", { length: 50 }).notNull(), // input_loan, equipment_loan, working_capital
+  principalAmount: integer("principal_amount").notNull(), // in cents
+  interestRate: integer("interest_rate").notNull(), // in basis points (e.g., 1500 = 15%)
+  term: integer("term").notNull(), // in months
+  termMonths: integer("term_months"), // duplicate for compatibility
+  monthlyPayment: integer("monthly_payment"), // in cents
+  totalAmount: integer("total_amount"), // in cents
+  outstandingBalance: integer("outstanding_balance"), // in cents
+  nextPaymentDue: timestamp("next_payment_due"),
+  applicationDate: timestamp("application_date"),
+  disbursementDate: timestamp("disbursement_date"),
+  disbursedAt: timestamp("disbursed_at"),
+  maturityDate: timestamp("maturity_date"),
+  paidOffAt: timestamp("paid_off_at"),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, approved, disbursed, active, paid_off, defaulted
+  purpose: text("purpose"),
+  collateral: text("collateral"),
+  rejectionReason: text("rejection_reason"),
+  guarantorId: integer("guarantor_id").references(() => users.id),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  disbursementTransactionId: integer("disbursement_transaction_id").references(() => bankTransactions.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("loans_user_id_idx").on(table.userId),
+  statusIdx: index("loans_status_idx").on(table.status),
+}));
+
+// Loan Repayments - Repayment schedule and history
+export const loanRepayments = mysqlTable("loan_repayments", {
+  id: int("id").primaryKey(),
+  loanId: integer("loan_id").notNull().references(() => loans.id, { onDelete: "cascade" }),
+  paymentNumber: integer("payment_number").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  paidDate: timestamp("paid_date"),
+  principalAmount: integer("principal_amount").notNull(), // in cents
+  interestAmount: integer("interest_amount").notNull(), // in cents
+  totalAmount: integer("total_amount").notNull(), // in cents
+  paidAmount: integer("paid_amount").notNull().default(0), // in cents
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, paid, overdue
+  paymentMethod: varchar("payment_method", { length: 50 }),
+  transactionReference: varchar("transaction_reference", { length: 100 }),
+  bankTransactionId: integer("bank_transaction_id").references(() => bankTransactions.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  loanIdIdx: index("loan_repayments_loan_id_idx").on(table.loanId),
+  dueDateIdx: index("loan_repayments_due_date_idx").on(table.dueDate),
+  statusIdx: index("loan_repayments_status_idx").on(table.status),
+}));
+
+// Credit Scores - User credit scores
+export const creditScores = mysqlTable("credit_scores", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  score: integer("score").notNull(), // 300-850
+  riskCategory: varchar("risk_category", { length: 20 }).notNull(), // low, medium, high
+  previousScore: integer("previous_score"), // Previous score for tracking
+  calculatedAt: timestamp("calculated_at").notNull(),
+  factors: text("factors"), // JSON: breakdown of score factors
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("credit_scores_user_id_idx").on(table.userId),
+}));
+
+// Credit Score History - Historical credit scores
+export const creditScoreHistory = mysqlTable("credit_score_history", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  score: integer("score").notNull(),
+  rating: varchar("rating", { length: 20 }).notNull(),
+  factors: text("factors"), // JSON
+  calculatedAt: timestamp("calculated_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("credit_score_history_user_id_idx").on(table.userId),
+  calculatedAtIdx: index("credit_score_history_calculated_at_idx").on(table.calculatedAt),
+}));
+
+// Savings Accounts - Individual savings accounts
+export const savingsAccounts = mysqlTable("savings_accounts", {
+  id: int("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  farmerId: integer("farmer_id"), // Optional link to farmer
+  accountNumber: varchar("account_number", { length: 50 }).notNull().unique(),
+  accountName: varchar("account_name", { length: 200 }).notNull(),
+  accountType: varchar("account_type", { length: 50 }).notNull().default("regular"), // regular, fixed, goal
+  balance: integer("balance").notNull().default(0), // in cents
+  interestRate: integer("interest_rate").notNull().default(0), // in basis points (e.g., 500 = 5%)
+  minimumBalance: integer("minimum_balance").default(0), // in cents
+  status: varchar("status", { length: 20 }).notNull().default("active"), // active, closed, suspended
+  openedAt: timestamp("opened_at").defaultNow().notNull(),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("savings_accounts_user_id_idx").on(table.userId),
+  statusIdx: index("savings_accounts_status_idx").on(table.status),
+}));
+
+// Savings Transactions - Deposits and withdrawals
+export const savingsTransactions = mysqlTable("savings_transactions", {
+  id: int("id").primaryKey(),
+  accountId: integer("account_id").notNull().references(() => savingsAccounts.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  transactionType: varchar("transaction_type", { length: 20 }).notNull(), // deposit, withdrawal, interest
+  amount: integer("amount").notNull(), // in cents
+  balanceBefore: integer("balance_before").notNull(), // in cents
+  balanceAfter: integer("balance_after").notNull(), // in cents
+  transactionMethod: varchar("transaction_method", { length: 50 }), // cash, bank_transfer, mobile_money
+  reference: varchar("reference", { length: 100 }),
+  status: varchar("status", { length: 20 }).notNull().default("completed"), // pending, completed, failed
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  accountIdIdx: index("savings_transactions_account_id_idx").on(table.accountId),
+  userIdIdx: index("savings_transactions_user_id_idx").on(table.userId),
+  createdAtIdx: index("savings_transactions_created_at_idx").on(table.createdAt),
+}));
+
+// ============================================================================
+// TYPE EXPORTS
+// ============================================================================
+
+// Accounting types
+export type JournalEntry = typeof journalEntries.$inferSelect;
+export type InsertJournalEntry = typeof journalEntries.$inferInsert;
+export type JournalEntryLine = typeof journalEntryLines.$inferSelect;
+export type InsertJournalEntryLine = typeof journalEntryLines.$inferInsert;
+export type AccountBalanceNew = typeof accountBalancesNew.$inferSelect;
+export type InsertAccountBalanceNew = typeof accountBalancesNew.$inferInsert;
+export type FinancialPeriod = typeof financialPeriods.$inferSelect;
+export type InsertFinancialPeriod = typeof financialPeriods.$inferInsert;
+
+// ERP - Inventory types
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = typeof suppliers.$inferInsert;
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InsertInventoryItem = typeof inventoryItems.$inferInsert;
+export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
+export type InsertInventoryTransaction = typeof inventoryTransactions.$inferInsert;
+
+// ERP - Work Order types
+export type WorkOrder = typeof workOrders.$inferSelect;
+export type InsertWorkOrder = typeof workOrders.$inferInsert;
+export type WorkOrderItem = typeof workOrderItems.$inferSelect;
+export type InsertWorkOrderItem = typeof workOrderItems.$inferInsert;
+
+// ERP - Asset types
+export type FixedAsset = typeof fixedAssets.$inferSelect;
+export type InsertFixedAsset = typeof fixedAssets.$inferInsert;
+export type DepreciationSchedule = typeof depreciationSchedule.$inferSelect;
+export type InsertDepreciationSchedule = typeof depreciationSchedule.$inferInsert;
+
+// ERP - Time & Attendance types
+export type Employee = typeof employees.$inferSelect;
+export type InsertEmployee = typeof employees.$inferInsert;
+export type TimeEntry = typeof timeEntries.$inferSelect;
+export type InsertTimeEntry = typeof timeEntries.$inferInsert;
+export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
+export type InsertAttendanceRecord = typeof attendanceRecords.$inferInsert;
+export type Shift = typeof shifts.$inferSelect;
+export type InsertShift = typeof shifts.$inferInsert;
+export type EmployeeAllowance = typeof employeeAllowances.$inferSelect;
+export type InsertEmployeeAllowance = typeof employeeAllowances.$inferInsert;
+export type EmployeeLoan = typeof employeeLoans.$inferSelect;
+export type InsertEmployeeLoan = typeof employeeLoans.$inferInsert;
+export type LeaveRequest = typeof leaveRequests.$inferSelect;
+export type InsertLeaveRequest = typeof leaveRequests.$inferInsert;
+export type PayrollRecord = typeof payrollRecords.$inferSelect;
+export type InsertPayrollRecord = typeof payrollRecords.$inferInsert;
+
+// Banking types
+export type BankAccount = typeof bankAccounts.$inferSelect;
+export type InsertBankAccount = typeof bankAccounts.$inferInsert;
+export type BankTransaction = typeof bankTransactions.$inferSelect;
+export type InsertBankTransaction = typeof bankTransactions.$inferInsert;
+export type MojaloopTransaction = typeof mojaloopTransactions.$inferSelect;
+export type InsertMojaloopTransaction = typeof mojaloopTransactions.$inferInsert;
+export type PaymentRequest = typeof paymentRequests.$inferSelect;
+export type InsertPaymentRequest = typeof paymentRequests.$inferInsert;
+
+// Microfinance types
+export type Lender = typeof lenders.$inferSelect;
+export type InsertLender = typeof lenders.$inferInsert;
+export type Loan = typeof loans.$inferSelect;
+export type InsertLoan = typeof loans.$inferInsert;
+export type LoanRepayment = typeof loanRepayments.$inferSelect;
+export type InsertLoanRepayment = typeof loanRepayments.$inferInsert;
+export type CreditScore = typeof creditScores.$inferSelect;
+export type InsertCreditScore = typeof creditScores.$inferInsert;
+export type CreditScoreHistory = typeof creditScoreHistory.$inferSelect;
+export type InsertCreditScoreHistory = typeof creditScoreHistory.$inferInsert;
+export type SavingsAccount = typeof savingsAccounts.$inferSelect;
+export type InsertSavingsAccount = typeof savingsAccounts.$inferInsert;
+export type SavingsTransaction = typeof savingsTransactions.$inferSelect;
+export type InsertSavingsTransaction = typeof savingsTransactions.$inferInsert;

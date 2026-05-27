@@ -1,0 +1,82 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: memory-stress-experiment
+  namespace: default
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+  stressors:
+    memory:
+      workers: 4
+      size: '256MB'
+  duration: '2m'
+  scheduler:
+    cron: '@every 6h'
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: cpu-stress-experiment
+  namespace: default
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+      'tier': 'backend'
+  stressors:
+    cpu:
+      workers: 2
+      load: 50
+  duration: '3m'
+  scheduler:
+    cron: '@every 4h'
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: disk-pressure-experiment
+  namespace: default
+spec:
+  action: latency
+  mode: one
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+  volumePath: /var/lib/data
+  path: '**/*'
+  delay: '100ms'
+  percent: 50
+  duration: '2m'
+  scheduler:
+    cron: '@every 8h'
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: disk-fill-experiment
+  namespace: default
+spec:
+  action: attrOverride
+  mode: one
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'app': 'farmer-platform'
+  volumePath: /tmp
+  path: 'chaos-fill'
+  attr:
+    size: 1073741824  # 1GB
+  duration: '1m'
+  scheduler:
+    cron: '@every 12h'

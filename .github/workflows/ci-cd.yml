@@ -1,0 +1,484 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '22.13.0'
+  PNPM_VERSION: '10.4.1'
+
+jobs:
+  # ============================================================================
+  # Job 1: Code Quality & Linting
+  # ============================================================================
+  lint:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript type checking
+        run: pnpm run typecheck
+
+      - name: Run ESLint
+        run: pnpm run lint
+
+      - name: Check code formatting
+        run: pnpm run format:check
+
+  # ============================================================================
+  # Job 2: Unit & Integration Tests
+  # ============================================================================
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: farmer_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/farmer_test
+        run: pnpm run db:push
+
+      - name: Run unit tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/farmer_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+        run: pnpm run test:unit
+
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/farmer_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+        run: pnpm run test:integration
+
+      - name: Upload test coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+
+  # ============================================================================
+  # Job 3: Build & Validate
+  # ============================================================================
+  build:
+    name: Build & Validate
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm run build
+
+      - name: Check build size
+        run: |
+          BUILD_SIZE=$(du -sh dist | cut -f1)
+          echo "Build size: $BUILD_SIZE"
+          # Fail if build is larger than 50MB
+          SIZE_BYTES=$(du -sb dist | cut -f1)
+          MAX_SIZE=52428800  # 50MB in bytes
+          if [ $SIZE_BYTES -gt $MAX_SIZE ]; then
+            echo "Error: Build size exceeds 50MB"
+            exit 1
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+          retention-days: 7
+
+  # ============================================================================
+  # Job 4: Load Testing with k6
+  # ============================================================================
+  load-test:
+    name: Load Testing (k6)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: farmer_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start application
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/farmer_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+        run: |
+          pnpm run db:push
+          pnpm run start &
+          sleep 10
+          curl http://localhost:3000/api/health
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run authentication load test
+        run: |
+          k6 run --vus 10 --duration 30s \
+            --summary-export=results/auth-summary.json \
+            -e BASE_URL=http://localhost:3000 \
+            tests/load/auth-load-test.js
+
+      - name: Run marketplace load test
+        run: |
+          k6 run --vus 20 --duration 30s \
+            --summary-export=results/marketplace-summary.json \
+            -e BASE_URL=http://localhost:3000 \
+            tests/load/marketplace-load-test.js
+
+      - name: Validate performance budgets
+        run: |
+          # Check if p95 latency is under budget
+          AUTH_P95=$(cat results/auth-summary.json | jq -r '.metrics.http_req_duration.values.p95')
+          MARKETPLACE_P95=$(cat results/marketplace-summary.json | jq -r '.metrics.http_req_duration.values.p95')
+          
+          echo "Auth p95: ${AUTH_P95}ms (budget: 500ms)"
+          echo "Marketplace p95: ${MARKETPLACE_P95}ms (budget: 1000ms)"
+          
+          if (( $(echo "$AUTH_P95 > 500" | bc -l) )); then
+            echo "Error: Auth p95 exceeds budget"
+            exit 1
+          fi
+          
+          if (( $(echo "$MARKETPLACE_P95 > 1000" | bc -l) )); then
+            echo "Error: Marketplace p95 exceeds budget"
+            exit 1
+          fi
+
+      - name: Upload load test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: results/
+          retention-days: 30
+
+  # ============================================================================
+  # Job 5: Security Scanning
+  # ============================================================================
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run npm audit
+        run: |
+          npm audit --audit-level=moderate || true
+
+  # ============================================================================
+  # Job 6: Production Readiness Audit
+  # ============================================================================
+  production-readiness:
+    name: Production Readiness Audit
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run production readiness audit
+        run: pnpm run audit:production-readiness:ci
+
+      - name: Upload production readiness reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-readiness-reports
+          path: reports/production-readiness/
+          retention-days: 30
+
+  # ============================================================================
+  # Job 7: Deploy to Staging
+  # ============================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, test, load-test, security, production-readiness]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging.farmerplatform.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: Deploy to staging
+        env:
+          DEPLOY_KEY: ${{ secrets.STAGING_DEPLOY_KEY }}
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+        run: |
+          echo "Deploying to staging environment..."
+          # Add your deployment script here
+          # ./scripts/deploy-staging.sh
+
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          curl -f https://staging.farmerplatform.com/api/health || exit 1
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Staging deployment completed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # ============================================================================
+  # Job 8: Deploy to Production (Blue-Green)
+  # ============================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, test, security, production-readiness]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://farmerplatform.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: Deploy to production (blue environment)
+        env:
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_DEPLOY_KEY }}
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+        run: |
+          echo "Deploying to production blue environment..."
+          # ./scripts/deploy-blue.sh
+
+      - name: Run health checks on blue
+        run: |
+          sleep 30
+          curl -f https://blue.farmerplatform.com/api/health || exit 1
+
+      - name: Run smoke tests on blue
+        run: |
+          # Run critical smoke tests
+          curl -f https://blue.farmerplatform.com/api/health || exit 1
+          # Add more smoke tests
+
+      - name: Switch traffic to blue (green to blue)
+        env:
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_DEPLOY_KEY }}
+        run: |
+          echo "Switching traffic from green to blue..."
+          # ./scripts/switch-traffic.sh blue
+
+      - name: Monitor metrics for 5 minutes
+        run: |
+          echo "Monitoring metrics..."
+          sleep 300
+          # Check error rates, latency, etc.
+          # If metrics are bad, rollback
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Deployment failed, rolling back..."
+          # ./scripts/switch-traffic.sh green
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment completed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Create GitHub release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            Automated release from CI/CD pipeline
+            Commit: ${{ github.sha }}
+          draft: false
+          prerelease: false

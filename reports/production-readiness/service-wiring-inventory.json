@@ -1,0 +1,349 @@
+[
+  {
+    "service": "agricultural-models-python",
+    "path": "services/agricultural-models-python",
+    "compose_ref_count": 0,
+    "compose_refs": [],
+    "cross_repo_ref_count": 0,
+    "cross_repo_refs": [],
+    "weakly_connected": true
+  },
+  {
+    "service": "analytics-service",
+    "path": "services/analytics-service",
+    "compose_ref_count": 2,
+    "compose_refs": [
+      "docker-compose.enterprise.yml",
+      "docker-compose.ha.yml"
+    ],
+    "cross_repo_ref_count": 4,
+    "cross_repo_refs": [
+      "server/analytics-router.ts",
+      "server/services/sedona-job-orchestrator.ts",
+      "config/prometheus/prometheus.yml",
+      "config/apisix/apisix.yaml"
+    ],
+    "weakly_connected": true
+  },
+  {
+    "service": "auth-service",
+    "path": "services/auth-service",
+    "compose_ref_count": 2,
+    "compose_refs": [
+      "docker-compose.enterprise.yml",
+      "docker-compose.ha.yml"
+    ],
+    "cross_repo_ref_count": 2,
+    "cross_repo_refs": [
+      "config/prometheus/prometheus.yml",
+      "config/apisix/apisix.yaml"
+    ],
+    "weakly_connected": true
+  },
+  {
+    "service": "erp-integration-service",
+    "path": "services/erp-integration-service",
+    "compose_ref_count": 1,
+    "compose_refs": [
+      "docker-compose.ha.yml"
+    ],
+    "cross_repo_ref_count": 0,
+    "cross_repo_refs": [],
+    "weakly_connected": true
+  },
+  {
+    "service": "farmer-service",
+    "path": "services/farmer-service",
+    "compose_ref_count": 2,
+    "compose_refs": [
+      "docker-compose.enterprise.yml",
+      "docker-compose.ha.yml"
+    ],
+    "cross_repo_ref_count": 2,
+    "cross_repo_refs": [
+      "config/prometheus/prometheus.yml",
+      "config/apisix/apisix.yaml"
+    ],
+    "weakly_connected": true
+  },
+  {
+    "service": "features",
+    "path": "services/features",
+    "compose_ref_count": 2,
+    "compose_refs": [
+      "docker-compose.dev.yml",
+      "docker-compose.production.yml"
+    ],
+    "cross_repo_ref_count": 44,
+    "cross_repo_refs": [
+      "server/trpc.ts",
+      "server/analytics-router.ts",
+      "server/stripe-marketplace-router.ts",
+      "server/index.ts",
+      "server/messaging-router.ts",
+      "server/__tests__/advanced-features.test.ts",
+      "server/__tests__/new-features.test.ts",
+      "server/__tests__/review-enhancements.test.ts",
+      "server/__tests__/microfinance-procedures.test.ts",
+      "server/__tests__/analytics-router.test.ts",
+      "server/services/weather-service.ts",
+      "server/services/microservices-client.ts",
+      "server/services/analytics-service.ts",
+      "server/services/ml-credit-scoring.ts",
+      "server/services/leaf-boundary-sync-service.ts",
+      "server/services/review-helpfulness-ml.ts",
+      "server/services/lakehouse/dl-llm-integration.ts",
+      "server/services/lakehouse/ml-feature-integration.ts",
+      "server/services/lakehouse/lakehouse-config.ts",
+      "server/services/lakehouse/feature-store.ts",
+      "server/services/lakehouse/index.ts",
+      "server/services/lakehouse/etl-pipeline.ts",
+      "server/routers/sms-responses-router.ts",
+      "server/routers/kyc-router.ts",
+      "server/routers/spatial-router.ts",
+      "server/routers/farmer-features-router.ts",
+      "client/src/components/FarmBoundaryViewer.tsx",
+      "client/src/components/BulkBoundaryImport.tsx",
+      "client/src/config/tutorialSteps.ts",
+      "client/src/db/sqliteWasmDb.ts"
+    ],
+    "weakly_connected": false
+  },
+  {
+    "service": "go",
+    "path": "services/go",
+    "compose_ref_count": 1,
+    "compose_refs": [
+      "docker-compose.dev.yml"
+    ],
+    "cross_repo_ref_count": 222,
+    "cross_repo_refs": [
+      "server/financial-reports-router.ts",
+      "server/microfinance-router.ts",
+      "server/analytics-router.ts",
+      "server/voice-router.ts",
+      "server/sentry.ts",
+      "server/moderation-workflow-router.ts",
+      "server/keycloak-router.ts",
+      "server/admin-router.ts",
+      "server/microfinance-procedures-flat.ts",
+      "server/review-analytics-router.ts",
+      "server/export-router.ts",
+      "server/marketplace-router.ts",
+      "server/dashboard-cache-router.ts",
+      "server/ml-predictions-router.ts",
+      "server/inventory-router.ts",
+      "server/response-templates-router.ts",
+      "server/seed-data.ts",
+      "server/satellite-imagery-router.ts",
+      "server/moderation-analytics-router.ts",
+      "server/keycloak-auth.ts",
+      "server/keycloak.ts",
+      "server/index.ts",
+      "server/messaging-router.ts",
+      "server/middleware/webhook-validation.ts",
+      "server/__tests__/sync-improved.test.ts",
+      "server/__tests__/analytics-enhancements.test.ts",
+      "server/__tests__/sync.test.ts",
+      "server/__tests__/integration.test.ts",
+      "server/__tests__/review-purchase-verification.test.ts",
+      "server/__tests__/auth.test.ts"
+    ],
+    "weakly_connected": false
+  },
+  {
+    "service": "gps-service-go",
+    "path": "services/gps-service-go",
+    "compose_ref_count": 0,
+    "compose_refs": [],
+    "cross_repo_ref_count": 0,
+    "cross_repo_refs": [],
+    "weakly_connected": true
+  },
+  {
+    "service": "iot-service",
+    "path": "services/iot-service",
+    "compose_ref_count": 2,
+    "compose_refs": [
+      "docker-compose.ha.yml",
+      "docker-compose.production.yml"
+    ],
+    "cross_repo_ref_count": 2,
+    "cross_repo_refs": [
+      "k8s/feature-services-deployment.yaml",
+      "config/grafana/provisioning/alerting/alerts.yml"
+    ],
+    "weakly_connected": true
+  },
+  {
+    "service": "marketplace-service",
+    "path": "services/marketplace-service",
+    "compose_ref_count": 1,
+    "compose_refs": [
+      "docker-compose.ha.yml"
+    ],
+    "cross_repo_ref_count": 0,
+    "cross_repo_refs": [],
+    "weakly_connected": true
+  },
+  {
+    "service": "ml-service",
+    "path": "services/ml-service",
+    "compose_ref_count": 3,
+    "compose_refs": [
+      "docker-compose.dev.yml",
+      "docker-compose.ha.yml",
+      "docker-compose.yml"
+    ],
+    "cross_repo_ref_count": 2,
+    "cross_repo_refs": [
+      "server/ml-predictions-router.ts",
+      "server/services/microservices-client.ts"
+    ],
+    "weakly_connected": true
+  },
+  {
+    "service": "model-serving",
+    "path": "services/model-serving",
+    "compose_ref_count": 0,
+    "compose_refs": [],
+    "cross_repo_ref_count": 0,
+    "cross_repo_refs": [],
+    "weakly_connected": true
+  },
+  {
+    "service": "mojaloop-gateway",
+    "path": "services/mojaloop-gateway",
+    "compose_ref_count": 0,
+    "compose_refs": [],
+    "cross_repo_ref_count": 1,
+    "cross_repo_refs": [
+      "config/apisix/apisix.yaml"
+    ],
+    "weakly_connected": true
+  },
+  {
+    "service": "notification-service",
+    "path": "services/notification-service",
+    "compose_ref_count": 1,
+    "compose_refs": [
+      "docker-compose.ha.yml"
+    ],
+    "cross_repo_ref_count": 0,
+    "cross_repo_refs": [],
+    "weakly_connected": true
+  },
+  {
+    "service": "orchestrator",
+    "path": "services/orchestrator",
+    "compose_ref_count": 2,
+    "compose_refs": [
+      "docker-compose.dev.yml",
+      "docker-compose.production.yml"
+    ],
+    "cross_repo_ref_count": 6,
+    "cross_repo_refs": [
+      "server/services/microservices-client.ts",
+      "server/routers/health-router.ts",
+      "k8s/orchestrator-deployment.yaml",
+      "k8s/configmap.yaml",
+      "config/grafana/provisioning/alerting/alerts.yml",
+      "config/grafana/provisioning/alerting/contact-points.yml"
+    ],
+    "weakly_connected": false
+  },
+  {
+    "service": "python",
+    "path": "services/python",
+    "compose_ref_count": 3,
+    "compose_refs": [
+      "docker-compose.dev.yml",
+      "docker-compose.ha-production.yml",
+      "docker-compose.yml"
+    ],
+    "cross_repo_ref_count": 6,
+    "cross_repo_refs": [
+      "server/ml-predictions-router.ts",
+      "server/services/messaging-middleware-client.ts",
+      "server/services/sedona-job-orchestrator.ts",
+      "server/clients/python-ml-client.ts",
+      "server/notifications/smart-notifications.ts",
+      "config/grafana/dashboards/middleware-overview.json"
+    ],
+    "weakly_connected": false
+  },
+  {
+    "service": "rust",
+    "path": "services/rust",
+    "compose_ref_count": 1,
+    "compose_refs": [
+      "docker-compose.dev.yml"
+    ],
+    "cross_repo_ref_count": 10,
+    "cross_repo_refs": [
+      "server/response-templates-router.ts",
+      "server/index.ts",
+      "server/services/carbon-credit-service.ts",
+      "server/services/pest-disease-warning-service.ts",
+      "server/services/pest-disease-risk-service.ts",
+      "server/services/aiDiagnosticsService.ts",
+      "server/services/payment-reminder.ts",
+      "server/services/auto-moderation-service.ts",
+      "server/services/accounting/chart-of-accounts.ts",
+      "server/routers/sms-responses-router.ts"
+    ],
+    "weakly_connected": false
+  },
+  {
+    "service": "weather-service",
+    "path": "services/weather-service",
+    "compose_ref_count": 1,
+    "compose_refs": [
+      "docker-compose.ha.yml"
+    ],
+    "cross_repo_ref_count": 6,
+    "cross_repo_refs": [
+      "server/services/crop-insurance-service.ts",
+      "server/services/pest-disease-warning-service.ts",
+      "server/services/harvest-forecasting-service.ts",
+      "server/services/water-management-service.ts",
+      "server/services/voice-advisory-service.ts",
+      "server/routers/weather-router.ts"
+    ],
+    "weakly_connected": false
+  },
+  {
+    "service": "ml-service",
+    "path": "ml-service",
+    "compose_ref_count": 3,
+    "compose_refs": [
+      "docker-compose.dev.yml",
+      "docker-compose.ha.yml",
+      "docker-compose.yml"
+    ],
+    "cross_repo_ref_count": 2,
+    "cross_repo_refs": [
+      "server/ml-predictions-router.ts",
+      "server/services/microservices-client.ts"
+    ],
+    "weakly_connected": true
+  },
+  {
+    "service": "cache-service",
+    "path": "cache-service",
+    "compose_ref_count": 0,
+    "compose_refs": [],
+    "cross_repo_ref_count": 0,
+    "cross_repo_refs": [],
+    "weakly_connected": true
+  },
+  {
+    "service": "event-consumer",
+    "path": "event-consumer",
+    "compose_ref_count": 0,
+    "compose_refs": [],
+    "cross_repo_ref_count": 0,
+    "cross_repo_refs": [],
+    "weakly_connected": true
+  }
+]

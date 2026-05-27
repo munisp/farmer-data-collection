@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Python ML Service - Model inference, training, optimization
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: farmer-ml-service
+    ports:
+      - "8086:8086"
+    environment:
+      - ML_SERVICE_PORT=8086
+      - MODEL_DIR=/app/models
+      - CACHE_DIR=/app/cache
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/farmer_data
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./ml-service/models:/app/models
+      - ./ml-service/cache:/app/cache
+    networks:
+      - farmer-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Go Model Serving Service - High-performance edge optimization
+  model-serving:
+    build:
+      context: ./model-serving
+      dockerfile: Dockerfile
+    container_name: farmer-model-serving
+    ports:
+      - "8087:8087"
+    environment:
+      - MODEL_SERVING_PORT=8087
+      - MODEL_CACHE_SIZE=5
+      - MAX_BATCH_SIZE=32
+    networks:
+      - farmer-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      - ml-service
+
+networks:
+  farmer-network:
+    external: true

@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO users (email, password, first_name, last_name, role, is_active) \nVALUES ('demo@farmer.com', '$2a$10$YourHashedPasswordHere', 'Demo', 'Farmer', 'farmer', true) \nON CONFLICT (email) DO NOTHING \nRETURNING *;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NzNswwN3cq6gauf.c04d1ab767e1 --database PqpBBu22GW6k9Mt8Xb9kd6 --execute INSERT INTO users (email, password, first_name, last_name, role, is_active) \nVALUES ('demo@farmer.com', '$2a$10$YourHashedPasswordHere', 'Demo', 'Farmer', 'farmer', true) \nON CONFLICT (email) DO NOTHING \nRETURNING *;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 3 column 12 near \"CONFLICT (email) DO NOTHING ",
+    "RETURNING *\""
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "realm": "farmer-data-collection",
+  "auth-server-url": "http://localhost:8080",
+  "ssl-required": "external",
+  "resource": "farmer-web-app",
+  "public-client": true,
+  "confidential-port": 0,
+  "clientId": "farmer-web-app"
+}

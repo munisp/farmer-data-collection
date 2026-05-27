@@ -1,0 +1,9 @@
+{
+  "query": "SELECT column_name, data_type, is_nullable \nFROM information_schema.columns \nWHERE table_name = 'marketplace_orders' \nORDER BY ordinal_position;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NzNswwN3cq6gauf.c04d1ab767e1 --database PqpBBu22GW6k9Mt8Xb9kd6 --execute SELECT column_name, data_type, is_nullable \nFROM information_schema.columns \nWHERE table_name = 'marketplace_orders' \nORDER BY ordinal_position;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1699
+}

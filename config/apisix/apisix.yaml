@@ -1,0 +1,519 @@
+# APISIX Routes Configuration for Farmer Data Collection Platform
+
+routes:
+  # Auth Service Routes
+  - uri: /api/auth/*
+    name: auth-service-route
+    methods: [GET, POST, PUT, DELETE]
+    upstream:
+      type: roundrobin
+      nodes:
+        "auth-service:3001": 1
+    plugins:
+      limit-req:
+        rate: 100
+        burst: 50
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Farmer Service Routes
+  - uri: /api/farmers/*
+    name: farmer-service-route
+    methods: [GET, POST, PUT, DELETE]
+    upstream:
+      type: roundrobin
+      nodes:
+        "farmer-service:3002": 1
+    plugins:
+      openid-connect:
+        client_id: farmer-api
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 200
+        burst: 100
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Farm Service Routes
+  - uri: /api/farms/*
+    name: farm-service-route
+    methods: [GET, POST, PUT, DELETE]
+    upstream:
+      type: roundrobin
+      nodes:
+        "farm-service:3003": 1
+    plugins:
+      openid-connect:
+        client_id: farmer-api
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 200
+        burst: 100
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Crop Service Routes
+  - uri: /api/crops/*
+    name: crop-service-route
+    methods: [GET, POST, PUT, DELETE]
+    upstream:
+      type: roundrobin
+      nodes:
+        "crop-service:3004": 1
+    plugins:
+      openid-connect:
+        client_id: farmer-api
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 200
+        burst: 100
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Livestock Service Routes
+  - uri: /api/livestock/*
+    name: livestock-service-route
+    methods: [GET, POST, PUT, DELETE]
+    upstream:
+      type: roundrobin
+      nodes:
+        "livestock-service:3005": 1
+    plugins:
+      openid-connect:
+        client_id: farmer-api
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 200
+        burst: 100
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Harvest Service Routes
+  - uri: /api/harvests/*
+    name: harvest-service-route
+    methods: [GET, POST, PUT, DELETE]
+    upstream:
+      type: roundrobin
+      nodes:
+        "harvest-service:3006": 1
+    plugins:
+      openid-connect:
+        client_id: farmer-api
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 200
+        burst: 100
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Expense Service Routes
+  - uri: /api/expenses/*
+    name: expense-service-route
+    methods: [GET, POST, PUT, DELETE]
+    upstream:
+      type: roundrobin
+      nodes:
+        "expense-service:3007": 1
+    plugins:
+      openid-connect:
+        client_id: farmer-api
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 200
+        burst: 100
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Analytics Service Routes
+  - uri: /api/analytics/*
+    name: analytics-service-route
+    methods: [GET, POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "analytics-service:3008": 1
+    plugins:
+      openid-connect:
+        client_id: farmer-api
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 100
+        burst: 50
+        key: remote_addr
+      proxy-cache:
+        cache_ttl: 60
+        cache_key: ["$uri", "$args"]
+      prometheus: {}
+      request-id: {}
+
+  # Health Check Route
+  - uri: /health
+    name: health-check
+    methods: [GET]
+    plugins:
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - "return function() ngx.say('OK') end"
+
+  # ============================================
+  # MOJALOOP GATEWAY ROUTES
+  # ============================================
+  
+  # Mojaloop Gateway Health (public)
+  - uri: /api/mojaloop/health
+    name: mojaloop-health
+    methods: [GET]
+    upstream:
+      type: roundrobin
+      nodes:
+        "mojaloop-gateway:8080": 1
+    plugins:
+      prometheus: {}
+      request-id: {}
+
+  # Mojaloop Party Lookup
+  - uri: /api/mojaloop/party-lookup
+    name: mojaloop-party-lookup
+    methods: [POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "mojaloop-gateway:8080": 1
+    plugins:
+      openid-connect:
+        client_id: mojaloop-gateway
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 50
+        burst: 25
+        key: remote_addr
+      proxy-cache:
+        cache_ttl: 300
+        cache_key: ["$request_body"]
+      prometheus: {}
+      request-id: {}
+
+  # Mojaloop Quotes
+  - uri: /api/mojaloop/quote
+    name: mojaloop-quote
+    methods: [POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "mojaloop-gateway:8080": 1
+    plugins:
+      openid-connect:
+        client_id: mojaloop-gateway
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 100
+        burst: 50
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Mojaloop Transfers
+  - uri: /api/mojaloop/transfer
+    name: mojaloop-transfer
+    methods: [POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "mojaloop-gateway:8080": 1
+    plugins:
+      openid-connect:
+        client_id: mojaloop-gateway
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 50
+        burst: 25
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+      kafka-logger:
+        broker_list:
+          "kafka:9092": 1
+        kafka_topic: mojaloop.transfers
+        producer_type: async
+
+  # Mojaloop Bulk Transfers
+  - uri: /api/mojaloop/bulk-transfer
+    name: mojaloop-bulk-transfer
+    methods: [POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "mojaloop-gateway:8080": 1
+    plugins:
+      openid-connect:
+        client_id: mojaloop-gateway
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 20
+        burst: 10
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+      kafka-logger:
+        broker_list:
+          "kafka:9092": 1
+        kafka_topic: mojaloop.transfers
+        producer_type: async
+
+  # Mojaloop Transaction Requests
+  - uri: /api/mojaloop/transaction-request
+    name: mojaloop-transaction-request
+    methods: [POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "mojaloop-gateway:8080": 1
+    plugins:
+      openid-connect:
+        client_id: mojaloop-gateway
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 50
+        burst: 25
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # Mojaloop Settlement
+  - uri: /api/mojaloop/settlement/*
+    name: mojaloop-settlement
+    methods: [GET, POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "mojaloop-gateway:8080": 1
+    plugins:
+      openid-connect:
+        client_id: mojaloop-gateway
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 30
+        burst: 15
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+
+  # ============================================
+  # TIGERBEETLE SERVICE ROUTES
+  # ============================================
+
+  # TigerBeetle Health (public)
+  - uri: /api/tigerbeetle/health
+    name: tigerbeetle-health
+    methods: [GET]
+    upstream:
+      type: roundrobin
+      nodes:
+        "tigerbeetle-service:3011": 1
+    plugins:
+      prometheus: {}
+      request-id: {}
+
+  # TigerBeetle Account Creation
+  - uri: /api/tigerbeetle/accounts/*
+    name: tigerbeetle-accounts
+    methods: [GET, POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "tigerbeetle-service:3011": 1
+    plugins:
+      openid-connect:
+        client_id: tigerbeetle-service
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 100
+        burst: 50
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+      kafka-logger:
+        broker_list:
+          "kafka:9092": 1
+        kafka_topic: tigerbeetle.accounts
+        producer_type: async
+
+  # TigerBeetle Loan Disbursement
+  - uri: /api/tigerbeetle/loans/disburse
+    name: tigerbeetle-disburse
+    methods: [POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "tigerbeetle-service:3011": 1
+    plugins:
+      openid-connect:
+        client_id: tigerbeetle-service
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 50
+        burst: 25
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+      kafka-logger:
+        broker_list:
+          "kafka:9092": 1
+        kafka_topic: loan.disbursements
+        producer_type: async
+
+  # TigerBeetle Loan Repayment
+  - uri: /api/tigerbeetle/loans/repay
+    name: tigerbeetle-repay
+    methods: [POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "tigerbeetle-service:3011": 1
+    plugins:
+      openid-connect:
+        client_id: tigerbeetle-service
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 50
+        burst: 25
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+      kafka-logger:
+        broker_list:
+          "kafka:9092": 1
+        kafka_topic: loan.repayments
+        producer_type: async
+
+  # TigerBeetle Escrow (Two-Phase Transfers)
+  - uri: /api/tigerbeetle/escrow/*
+    name: tigerbeetle-escrow
+    methods: [POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "tigerbeetle-service:3011": 1
+    plugins:
+      openid-connect:
+        client_id: tigerbeetle-service
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 30
+        burst: 15
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+      kafka-logger:
+        broker_list:
+          "kafka:9092": 1
+        kafka_topic: tigerbeetle.ledger
+        producer_type: async
+
+  # TigerBeetle Transfers/Ledger
+  - uri: /api/tigerbeetle/transfers/*
+    name: tigerbeetle-transfers
+    methods: [GET, POST]
+    upstream:
+      type: roundrobin
+      nodes:
+        "tigerbeetle-service:3011": 1
+    plugins:
+      openid-connect:
+        client_id: tigerbeetle-service
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        discovery: http://keycloak:8080/realms/farmer-realm/.well-known/openid-configuration
+        scope: openid profile email
+        bearer_only: true
+        realm: farmer-realm
+      limit-req:
+        rate: 100
+        burst: 50
+        key: remote_addr
+      prometheus: {}
+      request-id: {}
+      kafka-logger:
+        broker_list:
+          "kafka:9092": 1
+        kafka_topic: tigerbeetle.ledger
+        producer_type: async
+
+upstreams: []
+
+#END

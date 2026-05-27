@@ -1,0 +1,594 @@
+version: '3.9'
+
+# Enterprise Farmer Data Collection Platform
+# Docker Compose configuration for all middleware services
+
+networks:
+  farmer-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  postgres-keycloak-data:
+  postgres-temporal-data:
+  redis-data:
+  kafka-data:
+  zookeeper-data:
+  tigerbeetle-data:
+
+services:
+  # ============================================================================
+  # DATABASE LAYER
+  # ============================================================================
+  
+  # Main PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: farmer-postgres
+    environment:
+      POSTGRES_DB: farmer_data
+      POSTGRES_USER: farmer_user
+      POSTGRES_PASSWORD: farmer_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farmer_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak PostgreSQL Database
+  postgres-keycloak:
+    image: postgres:16-alpine
+    container_name: farmer-postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-keycloak-data:/var/lib/postgresql/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Temporal PostgreSQL Database
+  postgres-temporal:
+    image: postgres:16-alpine
+    container_name: farmer-postgres-temporal
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-temporal-data:/var/lib/postgresql/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # CACHING LAYER
+  # ============================================================================
+  
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: farmer-redis
+    command: redis-server --appendonly yes --requirepass redis_pass
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # AUTHENTICATION & AUTHORIZATION
+  # ============================================================================
+  
+  # Keycloak Identity & Access Management
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: farmer-keycloak
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_pass
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin_pass
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Permify Fine-Grained Authorization
+  permify:
+    image: ghcr.io/permify/permify:latest
+    container_name: farmer-permify
+    command: serve
+    environment:
+      PERMIFY_DATABASE_ENGINE: postgres
+      PERMIFY_DATABASE_URI: postgres://farmer_user:farmer_pass@postgres:5432/farmer_data?sslmode=disable
+      PERMIFY_HTTP_PORT: 3476
+      PERMIFY_GRPC_PORT: 3478
+    ports:
+      - "3476:3476"  # HTTP
+      - "3478:3478"  # gRPC
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3476/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # EVENT STREAMING
+  # ============================================================================
+  
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: farmer-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: farmer-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Kafka Schema Registry
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: farmer-schema-registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports:
+      - "8081:8081"
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Fluvio Real-Time Streaming
+  fluvio:
+    image: infinyon/fluvio:latest
+    container_name: farmer-fluvio
+    command: cluster start --local
+    ports:
+      - "9003:9003"
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "fluvio", "version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # API GATEWAY
+  # ============================================================================
+  
+  # APISIX API Gateway
+  apisix:
+    image: apache/apisix:3.7.0-debian
+    container_name: farmer-apisix
+    volumes:
+      - ./config/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./config/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    ports:
+      - "9080:9080"  # HTTP
+      - "9443:9443"  # HTTPS
+      - "9180:9180"  # Admin API
+    depends_on:
+      - etcd
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # etcd for APISIX
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: farmer-etcd
+    environment:
+      ETCD_ENABLE_V2: "true"
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: "http://etcd:2379"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+    ports:
+      - "2379:2379"
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # SERVICE MESH
+  # ============================================================================
+  
+  # Dapr Placement Service
+  dapr-placement:
+    image: daprio/dapr:1.12.0
+    container_name: farmer-dapr-placement
+    command: ["./placement", "-port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Dapr Dashboard
+  dapr-dashboard:
+    image: daprio/dashboard:latest
+    container_name: farmer-dapr-dashboard
+    ports:
+      - "8085:8080"
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # WORKFLOW ORCHESTRATION
+  # ============================================================================
+  
+  # Temporal Server
+  temporal:
+    image: temporalio/auto-setup:1.22.0
+    container_name: farmer-temporal
+    depends_on:
+      postgres-temporal:
+        condition: service_healthy
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal_pass
+      POSTGRES_SEEDS: postgres-temporal
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Temporal UI
+  temporal-ui:
+    image: temporalio/ui:2.21.0
+    container_name: farmer-temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8088:8080"
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # FINANCIAL LEDGER
+  # ============================================================================
+  
+  # TigerBeetle Ledger
+  tigerbeetle:
+    image: ghcr.io/tigerbeetle/tigerbeetle:latest
+    container_name: farmer-tigerbeetle
+    command: start --addresses=0.0.0.0:3000 /var/lib/tigerbeetle/data
+    ports:
+      - "3001:3000"
+    volumes:
+      - tigerbeetle-data:/var/lib/tigerbeetle
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # OBSERVABILITY
+  # ============================================================================
+  
+  # Prometheus Metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: farmer-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - farmer-network
+
+  # Grafana Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: farmer-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+    ports:
+      - "3333:3000"
+    volumes:
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - farmer-network
+
+  # Jaeger Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: farmer-jaeger
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: :9411
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"  # UI
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # APPLICATION SERVICES (Microservices)
+  # ============================================================================
+  
+  # Frontend Web Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: farmer-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_GATEWAY_URL: http://apisix:9080
+      VITE_KEYCLOAK_URL: http://keycloak:8080
+      VITE_KEYCLOAK_REALM: farmer-realm
+      VITE_KEYCLOAK_CLIENT_ID: farmer-web
+    depends_on:
+      - apisix
+      - keycloak
+    networks:
+      - farmer-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.auth-service
+    container_name: farmer-auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://farmer_user:farmer_pass@postgres:5432/farmer_data
+      KEYCLOAK_URL: http://keycloak:8080
+      REDIS_URL: redis://:redis_pass@redis:6379
+      DAPR_HTTP_PORT: 3500
+    depends_on:
+      - postgres
+      - keycloak
+      - redis
+      - dapr-placement
+    networks:
+      - farmer-network
+
+  # Farmer Service
+  farmer-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.farmer-service
+    container_name: farmer-farmer-service
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://farmer_user:farmer_pass@postgres:5432/farmer_data
+      KAFKA_BROKERS: kafka:9092
+      REDIS_URL: redis://:redis_pass@redis:6379
+      PERMIFY_URL: http://permify:3476
+      DAPR_HTTP_PORT: 3500
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+      - permify
+      - dapr-placement
+    networks:
+      - farmer-network
+
+  # Farm Service
+  farm-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.farm-service
+    container_name: farmer-farm-service
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      DATABASE_URL: postgresql://farmer_user:farmer_pass@postgres:5432/farmer_data
+      KAFKA_BROKERS: kafka:9092
+      REDIS_URL: redis://:redis_pass@redis:6379
+      PERMIFY_URL: http://permify:3476
+      DAPR_HTTP_PORT: 3500
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+      - permify
+      - dapr-placement
+    networks:
+      - farmer-network
+
+  # Expense Service (with TigerBeetle)
+  expense-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.expense-service
+    container_name: farmer-expense-service
+    ports:
+      - "3007:3007"
+    environment:
+      PORT: 3007
+      DATABASE_URL: postgresql://farmer_user:farmer_pass@postgres:5432/farmer_data
+      TIGERBEETLE_URL: tigerbeetle:3000
+      KAFKA_BROKERS: kafka:9092
+      REDIS_URL: redis://:redis_pass@redis:6379
+      PERMIFY_URL: http://permify:3476
+      DAPR_HTTP_PORT: 3500
+    depends_on:
+      - postgres
+      - tigerbeetle
+      - kafka
+      - redis
+      - permify
+      - dapr-placement
+    networks:
+      - farmer-network
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.analytics-service
+    container_name: farmer-analytics-service
+    ports:
+      - "3008:3008"
+    environment:
+      PORT: 3008
+      DATABASE_URL: postgresql://farmer_user:farmer_pass@postgres:5432/farmer_data
+      KAFKA_BROKERS: kafka:9092
+      REDIS_URL: redis://:redis_pass@redis:6379
+      FLUVIO_URL: fluvio:9003
+      DAPR_HTTP_PORT: 3500
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+      - fluvio
+      - dapr-placement
+    networks:
+      - farmer-network
+
+  # Temporal Worker
+  temporal-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.temporal-worker
+    container_name: farmer-temporal-worker
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      DATABASE_URL: postgresql://farmer_user:farmer_pass@postgres:5432/farmer_data
+      DAPR_HTTP_PORT: 3500
+    depends_on:
+      - temporal
+      - postgres
+      - dapr-placement
+    networks:
+      - farmer-network

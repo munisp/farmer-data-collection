@@ -1,0 +1,13 @@
+{
+  "query": "SELECT 1 as test;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user NzNswwN3cq6gauf.c04d1ab767e1 --database PqpBBu22GW6k9Mt8Xb9kd6 --execute SELECT 1 as test;",
+  "rows": [
+    {
+      "test": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "test\n1\n",
+  "stderr": "",
+  "execution_time_ms": 45
+}

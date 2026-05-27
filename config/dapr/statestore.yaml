@@ -1,0 +1,30 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: redis-state
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: "localhost:6379"
+  - name: redisPassword
+    value: ""
+  - name: enableTLS
+    value: "false"
+  - name: failover
+    value: "false"
+  - name: ttlInSeconds
+    value: "3600"
+  - name: queryIndexes
+    value: |
+      [
+        {
+          "name": "farmer_id",
+          "indexes": ["farmerId"]
+        },
+        {
+          "name": "user_id",
+          "indexes": ["userId"]
+        }
+      ]

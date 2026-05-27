@@ -1,0 +1,18 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: journey-pubsub
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+  - name: brokers
+    value: "localhost:9092"
+  - name: consumerGroup
+    value: "user-journey-group"
+  - name: clientId
+    value: "dapr-journey-client"
+  - name: authType
+    value: "none"
+  - name: maxMessageBytes
+    value: "1024000"

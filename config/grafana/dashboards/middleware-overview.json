@@ -1,0 +1,323 @@
+{
+  "dashboard": {
+    "title": "Farmer Platform - Middleware Overview",
+    "tags": ["middleware", "infrastructure", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health Status",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=~\"farmer-.*\"}",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "justifyMode": "auto",
+          "orientation": "horizontal"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            },
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN"},
+              {"type": "value", "value": "1", "text": "UP"}
+            ]
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Redis - Cache Hit Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100",
+            "legendFormat": "Hit Rate %",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Redis - Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes",
+            "legendFormat": "Used Memory",
+            "refId": "A"
+          },
+          {
+            "expr": "redis_memory_max_bytes",
+            "legendFormat": "Max Memory",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "bytes"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Kafka - Messages Per Second",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "rate(kafka_server_brokertopicmetrics_messagesin_total[1m])",
+            "legendFormat": "{{topic}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Messages/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Kafka - Consumer Lag",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {
+            "expr": "kafka_consumergroup_lag",
+            "legendFormat": "{{consumergroup}} - {{topic}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Lag (messages)"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [1000], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "60s",
+          "handler": 1,
+          "name": "High Kafka Consumer Lag",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 6,
+        "title": "APISIX - Request Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "rate(apisix_http_requests_total[1m])",
+            "legendFormat": "{{route}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "APISIX - Response Time (p95)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(apisix_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{route}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Response Time"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Dapr - State Operations",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "targets": [
+          {
+            "expr": "rate(dapr_component_state_operations_total[1m])",
+            "legendFormat": "{{operation}} - {{component}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Operations/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Dapr - Pub/Sub Messages",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+        "targets": [
+          {
+            "expr": "rate(dapr_component_pubsub_messages_total[1m])",
+            "legendFormat": "{{topic}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Messages/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Fluvio - Stream Throughput",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+        "targets": [
+          {
+            "expr": "rate(fluvio_stream_bytes_total[1m])",
+            "legendFormat": "{{stream}} - {{direction}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "Bps", "label": "Bytes/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Temporal - Workflow Execution Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+        "targets": [
+          {
+            "expr": "rate(temporal_workflow_completed_total[1m])",
+            "legendFormat": "{{workflow_type}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Workflows/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Node.js - Event Loop Lag",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 44},
+        "targets": [
+          {
+            "expr": "nodejs_eventloop_lag_seconds",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Lag"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [0.1], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "60s",
+          "handler": 1,
+          "name": "High Event Loop Lag",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 13,
+        "title": "Go Services - Goroutines",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 44},
+        "targets": [
+          {
+            "expr": "go_goroutines{job=~\"farmer-go-.*\"}",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Goroutines"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Python Services - CPU Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 52},
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total{job=~\"farmer-python-.*\"}[1m]) * 100",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "CPU %"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Database - Query Duration (p95)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 52},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(postgres_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{query_type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}

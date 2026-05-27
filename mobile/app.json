@@ -1,0 +1,88 @@
+{
+  "expo": {
+    "name": "Farmer Data Collection",
+    "slug": "farmer-data-collection",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#E8F5E9"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.farmerdata.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to capture photos of crops and receipts.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photo library to select images.",
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to map farm fields and track harvest locations.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to provide location-based features.",
+        "NSFaceIDUsageDescription": "This app uses Face ID to securely authenticate you."
+      },
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#10b981"
+      },
+      "package": "com.farmerdata.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-location",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#10b981"
+        }
+      ],
+      "expo-local-authentication",
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          },
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 23
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "https://farmerplatform.com/api",
+      "eas": {
+        "projectId": "farmer-data-collection-mobile"
+      }
+    }
+  }
+}

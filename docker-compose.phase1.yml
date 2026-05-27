@@ -1,0 +1,433 @@
+version: '3.9'
+
+# Phase 1: Redis + APISIX + Prometheus
+# Simplified enterprise setup for immediate value
+
+networks:
+  farmer-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  postgres-keycloak-data:
+  redis-data:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:
+  postgres-permify-data:
+
+services:
+  # ============================================================================
+  # EXISTING DATABASE
+  # ============================================================================
+  
+  postgres:
+    image: postgres:16-alpine
+    container_name: farmer-postgres
+    environment:
+      POSTGRES_DB: farmer_data
+      POSTGRES_USER: farmer_user
+      POSTGRES_PASSWORD: farmer_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farmer_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak PostgreSQL Database
+  postgres-keycloak:
+    image: postgres:16-alpine
+    container_name: farmer-postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-keycloak-data:/var/lib/postgresql/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # AUTHENTICATION
+  # ============================================================================
+  
+  # Keycloak Identity & Access Management
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: farmer-keycloak
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_pass
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin_pass
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_PROXY: edge
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # REDIS CACHE
+  # ============================================================================
+  
+  redis:
+    image: redis:7-alpine
+    container_name: farmer-redis
+    command: redis-server --appendonly yes --requirepass redis_pass
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # API GATEWAY
+  # ============================================================================
+  
+  # etcd for APISIX
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: farmer-etcd
+    environment:
+      ETCD_ENABLE_V2: "true"
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: "http://etcd:2379"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+    ports:
+      - "2379:2379"
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # APISIX API Gateway
+  apisix:
+    image: apache/apisix:3.7.0-debian
+    container_name: farmer-apisix
+    volumes:
+      - ./config/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    ports:
+      - "9080:9080"  # HTTP
+      - "9443:9443"  # HTTPS
+      - "9180:9180"  # Admin API
+    environment:
+      APISIX_STAND_ALONE: "false"
+    depends_on:
+      etcd:
+        condition: service_healthy
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # MONITORING
+  # ============================================================================
+  
+  # Prometheus Metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: farmer-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  # Grafana Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: farmer-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3333
+    ports:
+      - "3333:3000"
+    volumes:
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # APPLICATION SERVER
+  # ============================================================================
+  
+  # Farmer App Server (existing Node.js app)
+  app-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: farmer-app-server
+    ports:
+      - "3100:3100"  # Internal port, accessed via APISIX
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      DATABASE_URL: postgresql://farmer_user:farmer_pass@postgres:5432/farmer_data
+      REDIS_URL: redis://:redis_pass@redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # FRONTEND (Optional - can run separately in dev)
+  # ============================================================================
+  
+  # frontend:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.frontend
+  #   container_name: farmer-frontend
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     VITE_API_URL: http://apisix:9080/api
+  #   depends_on:
+  #     - apisix
+  #   networks:
+  #     - farmer-network
+
+  # ============================================================================
+  # KAFKA EVENT STREAMING (Phase 3)
+  # ============================================================================
+  
+  # Zookeeper (Kafka dependency)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: farmer-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: farmer-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      
+      # Listeners
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      
+      # Topic settings
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      
+      # Retention
+      KAFKA_LOG_RETENTION_HOURS: 168  # 7 days
+      KAFKA_LOG_RETENTION_BYTES: 1073741824  # 1GB per partition
+      KAFKA_LOG_SEGMENT_BYTES: 536870912  # 512MB
+      
+      # Performance
+      KAFKA_COMPRESSION_TYPE: snappy
+      KAFKA_MESSAGE_MAX_BYTES: 1048576  # 1MB
+      
+      # Offsets
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Kafka UI (for monitoring and management)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: farmer-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: farmer-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # PERMIFY AUTHORIZATION (Phase 4)
+  # ============================================================================
+  
+  # Permify PostgreSQL Database
+  postgres-permify:
+    image: postgres:16-alpine
+    container_name: farmer-postgres-permify
+    environment:
+      POSTGRES_DB: permify
+      POSTGRES_USER: permify
+      POSTGRES_PASSWORD: permify_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-permify-data:/var/lib/postgresql/data
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U permify"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Permify Authorization Service
+  permify:
+    image: ghcr.io/permify/permify:latest
+    container_name: farmer-permify
+    depends_on:
+      postgres-permify:
+        condition: service_healthy
+    ports:
+      - "3476:3476"  # gRPC
+      - "3477:3477"  # HTTP
+    environment:
+      # Database
+      PERMIFY_DATABASE_ENGINE: postgres
+      PERMIFY_DATABASE_URI: postgres://permify:permify_pass@postgres-permify:5432/permify?sslmode=disable
+      PERMIFY_DATABASE_AUTO_MIGRATE: "true"
+      
+      # Server
+      PERMIFY_SERVER_HTTP_ENABLED: "true"
+      PERMIFY_SERVER_HTTP_PORT: "3477"
+      PERMIFY_SERVER_GRPC_PORT: "3476"
+      
+      # Logging
+      PERMIFY_LOG_LEVEL: info
+      
+      # Authn (optional - can integrate with Keycloak)
+      PERMIFY_AUTHN_ENABLED: "false"
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3477/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    command: serve
+
+  # ============================================================================
+  # DAPR SERVICE MESH (Phase 5)
+  # ============================================================================
+  
+  # Dapr Placement Service (for actor placement)
+  dapr-placement:
+    image: daprio/dapr:1.13.0
+    container_name: farmer-dapr-placement
+    command: ["./placement", "-port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  # Dapr Dashboard (monitoring and debugging)
+  dapr-dashboard:
+    image: daprio/dashboard:latest
+    container_name: farmer-dapr-dashboard
+    command: ["--docker-compose=true"]
+    ports:
+      - "8080:8080"
+    networks:
+      - farmer-network
+    restart: unless-stopped

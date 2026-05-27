@@ -1,0 +1,671 @@
+version: '3.9'
+
+# High Availability Production Deployment
+# All infrastructure services configured for HA with replication and clustering
+
+services:
+  # ============================================================================
+  # Database Layer - PostgreSQL HA with PgBouncer
+  # ============================================================================
+  
+  postgres-primary:
+    image: postgres:16-alpine
+    container_name: postgres-primary
+    environment:
+      POSTGRES_DB: farmer_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "-c wal_level=replica -c max_wal_senders=10 -c max_replication_slots=10"
+    volumes:
+      - postgres-primary-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - farmer-network
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    environment:
+      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres-primary:5432/farmer_db"
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 25
+    ports:
+      - "6432:5432"
+    depends_on:
+      - postgres-primary
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Cache Layer - Redis Cluster
+  # ============================================================================
+  
+  redis-node-1:
+    image: redis:7-alpine
+    container_name: redis-node-1
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --port 6379
+    ports:
+      - "6379:6379"
+      - "16379:16379"
+    volumes:
+      - redis-node-1-data:/data
+    networks:
+      - farmer-network
+
+  redis-node-2:
+    image: redis:7-alpine
+    container_name: redis-node-2
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --port 6380
+    ports:
+      - "6380:6380"
+      - "16380:16380"
+    volumes:
+      - redis-node-2-data:/data
+    networks:
+      - farmer-network
+
+  redis-node-3:
+    image: redis:7-alpine
+    container_name: redis-node-3
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes --port 6381
+    ports:
+      - "6381:6381"
+      - "16381:16381"
+    volumes:
+      - redis-node-3-data:/data
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Event Streaming - Kafka Cluster (KRaft mode, no Zookeeper)
+  # ============================================================================
+  
+  kafka-1:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka-1-data:/var/lib/kafka/data
+    ports:
+      - "9092:9092"
+    networks:
+      - farmer-network
+
+  kafka-2:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-2
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka-2-data:/var/lib/kafka/data
+    ports:
+      - "9093:9092"
+    networks:
+      - farmer-network
+
+  kafka-3:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-3
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka-3-data:/var/lib/kafka/data
+    ports:
+      - "9094:9092"
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Authentication - Keycloak HA
+  # ============================================================================
+  
+  keycloak-1:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: keycloak-1
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-primary:5432/farmer_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      KC_HOSTNAME: keycloak.farmer.local
+      KC_PROXY: edge
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_CACHE: ispn
+      KC_CACHE_STACK: kubernetes
+    command: start --optimized
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres-primary
+    networks:
+      - farmer-network
+
+  keycloak-2:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: keycloak-2
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-primary:5432/farmer_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      KC_HOSTNAME: keycloak.farmer.local
+      KC_PROXY: edge
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_CACHE: ispn
+      KC_CACHE_STACK: kubernetes
+    command: start --optimized
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres-primary
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Authorization - Permify
+  # ============================================================================
+  
+  permify:
+    image: ghcr.io/permify/permify:latest
+    container_name: permify
+    command: serve
+    environment:
+      PERMIFY_DATABASE_ENGINE: postgres
+      PERMIFY_DATABASE_URI: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres-primary:5432/farmer_db?sslmode=disable
+      PERMIFY_AUTHN_ENABLED: "true"
+      PERMIFY_AUTHN_METHOD: preshared
+      PERMIFY_AUTHN_PRESHARED_KEYS: ${PERMIFY_API_KEY:-permify-key}
+    ports:
+      - "3476:3476"
+      - "3478:3478"
+    depends_on:
+      - postgres-primary
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Workflow Orchestration - Temporal
+  # ============================================================================
+  
+  temporal:
+    image: temporalio/auto-setup:latest
+    container_name: temporal
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_SEEDS: postgres-primary
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    depends_on:
+      - postgres-primary
+    networks:
+      - farmer-network
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    container_name: temporal-ui
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8088:8080"
+    depends_on:
+      - temporal
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # API Gateway - APISIX with etcd cluster
+  # ============================================================================
+  
+  etcd-1:
+    image: bitnami/etcd:3.5
+    container_name: etcd-1
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_NAME: etcd-1
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd-1:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-1:2379
+      ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster
+      ETCD_INITIAL_CLUSTER: etcd-1=http://etcd-1:2380,etcd-2=http://etcd-2:2380,etcd-3=http://etcd-3:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+    volumes:
+      - etcd-1-data:/bitnami/etcd
+    networks:
+      - farmer-network
+
+  etcd-2:
+    image: bitnami/etcd:3.5
+    container_name: etcd-2
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_NAME: etcd-2
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd-2:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-2:2379
+      ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster
+      ETCD_INITIAL_CLUSTER: etcd-1=http://etcd-1:2380,etcd-2=http://etcd-2:2380,etcd-3=http://etcd-3:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+    volumes:
+      - etcd-2-data:/bitnami/etcd
+    networks:
+      - farmer-network
+
+  etcd-3:
+    image: bitnami/etcd:3.5
+    container_name: etcd-3
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_NAME: etcd-3
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd-3:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-3:2379
+      ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster
+      ETCD_INITIAL_CLUSTER: etcd-1=http://etcd-1:2380,etcd-2=http://etcd-2:2380,etcd-3=http://etcd-3:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+    volumes:
+      - etcd-3-data:/bitnami/etcd
+    networks:
+      - farmer-network
+
+  apisix:
+    image: apache/apisix:3.8.0-debian
+    container_name: apisix
+    volumes:
+      - ./config/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    ports:
+      - "9080:9080"
+      - "9443:9443"
+      - "9180:9180"
+    depends_on:
+      - etcd-1
+      - etcd-2
+      - etcd-3
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Financial Ledger - TigerBeetle
+  # ============================================================================
+  
+  tigerbeetle:
+    image: ghcr.io/tigerbeetle/tigerbeetle:latest
+    container_name: tigerbeetle
+    command: start --addresses=0.0.0.0:3000 /data/0_0.tigerbeetle
+    volumes:
+      - tigerbeetle-data:/data
+    ports:
+      - "3000:3000"
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Service Mesh - Dapr
+  # ============================================================================
+  
+  dapr-placement:
+    image: daprio/dapr:1.12.0
+    container_name: dapr-placement
+    command: ["./placement", "-port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Streaming - Fluvio
+  # ============================================================================
+  
+  fluvio:
+    image: infinyon/fluvio:latest
+    container_name: fluvio
+    command: cluster start --local
+    ports:
+      - "9003:9003"
+    volumes:
+      - fluvio-data:/home/fluvio/.fluvio
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Lakehouse - MinIO + Trino
+  # ============================================================================
+  
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - farmer-network
+
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    ports:
+      - "8082:8080"
+    depends_on:
+      - minio
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Security - OpenAppSec WAF
+  # ============================================================================
+  
+  openappsec:
+    image: ghcr.io/openappsec/agent:latest
+    container_name: openappsec
+    environment:
+      user_email: ${OPENAPPSEC_EMAIL:-admin@farmer.local}
+      registered_server: ${OPENAPPSEC_SERVER:-https://portal.openappsec.io}
+    ports:
+      - "8443:443"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Monitoring - Prometheus + Grafana
+  # ============================================================================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - farmer-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # MQTT Broker for IoT
+  # ============================================================================
+  
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mosquitto-data:/mosquitto/data
+    networks:
+      - farmer-network
+
+  # ============================================================================
+  # Application Microservices
+  # ============================================================================
+
+  auth-service:
+    build: ./services/auth-service
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+      REDIS_URL: redis://redis-node-1:6379
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      KEYCLOAK_URL: http://keycloak-1:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - pgbouncer
+      - redis-node-1
+      - kafka-1
+      - keycloak-1
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+    networks:
+      - farmer-network
+
+  farmer-service:
+    build: ./services/farmer-service
+    environment:
+      PORT: 8081
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+      REDIS_URL: redis://redis-node-1:6379
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+    ports:
+      - "8081:8081"
+    depends_on:
+      - pgbouncer
+      - redis-node-1
+      - kafka-1
+    deploy:
+      replicas: 3
+    networks:
+      - farmer-network
+
+  analytics-service:
+    build: ./services/analytics-service
+    environment:
+      PORT: 8082
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+      REDIS_URL: redis://redis-node-1:6379
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+    ports:
+      - "8083:8082"
+    depends_on:
+      - pgbouncer
+      - redis-node-1
+      - kafka-1
+    deploy:
+      replicas: 2
+    networks:
+      - farmer-network
+
+  notification-service:
+    build: ./services/notification-service
+    environment:
+      PORT: 8083
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+      REDIS_URL: redis://redis-node-1:6379
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+    ports:
+      - "8084:8083"
+    depends_on:
+      - pgbouncer
+      - redis-node-1
+      - kafka-1
+    deploy:
+      replicas: 2
+    networks:
+      - farmer-network
+
+  weather-service:
+    build: ./services/weather-service
+    environment:
+      PORT: 8084
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+      REDIS_URL: redis://redis-node-1:6379
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+    ports:
+      - "8085:8084"
+    depends_on:
+      - pgbouncer
+      - redis-node-1
+      - kafka-1
+    deploy:
+      replicas: 2
+    networks:
+      - farmer-network
+
+  iot-service:
+    build: ./services/iot-service
+    environment:
+      PORT: 8085
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+      REDIS_URL: redis://redis-node-1:6379
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      MQTT_BROKER: mosquitto
+    ports:
+      - "8086:8085"
+    depends_on:
+      - pgbouncer
+      - redis-node-1
+      - kafka-1
+      - mosquitto
+    deploy:
+      replicas: 2
+    networks:
+      - farmer-network
+
+  ml-service:
+    build: ./services/ml-service
+    environment:
+      PORT: 8086
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+    ports:
+      - "8087:8086"
+    depends_on:
+      - pgbouncer
+    deploy:
+      replicas: 2
+    networks:
+      - farmer-network
+
+  marketplace-service:
+    build: ./services/marketplace-service
+    environment:
+      PORT: 8087
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+      REDIS_URL: redis://redis-node-1:6379
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+    ports:
+      - "8090:8087"
+    depends_on:
+      - pgbouncer
+      - redis-node-1
+      - kafka-1
+    deploy:
+      replicas: 3
+    networks:
+      - farmer-network
+
+  erp-integration-service:
+    build: ./services/erp-integration-service
+    environment:
+      PORT: 8088
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@pgbouncer:5432/farmer_db
+      REDIS_URL: redis://redis-node-1:6379
+      KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+    ports:
+      - "8091:8088"
+    depends_on:
+      - pgbouncer
+      - redis-node-1
+      - kafka-1
+    deploy:
+      replicas: 2
+    networks:
+      - farmer-network
+
+networks:
+  farmer-network:
+    driver: bridge
+
+volumes:
+  postgres-primary-data:
+  redis-node-1-data:
+  redis-node-2-data:
+  redis-node-3-data:
+  kafka-1-data:
+  kafka-2-data:
+  kafka-3-data:
+  etcd-1-data:
+  etcd-2-data:
+  etcd-3-data:
+  tigerbeetle-data:
+  fluvio-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+  mosquitto-data:

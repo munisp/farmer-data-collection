@@ -1,0 +1,143 @@
+import { z } from "zod";
+import { router, publicProcedure, protectedProcedure, createContext, middleware } from "./_core/trpc-base.js";
+import { pushChanges, pullChanges, syncRequestSchemaExport, pullChangesSchemaExport } from "./sync-router.js";
+import { dashboardCacheRouter } from "./dashboard-cache-router.js";
+import { adminRouter } from "./admin-router.js";
+import { financialReportsRouter } from "./financial-reports-router.js";
+import { exportRouter } from "./export-router.js";
+import { marketplaceRouter } from "./marketplace-router";
+import { stripeMarketplaceRouter } from "./stripe-marketplace-router";
+import { messagingRouter } from "./messaging-router.js";
+import { voiceRouter } from "./voice-router.js";
+import { analyticsRouter } from "./analytics-router.js";
+import { mlPredictionsRouter } from "./ml-predictions-router.js";
+import { productReviewsRouter } from "./product-reviews-router";
+import { reviewAnalyticsRouter } from "./review-analytics-router.js";
+import { reviewResponsesRouter } from "./review-responses-router.js";
+import { moderationAnalyticsRouter } from "./moderation-analytics-router.js";
+import { responseTemplatesRouter } from "./response-templates-router.js";
+import { moderationWorkflowRouter } from "./moderation-workflow-router.js";
+import { mlModelsRouter } from "./routers/ml-models-router.js";
+import { spatialRouter } from "./routers/spatial-router.js";
+import { weatherRouter } from "./routers/weather-router.js";
+import { agriculturalIntelligenceRouter } from "./routers/agricultural-intelligence-router.js";
+import { accountingRouter } from "./accounting-router.js";
+import { hrRouter } from "./hr-router.js";
+import { inventoryRouter } from "./inventory-router.js";
+import { bankingRouter } from "./banking-router.js";
+import { microfinanceRouter } from "./routers/microfinance-router.js";
+import { microfinanceFlatProcedures } from "./microfinance-procedures-flat.js";
+import { disbursementRouter } from "./routers/disbursement-router.js";
+import { riskAssessmentRouter } from "./routers/risk-assessment-router.js";
+import { loanApplicationRouter } from "./routers/loan-application-router.js";
+import { africasTalkingRouter } from "./routers/africas-talking-router.js";
+import { smsRouter } from "./routers/sms-router.js";
+import { smsTemplatesRouter } from "./routers/sms-templates-router.js";
+import { smsResponsesRouter } from "./routers/sms-responses-router.js";
+import { smsAnalyticsRouter } from "./routers/sms-analytics-router.js";
+import { microfinanceActiveLoansRouter } from "./routers/microfinance-active-loans.js";
+import { erpnextRouter } from "./routers/erpnext-router.js";
+import { healthRouter } from "./routers/health-router.js";
+import { auditTrailRouter } from "./audit-trail-router.js";
+import { permifyRouter } from "./permify-router.js";
+import { exchangeRouter } from "./routers/exchange-router.js";
+import { cooperativeRouter } from "./routers/cooperative-router.js";
+import { notificationRouter } from "./routers/notification-router.js";
+import { creditScoringRouter } from "./routers/credit-scoring-router.js";
+import { agentProductivityRouter } from "./routers/agent-productivity-router.js";
+import { traceabilityRouter } from "./routers/traceability-router.js";
+import { kycRouter } from "./routers/kyc-router.js";
+import { adminDashboardRouter } from "./routers/admin-dashboard-router.js";
+import { gpsTrackingRouter } from "./routers/gps-tracking-router.js";
+import { landSuitabilityRouter } from "./routers/land-suitability-router.js";
+import { farmerFeaturesRouter } from "./routers/farmer-features-router.js";
+import { satelliteImageryRouter } from "./satellite-imagery-router.js";
+import { fieldOverviewRouter } from "./routers/field-overview-router.js";
+
+import { authRouter as authRouterSimple } from "./auth-router-simple.js";
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error(
+    "JWT_SECRET environment variable is required. Generate one with: openssl rand -base64 32"
+  );
+}
+
+// Re-export createContext, middleware, router, and procedures for server setup
+export { createContext, middleware, router, protectedProcedure, publicProcedure };
+
+// Auth router - use simple version that bypasses Drizzle ORM schema issues
+const authRouter = authRouterSimple;
+
+export const appRouter = router({
+  auth: authRouter,
+  dashboard: dashboardCacheRouter,
+  admin: adminRouter,
+  financialReports: financialReportsRouter,
+  export: exportRouter,
+  marketplace: marketplaceRouter,
+  stripeMarketplace: stripeMarketplaceRouter,
+  messaging: messagingRouter,
+  voice: voiceRouter,
+  analytics: analyticsRouter,
+  mlPredictions: mlPredictionsRouter,
+  productReviews: productReviewsRouter,
+  reviewAnalytics: reviewAnalyticsRouter,
+  reviewResponses: reviewResponsesRouter,
+  moderationAnalytics: moderationAnalyticsRouter,
+  responseTemplates: responseTemplatesRouter,
+  moderationWorkflow: moderationWorkflowRouter,
+  mlModels: mlModelsRouter,
+  spatial: spatialRouter,
+  weather: weatherRouter,
+  agriculturalIntelligence: agriculturalIntelligenceRouter,
+  accounting: accountingRouter,
+  hr: hrRouter,
+  inventory: inventoryRouter,
+  banking: bankingRouter,
+  microfinance: router({
+    ...microfinanceRouter._def.procedures,
+    ...microfinanceActiveLoansRouter._def.procedures,
+    ...microfinanceFlatProcedures,
+  }),
+  disbursement: disbursementRouter,
+  riskAssessment: riskAssessmentRouter,
+  loanApplication: loanApplicationRouter,
+  africasTalking: africasTalkingRouter,
+  sms: smsRouter,
+  smsTemplates: smsTemplatesRouter,
+  smsResponses: smsResponsesRouter,
+  smsAnalytics: smsAnalyticsRouter,
+  erpnext: erpnextRouter,
+    health: healthRouter,
+    auditTrail: auditTrailRouter,
+    permify: permifyRouter,
+        exchange: exchangeRouter,
+        cooperative: cooperativeRouter,
+        notification: notificationRouter,
+        creditScoring: creditScoringRouter,
+                agentProductivity: agentProductivityRouter,
+                traceability: traceabilityRouter,
+                kyc: kycRouter,
+                adminDashboard: adminDashboardRouter,
+                                gpsTracking: gpsTrackingRouter,
+                                                                                                  landSuitability: landSuitabilityRouter,
+                                    farmerFeatures: farmerFeaturesRouter,
+                                    satelliteImagery: satelliteImageryRouter,
+                                    fieldOverview: fieldOverviewRouter,
+                                    sync: router({
+    push: protectedProcedure
+      .input(syncRequestSchemaExport)
+      .mutation(async ({ input, ctx }) => {
+        return await pushChanges(input, (ctx as any).user.id);
+      }),
+    pull: protectedProcedure
+      .input(pullChangesSchemaExport)
+      .query(async ({ input, ctx }) => {
+        return await pullChanges(input, (ctx as any).user.id);
+      }),
+  }),
+});
+
+export type AppRouter = typeof appRouter;

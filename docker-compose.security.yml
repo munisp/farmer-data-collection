@@ -1,0 +1,313 @@
+version: '3.8'
+
+# Complete Security & Observability Stack
+# Includes: OpenAppSec, OpenCTI, Wazuh, OpenSearch, Kubecost
+
+services:
+  # ============================================================================
+  # OpenAppSec - Web Application Firewall
+  # ============================================================================
+  openappsec:
+    image: ghcr.io/openappsec/agent:latest
+    container_name: openappsec
+    ports:
+      - "8080:8080"   # Management UI
+      - "8443:8443"   # Protected HTTPS traffic
+    environment:
+      - AGENT_TOKEN=${OPENAPPSEC_TOKEN:-demo-token}
+      - AGENT_MODE=standalone
+      - LOG_LEVEL=info
+    volumes:
+      - openappsec_data:/etc/cp/conf
+      - openappsec_logs:/var/log/nano_agent
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  # ============================================================================
+  # OpenCTI - Cyber Threat Intelligence Platform
+  # ============================================================================
+  opencti_redis:
+    image: redis:7.2-alpine
+    container_name: opencti_redis
+    volumes:
+      - opencti_redis_data:/data
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  opencti_elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: opencti_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+    volumes:
+      - opencti_es_data:/usr/share/elasticsearch/data
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  opencti_minio:
+    image: minio/minio:latest
+    container_name: opencti_minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=opencti
+      - MINIO_ROOT_PASSWORD=${OPENCTI_MINIO_PASSWORD:-changeme123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - opencti_minio_data:/data
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  opencti_rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: opencti_rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=opencti
+      - RABBITMQ_DEFAULT_PASS=${OPENCTI_RABBITMQ_PASSWORD:-changeme123}
+    volumes:
+      - opencti_rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  opencti:
+    image: opencti/platform:latest
+    container_name: opencti
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - APP__PORT=8081
+      - APP__BASE_URL=http://localhost:8081
+      - APP__ADMIN__EMAIL=admin@opencti.io
+      - APP__ADMIN__PASSWORD=${OPENCTI_ADMIN_PASSWORD:-changeme123}
+      - APP__ADMIN__TOKEN=${OPENCTI_ADMIN_TOKEN:-changeme-token}
+      - APP__APP_LOGS__LOGS_LEVEL=info
+      - REDIS__HOSTNAME=opencti_redis
+      - REDIS__PORT=6379
+      - ELASTICSEARCH__URL=http://opencti_elasticsearch:9200
+      - MINIO__ENDPOINT=opencti_minio
+      - MINIO__PORT=9000
+      - MINIO__USE_SSL=false
+      - MINIO__ACCESS_KEY=opencti
+      - MINIO__SECRET_KEY=${OPENCTI_MINIO_PASSWORD:-changeme123}
+      - RABBITMQ__HOSTNAME=opencti_rabbitmq
+      - RABBITMQ__PORT=5672
+      - RABBITMQ__USERNAME=opencti
+      - RABBITMQ__PASSWORD=${OPENCTI_RABBITMQ_PASSWORD:-changeme123}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - opencti_redis
+      - opencti_elasticsearch
+      - opencti_minio
+      - opencti_rabbitmq
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  # ============================================================================
+  # Wazuh - Security Monitoring & Intrusion Detection
+  # ============================================================================
+  wazuh_manager:
+    image: wazuh/wazuh-manager:latest
+    container_name: wazuh_manager
+    hostname: wazuh-manager
+    environment:
+      - INDEXER_URL=https://wazuh_indexer:9200
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-SecretPassword}
+      - FILEBEAT_SSL_VERIFICATION_MODE=full
+      - SSL_CERTIFICATE_AUTHORITIES=/etc/ssl/root-ca.pem
+      - SSL_CERTIFICATE=/etc/ssl/filebeat.pem
+      - SSL_KEY=/etc/ssl/filebeat.key
+      - API_USERNAME=wazuh-wui
+      - API_PASSWORD=${WAZUH_API_PASSWORD:-MyS3cr37P450r.*-}
+    volumes:
+      - wazuh_api_configuration:/var/ossec/api/configuration
+      - wazuh_etc:/var/ossec/etc
+      - wazuh_logs:/var/ossec/logs
+      - wazuh_queue:/var/ossec/queue
+      - wazuh_var_multigroups:/var/ossec/var/multigroups
+      - wazuh_integrations:/var/ossec/integrations
+      - wazuh_active_response:/var/ossec/active-response/bin
+      - wazuh_agentless:/var/ossec/agentless
+      - wazuh_wodles:/var/ossec/wodles
+    ports:
+      - "1514:1514"   # Agent communication
+      - "1515:1515"   # Agent enrollment
+      - "55000:55000" # API
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  wazuh_indexer:
+    image: wazuh/wazuh-indexer:latest
+    container_name: wazuh_indexer
+    hostname: wazuh-indexer
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-SecretPassword}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - wazuh_indexer_data:/var/lib/wazuh-indexer
+    ports:
+      - "9200:9200"
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  wazuh_dashboard:
+    image: wazuh/wazuh-dashboard:latest
+    container_name: wazuh_dashboard
+    hostname: wazuh-dashboard
+    environment:
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-SecretPassword}
+      - WAZUH_API_URL=https://wazuh_manager
+      - API_USERNAME=wazuh-wui
+      - API_PASSWORD=${WAZUH_API_PASSWORD:-MyS3cr37P450r.*-}
+    ports:
+      - "5601:5601"
+    depends_on:
+      - wazuh_indexer
+      - wazuh_manager
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  # ============================================================================
+  # OpenSearch - Search & Analytics Engine
+  # ============================================================================
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-Admin@123}
+      - plugins.security.disabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    ports:
+      - "9201:9200"
+      - "9600:9600"
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  opensearch_dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch_dashboards
+    environment:
+      - OPENSEARCH_HOSTS=["https://opensearch:9200"]
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD:-Admin@123}
+    ports:
+      - "5602:5601"
+    depends_on:
+      - opensearch
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  # ============================================================================
+  # Kubecost - Cost Monitoring (Kubernetes)
+  # ============================================================================
+  kubecost:
+    image: gcr.io/kubecost1/cost-model:latest
+    container_name: kubecost
+    environment:
+      - PROMETHEUS_SERVER_ENDPOINT=http://prometheus:9090
+      - CLUSTER_ID=farmer-data-collection
+      - KUBECOST_NAMESPACE=kubecost
+    ports:
+      - "9003:9003"   # Kubecost UI
+      - "9090:9090"   # Metrics
+    volumes:
+      - kubecost_data:/var/configs
+    networks:
+      - security_net
+    restart: unless-stopped
+
+  # ============================================================================
+  # Logstash - Log Processing Pipeline
+  # ============================================================================
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: logstash
+    environment:
+      - "LS_JAVA_OPTS=-Xms1g -Xmx1g"
+      - ELASTICSEARCH_HOSTS=http://opensearch:9200
+    volumes:
+      - ./config/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - logstash_data:/usr/share/logstash/data
+    ports:
+      - "5000:5000"   # TCP input
+      - "5044:5044"   # Beats input
+      - "9600:9600"   # Monitoring API
+    depends_on:
+      - opensearch
+    networks:
+      - security_net
+    restart: unless-stopped
+
+volumes:
+  # OpenAppSec
+  openappsec_data:
+  openappsec_logs:
+  
+  # OpenCTI
+  opencti_redis_data:
+  opencti_es_data:
+  opencti_minio_data:
+  opencti_rabbitmq_data:
+  
+  # Wazuh
+  wazuh_api_configuration:
+  wazuh_etc:
+  wazuh_logs:
+  wazuh_queue:
+  wazuh_var_multigroups:
+  wazuh_integrations:
+  wazuh_active_response:
+  wazuh_agentless:
+  wazuh_wodles:
+  wazuh_indexer_data:
+  
+  # OpenSearch
+  opensearch_data:
+  
+  # Kubecost
+  kubecost_data:
+  
+  # Logstash
+  logstash_data:
+
+networks:
+  security_net:
+    driver: bridge

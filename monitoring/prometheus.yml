@@ -1,0 +1,160 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'farmer-platform'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node.js Backend
+  - job_name: 'backend'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['backend:3000']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'backend'
+
+  # Orchestrator Service
+  - job_name: 'orchestrator'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['orchestrator:8086']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'orchestrator'
+
+  # TigerBeetle Ledger
+  - job_name: 'tigerbeetle'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['tigerbeetle:8084']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'tigerbeetle'
+
+  # Lakehouse Analytics
+  - job_name: 'lakehouse'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['lakehouse:8085']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'lakehouse'
+
+  # Ollama AI Service
+  - job_name: 'ollama'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ollama:8087']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'ollama'
+
+  # Temporal Server
+  - job_name: 'temporal'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['temporal:8233']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'temporal'
+
+  # Kafka Mock
+  - job_name: 'kafka'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['kafka:9092']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'kafka'
+
+  # APISIX Gateway
+  - job_name: 'apisix'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['apisix:9080']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'apisix'
+
+  # Keycloak Auth
+  - job_name: 'keycloak'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['keycloak:8180']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'keycloak'
+
+  # Permify AuthZ
+  - job_name: 'permify'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['permify:3476']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'permify'
+
+  # PostgreSQL
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'postgres'
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'redis'
+
+  # Node Exporter (System Metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'host'
+
+  # cAdvisor (Container Metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'cadvisor'

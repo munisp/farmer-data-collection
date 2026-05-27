@@ -1,0 +1,72 @@
+# APISIX Configuration for Farmer Data Collection Platform
+
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+  
+  allow_admin:
+    - 0.0.0.0/0
+  
+  admin_key:
+    - name: admin
+      key: edd1c9f034335f136f87ad84b625c8f1
+      role: admin
+
+etcd:
+  host:
+    - "http://etcd:2379"
+  prefix: "/apisix"
+  timeout: 30
+
+plugin_attr:
+  prometheus:
+    export_addr:
+      ip: "0.0.0.0"
+      port: 9091
+
+plugins:
+  - api-breaker
+  - authz-keycloak
+  - basic-auth
+  - batch-requests
+  - consumer-restriction
+  - cors
+  - echo
+  - fault-injection
+  - grpc-transcode
+  - hmac-auth
+  - http-logger
+  - ip-restriction
+  - jwt-auth
+  - kafka-logger
+  - key-auth
+  - limit-conn
+  - limit-count
+  - limit-req
+  - node-status
+  - openid-connect
+  - prometheus
+  - proxy-cache
+  - proxy-mirror
+  - proxy-rewrite
+  - redirect
+  - referer-restriction
+  - request-id
+  - request-validation
+  - response-rewrite
+  - serverless-post-function
+  - serverless-pre-function
+  - syslog
+  - tcp-logger
+  - udp-logger
+  - uri-blocker
+  - wolf-rbac
+  - zipkin
+  - traffic-split
+  - gzip
+  - real-ip
+
+stream_plugins:
+  - mqtt-proxy
+  - ip-restriction
+  - limit-conn

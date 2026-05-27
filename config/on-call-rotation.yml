@@ -1,0 +1,45 @@
+# On-Call Rotation Schedule for Farmer Data Collection Platform
+# Integrates with PagerDuty for automated escalation
+
+teams:
+  - name: Platform Engineering
+    members:
+      - name: Primary Engineer
+        email: engineer1@example.com
+        phone: +234-XXX-XXX-XXXX
+        pagerduty_id: PXXXXXX
+      
+      - name: Secondary Engineer
+        email: engineer2@example.com
+        phone: +234-XXX-XXX-XXXX
+        pagerduty_id: PYYYYYYY
+
+rotation:
+  schedule: weekly
+  timezone: Africa/Lagos
+  handoff_time: "09:00"
+  
+escalation_policy:
+  - level: 1
+    timeout: 5m
+    notify: primary_on_call
+  
+  - level: 2
+    timeout: 10m
+    notify: secondary_on_call
+  
+  - level: 3
+    timeout: 15m
+    notify: team_lead
+
+incident_response:
+  critical:
+    - Check Temporal Web UI for workflow status
+    - Review Grafana dashboards for service health
+    - Check logs: docker-compose logs -f --tail=100
+    - Execute remediation scripts from scripts/remediation/
+  
+  warning:
+    - Document issue in incident log
+    - Monitor for escalation
+    - Prepare remediation if needed

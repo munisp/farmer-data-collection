@@ -1,0 +1,28 @@
+[Unit]
+Description=Farmer Data Collection Platform - All Services
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=forking
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/farmer-data-collection
+ExecStart=/home/ubuntu/farmer-data-collection/scripts/start-all-services.sh --prod
+ExecStop=/bin/bash -c 'for pid in /home/ubuntu/farmer-data-collection/pids/*.pid; do [ -f "$pid" ] && kill $(cat "$pid") 2>/dev/null || true; done'
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=farmer-platform
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Environment
+Environment="NODE_ENV=production"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+
+[Install]
+WantedBy=multi-user.target

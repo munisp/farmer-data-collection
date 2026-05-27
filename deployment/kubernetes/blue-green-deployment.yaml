@@ -1,0 +1,345 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: farmer-platform
+  labels:
+    app.kubernetes.io/name: farmer-platform
+
+---
+# Blue Deployment (Current Production)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server-blue
+  namespace: farmer-platform
+  labels:
+    app: api-server
+    version: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-server
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: api-server
+        version: blue
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - api-server
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: api-server
+          image: farmer-platform/api-server:blue
+          ports:
+            - containerPort: 3001
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-secrets
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-secrets
+                  key: jwt-secret
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            - name: KAFKA_BROKERS
+              value: "kafka:9092"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
+---
+# Green Deployment (New Version for Testing)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server-green
+  namespace: farmer-platform
+  labels:
+    app: api-server
+    version: green
+spec:
+  replicas: 0  # Start with 0 replicas, scale up when deploying
+  selector:
+    matchLabels:
+      app: api-server
+      version: green
+  template:
+    metadata:
+      labels:
+        app: api-server
+        version: green
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - api-server
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: api-server
+          image: farmer-platform/api-server:green
+          ports:
+            - containerPort: 3001
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-secrets
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-secrets
+                  key: jwt-secret
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            - name: KAFKA_BROKERS
+              value: "kafka:9092"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
+---
+# Blue Service (Internal)
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-server-blue
+  namespace: farmer-platform
+  labels:
+    app: api-server
+    version: blue
+spec:
+  selector:
+    app: api-server
+    version: blue
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+
+---
+# Green Service (Internal)
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-server-green
+  namespace: farmer-platform
+  labels:
+    app: api-server
+    version: green
+spec:
+  selector:
+    app: api-server
+    version: green
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+
+---
+# Production Service (Points to active deployment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-server
+  namespace: farmer-platform
+  labels:
+    app: api-server
+spec:
+  selector:
+    app: api-server
+    version: blue  # Switch to 'green' during deployment
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+
+---
+# Ingress for API Server
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-server-ingress
+  namespace: farmer-platform
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.farmer-platform.com
+      secretName: farmer-tls-secret
+  rules:
+    - host: api.farmer-platform.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-server
+                port:
+                  number: 3001
+
+---
+# HorizontalPodAutoscaler for Blue
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-server-blue-hpa
+  namespace: farmer-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-server-blue
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# HorizontalPodAutoscaler for Green
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-server-green-hpa
+  namespace: farmer-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-server-green
+  minReplicas: 0
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# PodDisruptionBudget for Blue
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-server-blue-pdb
+  namespace: farmer-platform
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: api-server
+      version: blue
+
+---
+# PodDisruptionBudget for Green
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-server-green-pdb
+  namespace: farmer-platform
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: api-server
+      version: green
