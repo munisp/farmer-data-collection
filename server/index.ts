@@ -174,6 +174,7 @@ async function startServer() {
       const consumerHealth = getConsumerHealth();
       res.json({ 
         status: 'ok', 
+        version: process.env.APP_VERSION || '1.0.0',
         redis: redisStatus,
         consumers: consumerHealth
       });
