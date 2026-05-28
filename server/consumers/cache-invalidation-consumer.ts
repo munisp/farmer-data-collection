@@ -1,61 +1,79 @@
 import { createConsumer, TOPICS } from '../kafka.js';
 import { getRedisClient } from '../redis.js';
+import { cacheInvalidateByPrefix, cacheInvalidateEntity } from '../cache/cache-layer.js';
+import { logger } from '../logger.js';
 
 /**
  * Cache Invalidation Consumer
  * 
- * Listens to cache.invalidation topic and automatically clears Redis cache
- * when data changes occur
+ * Listens to cache.invalidation topic and clears both L1 (in-memory LRU)
+ * and L2 (Redis) cache when data changes occur across processes.
  */
 
 export async function startCacheInvalidationConsumer() {
-  // Redis connection will be attempted when needed
-
-  console.log('[CacheInvalidationConsumer] Starting...');
+  logger.info('[CacheInvalidationConsumer] Starting...');
 
   try {
     const consumer = await createConsumer('cache-invalidation-group');
     
     await consumer.subscribe({
       topic: TOPICS.CACHE_INVALIDATION,
-      fromBeginning: false, // Only process new messages
+      fromBeginning: false,
     });
 
     await consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ message }) => {
         try {
           const event = JSON.parse(message.value?.toString() || '{}');
-          
-          // Extract cache keys from event
-          const cacheKeys = (event as any).cacheKeys || [];
-          
-          if (cacheKeys.length === 0) {
-            console.log(`[CacheInvalidationConsumer] No cache keys in event ${event.eventId}`);
+          const { data } = event;
+
+          if (!data) {
+            logger.debug('[CacheInvalidationConsumer] No data in event', { eventId: event.eventId });
             return;
           }
 
-          // Delete cache keys
-          const redis = getRedisClient();
-          if (!redis) return;
-          const deletedCount = await redis.del(...cacheKeys);
-          
-          console.log(
-            `[CacheInvalidationConsumer] Invalidated ${deletedCount} cache keys:`,
-            cacheKeys.join(', ')
-          );
+          const { entityType, entityId, cacheKeys = [] } = data;
 
-          // Metrics updated via Prometheus
+          // Invalidate multi-tier cache (L1 + L2)
+          if (entityType) {
+            await cacheInvalidateEntity(entityType, entityId);
+          }
+
+          // Also invalidate any explicit cache key patterns from the event
+          if (cacheKeys.length > 0) {
+            const redis = getRedisClient();
+            if (redis) {
+              for (const pattern of cacheKeys) {
+                if (pattern.endsWith('*')) {
+                  const prefix = pattern.replace('cache:', '').replace('*', '');
+                  await cacheInvalidateByPrefix(prefix);
+                } else {
+                  await redis.del(pattern);
+                }
+              }
+            }
+          }
+
+          logger.debug('[CacheInvalidationConsumer] Processed', {
+            eventId: event.eventId,
+            entityType,
+            entityId,
+            keysCount: cacheKeys.length,
+          });
         } catch (error) {
-          console.error('[CacheInvalidationConsumer] Error processing message:', error);
-          // Don't throw - we don't want to stop the consumer on individual message errors
+          logger.error('[CacheInvalidationConsumer] Error processing message', {
+            error: (error as Error).message,
+          });
         }
       },
     });
 
-    console.log('[CacheInvalidationConsumer] Started successfully');
+    logger.info('[CacheInvalidationConsumer] Started successfully');
     return consumer;
   } catch (error) {
-    console.error('[CacheInvalidationConsumer] Failed to start:', error);
+    logger.error('[CacheInvalidationConsumer] Failed to start', {
+      error: (error as Error).message,
+    });
     throw error;
   }
 }

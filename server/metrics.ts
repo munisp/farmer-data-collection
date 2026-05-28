@@ -61,6 +61,25 @@ export const cacheOperationDuration = new Histogram({
   registers: [register],
 });
 
+export const cacheInvalidations = new Counter({
+  name: 'cache_invalidations_total',
+  help: 'Total number of cache invalidations',
+  labelNames: ['entity_type', 'trigger'],
+  registers: [register],
+});
+
+export const cacheL1Size = new Gauge({
+  name: 'cache_l1_size',
+  help: 'Current number of entries in L1 in-memory cache',
+  registers: [register],
+});
+
+export const cacheL1MemoryBytes = new Gauge({
+  name: 'cache_l1_memory_bytes',
+  help: 'Approximate memory used by L1 cache in bytes',
+  registers: [register],
+});
+
 // Active connections
 export const activeConnections = new Gauge({
   name: 'active_connections',

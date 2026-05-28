@@ -5,6 +5,7 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
@@ -298,11 +299,11 @@ const IVR_MENUS: Record<SupportedLanguage, IVRMenu> = {
 };
 
 class VoiceAdvisoryService {
-  private advisories: Map<string, VoiceAdvisory> = new Map();
-  private calls: Map<string, VoiceCall> = new Map();
-  private callbackRequests: Map<string, CallbackRequest> = new Map();
-  private smsAlerts: Map<string, SMSAlert> = new Map();
-  private farmerPreferences: Map<number, FarmerPreferences> = new Map();
+  private advisories: BoundedMap<string, VoiceAdvisory> = new BoundedMap(2000, 86400_000);
+  private calls: BoundedMap<string, VoiceCall> = new BoundedMap(5000, 43200_000);
+  private callbackRequests: BoundedMap<string, CallbackRequest> = new BoundedMap(1000, 86400_000);
+  private smsAlerts: BoundedMap<string, SMSAlert> = new BoundedMap(5000, 86400_000);
+  private farmerPreferences: BoundedMap<number, FarmerPreferences> = new BoundedMap(5000, 86400_000);
 
   /**
    * Get IVR menu for a language

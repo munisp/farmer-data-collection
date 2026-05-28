@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { logger } from './logger.js';
+import { cacheHits, cacheMisses, cacheOperationDuration } from './metrics.js';
 
 let redisClient: Redis | null = null;
 let _connectionFailed = false;
@@ -114,14 +115,26 @@ export class CacheService {
   async get<T>(key: string): Promise<T | null> {
     const redis = this.getClient();
     if (!redis) return null;
+    const timer = cacheOperationDuration.startTimer({ operation: 'redis_get' });
     try {
       const value = await redis.get(key);
-      if (!value) return null;
+      timer();
+      if (!value) {
+        cacheMisses.inc({ key_prefix: this.extractPrefix(key) });
+        return null;
+      }
+      cacheHits.inc({ key_prefix: this.extractPrefix(key) });
       return JSON.parse(value) as T;
     } catch (error) {
+      timer();
       logger.error(`[Cache] Error getting key ${key}`, { error: (error as Error).message });
       return null;
     }
+  }
+
+  private extractPrefix(key: string): string {
+    const parts = key.split(':');
+    return parts.length > 1 ? parts[0] : 'default';
   }
 
   async set(key: string, value: unknown, ttl?: number): Promise<void> {

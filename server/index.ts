@@ -9,6 +9,8 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter, createContext } from "./trpc.js";
 import { getMetrics, metricsMiddleware } from "./metrics.js";
 import { getRedisClient, closeRedis } from "./redis.js";
+import { httpCacheHeaders, staticCacheHeaders } from "./cache/http-cache-headers.js";
+import { getCacheStats } from "./cache/cache-layer.js";
 import { initRedis, closeRedis as closeRateLimitRedis } from "./_core/redis.js";
 import { startAllConsumers, stopAllConsumers, getConsumerHealth } from "./consumers/consumer-manager.js";
 import { startAllConsumers as startKafkaConsumers, stopAllConsumers as stopKafkaConsumers } from "./kafka-consumers.js";
@@ -39,8 +41,14 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS
 
 function isAllowedOrigin(origin?: string | null) {
   if (!origin) return true;
-  if (!isProduction && (origin.includes('manusvm.computer') || origin.includes('manus.computer'))) {
-    return true;
+  if (!isProduction) {
+    if (origin.includes('manusvm.computer') || origin.includes('manus.computer')) {
+      return true;
+    }
+    // Allow any localhost origin in development (Vite may use varying ports)
+    if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+      return true;
+    }
   }
   return allowedOrigins.includes(origin);
 }
@@ -96,6 +104,9 @@ async function startServer() {
   
   // Metrics middleware
   app.use(metricsMiddleware());
+  
+  // HTTP cache headers (Cache-Control, ETag, 304 Not Modified)
+  app.use(httpCacheHeaders());
   
   // Initialize Redis connection for caching
   try {
@@ -162,6 +173,12 @@ async function startServer() {
   // Kubernetes liveness probe alias
   app.get('/healthz', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Cache stats endpoint
+  app.get('/cache/stats', (_req, res) => {
+    const stats = getCacheStats();
+    res.json({ status: 'ok', ...stats, timestamp: new Date().toISOString() });
   });
 
   // Kubernetes readiness probe - checks if app is ready to receive traffic

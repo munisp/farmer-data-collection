@@ -5,6 +5,7 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
@@ -203,7 +204,7 @@ const DEFAULT_TRIGGERS: Record<InsurancePeril, InsuranceTrigger> = {
 };
 
 class CropInsuranceService {
-  private policies: Map<string, InsurancePolicy> = new Map();
+  private policies: BoundedMap<string, InsurancePolicy> = new BoundedMap(5000, 86400_000);
   private monitoringInterval: NodeJS.Timeout | null = null;
 
   /**

@@ -5,6 +5,7 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
 
@@ -234,9 +235,9 @@ const CERTIFICATION_REQUIREMENTS: Record<CertificationType, CertificationRequire
 };
 
 class CarbonCreditService {
-  private carbonFootprints: Map<string, CarbonFootprint> = new Map();
-  private carbonCredits: Map<string, CarbonCredit> = new Map();
-  private sustainabilityScores: Map<number, SustainabilityScore> = new Map();
+  private carbonFootprints: BoundedMap<string, CarbonFootprint> = new BoundedMap(2000, 86400_000);
+  private carbonCredits: BoundedMap<string, CarbonCredit> = new BoundedMap(5000, 86400_000);
+  private sustainabilityScores: BoundedMap<number, SustainabilityScore> = new BoundedMap(5000, 86400_000);
 
   /**
    * Calculate carbon footprint for a farm

@@ -5,6 +5,7 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
@@ -307,8 +308,8 @@ const CONSERVATION_TIPS: WaterConservationTip[] = [
 ];
 
 class WaterManagementService {
-  private irrigationSystems: Map<string, IrrigationSystem> = new Map();
-  private schedules: Map<string, IrrigationSchedule> = new Map();
+  private irrigationSystems: BoundedMap<string, IrrigationSystem> = new BoundedMap(2000, 86400_000);
+  private schedules: BoundedMap<string, IrrigationSchedule> = new BoundedMap(5000, 86400_000);
 
   /**
    * Calculate crop water requirements

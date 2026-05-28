@@ -5,6 +5,7 @@
  * Provides both offline (lakehouse) and online (Redis/Postgres) feature serving
  */
 
+import { BoundedMap } from '../../cache/bounded-map.js';
 import { getLakehouseClient } from './lakehouse-client.js';
 import { LAKEHOUSE_TABLES } from './lakehouse-config.js';
 import { getRedisClient } from '../../redis.js';
@@ -208,7 +209,7 @@ export const DEFAULT_PREDICTION_FEATURES: FeatureGroup = {
 // ============================================================================
 
 export class FeatureStoreService {
-  private featureGroups: Map<string, FeatureGroup> = new Map();
+  private featureGroups: BoundedMap<string, FeatureGroup> = new BoundedMap(100, 86400_000);
 
   constructor() {
     // Register default feature groups

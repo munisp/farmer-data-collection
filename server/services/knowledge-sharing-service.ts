@@ -5,6 +5,7 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
 
@@ -277,13 +278,13 @@ const LEARNING_PATHS: LearningPath[] = [
 ];
 
 class KnowledgeSharingService {
-  private posts: Map<string, ForumPost> = new Map();
-  private comments: Map<string, Comment> = new Map();
-  private successStories: Map<string, SuccessStory> = new Map();
-  private experts: Map<string, Expert> = new Map();
-  private expertSessions: Map<string, ExpertSession> = new Map();
-  private farmerProfiles: Map<number, FarmerProfile> = new Map();
-  private farmerProgress: Map<string, FarmerProgress> = new Map();
+  private posts: BoundedMap<string, ForumPost> = new BoundedMap(5000, 86400_000);
+  private comments: BoundedMap<string, Comment> = new BoundedMap(10000, 86400_000);
+  private successStories: BoundedMap<string, SuccessStory> = new BoundedMap(2000, 86400_000);
+  private experts: BoundedMap<string, Expert> = new BoundedMap(500, 86400_000);
+  private expertSessions: BoundedMap<string, ExpertSession> = new BoundedMap(1000, 43200_000);
+  private farmerProfiles: BoundedMap<number, FarmerProfile> = new BoundedMap(5000, 86400_000);
+  private farmerProgress: BoundedMap<string, FarmerProgress> = new BoundedMap(5000, 86400_000);
 
   /**
    * Create a forum post

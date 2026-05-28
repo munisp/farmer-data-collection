@@ -7,6 +7,8 @@ import { getDb } from "../db.js";
 import { users, User } from "../../drizzle/schema.js";
 import { verifyKeycloakToken, KeycloakUser } from "../keycloak.js";
 import { rateLimit, RateLimitPresets } from "./redis-rate-limit.js";
+import { cacheMiddleware } from "../cache/trpc-cache-middleware.js";
+import { mutationInvalidationMiddleware } from "../cache/mutation-invalidation-middleware.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
   console.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
@@ -91,14 +93,17 @@ const t = initTRPC.context<Context>().create({
 export const router = t.router;
 export const middleware = t.middleware;
 
-// Public procedure with strict rate limiting(Redis or in-memory fallback)
-export const publicProcedure = t.procedure.use(async ({ ctx, next }) => {
-  const identifier = ctx.token || "anonymous";
-  await rateLimit(identifier, RateLimitPresets.strict);
-  return next();
-});
+// Public procedure with strict rate limiting(Redis or in-memory fallback) + cache + mutation invalidation
+export const publicProcedure = t.procedure
+  .use(async ({ ctx, next }) => {
+    const identifier = ctx.token || "anonymous";
+    await rateLimit(identifier, RateLimitPresets.strict);
+    return next();
+  })
+  .use(cacheMiddleware)
+  .use(mutationInvalidationMiddleware);
 
-// Protected procedure - requires authentication with moderate rate limiting (Redis or in-memory fallback)
+// Protected procedure - requires authentication with moderate rate limiting (Redis or in-memory fallback) + cache
 export const protectedProcedure = t.procedure
   .use(async ({ ctx, next }) => {
     const identifier = ctx.token || "anonymous";
@@ -162,4 +167,6 @@ export const protectedProcedure = t.procedure
     code: "UNAUTHORIZED",
     message: "Not authenticated",
   });
-});
+})
+.use(cacheMiddleware)
+.use(mutationInvalidationMiddleware);

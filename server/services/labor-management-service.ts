@@ -5,6 +5,7 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
 import { publishEvent, createEvent } from "../kafka.js";
 import { ERPNextSyncService } from "./erpnext-sync-service.js";
@@ -307,11 +308,11 @@ const TRAINING_MODULES: TrainingModule[] = [
 ];
 
 class LaborManagementService {
-  private workers: Map<string, FarmWorker> = new Map();
-  private tasks: Map<string, FarmTask> = new Map();
-  private schedules: Map<string, WorkSchedule> = new Map();
-  private payrollRecords: Map<string, PayrollRecord> = new Map();
-  private trainingProgress: Map<string, WorkerTrainingProgress[]> = new Map();
+  private workers: BoundedMap<string, FarmWorker> = new BoundedMap(2000, 86400_000);
+  private tasks: BoundedMap<string, FarmTask> = new BoundedMap(5000, 43200_000);
+  private schedules: BoundedMap<string, WorkSchedule> = new BoundedMap(2000, 86400_000);
+  private payrollRecords: BoundedMap<string, PayrollRecord> = new BoundedMap(5000, 86400_000);
+  private trainingProgress: BoundedMap<string, WorkerTrainingProgress[]> = new BoundedMap(2000, 86400_000);
 
   /**
    * Register a new farm worker
