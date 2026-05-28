@@ -222,6 +222,7 @@ function Router() {
         <Route path="/disbursement-analytics" component={DisbursementAnalytics} />
         <Route path="/repayment-tracking" component={RepaymentTracking} />
         <Route path="/credit-score" component={CreditScoreDashboard} />
+        <Route path="/credit-scores">{() => <Redirect to="/credit-score" />}</Route>
         <Route path="/lender-comparison" component={LenderComparison} />
         <Route path="/loan-calculator" component={LoanCalculator} />
         <Route path="/admin/risk-assessment" component={BorrowerRiskAssessment} />
@@ -263,6 +264,7 @@ function Router() {
         <Route path="/input-yield-analytics" component={InputYieldAnalytics} />
         <Route path="/land-suitability" component={LandSuitabilityAssessment} />
         <Route path="/delivery" component={DeliveryDashboard} />
+        <Route path="/delivery/tracking" component={DeliveryDashboard} />
         <Route path="/mobile-money" component={MobileMoneyDashboard} />
         <Route path="/chama" component={ChamaGroupLending} />
         <Route path="/cold-chain" component={ColdChainMonitoring} />
@@ -270,6 +272,7 @@ function Router() {
         <Route path="/subscriptions" component={SubscriptionBoxes} />
         {/* === Next-Gen AI Equipment & LLM Pages === */}
         <Route path="/drone-operations" component={DroneFlightDashboard} />
+        <Route path="/drone-flights">{() => <Redirect to="/drone-operations" />}</Route>
         <Route path="/equipment-fleet" component={EquipmentFleetDashboard} />
         <Route path="/iot-sensors" component={IoTSensorDashboard} />
         <Route path="/ai-advisor" component={AIAdvisorDashboard} />
