@@ -12,7 +12,7 @@ import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
  */
 
 // Template variable substitution helper
-function substituteVariables(template: string, variables: Record<string, any>): string {
+function substituteVariables(template: string, variables: Record<string, unknown>): string {
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
     const regex = new RegExp(`{{${key}}}`, 'g');
@@ -540,9 +540,9 @@ export const smsTemplatesRouter = router({
             });
 
           results.successCount++;
-        } catch (error: any) {
+        } catch (error: unknown) {
           results.failureCount++;
-          results.errors.push(`Loan ${loanId}: ${error.message}`);
+          results.errors.push(`Loan ${loanId}: ${(error instanceof Error ? error.message : String(error))}`);
         }
       }
 

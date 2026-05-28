@@ -3,6 +3,7 @@ import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.
 import { getDb } from "../db.js";
 import { smsResponses, users, loans } from "../../drizzle/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
+import { logger } from '../logger.js';
 
 /**
  * SMS Responses Router
@@ -156,7 +157,7 @@ export const smsResponsesRouter = router({
             })
             .where(eq(smsResponses.id, response.id));
         } catch (error) {
-          console.error("Failed to send auto-reply:", error);
+          logger.error("Failed to send auto-reply:", error);
         }
       }
 
@@ -261,7 +262,7 @@ export const smsResponsesRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         isProcessed: input.status,
         updatedAt: new Date(),
       };

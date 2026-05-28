@@ -4,6 +4,7 @@ import { SMSMessage } from "../../shared/sms-types.js";
 import { getDb } from "../db.js";
 import { messageLogs } from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
+import { logger } from '../logger.js';
 
 const router = express.Router();
 
@@ -27,9 +28,9 @@ async function updateSMSStatus(
       })
       .where(eq(messageLogs.externalMessageId, messageId));
 
-    console.log(`[SMS] Updated message ${messageId} status to ${status}`);
+    logger.info(`[SMS] Updated message ${messageId} status to ${status}`);
   } catch (error) {
-    console.error('[SMS] Failed to update message status:', error);
+    logger.error('[SMS] Failed to update message status:', error);
   }
 }
 
@@ -55,9 +56,9 @@ async function saveIncomingSMS(
       status: 'received',
     });
 
-    console.log(`[SMS] Saved incoming message from ${from}`);
+    logger.info(`[SMS] Saved incoming message from ${from}`);
   } catch (error) {
-    console.error('[SMS] Failed to save incoming message:', error);
+    logger.error('[SMS] Failed to save incoming message:', error);
   }
 }
 
@@ -81,9 +82,9 @@ router.post("/send", async (req, res) => {
     } else {
       res.status(500).json(result);
     }
-  } catch (error: any) {
-    console.error("[SMS API] Send error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[SMS API] Send error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -108,9 +109,9 @@ router.post("/send-template", async (req, res) => {
     } else {
       res.status(500).json(result);
     }
-  } catch (error: any) {
-    console.error("[SMS API] Template send error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[SMS API] Template send error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -137,9 +138,9 @@ router.post("/send-bulk", async (req, res) => {
       failed: failureCount,
       results,
     });
-  } catch (error: any) {
-    console.error("[SMS API] Bulk send error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[SMS API] Bulk send error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -157,9 +158,9 @@ router.get("/status", async (req, res) => {
       providers,
       configured: providers.length > 0,
     });
-  } catch (error: any) {
-    console.error("[SMS API] Status error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[SMS API] Status error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -171,7 +172,7 @@ router.post("/delivery-report", async (req, res) => {
   try {
     const { id, status, phoneNumber, networkCode, retryCount } = req.body;
 
-    console.log("[SMS] Delivery report:", {
+    logger.info("[SMS] Delivery report:", {
       id,
       status,
       phoneNumber,
@@ -183,9 +184,9 @@ router.post("/delivery-report", async (req, res) => {
     await updateSMSStatus(id, status, networkCode);
     
     res.status(200).send("OK");
-  } catch (error: any) {
-    console.error("[SMS API] Delivery report error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[SMS API] Delivery report error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -197,7 +198,7 @@ router.post("/incoming", async (req, res) => {
   try {
     const { from, to, text, date, id, linkId } = req.body;
 
-    console.log("[SMS] Incoming message:", {
+    logger.info("[SMS] Incoming message:", {
       from,
       to,
       text,
@@ -210,9 +211,9 @@ router.post("/incoming", async (req, res) => {
     await saveIncomingSMS(from, to, text, id);
     
     res.status(200).send("OK");
-  } catch (error: any) {
-    console.error("[SMS API] Incoming SMS error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[SMS API] Incoming SMS error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 

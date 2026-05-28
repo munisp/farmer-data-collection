@@ -120,7 +120,7 @@ export const weatherAlertsRouter = router({
               }),
             }, { maxRetries: 2, timeoutMs: 15_000 });
             smsDelivered += batch.length;
-          } catch {
+          } catch (err) {
             // SMS delivery failure is non-fatal
           }
         }

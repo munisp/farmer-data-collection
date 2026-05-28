@@ -18,6 +18,7 @@ import { getDb } from '../db.js';
 import { sql, eq, and, desc, gte, lte } from 'drizzle-orm';
 import { rateLimiter, GPS_ACCURACY_THRESHOLDS } from '../services/redis-rate-limiter.js';
 import { gpsMetrics } from '../services/gps-monitoring.js';
+import { logger } from '../logger.js';
 
 // Constants for track quality filtering
 const MAX_SPEED_MS = 55.56; // 200 km/h in m/s - reject points faster than this
@@ -70,7 +71,7 @@ async function findFarmContainingPointPostGIS(
     }
     return undefined;
   } catch (error) {
-    console.warn('[GPS] PostGIS geofencing failed, falling back to JSON boundaries:', error);
+    logger.warn('[GPS] PostGIS geofencing failed, falling back to JSON boundaries:', error);
     return undefined;
   }
 }
@@ -253,7 +254,7 @@ export const gpsTrackingRouter = router({
           
           if (duplicateCheck.rows.length > 0) {
             gpsMetrics.recordTrackRejected('duplicate');
-            console.log(`[GPS] Duplicate track detected: clientId=${input.clientId}`);
+            logger.info(`[GPS] Duplicate track detected: clientId=${input.clientId}`);
             return {
               id: (duplicateCheck.rows[0] as any).id,
               rejected: false,
@@ -280,7 +281,7 @@ export const gpsTrackingRouter = router({
         // 4. Track quality filtering - accuracy check (using configurable threshold)
         if (input.accuracy && input.accuracy > accuracyThreshold) {
           gpsMetrics.recordTrackRejected('accuracy');
-          console.log(`[GPS] Rejected point: accuracy ${input.accuracy}m > ${accuracyThreshold}m threshold`);
+          logger.info(`[GPS] Rejected point: accuracy ${input.accuracy}m > ${accuracyThreshold}m threshold`);
           return { 
             id: null, 
             rejected: true, 
@@ -304,7 +305,7 @@ export const gpsTrackingRouter = router({
 
             if (impliedSpeed > MAX_SPEED_MS) {
               gpsMetrics.recordTrackRejected('speed');
-              console.log(`[GPS] Rejected point: implied speed ${(impliedSpeed * 3.6).toFixed(1)} km/h > 200 km/h threshold`);
+              logger.info(`[GPS] Rejected point: implied speed ${(impliedSpeed * 3.6).toFixed(1)} km/h > 200 km/h threshold`);
               return { 
                 id: null, 
                 rejected: true, 

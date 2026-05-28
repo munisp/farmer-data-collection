@@ -6,6 +6,7 @@
  */
 
 import axios, { AxiosInstance } from "axios";
+import { logger } from '../logger.js';
 
 // Configuration
 const MIDDLEWARE_CONFIG = {
@@ -35,7 +36,7 @@ export interface MessageEvent {
   externalId?: string;
   errorCode?: string;
   errorMessage?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -49,7 +50,7 @@ export interface USSDSessionEvent {
   isCompleted: boolean;
   action?: string;
   durationMs?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -100,11 +101,11 @@ class MessagingMiddlewareClient {
     });
 
     if (this.enabled) {
-      console.log("[MessagingMiddleware] Client initialized");
-      console.log(`[MessagingMiddleware] Go middleware: ${MIDDLEWARE_CONFIG.goMiddlewareUrl}`);
-      console.log(`[MessagingMiddleware] Python analytics: ${MIDDLEWARE_CONFIG.pythonAnalyticsUrl}`);
+      logger.info("[MessagingMiddleware] Client initialized");
+      logger.info(`[MessagingMiddleware] Go middleware: ${MIDDLEWARE_CONFIG.goMiddlewareUrl}`);
+      logger.info(`[MessagingMiddleware] Python analytics: ${MIDDLEWARE_CONFIG.pythonAnalyticsUrl}`);
     } else {
-      console.log("[MessagingMiddleware] Client disabled");
+      logger.info("[MessagingMiddleware] Client disabled");
     }
   }
 
@@ -191,8 +192,8 @@ class MessagingMiddlewareClient {
       });
 
       return response.data;
-    } catch (error: any) {
-      console.warn(`[MessagingMiddleware] Permission check failed: ${error.message}`);
+    } catch (error: unknown) {
+      logger.warn(`[MessagingMiddleware] Permission check failed: ${(error instanceof Error ? error.message : String(error))}`);
       // Default to allowed if middleware is unavailable
       return { allowed: true, userId, channel, reason: "middleware_unavailable" };
     }
@@ -201,14 +202,14 @@ class MessagingMiddlewareClient {
   /**
    * Get channel metrics from Python analytics service
    */
-  async getChannelMetrics(channel: MessageChannel): Promise<any> {
+  async getChannelMetrics(channel: MessageChannel): Promise<unknown> {
     if (!this.enabled) return null;
 
     try {
       const response = await this.pythonClient.get(`/api/analytics/${channel}`);
       return response.data;
-    } catch (error: any) {
-      console.warn(`[MessagingMiddleware] Failed to get ${channel} metrics: ${error.message}`);
+    } catch (error: unknown) {
+      logger.warn(`[MessagingMiddleware] Failed to get ${channel} metrics: ${(error instanceof Error ? error.message : String(error))}`);
       return null;
     }
   }
@@ -216,14 +217,14 @@ class MessagingMiddlewareClient {
   /**
    * Get USSD funnel metrics from Python analytics service
    */
-  async getUSSDFunnelMetrics(): Promise<any> {
+  async getUSSDFunnelMetrics(): Promise<unknown> {
     if (!this.enabled) return null;
 
     try {
       const response = await this.pythonClient.get("/api/analytics/ussd");
       return response.data;
-    } catch (error: any) {
-      console.warn(`[MessagingMiddleware] Failed to get USSD metrics: ${error.message}`);
+    } catch (error: unknown) {
+      logger.warn(`[MessagingMiddleware] Failed to get USSD metrics: ${(error instanceof Error ? error.message : String(error))}`);
       return null;
     }
   }
@@ -231,14 +232,14 @@ class MessagingMiddlewareClient {
   /**
    * Get provider health summary from Python analytics service
    */
-  async getProviderHealthSummary(): Promise<any> {
+  async getProviderHealthSummary(): Promise<unknown> {
     if (!this.enabled) return null;
 
     try {
       const response = await this.pythonClient.get("/api/analytics/providers");
       return response.data;
-    } catch (error: any) {
-      console.warn(`[MessagingMiddleware] Failed to get provider health: ${error.message}`);
+    } catch (error: unknown) {
+      logger.warn(`[MessagingMiddleware] Failed to get provider health: ${(error instanceof Error ? error.message : String(error))}`);
       return null;
     }
   }
@@ -251,7 +252,7 @@ class MessagingMiddlewareClient {
     startDate?: Date;
     endDate?: Date;
     provider?: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     if (!this.enabled) return null;
 
     try {
@@ -264,8 +265,8 @@ class MessagingMiddlewareClient {
         },
       });
       return response.data;
-    } catch (error: any) {
-      console.warn(`[MessagingMiddleware] Failed to get delivery report: ${error.message}`);
+    } catch (error: unknown) {
+      logger.warn(`[MessagingMiddleware] Failed to get delivery report: ${(error instanceof Error ? error.message : String(error))}`);
       return null;
     }
   }
@@ -279,14 +280,14 @@ class MessagingMiddlewareClient {
     try {
       const goResponse = await this.goClient.get("/health");
       results.go = goResponse.data?.status === "healthy";
-    } catch {
+    } catch (err) {
       results.go = false;
     }
 
     try {
       const pythonResponse = await this.pythonClient.get("/health");
       results.python = pythonResponse.data?.status === "healthy";
-    } catch {
+    } catch (err) {
       results.python = false;
     }
 
@@ -296,22 +297,22 @@ class MessagingMiddlewareClient {
   // Private helper methods
 
   private async publishWithRetry(
-    publishFn: () => Promise<any>,
+    publishFn: () => Promise<unknown>,
     eventType: string
   ): Promise<boolean> {
     for (let attempt = 1; attempt <= MIDDLEWARE_CONFIG.retryAttempts; attempt++) {
       try {
         await publishFn();
         return true;
-      } catch (error: any) {
+      } catch (error: unknown) {
         const isLastAttempt = attempt === MIDDLEWARE_CONFIG.retryAttempts;
         
         if (isLastAttempt) {
-          console.warn(`[MessagingMiddleware] Failed to publish ${eventType} event after ${attempt} attempts: ${error.message}`);
+          logger.warn(`[MessagingMiddleware] Failed to publish ${eventType} event after ${attempt} attempts: ${(error instanceof Error ? error.message : String(error))}`);
           return false;
         }
 
-        console.warn(`[MessagingMiddleware] ${eventType} publish attempt ${attempt} failed, retrying...`);
+        logger.warn(`[MessagingMiddleware] ${eventType} publish attempt ${attempt} failed, retrying...`);
         await this.delay(MIDDLEWARE_CONFIG.retryDelayMs * attempt);
       }
     }
@@ -319,7 +320,7 @@ class MessagingMiddlewareClient {
     return false;
   }
 
-  private serializeEvent(event: MessageEvent): Record<string, any> {
+  private serializeEvent(event: MessageEvent): Record<string, unknown> {
     return {
       id: event.id,
       channel: event.channel,
@@ -338,7 +339,7 @@ class MessagingMiddlewareClient {
     };
   }
 
-  private serializeUSSDEvent(event: USSDSessionEvent): Record<string, any> {
+  private serializeUSSDEvent(event: USSDSessionEvent): Record<string, unknown> {
     return {
       sessionId: event.sessionId,
       phoneNumber: event.phoneNumber,
@@ -354,7 +355,7 @@ class MessagingMiddlewareClient {
     };
   }
 
-  private serializeProviderHealth(event: ProviderHealthEvent): Record<string, any> {
+  private serializeProviderHealth(event: ProviderHealthEvent): Record<string, unknown> {
     return {
       provider: event.provider,
       channel: event.channel,

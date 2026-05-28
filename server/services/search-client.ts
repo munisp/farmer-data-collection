@@ -74,7 +74,7 @@ class SearchClient {
 
       this.healthy = true;
       return resp.json();
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return { total: 0, results: [], took_ms: 0, query: params.q };
     }
@@ -90,7 +90,7 @@ class SearchClient {
       });
       this.healthy = resp.ok;
       return resp.ok;
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return false;
     }
@@ -103,7 +103,7 @@ class SearchClient {
         signal: AbortSignal.timeout(10000),
       });
       return resp.ok;
-    } catch {
+    } catch (err) {
       return false;
     }
   }

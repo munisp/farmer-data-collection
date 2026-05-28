@@ -12,6 +12,7 @@
 
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { logger } from './logger.js';
 
 // Initialize S3 client
 const s3Client = new S3Client({
@@ -56,7 +57,7 @@ export async function storagePut(
 
     return { key, url };
   } catch (error) {
-    console.error("Storage upload error:", error);
+    logger.error("Storage upload error:", error);
     throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
@@ -81,7 +82,7 @@ export async function storageGet(
 
     return { key, url };
   } catch (error) {
-    console.error("Storage get error:", error);
+    logger.error("Storage get error:", error);
     throw new Error(`Failed to get file URL: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }

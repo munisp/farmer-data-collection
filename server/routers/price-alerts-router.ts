@@ -32,7 +32,7 @@ async function callPriceService(method: string, path: string, body?: Record<stri
       { maxRetries: 3, timeoutMs: 10_000 },
     );
     return await resp.json() as Record<string, unknown>;
-  } catch {
+  } catch (err) {
     return { error: "Price prediction service unavailable" };
   }
 }

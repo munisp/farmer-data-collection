@@ -7,6 +7,7 @@
 
 import { Router } from 'express';
 import { getWebSocketServer, type RealtimeEvent } from './websocket-server';
+import { logger } from './logger.js';
 
 const router = Router();
 
@@ -75,7 +76,7 @@ router.post('/broadcast', (req: any, res) => {
       message: `Event ${event.type} broadcasted`,
     });
   } catch (error) {
-    console.error('[WebSocket API] Broadcast error:', error);
+    logger.error('[WebSocket API] Broadcast error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to broadcast event',
@@ -107,7 +108,7 @@ router.post('/emit-to-user', (req: any, res) => {
       userConnected: wsServer.isUserConnected(userId),
     });
   } catch (error) {
-    console.error('[WebSocket API] Emit error:', error);
+    logger.error('[WebSocket API] Emit error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to emit event',
@@ -138,7 +139,7 @@ router.post('/dashboard-update', (req: any, res) => {
       message: `Dashboard update sent to user ${userId}`,
     });
   } catch (error) {
-    console.error('[WebSocket API] Dashboard update error:', error);
+    logger.error('[WebSocket API] Dashboard update error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to send dashboard update',
@@ -169,7 +170,7 @@ router.post('/notification', (req: any, res) => {
       message: `Notification sent to user ${userId}`,
     });
   } catch (error) {
-    console.error('[WebSocket API] Notification error:', error);
+    logger.error('[WebSocket API] Notification error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to send notification',

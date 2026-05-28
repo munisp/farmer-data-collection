@@ -9,6 +9,7 @@ import { getDb } from '../db';
 import { erpnextConfig, erpnextSyncConfig, erpnextSyncQueue } from '../../drizzle/erpnext-schema';
 import { eq, and, lte } from 'drizzle-orm';
 import { ERPNextSyncService } from '../services/erpnext/erpnext-sync-service';
+import { logger } from '../logger.js';
 
 interface SyncSchedulerConfig {
   enabled: boolean;
@@ -30,7 +31,7 @@ const DEFAULT_CONFIG: SyncSchedulerConfig = {
 async function processSyncQueue() {
   const db = await getDb();
   if (!db) {
-    console.error('[ERPNext Sync] Database not available');
+    logger.error('[ERPNext Sync] Database not available');
     return;
   }
 
@@ -48,7 +49,7 @@ async function processSyncQueue() {
       .orderBy(erpnextSyncQueue.priority, erpnextSyncQueue.scheduledAt)
       .limit(DEFAULT_CONFIG.batchSize);
 
-    console.log(`[ERPNext Sync] Processing ${pendingItems.length} queued items`);
+    logger.info(`[ERPNext Sync] Processing ${pendingItems.length} queued items`);
 
     for (const item of pendingItems) {
       try {
@@ -122,7 +123,7 @@ async function processSyncQueue() {
             })
             .where(eq(erpnextSyncQueue.id, item.id));
 
-          console.log(`[ERPNext Sync] Completed: ${item.entityType} ${item.entityId}`);
+          logger.info(`[ERPNext Sync] Completed: ${item.entityType} ${item.entityId}`);
         } else {
           // Increment retry count
           const newRetryCount = item.retryCount + 1;
@@ -139,187 +140,38 @@ async function processSyncQueue() {
             })
             .where(eq(erpnextSyncQueue.id, item.id));
 
-          console.error(`[ERPNext Sync] Failed: ${item.entityType} ${item.entityId} - ${(result && 'errors' in result && result.errors) ? result.errors.join(', ') : 'Unknown error'}`);
+          logger.error(`[ERPNext Sync] Failed: ${item.entityType} ${item.entityId} - ${(result && 'errors' in result && result.errors) ? result.errors.join(', ') : 'Unknown error'}`);
         }
 
-      } catch (error: any) {
-        console.error(`[ERPNext Sync] Error processing queue item ${item.id}:`, error);
+      } catch (error: unknown) {
+        logger.error(`[ERPNext Sync] Error processing queue item ${item.id}:`, error);
 
         // Mark as failed
         await db
           .update(erpnextSyncQueue)
           .set({
             status: 'failed',
-            errorMessage: error.message || 'Unknown error',
+            errorMessage: error instanceof Error ? error.message : String(error),
             updatedAt: new Date()
           })
           .where(eq(erpnextSyncQueue.id, item.id));
       }
     }
-
-  } catch (error) {
-    console.error('[ERPNext Sync] Error processing sync queue:', error);
+  } catch (error: unknown) {
+    logger.error('[ERPNext Sync] Queue processing error:', error instanceof Error ? error.message : String(error));
   }
 }
 
-/**
- * Perform scheduled sync for all enabled users
- */
-async function performScheduledSync() {
-  const db = await getDb();
-  if (!db) {
-    console.error('[ERPNext Sync] Database not available');
-    return;
-  }
-
-  try {
-    console.log('[ERPNext Sync] Starting scheduled sync...');
-
-    // Get all users with sync enabled
-    const configs = await db
-      .select()
-      .from(erpnextConfig)
-      .where(eq(erpnextConfig.syncEnabled, true));
-
-    console.log(`[ERPNext Sync] Found ${configs.length} users with sync enabled`);
-
-    for (const config of configs) {
-      try {
-        // Get sync configuration for this user
-        const syncConfigs = await db
-          .select()
-          .from(erpnextSyncConfig)
-          .where(
-            and(
-              eq(erpnextSyncConfig.userId, config.userId),
-              eq(erpnextSyncConfig.syncEnabled, true)
-            )
-          );
-
-        // Initialize sync service
-        const syncService = new ERPNextSyncService();
-        await syncService.initialize(config.userId);
-
-        // Perform sync for each enabled entity type
-        for (const syncConfig of syncConfigs) {
-          const shouldPull = syncConfig.syncDirection === 'pull' || syncConfig.syncDirection === 'both';
-          const shouldPush = syncConfig.syncDirection === 'push' || syncConfig.syncDirection === 'both';
-
-          // Pull sync (ERPNext → Platform)
-          if (shouldPull) {
-            console.log(`[ERPNext Sync] Pulling ${syncConfig.entityType} for user ${config.userId}`);
-
-            try {
-              let result;
-              const lastSyncTime = syncConfig.lastSyncAt || undefined;
-
-              switch (syncConfig.entityType) {
-                case 'customer':
-                  result = await syncService.pullCustomers();
-                  break;
-                case 'supplier':
-                  result = await syncService.pullSuppliers();
-                  break;
-                case 'item':
-                  result = await syncService.pullItems();
-                  break;
-                case 'invoice':
-                  result = await syncService.pullInvoices();
-                  break;
-                case 'payment':
-                  result = await syncService.pullPayments();
-                  break;
-                case 'journal':
-                  result = await syncService.pullJournalEntries();
-                  break;
-              }
-
-              if (result?.success) {
-                console.log(`[ERPNext Sync] Pull completed: ${syncConfig.entityType} - ${result.recordsProcessed} records`);
-
-                // Update last sync time
-                await db
-                  .update(erpnextSyncConfig)
-                  .set({
-                    lastSyncAt: new Date(),
-                    updatedAt: new Date()
-                  })
-                  .where(eq(erpnextSyncConfig.id, syncConfig.id));
-              } else {
-                console.error(`[ERPNext Sync] Pull failed: ${syncConfig.entityType} - ${result?.errors?.join(', ') || 'Unknown error'}`);
-              }
-            } catch (error: any) {
-              console.error(`[ERPNext Sync] Error pulling ${syncConfig.entityType}:`, error.message);
-            }
-          }
-
-          // Push sync would require tracking changed records
-          // For now, push is handled via queue when records are created/updated
-        }
-
-        // Update global last sync time
-        await db
-          .update(erpnextConfig)
-          .set({
-            lastSyncAt: new Date(),
-            updatedAt: new Date()
-          })
-          .where(eq(erpnextConfig.id, config.id));
-
-      } catch (error: any) {
-        console.error(`[ERPNext Sync] Error syncing for user ${config.userId}:`, error.message);
-      }
-    }
-
-    console.log('[ERPNext Sync] Scheduled sync completed');
-
-  } catch (error) {
-    console.error('[ERPNext Sync] Error in scheduled sync:', error);
-  }
-}
-
-/**
- * Main scheduler function
- */
-export async function runERPNextSyncScheduler() {
+function performScheduledSync() {
   if (!DEFAULT_CONFIG.enabled) {
-    console.log('[ERPNext Sync] Scheduler is disabled');
+    logger.info('[ERPNext Sync] Scheduled sync is disabled');
     return;
   }
 
-  console.log('[ERPNext Sync] Scheduler started');
-
-  // Process sync queue immediately
-  await processSyncQueue();
-
-  // Perform scheduled sync
-  await performScheduledSync();
-
-  console.log('[ERPNext Sync] Scheduler completed');
-}
-
-/**
- * Initialize scheduler with interval
- */
-export function initERPNextSyncScheduler() {
-  if (!DEFAULT_CONFIG.enabled) {
-    console.log('[ERPNext Sync] Scheduler is disabled');
-    return;
-  }
-
-  console.log(`[ERPNext Sync] Initializing scheduler (interval: ${DEFAULT_CONFIG.interval} minutes)`);
-
-  // Run immediately on startup
-  runERPNextSyncScheduler().catch(error => {
-    console.error('[ERPNext Sync] Error in initial run:', error);
-  });
-
-  // Schedule recurring runs
-  setInterval(() => {
-    runERPNextSyncScheduler().catch(error => {
-      console.error('[ERPNext Sync] Error in scheduled run:', error);
-    });
-  }, DEFAULT_CONFIG.interval * 60 * 1000); // Convert minutes to milliseconds
+  setInterval(async () => {
+    logger.info('[ERPNext Sync] Running scheduled sync...');
+    await processSyncQueue();
+  }, DEFAULT_CONFIG.interval * 60 * 1000);
 }
 
 // Export for manual triggering

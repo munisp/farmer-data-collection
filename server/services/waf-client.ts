@@ -42,7 +42,7 @@ class WAFClient {
 
       this.healthy = true;
       return resp.json();
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return { fields, sanitized_count: 0, threats_found: [] };
     }
@@ -69,7 +69,7 @@ class WAFClient {
 
       this.healthy = true;
       return resp.json();
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return { allowed: true, risk_score: 0, threats: [], action: "allow" };
     }

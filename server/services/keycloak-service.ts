@@ -123,7 +123,7 @@ export class KeycloakService {
   }
 
   // Validate access token
-  async validateToken(accessToken: string): Promise<any> {
+  async validateToken(accessToken: string): Promise<unknown> {
     const introspectUrl = `${this.config.serverUrl}/realms/${this.config.realm}/protocol/openid-connect/token/introspect`;
 
     const params = new URLSearchParams();

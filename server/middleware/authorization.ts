@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { middleware } from "../trpc";
+import { logger } from '../logger.js';
 
 // Centralized Authorization Middleware
 // Integrates with Keycloak for authentication and Permify for fine-grained authorization
@@ -373,11 +374,11 @@ async function checkResourceOwnership(
       }
       default:
         // For unknown resource types, deny by default (safe default)
-        console.warn(`[Authorization] Unknown resource type: ${resourceType}, denying access`);
+        logger.warn(`[Authorization] Unknown resource type: ${resourceType}, denying access`);
         return false;
     }
   } catch (err) {
-    console.error('[Authorization] Ownership check failed:', err);
+    logger.error('[Authorization] Ownership check failed:', err);
     // On error, deny access (fail-closed)
     return false;
   }
@@ -401,5 +402,5 @@ export function logAuthorizationDecision(
   };
   
   // In production, this would write to an audit log table or external service
-  console.log("[AUTH]", JSON.stringify(logEntry));
+  logger.info("[AUTH]", JSON.stringify(logEntry));
 }

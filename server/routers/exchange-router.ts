@@ -17,6 +17,7 @@ import {
 import { users } from "../../drizzle/schema";
 import { checkTradingKyc, checkWalletKyc } from "../middleware/kyc-enforcement.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "../services/tigerbeetle-ledger.js";
+import { logger } from '../logger.js';
 
 // TigerBeetle ledger instance (lazy initialization)
 let exchangeLedger: TigerBeetleLedger | null = null;
@@ -32,10 +33,10 @@ async function getExchangeLedger(): Promise<TigerBeetleLedger | null> {
     const addresses = process.env.TIGERBEETLE_ADDRESSES?.split(',') || ['127.0.0.1:3000'];
     await ledger.connect(addresses);
     exchangeLedger = ledger;
-    console.log('[Exchange] TigerBeetle ledger connected');
+    logger.info('[Exchange] TigerBeetle ledger connected');
     return ledger;
   } catch (error) {
-    console.warn('[Exchange] TigerBeetle not available, trades will not be recorded in ledger:', error);
+    logger.warn('[Exchange] TigerBeetle not available, trades will not be recorded in ledger:', error);
     return null;
   }
 }

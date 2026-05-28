@@ -75,7 +75,7 @@ export const equipmentFleetRouter = router({
             pto_rpm: input.ptoSpeedRpm,
             engine_hours: input.engineHours,
           }, { maxRetries: 2 });
-      } catch { /* fleet service may not be running */ }
+      } catch (err) { /* fleet service may not be running */ }
 
       return record;
     }),
@@ -121,7 +121,7 @@ export const equipmentFleetRouter = router({
           }),
         }, { maxRetries: 2 });
         return res.json() as Promise<Record<string, unknown>>;
-      } catch {
+      } catch (err) {
         // Local fallback
         const lines = [];
         const swathDeg = input.swathM / 111320;
@@ -159,7 +159,7 @@ export const equipmentFleetRouter = router({
         }, { maxRetries: 2 });
         if (!res.ok) return { error: "Equipment not found or not connected" };
         return res.json() as Promise<Record<string, unknown>>;
-      } catch {
+      } catch (err) {
         return { error: "Fleet service unavailable" };
       }
     }),
@@ -187,7 +187,7 @@ export const equipmentFleetRouter = router({
           }
           return predictions;
         }
-      } catch { /* service not available */ }
+      } catch (err) { /* service not available */ }
 
       return db.select()
         .from(equipmentMaintenancePredictions)

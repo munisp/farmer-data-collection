@@ -19,6 +19,7 @@ import {
 } from "../../drizzle/schema.js";
 import { getProducer } from "../kafka.js";
 import { resilientPost } from "../services/resilient-http.js";
+import { logger } from '../logger.js';
 
 const DELIVERY_SERVICE_URL = process.env.DELIVERY_SERVICE_URL || "http://localhost:8091";
 
@@ -68,7 +69,7 @@ export async function createEscrowForOrder(
 
     return { escrowId: escrow.id };
   } catch (err) {
-    console.error("[Orchestration] Escrow creation failed:", err);
+    logger.error("[Orchestration] Escrow creation failed:", err);
     return null;
   }
 }
@@ -123,7 +124,7 @@ export async function requestDeliveryForOrder(
 
     return { status: "queued" };
   } catch (err) {
-    console.error("[Orchestration] Delivery request failed:", err);
+    logger.error("[Orchestration] Delivery request failed:", err);
     return { status: "failed" };
   }
 }
@@ -181,7 +182,7 @@ export async function onDeliveryConfirmed(
       });
     }
   } catch (err) {
-    console.error("[Orchestration] Delivery confirmation handling failed:", err);
+    logger.error("[Orchestration] Delivery confirmation handling failed:", err);
   }
 }
 
@@ -235,7 +236,7 @@ export async function notifyOrderStatusChange(
       });
     }
   } catch (err) {
-    console.error("[Orchestration] Notification failed:", err);
+    logger.error("[Orchestration] Notification failed:", err);
   }
 }
 
@@ -369,7 +370,7 @@ export async function geocodeAddress(
     if (result.latitude && result.longitude) {
       return { latitude: result.latitude as number, longitude: result.longitude as number };
     }
-  } catch {
+  } catch (err) {
     // Geocoding service unavailable
   }
 
@@ -418,7 +419,7 @@ export async function estimateDeliveryFee(
       estimatedMinutes: (result.estimated_minutes as number) || 60,
       distanceKm: (result.distance_km as number) || 10,
     };
-  } catch {
+  } catch (err) {
     const geocoded = await geocodeAddress(buyerAddress);
     return {
       fee: calculateFallbackFee(sellerLocation, geocoded, weightKg, coldChain),
@@ -520,7 +521,7 @@ async function generateFreshnessReport(
       deliveryDate: new Date(),
     });
   } catch (err) {
-    console.error("[Orchestration] Freshness report failed:", err);
+    logger.error("[Orchestration] Freshness report failed:", err);
   }
 }
 
@@ -537,7 +538,7 @@ async function publishEvent(topic: string, data: Record<string, unknown>): Promi
         messages: [{ value: JSON.stringify(data) }],
       });
     }
-  } catch {
+  } catch (err) {
     // Event publishing is fire-and-forget
   }
 }

@@ -25,6 +25,7 @@ import smsRouter from "./routes/sms.routes.js";
 import whatsappRouter from "./routes/whatsapp.routes.js";
 import { initializeLakehouse, shutdownLakehouse, getLakehouseStatus } from "./services/lakehouse/index.js";
 import { rateLimiters } from "./middleware/rate-limiter.js";
+import { logger } from './logger.js';
 
 // Load environment variables from .env.local (override system env vars)
 config({ path: ".env.local", override: true });
@@ -112,23 +113,29 @@ async function startServer() {
   try {
     const redis = getRedisClient();
     if (redis) {
-      console.log('[Server] Redis client initialized for caching');
+      logger.info('[Server] Redis client initialized for caching');
     } else {
-      console.warn('[Server] Redis unavailable — running without cache');
+      logger.warn('[Server] Redis unavailable — running without cache');
     }
   } catch (error) {
-    console.warn('[Server] Redis caching connection failed, continuing without cache:', error);
+    logger.warn('[Server] Redis caching connection failed, continuing without cache:', error);
   }
 
   // Initialize Redis connection for rate limiting (with fallback to in-memory)
   try {
     initRedis();
-    console.log('[Server] Redis rate limiting initialized (will fallback to in-memory if unavailable)');
+    logger.info('[Server] Redis rate limiting initialized (will fallback to in-memory if unavailable)');
   } catch (error) {
-    console.warn('[Server] Redis rate limiting initialization failed, using in-memory fallback:', error);
+    logger.warn('[Server] Redis rate limiting initialization failed, using in-memory fallback:', error);
   }
 
   // ============ API Documentation (OpenAPI/Swagger) ============
+  try {
+    const { registerOpenAPIDocs } = await import('./services/openapi-generator.js');
+    registerOpenAPIDocs(app);
+  } catch (err) {
+    logger.warn('[Server] OpenAPI generator registration failed:', err);
+  }
   app.get('/docs/openapi.json', (_req, res) => {
     import('./openapi-docs.js').then(({ generateOpenAPISpec }) => {
       res.json(generateOpenAPISpec());
@@ -284,69 +291,79 @@ async function startServer() {
 
   // Initialize WebSocket server
   const wsServer = initWebSocketServer(server);
-  console.log('[Server] WebSocket server initialized');
+  logger.info('[Server] WebSocket server initialized');
   
   server.listen(port, async () => {
-    console.log(`Server running on http://localhost:${port}/`);
-    console.log(`tRPC endpoint available at http://localhost:${port}/api/trpc`);
-    console.log(`WebSocket server available at ws://localhost:${port}/socket.io/`);
-    console.log(`WebSocket API available at http://localhost:${port}/api/websocket`);
-    console.log(`Health check available at http://localhost:${port}/health`);
-    console.log(`Metrics available at http://localhost:${port}/metrics`);
+    logger.info(`Server running on http://localhost:${port}/`);
+    logger.info(`tRPC endpoint available at http://localhost:${port}/api/trpc`);
+    logger.info(`WebSocket server available at ws://localhost:${port}/socket.io/`);
+    logger.info(`WebSocket API available at http://localhost:${port}/api/websocket`);
+    logger.info(`Health check available at http://localhost:${port}/health`);
+    logger.info(`Metrics available at http://localhost:${port}/metrics`);
     
     // Initialize Kafka topics
     try {
       await initializeTopics();
-      console.log('[Server] Kafka topics initialized');
+      logger.info('[Server] Kafka topics initialized');
     } catch (error) {
-      console.error('[Server] Failed to initialize Kafka topics:', error);
-      console.warn('[Server] Continuing without Kafka');
+      logger.error('[Server] Failed to initialize Kafka topics:', error);
+      logger.warn('[Server] Continuing without Kafka');
     }
     
     // Start Kafka event consumers
     try {
       await startKafkaConsumers();
-      console.log('[Server] Kafka event consumers started');
+      logger.info('[Server] Kafka event consumers started');
     } catch (error) {
-      console.error('[Server] Failed to start Kafka event consumers:', error);
-      console.warn('[Server] Continuing without Kafka event consumers');
+      logger.error('[Server] Failed to start Kafka event consumers:', error);
+      logger.warn('[Server] Continuing without Kafka event consumers');
     }
     
     // Start Dapr consumers
     try {
       await startAllConsumers();
-      console.log('[Server] Dapr consumers started');
+      logger.info('[Server] Dapr consumers started');
     } catch (error) {
-      console.error('[Server] Failed to start Dapr consumers:', error);
-      console.warn('[Server] Continuing without Dapr consumers');
+      logger.error('[Server] Failed to start Dapr consumers:', error);
+      logger.warn('[Server] Continuing without Dapr consumers');
     }
     
     // Start agricultural monitoring cron jobs
     try {
       initializeCronJobs();
-      console.log('[Server] Agricultural monitoring cron jobs started');
+      logger.info('[Server] Agricultural monitoring cron jobs started');
     } catch (error) {
-      console.error('[Server] Failed to start cron jobs:', error);
-      console.warn('[Server] Continuing without cron jobs');
+      logger.error('[Server] Failed to start cron jobs:', error);
+      logger.warn('[Server] Continuing without cron jobs');
     }
 
         // Start SMS scheduler
         try {
           startSmsScheduler();
-          console.log('[Server] SMS scheduler started');
+          logger.info('[Server] SMS scheduler started');
         } catch (error) {
-          console.error('[Server] Failed to start SMS scheduler:', error);
-          console.warn('[Server] Continuing without SMS scheduler');
+          logger.error('[Server] Failed to start SMS scheduler:', error);
+          logger.warn('[Server] Continuing without SMS scheduler');
         }
 
         // Initialize Lakehouse for analytics and ML
         try {
           await initializeLakehouse();
           const lakehouseStatus = getLakehouseStatus();
-          console.log('[Server] Lakehouse initialized:', lakehouseStatus);
+          logger.info('[Server] Lakehouse initialized:', lakehouseStatus);
         } catch (error) {
-          console.error('[Server] Failed to initialize Lakehouse:', error);
-          console.warn('[Server] Continuing without Lakehouse - analytics/ML features will be limited');
+          logger.error('[Server] Failed to initialize Lakehouse:', error);
+          logger.warn('[Server] Continuing without Lakehouse - analytics/ML features will be limited');
+        }
+
+        // Start database backup scheduler
+        try {
+          const { startBackupScheduler } = await import('./services/database-backup-service.js');
+          startBackupScheduler();
+          logger.info('[Server] Database backup scheduler started');
+        } catch (error) {
+          logger.error('[Server] Failed to start backup scheduler:', error);
+          logger.warn('[Server] Continuing without automated backups');
         }
 
         // Seed database with test data (only in development)
@@ -354,24 +371,28 @@ async function startServer() {
     // if (process.env.NODE_ENV !== 'production') {
     //   try {
     //     await seedDatabase();
-    //     console.log('[Server] Database seeded with test data');
+    //     logger.info('[Server] Database seeded with test data');
     //   } catch (error) {
-    //     console.error('[Server] Failed to seed database:', error);
-    //     console.warn('[Server] Continuing without seed data');
+    //     logger.error('[Server] Failed to seed database:', error);
+    //     logger.warn('[Server] Continuing without seed data');
     //   }
     // }
   });
   
     // Graceful shutdown — close ALL connections
     async function gracefulShutdown(signal: string) {
-      console.log(`[Server] ${signal} received, shutting down gracefully...`);
+      logger.info(`[Server] ${signal} received, shutting down gracefully...`);
       const timeout = setTimeout(() => {
-        console.error('[Server] Graceful shutdown timed out, forcing exit');
+        logger.error('[Server] Graceful shutdown timed out, forcing exit');
         process.exit(1);
       }, 15_000);
 
       try {
         shutdownCronJobs();
+        try {
+          const { stopBackupScheduler } = await import('./services/database-backup-service.js');
+          stopBackupScheduler();
+        } catch (err) { /* backup scheduler may not be loaded */ }
         await Promise.allSettled([
           stopKafkaConsumers(),
           stopAllConsumers(),
@@ -399,11 +420,11 @@ async function startServer() {
 
         server.close(() => {
           clearTimeout(timeout);
-          console.log('[Server] All connections closed');
+          logger.info('[Server] All connections closed');
           process.exit(0);
         });
       } catch (err) {
-        console.error('[Server] Error during shutdown:', err);
+        logger.error('[Server] Error during shutdown:', err);
         clearTimeout(timeout);
         process.exit(1);
       }
@@ -413,4 +434,4 @@ async function startServer() {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
-startServer().catch(console.error);
+startServer().catch((err) => logger.error("Server startup failed", { error: String(err) }));

@@ -90,7 +90,7 @@ export const whatsappAiRouter = router({
               text: { body: message },
             }),
           }, { maxRetries: 2, timeoutMs: 15_000 });
-        } catch {
+        } catch (err) {
           // WhatsApp delivery failure is non-fatal
         }
       }

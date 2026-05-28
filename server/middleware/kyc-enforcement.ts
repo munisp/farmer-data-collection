@@ -8,6 +8,7 @@ import { createKycService, type KycTier } from '../services/kyc-service.js';
 import { getDb } from '../db.js';
 import { userKycProfiles } from '../../drizzle/kyc-schema.js';
 import { eq } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 const kycService = createKycService();
 
@@ -107,7 +108,7 @@ export async function getUserKycProfile(userId: number): Promise<{
   
   if (!db) {
     // Fallback to unverified if database unavailable
-    console.warn('[KYC] Database unavailable, returning unverified profile');
+    logger.warn('[KYC] Database unavailable, returning unverified profile');
     return {
       tier: 'unverified',
       status: 'pending',

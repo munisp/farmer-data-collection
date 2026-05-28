@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { logger } from '../logger.js';
 
 // Supported currencies
 export type CurrencyCode = 'KES' | 'UGX' | 'TZS' | 'GHS' | 'NGN' | 'ZAR' | 'USD' | 'EUR';
@@ -172,7 +173,7 @@ export class MultiCurrencyService {
 
       this.lastFetchTime = new Date();
     } catch (error) {
-      console.error('Failed to fetch exchange rates:', error);
+      logger.error('Failed to fetch exchange rates:', error);
       // Fall back to cached or default rates
       if (this.ratesCache.size === 0) {
         this.updateCacheFromFallback(baseCurrency);

@@ -14,6 +14,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { documentUploadService } from "../services/document-upload-service.js";
 import { checkLoanApplicationKyc } from "../middleware/kyc-enforcement.js";
 import { createTemporalService, TemporalWorkflowService } from "../services/temporal-workflow-service.js";
+import { logger } from '../logger.js';
 
 // Temporal workflow service (lazy initialization)
 let temporalService: TemporalWorkflowService | null = null;
@@ -29,10 +30,10 @@ async function getTemporalService(): Promise<TemporalWorkflowService | null> {
     const address = process.env.TEMPORAL_ADDRESS || 'localhost:7233';
     await service.connect(address);
     temporalService = service;
-    console.log('[LoanApplication] Temporal workflow service connected');
+    logger.info('[LoanApplication] Temporal workflow service connected');
     return service;
   } catch (error) {
-    console.warn('[LoanApplication] Temporal not available, workflows will run synchronously:', error);
+    logger.warn('[LoanApplication] Temporal not available, workflows will run synchronously:', error);
     return null;
   }
 }
@@ -135,14 +136,14 @@ export const loanApplicationRouter = router({
             purpose: input.purpose,
             termMonths: input.termMonths,
           });
-          console.log(`[LoanApplication] Temporal workflow started: ${workflowId}`);
+          logger.info(`[LoanApplication] Temporal workflow started: ${workflowId}`);
         }
       } catch (workflowError) {
         // Log but don't fail the application if workflow fails to start
-        console.error('[LoanApplication] Failed to start Temporal workflow:', workflowError);
+        logger.error('[LoanApplication] Failed to start Temporal workflow:', workflowError);
       }
 
-      console.log(`[LoanApplication] New application submitted: ${applicationNumber}`);
+      logger.info(`[LoanApplication] New application submitted: ${applicationNumber}`);
 
       return {
         success: true,
@@ -390,7 +391,7 @@ export const loanApplicationRouter = router({
         notes: input.reviewNotes || null,
       });
 
-      console.log(`[LoanApplication] Status updated: ${currentApp.applicationNumber} -> ${input.status}`);
+      logger.info(`[LoanApplication] Status updated: ${currentApp.applicationNumber} -> ${input.status}`);
 
       return { success: true };
     }),

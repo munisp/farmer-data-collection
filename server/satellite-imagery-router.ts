@@ -15,6 +15,7 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from './_core/trpc-base.js';
 import axios from 'axios';
+import { logger } from './logger.js';
 
 // Configuration
 const SATELLITE_SERVICE_URL = process.env.SATELLITE_SERVICE_URL || 'http://localhost:8095';
@@ -143,7 +144,7 @@ export const satelliteImageryRouter = router({
         
         return response.data;
       } catch (error) {
-        console.error('Satellite service error:', error);
+        logger.error('Satellite service error:', error);
         // Return fallback simulated data if service unavailable
         return generateFallbackImagery(input.fieldId, input.indices, input.startDate, input.endDate);
       }
@@ -174,7 +175,7 @@ export const satelliteImageryRouter = router({
         
         return response.data;
       } catch (error) {
-        console.error('Time series error:', error);
+        logger.error('Time series error:', error);
         return generateFallbackTimeSeries(input.fieldId, input.index, input.startDate, input.endDate, input.intervalDays);
       }
     }),
@@ -204,7 +205,7 @@ export const satelliteImageryRouter = router({
         
         return response.data;
       } catch (error) {
-        console.error('Anomaly detection error:', error);
+        logger.error('Anomaly detection error:', error);
         return generateFallbackAnomaly(input.fieldId, input.threshold);
       }
     }),
@@ -235,7 +236,7 @@ export const satelliteImageryRouter = router({
         
         return response.data;
       } catch (error) {
-        console.error('Available dates error:', error);
+        logger.error('Available dates error:', error);
         return generateFallbackDates(input.startDate, input.endDate);
       }
     }),
@@ -275,7 +276,7 @@ export const satelliteImageryRouter = router({
               cropType: field.cropType,
               ...response.data,
             };
-          } catch {
+          } catch (err) {
             return generateFallbackImagery(field.fieldId, ['NDVI', 'NDMI'], startDate.toISOString().split('T')[0], date);
           }
         })
@@ -337,7 +338,7 @@ export const satelliteImageryRouter = router({
           irrigationRecommendation: getIrrigationRecommendation(ndmi),
           confidence: response.data.health_assessment?.confidence || 0.8,
         };
-      } catch {
+      } catch (err) {
         // Deterministic NDMI based on field ID and day of year
         const dayOfYear = Math.floor((new Date(date).getTime() - new Date(new Date(date).getFullYear(), 0, 0).getTime()) / 86400000);
         const ndmi = Math.round((0.35 + ((input.fieldId * 7 + dayOfYear) % 30) * 0.01) * 1000) / 1000;
@@ -392,7 +393,7 @@ export const satelliteImageryRouter = router({
           fertilizerRecommendation: getFertilizerRecommendation(ndre, input.cropType, input.growthStage),
           confidence: response.data.health_assessment?.confidence || 0.8,
         };
-      } catch {
+      } catch (err) {
         const ndre = 0.35 + ((input.fieldId * 11) % 20) * 0.01;
         const reci = 2.0 + ((input.fieldId * 13) % 15) * 0.1;
         return {
@@ -421,7 +422,7 @@ export const satelliteImageryRouter = router({
           service: 'satellite-imagery',
           ...response.data,
         };
-      } catch {
+      } catch (err) {
         return {
           status: 'unavailable',
           service: 'satellite-imagery',
@@ -454,7 +455,7 @@ export const satelliteImageryRouter = router({
           resolution: input.resolution,
         });
         return response.data;
-      } catch {
+      } catch (err) {
         // Generate fallback productivity map
         return generateFallbackProductivityMap(input.fieldId, input.boundary, input.years, input.cropType);
       }
@@ -482,7 +483,7 @@ export const satelliteImageryRouter = router({
           crop_type: input.cropType,
         });
         return response.data;
-      } catch {
+      } catch (err) {
         // Generate fallback yield zones
         return generateFallbackYieldZones(input.fieldId, input.boundary, input.numZones, input.cropType);
       }
@@ -512,7 +513,7 @@ export const satelliteImageryRouter = router({
           fertilizer_type: input.fertilizerType,
         });
         return response.data;
-      } catch {
+      } catch (err) {
         // Generate fallback prescription
         return generateFallbackPrescription(input.fieldId, input.cropType, input.growthStage, input.fertilizerType);
       }
@@ -538,7 +539,7 @@ export const satelliteImageryRouter = router({
           crop_type: input.cropType,
         });
         return response.data;
-      } catch {
+      } catch (err) {
         // Generate fallback trend analysis
         return generateFallbackYieldTrend(input.fieldId, input.years);
       }

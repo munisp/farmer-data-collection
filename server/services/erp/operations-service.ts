@@ -21,6 +21,7 @@ import {
   type FixedAsset,
 } from '../../../drizzle/financial-schema';
 import { eq, and, sql, desc, between } from 'drizzle-orm';
+import { logger } from '../../logger.js';
 
 // ============================================================================
 // WORK ORDER MANAGEMENT
@@ -100,7 +101,7 @@ export class WorkOrderService {
       );
     }
 
-    console.log(`[WorkOrder] Created ${workOrderNumber}: ${input.taskType}`);
+    logger.info(`[WorkOrder] Created ${workOrderNumber}: ${input.taskType}`);
     return workOrder.id;
   }
 
@@ -120,7 +121,7 @@ export class WorkOrderService {
       })
       .where(eq(workOrders.id, workOrderId));
 
-    console.log(`[WorkOrder] Started work order ${workOrderId}`);
+    logger.info(`[WorkOrder] Started work order ${workOrderId}`);
   }
 
   /**
@@ -155,7 +156,7 @@ export class WorkOrderService {
       }
     }
 
-    console.log(`[WorkOrder] Completed work order ${input.workOrderId}`);
+    logger.info(`[WorkOrder] Completed work order ${input.workOrderId}`);
   }
 
   /**
@@ -268,7 +269,7 @@ export class AssetService {
     // Generate depreciation schedule
     await this.generateDepreciationSchedule(asset.id);
 
-    console.log(`[Asset] Created asset: ${input.assetName}`);
+    logger.info(`[Asset] Created asset: ${input.assetName}`);
     return asset.id;
   }
 
@@ -325,7 +326,7 @@ export class AssetService {
     // Insert schedule
     await database.insert(depreciationSchedule).values(scheduleEntries);
 
-    console.log(`[Asset] Generated depreciation schedule for asset ${assetId}`);
+    logger.info(`[Asset] Generated depreciation schedule for asset ${assetId}`);
   }
 
   /**
@@ -367,7 +368,7 @@ export class AssetService {
       })
       .where(eq(fixedAssets.id, assetId));
 
-    console.log(`[Asset] Recorded depreciation for asset ${assetId}`);
+    logger.info(`[Asset] Recorded depreciation for asset ${assetId}`);
   }
 
   /**
@@ -387,7 +388,7 @@ export class AssetService {
       })
       .where(eq(fixedAssets.id, input.assetId));
 
-    console.log(`[Asset] Recorded maintenance for asset ${input.assetId}`);
+    logger.info(`[Asset] Recorded maintenance for asset ${input.assetId}`);
   }
 
   /**
@@ -447,7 +448,7 @@ export class AssetService {
   /**
    * Get asset valuation summary
    */
-  async getAssetValuation(userId: number): Promise<any> {
+  async getAssetValuation(userId: number): Promise<unknown> {
     const database = await getDb();
     if (!database) {
       throw new Error('Database connection failed');
@@ -507,7 +508,7 @@ export class AssetService {
       })
       .where(eq(fixedAssets.id, assetId));
 
-    console.log(`[Asset] Disposed asset ${assetId}`);
+    logger.info(`[Asset] Disposed asset ${assetId}`);
   }
 }
 

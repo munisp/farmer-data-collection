@@ -7,6 +7,7 @@
 
 import { TRPCError } from '@trpc/server';
 import { getRedis } from './redis.js';
+import { logger } from '../logger.js';
 
 interface RateLimitConfig {
   windowMs: number;
@@ -72,7 +73,7 @@ export function createRateLimiter(config: RateLimitConfig) {
         throw error; // Re-throw rate limit errors
       }
 
-      console.warn('[RateLimiter] Redis unavailable, using in-memory fallback');
+      logger.warn('[RateLimiter] Redis unavailable, using in-memory fallback');
       
       let entry = memoryStore.get(key);
       

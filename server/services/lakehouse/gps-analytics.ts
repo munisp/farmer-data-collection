@@ -11,6 +11,7 @@
  */
 
 import { getLakehouseClient, type QueryResult } from './lakehouse-client.js';
+import { logger } from '../../logger.js';
 
 // ============================================================================
 // Types
@@ -101,7 +102,7 @@ export class GPSAnalyticsService {
 
       return data;
     } catch (error) {
-      console.warn('[GPS Analytics] Failed to read farm activity from lakehouse:', error);
+      logger.warn('[GPS Analytics] Failed to read farm activity from lakehouse:', error);
       return [];
     }
   }
@@ -131,7 +132,7 @@ export class GPSAnalyticsService {
 
       return data;
     } catch (error) {
-      console.warn('[GPS Analytics] Failed to read device coverage from lakehouse:', error);
+      logger.warn('[GPS Analytics] Failed to read device coverage from lakehouse:', error);
       return [];
     }
   }
@@ -177,7 +178,7 @@ export class GPSAnalyticsService {
 
       return data;
     } catch (error) {
-      console.warn('[GPS Analytics] Failed to read heatmap from lakehouse:', error);
+      logger.warn('[GPS Analytics] Failed to read heatmap from lakehouse:', error);
       return [];
     }
   }
@@ -216,7 +217,7 @@ export class GPSAnalyticsService {
         last_updated: lastUpdated,
       };
     } catch (error) {
-      console.warn('[GPS Analytics] Failed to compute summary:', error);
+      logger.warn('[GPS Analytics] Failed to compute summary:', error);
       return {
         total_tracks: 0,
         total_devices: 0,

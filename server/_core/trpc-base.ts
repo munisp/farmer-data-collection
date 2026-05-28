@@ -10,13 +10,14 @@ import { router, middleware, baseProcedure } from "./trpc-init.js";
 import type { Context, AuthenticatedContext } from "./trpc-init.js";
 import { cacheMiddleware } from "../cache/trpc-cache-middleware.js";
 import { mutationInvalidationMiddleware } from "../cache/mutation-invalidation-middleware.js";
+import { logger } from '../logger.js';
 
 // Re-export types and primitives from trpc-init so existing imports continue to work
 export { router, middleware } from "./trpc-init.js";
 export type { Context, AuthenticatedContext } from "./trpc-init.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
+  logger.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
   return "dev-only-secret-do-not-use-in-production";
 })();
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { eq, and, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { cache } from "./redis.js";
+import { logger } from './logger.js';
 import {
   farmers,
   farms,
@@ -30,7 +31,7 @@ export const dashboardCacheRouter = router({
       return await cache.getOrSet(
         cacheKey,
         async () => {
-          console.log(`[Dashboard] Fetching platform-wide stats from database`);
+          logger.info(`[Dashboard] Fetching platform-wide stats from database`);
           const db = await getDb();
           if (!db) throw new Error('Database not available');
 
@@ -91,7 +92,7 @@ export const dashboardCacheRouter = router({
       return await cache.getOrSet(
         cacheKey,
         async () => {
-          console.log(`[Dashboard] Fetching recent activities for user ${input.userId} from database`);
+          logger.info(`[Dashboard] Fetching recent activities for user ${input.userId} from database`);
           const db = await getDb();
           if (!db) throw new Error('Database not available');
 
@@ -204,7 +205,7 @@ export const dashboardCacheRouter = router({
       userId: z.number(),
     }))
     .mutation(async ({ input }) => {
-      console.log(`[Dashboard] Invalidating cache for user ${input.userId}`);
+      logger.info(`[Dashboard] Invalidating cache for user ${input.userId}`);
       
       // Delete all dashboard cache keys for this user
       await cache.delPattern(`dashboard:*:user:${input.userId}*`);

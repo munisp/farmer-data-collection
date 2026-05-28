@@ -11,6 +11,7 @@ import { getDb } from '../db.js';
 import { resilientFetch } from '../services/resilient-http.js';
 import { userKycProfiles, kycDocuments, kycVerificationHistory } from '../../drizzle/kyc-schema.js';
 import { eq, desc, and } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 const kycService = createKycService();
 
@@ -1035,7 +1036,7 @@ export const kycRouter = router({
           };
         }
       } catch (err) {
-        console.warn('Liveness service unavailable:', err);
+        logger.warn('Liveness service unavailable:', err);
       }
 
       return {
@@ -1088,7 +1089,7 @@ export const kycRouter = router({
           };
         }
       } catch (err) {
-        console.warn('KYB service unavailable:', err);
+        logger.warn('KYB service unavailable:', err);
       }
 
       // Fallback: basic validation only
@@ -1139,7 +1140,7 @@ export const kycRouter = router({
           };
         }
       } catch (err) {
-        console.warn('Translation service unavailable:', err);
+        logger.warn('Translation service unavailable:', err);
       }
 
       return {

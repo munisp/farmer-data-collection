@@ -11,6 +11,7 @@ import { LAKEHOUSE_TABLES } from './lakehouse-config.js';
 import { getRedisClient } from '../../redis.js';
 import { getDb } from '../../db.js';
 import { sql } from 'drizzle-orm';
+import { logger } from '../../logger.js';
 
 // ============================================================================
 // Feature Definitions
@@ -223,7 +224,7 @@ export class FeatureStoreService {
    */
   registerFeatureGroup(group: FeatureGroup): void {
     this.featureGroups.set(group.name, group);
-    console.log(`[FeatureStore] Registered feature group: ${group.name} (${group.features.length} features)`);
+    logger.info(`[FeatureStore] Registered feature group: ${group.name} (${group.features.length} features)`);
   }
 
   /**
@@ -264,7 +265,7 @@ export class FeatureStoreService {
 
       return null;
     } catch (error) {
-      console.error(`[FeatureStore] Error getting online features:`, error);
+      logger.error(`[FeatureStore] Error getting online features:`, error);
       return null;
     }
   }
@@ -288,7 +289,7 @@ export class FeatureStoreService {
       const key = `features:${featureGroupName}:${entityId}`;
       await redis.set(key, JSON.stringify(features), 'EX', group.ttlSeconds);
     } catch (error) {
-      console.error(`[FeatureStore] Error setting online features:`, error);
+      logger.error(`[FeatureStore] Error setting online features:`, error);
     }
   }
 
@@ -334,7 +335,7 @@ export class FeatureStoreService {
 
       return featuresByEntity;
     } catch (error) {
-      console.error(`[FeatureStore] Error getting offline features:`, error);
+      logger.error(`[FeatureStore] Error getting offline features:`, error);
       return {};
     }
   }
@@ -369,7 +370,7 @@ export class FeatureStoreService {
 
       return { rowsWritten: result.rowsWritten };
     } catch (error) {
-      console.error(`[FeatureStore] Error writing offline features:`, error);
+      logger.error(`[FeatureStore] Error writing offline features:`, error);
       return { rowsWritten: 0 };
     }
   }
@@ -434,7 +435,7 @@ export class FeatureStoreService {
         `);
         
         if (farmerResult.rows && farmerResult.rows.length > 0) {
-          const farmer = farmerResult.rows[0] as Record<string, unknown>;
+          const farmer = farmerResult.rows[0] as Record<string, any>;
           features.age = farmer.age || 0;
           features.gender = farmer.gender || 'unknown';
           features.years_of_experience = farmer.years_of_experience || 0;
@@ -453,7 +454,7 @@ export class FeatureStoreService {
         `);
         
         if (farmResult.rows && farmResult.rows.length > 0) {
-          const farmData = farmResult.rows[0] as Record<string, unknown>;
+          const farmData = farmResult.rows[0] as Record<string, any>;
           features.number_of_farms = Number(farmData.farm_count) || 0;
           features.farm_size_hectares = Number(farmData.total_size) || 0;
           features.crop_diversity = Number(farmData.crop_diversity) || 0;
@@ -470,7 +471,7 @@ export class FeatureStoreService {
         `);
         
         if (loanResult.rows && loanResult.rows.length > 0) {
-          const loanData = loanResult.rows[0] as Record<string, unknown>;
+          const loanData = loanResult.rows[0] as Record<string, any>;
           features.total_previous_loans = Number(loanData.total_loans) || 0;
           features.completed_loans = Number(loanData.completed) || 0;
           features.defaulted_loans = Number(loanData.defaulted) || 0;
@@ -481,7 +482,7 @@ export class FeatureStoreService {
             : 0;
         }
       } catch (dbError) {
-        console.warn('[FeatureStore] Could not compute features from database, using defaults:', dbError);
+        logger.warn('[FeatureStore] Could not compute features from database, using defaults:', dbError);
       }
     }
 
@@ -492,9 +493,9 @@ export class FeatureStoreService {
     if (persistToLakehouse) {
       try {
         await this.writeOfflineFeatures('credit_scoring_features', [features]);
-        console.log(`[FeatureStore] Persisted credit scoring features for farmer ${farmerId} to lakehouse`);
+        logger.info(`[FeatureStore] Persisted credit scoring features for farmer ${farmerId} to lakehouse`);
       } catch (lakehouseError) {
-        console.warn('[FeatureStore] Could not persist features to lakehouse:', lakehouseError);
+        logger.warn('[FeatureStore] Could not persist features to lakehouse:', lakehouseError);
       }
     }
 
@@ -561,7 +562,7 @@ export class FeatureStoreService {
         `);
         
         if (cropResult.rows && cropResult.rows.length > 0) {
-          const crop = cropResult.rows[0] as Record<string, unknown>;
+          const crop = cropResult.rows[0] as Record<string, any>;
           features.crop_type = crop.crop_type || '';
           features.variety = crop.variety || '';
           features.planting_date = crop.planting_date || null;
@@ -586,13 +587,13 @@ export class FeatureStoreService {
         `);
         
         if (yieldResult.rows && yieldResult.rows.length > 0) {
-          const yieldData = yieldResult.rows[0] as Record<string, unknown>;
+          const yieldData = yieldResult.rows[0] as Record<string, any>;
           features.historical_avg_yield = Number(yieldData.avg_yield) || 0;
           features.historical_max_yield = Number(yieldData.max_yield) || 0;
           features.seasons_of_data = Number(yieldData.seasons) || 0;
         }
       } catch (dbError) {
-        console.warn('[FeatureStore] Could not compute yield features from database, using defaults:', dbError);
+        logger.warn('[FeatureStore] Could not compute yield features from database, using defaults:', dbError);
       }
     }
 
@@ -603,9 +604,9 @@ export class FeatureStoreService {
     if (persistToLakehouse) {
       try {
         await this.writeOfflineFeatures('yield_prediction_features', [features]);
-        console.log(`[FeatureStore] Persisted yield prediction features for crop ${cropId} to lakehouse`);
+        logger.info(`[FeatureStore] Persisted yield prediction features for crop ${cropId} to lakehouse`);
       } catch (lakehouseError) {
-        console.warn('[FeatureStore] Could not persist features to lakehouse:', lakehouseError);
+        logger.warn('[FeatureStore] Could not persist features to lakehouse:', lakehouseError);
       }
     }
 
@@ -662,7 +663,7 @@ export class FeatureStoreService {
         `);
         
         if (loanResult.rows && loanResult.rows.length > 0) {
-          const loan = loanResult.rows[0] as Record<string, unknown>;
+          const loan = loanResult.rows[0] as Record<string, any>;
           features.loan_amount = Number(loan.amount) || 0;
           features.interest_rate = Number(loan.interest_rate) || 0;
           features.term_months = Number(loan.term_months) || 0;
@@ -690,7 +691,7 @@ export class FeatureStoreService {
         `);
         
         if (paymentResult.rows && paymentResult.rows.length > 0) {
-          const paymentData = paymentResult.rows[0] as Record<string, unknown>;
+          const paymentData = paymentResult.rows[0] as Record<string, any>;
           features.payments_made = Number(paymentData.payments_made) || 0;
           features.payments_missed = Number(paymentData.payments_missed) || 0;
           features.avg_days_late = Number(paymentData.avg_days_late) || 0;
@@ -704,7 +705,7 @@ export class FeatureStoreService {
           }
         }
       } catch (dbError) {
-        console.warn('[FeatureStore] Could not compute default prediction features from database, using defaults:', dbError);
+        logger.warn('[FeatureStore] Could not compute default prediction features from database, using defaults:', dbError);
       }
     }
 
@@ -715,9 +716,9 @@ export class FeatureStoreService {
     if (persistToLakehouse) {
       try {
         await this.writeOfflineFeatures('default_prediction_features', [features]);
-        console.log(`[FeatureStore] Persisted default prediction features for loan ${loanId} to lakehouse`);
+        logger.info(`[FeatureStore] Persisted default prediction features for loan ${loanId} to lakehouse`);
       } catch (lakehouseError) {
-        console.warn('[FeatureStore] Could not persist features to lakehouse:', lakehouseError);
+        logger.warn('[FeatureStore] Could not persist features to lakehouse:', lakehouseError);
       }
     }
 
@@ -751,7 +752,7 @@ export class FeatureStoreService {
         }
         computed++;
       } catch (error) {
-        console.error(`[FeatureStore] Failed to compute features for ${entityId}:`, error);
+        logger.error(`[FeatureStore] Failed to compute features for ${entityId}:`, error);
         failed++;
       }
     }

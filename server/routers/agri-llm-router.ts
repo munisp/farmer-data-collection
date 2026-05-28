@@ -61,7 +61,7 @@ export const agriLlmRouter = router({
           { maxRetries: 2, timeoutMs: 30_000 },
         );
         response = await res.json() as Record<string, unknown>;
-      } catch {
+      } catch (err) {
         response = {
           response: "I'm currently offline. Please try again later or contact your local extension officer.",
           query_type: "error",
@@ -130,7 +130,7 @@ export const agriLlmRouter = router({
           { maxRetries: 2, timeoutMs: 30_000 },
         );
         return res.json() as Promise<Record<string, unknown>>;
-      } catch {
+      } catch (err) {
         return { error: "LLM service unavailable", crop: input.crop, symptoms: input.symptoms };
       }
     }),
@@ -168,7 +168,7 @@ export const agriLlmRouter = router({
           { maxRetries: 2, timeoutMs: 15_000 },
         );
         return res.json() as Promise<Record<string, unknown>>;
-      } catch {
+      } catch (err) {
         return { error: "LLM service unavailable" };
       }
     }),
@@ -215,7 +215,7 @@ export const agriLlmRouter = router({
       try {
         const res = await resilientFetch("agri-llm-service", `${AGRI_LLM_URL}/api/v1/languages`);
         return res.json() as Promise<Record<string, unknown>>;
-      } catch {
+      } catch (err) {
         return { languages: ["en", "sw", "ha", "yo", "am", "fr", "hi", "bn", "ta", "th", "vi", "es", "pt", "tl"] };
       }
     }),
@@ -225,7 +225,7 @@ export const agriLlmRouter = router({
       try {
         const res = await resilientFetch("agri-llm-service", `${AGRI_LLM_URL}/api/v1/crops`);
         return res.json() as Promise<Record<string, unknown>>;
-      } catch {
+      } catch (err) {
         return { crops: ["maize", "rice", "wheat", "cassava", "tomato", "coffee", "beans", "sorghum", "tea", "potato"] };
       }
     }),

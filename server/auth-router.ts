@@ -5,9 +5,10 @@ import { eq } from "drizzle-orm";
 import { router, publicProcedure } from "./_core/trpc-base.js";
 import { getDb } from "./db.js";
 import { users } from "../drizzle/schema.js";
+import { logger } from './logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
+  logger.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
   return "dev-only-secret-do-not-use-in-production";
 })();
 
@@ -283,27 +284,27 @@ export const authRouter = router({
   me: publicProcedure.query(async ({ ctx }) => {
     // Extract token from context (set by middleware)
     const token = ctx.token;
-    console.log("[Auth.me] Token received:", token ? "YES (length: " + token.length + ")" : "NO");
+    logger.info("[Auth.me] Token received:", token ? "YES (length: " + token.length + ")" : "NO");
     if (!token) {
-      console.log("[Auth.me] No token, returning null");
+      logger.info("[Auth.me] No token, returning null");
       return null;
     }
 
     try {
       const decoded = authPayloadSchema.parse(jwt.verify(token, JWT_SECRET));
-      console.log("[Auth.me] Token decoded successfully, userId:", decoded.userId);
+      logger.info("[Auth.me] Token decoded successfully, userId:", decoded.userId);
 
       const user = await getProfileWithFallback(decoded);
-      console.log("[Auth.me] User found:", user ? "YES (id: " + user.id + ", email: " + user.email + ")" : "NO");
+      logger.info("[Auth.me] User found:", user ? "YES (id: " + user.id + ", email: " + user.email + ")" : "NO");
       if (!user) {
-        console.log("[Auth.me] User not found or inactive");
+        logger.info("[Auth.me] User not found or inactive");
         return null;
       }
 
-      console.log("[Auth.me] Returning user data:", user.firstName, user.lastName);
+      logger.info("[Auth.me] Returning user data", { firstName: user.firstName, lastName: user.lastName });
       return user;
     } catch (error) {
-      console.error("[Auth.me] Error:", error);
+      logger.error("[Auth.me] Error:", error);
       return null;
     }
   }),

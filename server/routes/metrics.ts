@@ -7,6 +7,7 @@
 import { Router } from 'express';
 import { register, updateBusinessMetrics } from '../services/prometheus-metrics';
 import { getDb } from '../db';
+import { logger } from '../logger.js';
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.get('/metrics', async (req, res) => {
     const metrics = await register.metrics();
     res.end(metrics);
   } catch (error) {
-    console.error('[Metrics] Error generating metrics:', error);
+    logger.error('[Metrics] Error generating metrics:', error);
     res.status(500).end('Error generating metrics');
   }
 });

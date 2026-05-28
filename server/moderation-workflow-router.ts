@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "./_core/trpc-base.js";
 import { getDb } from "./db.js";
 import { productReviews, users, notificationQueue } from "../drizzle/schema.js";
 import { eq, and, desc } from "drizzle-orm";
+import { logger } from './logger.js';
 
 /**
  * Moderation Workflow Router
@@ -43,7 +44,7 @@ async function sendModerationNotification(
     status: 'pending',
   });
 
-  console.log(`[Moderation] Notification sent to user ${userId}: ${type}`);
+  logger.info(`[Moderation] Notification sent to user ${userId}: ${type}`);
 }
 
 const MODERATION_ACTIONS = ["approve", "reject", "hide", "flag"] as const;
@@ -108,9 +109,9 @@ export const moderationWorkflowRouter = router({
         reviewId: input.reviewId,
         note: input.note,
       });
-      console.log(`[Moderation] Review ${input.reviewId} approved by admin ${ctx.user.id}`);
+      logger.info(`[Moderation] Review ${input.reviewId} approved by admin ${ctx.user.id}`);
       if (input.note) {
-        console.log(`[Moderation] Note: ${input.note}`);
+        logger.info(`[Moderation] Note: ${input.note}`);
       }
 
       return { success: true, action: "approved" };
@@ -168,10 +169,10 @@ export const moderationWorkflowRouter = router({
         reason: input.reason,
         note: input.note,
       });
-      console.log(`[Moderation] Review ${input.reviewId} rejected by admin ${ctx.user.id}`);
-      console.log(`[Moderation] Reason: ${input.reason}`);
+      logger.info(`[Moderation] Review ${input.reviewId} rejected by admin ${ctx.user.id}`);
+      logger.info(`[Moderation] Reason: ${input.reason}`);
       if (input.note) {
-        console.log(`[Moderation] Note: ${input.note}`);
+        logger.info(`[Moderation] Note: ${input.note}`);
       }
 
       return {
@@ -214,7 +215,7 @@ export const moderationWorkflowRouter = router({
         })
         .where(eq(productReviews.id, input.reviewId));
 
-      console.log(`[Moderation] Review ${input.reviewId} hidden by admin ${ctx.user.id}`);
+      logger.info(`[Moderation] Review ${input.reviewId} hidden by admin ${ctx.user.id}`);
 
       return { success: true, action: "hidden" };
     }),
@@ -252,7 +253,7 @@ export const moderationWorkflowRouter = router({
         })
         .where(eq(productReviews.id, input.reviewId));
 
-      console.log(`[Moderation] Review ${input.reviewId} flagged by admin ${ctx.user.id}`);
+      logger.info(`[Moderation] Review ${input.reviewId} flagged by admin ${ctx.user.id}`);
 
       return { success: true, action: "flagged" };
     }),
@@ -304,7 +305,7 @@ export const moderationWorkflowRouter = router({
           .where(eq(productReviews.id, reviewId));
       }
 
-      console.log(`[Moderation] Bulk ${input.action} on ${input.reviewIds.length} reviews by admin ${ctx.user.id}`);
+      logger.info(`[Moderation] Bulk ${input.action} on ${input.reviewIds.length} reviews by admin ${ctx.user.id}`);
 
       return {
         success: true,
@@ -458,8 +459,8 @@ export const moderationWorkflowRouter = router({
       }
 
       // Log the appeal
-      console.log(`[Appeal] User ${ctx.user.id} appealed review ${input.reviewId}`);
-      console.log(`[Appeal] Reason: ${input.appealReason}`);
+      logger.info(`[Appeal] User ${ctx.user.id} appealed review ${input.reviewId}`);
+      logger.info(`[Appeal] Reason: ${input.appealReason}`);
 
       // Update review with appeal information (store in review record since we don't have separate appeals table)
       await db
@@ -557,7 +558,7 @@ export const moderationWorkflowRouter = router({
         throw new Error("Only admins can resolve appeals");
       }
 
-      console.log(`[Appeal] Admin ${ctx.user.id} ${input.decision} appeal ${input.appealId}`);
+      logger.info(`[Appeal] Admin ${ctx.user.id} ${input.decision} appeal ${input.appealId}`);
 
       // Get the review associated with this appeal (appealId is the reviewId in our implementation)
       const [review] = await db

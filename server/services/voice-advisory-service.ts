@@ -8,7 +8,8 @@ import { db } from "../db.js";
 import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type SupportedLanguage = 
   | 'english'
@@ -387,7 +388,7 @@ class VoiceAdvisoryService {
         }],
       });
     } catch (error) {
-      console.warn('[VoiceAdvisory] Could not emit Kafka event:', error);
+      logger.warn('[VoiceAdvisory] Could not emit Kafka event:', error);
     }
 
     return advisory;
@@ -513,7 +514,7 @@ class VoiceAdvisoryService {
         }],
       });
     } catch (error) {
-      console.warn('[VoiceAdvisory] Could not emit Kafka event:', error);
+      logger.warn('[VoiceAdvisory] Could not emit Kafka event:', error);
     }
 
     return call;
@@ -620,7 +621,7 @@ class VoiceAdvisoryService {
       } else {
         weatherText = 'Weather data is currently unavailable. Please try again later.';
       }
-    } catch {
+    } catch (err) {
       weatherText = 'Weather data is currently unavailable. Please try again later.';
     }
 

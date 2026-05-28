@@ -18,6 +18,7 @@
 
 import { z } from 'zod';
 import { router, publicProcedure } from './_core/trpc-base.js';
+import { logger } from './logger.js';
 import {
   getUserByPhone,
   registerUserByPhone,
@@ -464,7 +465,7 @@ async function handleMarketplace(session: VoiceSession, dtmfDigits?: string): Pr
             updateSession(session, 'MARKETPLACE_ORDER', { listings });
           }
           builder.getDigits('', 1, 30, '#');
-        } catch {
+        } catch (err) {
           builder.say(getPrompt(session.language, 'error'));
         }
         return { response: builder.build() };
@@ -510,7 +511,7 @@ async function handleMarketplace(session: VoiceSession, dtmfDigits?: string): Pr
       builder
         .say(getPrompt(session.language, 'listingCreated'))
         .getDigits(getPrompt(session.language, 'mainMenu'), 1, 30, '#');
-    } catch {
+    } catch (err) {
       builder.say(getPrompt(session.language, 'error'));
     }
     return { response: builder.build() };
@@ -530,7 +531,7 @@ async function handleMarketplace(session: VoiceSession, dtmfDigits?: string): Pr
         } else {
           builder.say(getPrompt(session.language, 'noListings'));
         }
-      } catch {
+      } catch (err) {
         builder.say(getPrompt(session.language, 'error'));
       }
     }
@@ -562,7 +563,7 @@ async function handleOrders(session: VoiceSession): Promise<VoiceResponse> {
     } else {
       builder.say(`You have ${report.totalRevenue} in revenue this month from your orders.`);
     }
-  } catch {
+  } catch (err) {
     builder.say(getPrompt(session.language, 'noOrders'));
   }
 
@@ -725,7 +726,7 @@ export const voiceRouter = router({
 
         return result.response;
       } catch (error) {
-        console.error('Voice callback error:', error);
+        logger.error('Voice callback error:', error);
         
         const builder = new VoiceResponseBuilder();
         builder.say('An error occurred. Please try again later.');

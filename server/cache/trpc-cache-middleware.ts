@@ -35,7 +35,7 @@ export const cacheMiddleware = middleware(async ({ path, type, ctx, next, getRaw
   let input: unknown;
   try {
     input = await getRawInput();
-  } catch {
+  } catch (err) {
     input = undefined;
   }
   const cacheKey = buildCacheKey(path, input, userId);
@@ -65,7 +65,7 @@ export const cacheMiddleware = middleware(async ({ path, type, ctx, next, getRaw
       data,
       marker: (undefined as any),
     };
-  } catch {
+  } catch (err) {
     // Cache error — fall through to uncached execution
     return next();
   }

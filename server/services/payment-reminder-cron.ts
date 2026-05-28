@@ -3,7 +3,8 @@ import { getDb } from '../db';
 import { loans, users } from '../../drizzle/schema';
 import { loanRepayments } from '../../drizzle/financial-schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
-import { sendPaymentReminder } from './sms';
+import { sendPaymentReminder } from './sms.js';
+import { logger } from '../logger.js';
 
 /**
  * Automated Payment Reminder Service
@@ -29,7 +30,7 @@ interface UpcomingPayment {
 async function getUpcomingPayments(): Promise<UpcomingPayment[]> {
   const db = await getDb();
   if (!db) {
-    console.error('[Payment Reminder] Database not available');
+    logger.error('[Payment Reminder] Database not available');
     return [];
   }
 
@@ -64,7 +65,7 @@ async function getUpcomingPayments(): Promise<UpcomingPayment[]> {
 
     return upcomingPayments as UpcomingPayment[];
   } catch (error) {
-    console.error('[Payment Reminder] Error fetching upcoming payments:', error);
+    logger.error('[Payment Reminder] Error fetching upcoming payments:', error);
     return [];
   }
 }
@@ -73,16 +74,16 @@ async function getUpcomingPayments(): Promise<UpcomingPayment[]> {
  * Send payment reminders to all borrowers with upcoming payments
  */
 async function sendPaymentReminders(): Promise<void> {
-  console.log('[Payment Reminder] Starting daily payment reminder check...');
+  logger.info('[Payment Reminder] Starting daily payment reminder check...');
   
   const upcomingPayments = await getUpcomingPayments();
   
   if (upcomingPayments.length === 0) {
-    console.log('[Payment Reminder] No upcoming payments found');
+    logger.info('[Payment Reminder] No upcoming payments found');
     return;
   }
 
-  console.log(`[Payment Reminder] Found ${upcomingPayments.length} upcoming payment(s)`);
+  logger.info(`[Payment Reminder] Found ${upcomingPayments.length} upcoming payment(s)`);
 
   let successCount = 0;
   let failureCount = 0;
@@ -91,7 +92,7 @@ async function sendPaymentReminders(): Promise<void> {
     try {
       // Skip if phone number is missing
       if (!payment.borrowerPhone) {
-        console.warn(`[Payment Reminder] Skipping payment ${payment.loanNumber} - no phone number for borrower`);
+        logger.warn(`[Payment Reminder] Skipping payment ${payment.loanNumber} - no phone number for borrower`);
         failureCount++;
         continue;
       }
@@ -104,24 +105,26 @@ async function sendPaymentReminders(): Promise<void> {
       const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
       // Send SMS reminder
-      // Function signature: sendPaymentReminder(phoneNumber, borrowerName, amount, dueDate, lenderName)
+      const dueDateStr = payment.dueDate instanceof Date
+        ? payment.dueDate.toISOString().split('T')[0]
+        : String(payment.dueDate || 'N/A');
       await sendPaymentReminder(
         payment.borrowerPhone,
         payment.borrowerName,
-        payment.amount / 100, // Convert cents to currency
-        payment.dueDate,
-        payment.loanNumber // Using loan number as lender identifier
+        payment.amount / 100,
+        dueDateStr,
+        'NGN'
       );
 
       successCount++;
-      console.log(`[Payment Reminder] Sent reminder to ${payment.borrowerName} for loan ${payment.loanNumber}`);
+      logger.info(`[Payment Reminder] Sent reminder to ${payment.borrowerName} for loan ${payment.loanNumber}`);
     } catch (error) {
       failureCount++;
-      console.error(`[Payment Reminder] Failed to send reminder for loan ${payment.loanNumber}:`, error);
+      logger.error(`[Payment Reminder] Failed to send reminder for loan ${payment.loanNumber}:`, error);
     }
   }
 
-  console.log(`[Payment Reminder] Completed: ${successCount} sent, ${failureCount} failed`);
+  logger.info(`[Payment Reminder] Completed: ${successCount} sent, ${failureCount} failed`);
 }
 
 /**
@@ -137,11 +140,11 @@ export function initPaymentReminderCron(): void {
     try {
       await sendPaymentReminders();
     } catch (error) {
-      console.error('[Payment Reminder] Cron job error:', error);
+      logger.error('[Payment Reminder] Cron job error:', error);
     }
   });
 
-  console.log('[Payment Reminder] Cron job initialized - will run daily at 9:00 AM');
+  logger.info('[Payment Reminder] Cron job initialized - will run daily at 9:00 AM');
 }
 
 /**
@@ -155,7 +158,7 @@ export async function triggerPaymentReminders(): Promise<{ success: boolean; mes
       message: 'Payment reminders sent successfully',
     };
   } catch (error) {
-    console.error('[Payment Reminder] Manual trigger error:', error);
+    logger.error('[Payment Reminder] Manual trigger error:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Unknown error',

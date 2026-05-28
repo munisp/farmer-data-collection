@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { getDb } from "./db.js";
 import { marketplaceOrders, orderItems } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
+import { logger } from './logger.js';
 
 // Initialize Stripe only if API key is available
 const stripeApiKey = process.env.STRIPE_SECRET_KEY;
@@ -12,7 +13,7 @@ const stripe = stripeApiKey ? new Stripe(stripeApiKey, {
 }) : null;
 
 if (!stripe) {
-  console.warn('[Stripe] No STRIPE_SECRET_KEY configured - payment features will be disabled');
+  logger.warn('[Stripe] No STRIPE_SECRET_KEY configured - payment features will be disabled');
 }
 
 export const stripeMarketplaceRouter = router({

@@ -227,7 +227,7 @@ export async function checkDaprHealth(): Promise<boolean> {
     _daprHealthy = true;
     _lastDaprHealthCheck = Date.now();
     return true;
-  } catch {
+  } catch (err) {
     _daprHealthy = false;
     _lastDaprHealthCheck = Date.now();
     return false;

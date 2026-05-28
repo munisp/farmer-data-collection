@@ -1,4 +1,5 @@
 import AfricasTalking from 'africastalking';
+import { logger } from '../logger.js';
 
 // Initialize Africa's Talking SDK
 const credentials = {
@@ -50,11 +51,11 @@ export async function sendSMS(options: SendSMSOptions): Promise<SMSResult> {
 
     // Mock mode: simulate SMS sending
     if (useMockMode) {
-      console.log('[SMS] MOCK MODE - SMS would be sent:');
-      console.log('[SMS] To:', validNumbers.join(', '));
-      console.log('[SMS] From:', options.from || 'Default');
-      console.log('[SMS] Message:', options.message);
-      console.log('[SMS] ----------------------------------------');
+      logger.info('[SMS] MOCK MODE - SMS would be sent:');
+      logger.info('[SMS] To:', validNumbers.join(', '));
+      logger.info('[SMS] From:', options.from || 'Default');
+      logger.info('[SMS] Message:', options.message);
+      logger.info('[SMS] ----------------------------------------');
       
       return {
         success: true,
@@ -71,12 +72,12 @@ export async function sendSMS(options: SendSMSOptions): Promise<SMSResult> {
       from: options.from,
     });
 
-    console.log('[SMS] Send result:', JSON.stringify(result, null, 2));
+    logger.info('[SMS] Send result:', JSON.stringify(result, null, 2));
 
     // Check if any messages were sent successfully
     const recipients = result.SMSMessageData.Recipients;
     const successfulRecipients = recipients.filter(
-      (r: any) => r.statusCode === 101 || r.statusCode === 102
+      (r: Record<string, unknown>) => r.statusCode === 101 || r.statusCode === 102
     );
 
     if (successfulRecipients.length > 0) {
@@ -94,108 +95,30 @@ export async function sendSMS(options: SendSMSOptions): Promise<SMSResult> {
         error: `Failed to send SMS: ${first.status} (Code: ${first.statusCode})`,
       };
     }
-  } catch (error: any) {
-    console.error('[SMS] Error sending SMS:', error);
+  } catch (error: unknown) {
+    logger.error('[SMS] Error sending SMS:', error);
     return {
       success: false,
-      error: error.message || 'Unknown error occurred',
+      error: (error instanceof Error ? error.message : String(error)),
     };
   }
 }
 
-/**
- * Send payment reminder SMS to borrower
- */
-export async function sendPaymentReminder(
-  phoneNumber: string,
-  borrowerName: string,
-  amount: number,
-  dueDate: Date,
-  lenderName: string
-): Promise<SMSResult> {
-  const formattedAmount = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    minimumFractionDigits: 0,
-  }).format(amount);
-
-  const formattedDate = dueDate.toLocaleDateString('en-NG', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  const message = `Dear ${borrowerName}, this is a reminder that your loan payment of ${formattedAmount} to ${lenderName} is due on ${formattedDate}. Please ensure timely payment to avoid penalties.`;
-
-  return sendSMS({
-    to: phoneNumber,
-    message,
-  });
-}
-
-/**
- * Send loan approval notification
- */
-export async function sendLoanApprovalNotification(
-  phoneNumber: string,
-  borrowerName: string,
-  loanAmount: number,
-  lenderName: string
-): Promise<SMSResult> {
-  const formattedAmount = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    minimumFractionDigits: 0,
-  }).format(loanAmount);
-
-  const message = `Congratulations ${borrowerName}! Your loan application for ${formattedAmount} with ${lenderName} has been approved. You will be contacted shortly with further details.`;
-
-  return sendSMS({
-    to: phoneNumber,
-    message,
-  });
-}
-
-/**
- * Send loan rejection notification
- */
-export async function sendLoanRejectionNotification(
-  phoneNumber: string,
-  borrowerName: string,
-  lenderName: string,
-  reason?: string
-): Promise<SMSResult> {
-  const message = reason
-    ? `Dear ${borrowerName}, we regret to inform you that your loan application with ${lenderName} has been declined. Reason: ${reason}. Please contact us for more information.`
-    : `Dear ${borrowerName}, we regret to inform you that your loan application with ${lenderName} has been declined. Please contact us for more information.`;
-
-  return sendSMS({
-    to: phoneNumber,
-    message,
-  });
-}
-
-/**
- * Send payment confirmation SMS
- */
 export async function sendPaymentConfirmation(
   phoneNumber: string,
   borrowerName: string,
+  lenderName: string,
   amount: number,
   remainingBalance: number,
-  lenderName: string
+  currency: string = 'NGN'
 ): Promise<SMSResult> {
-  const formattedAmount = new Intl.NumberFormat('en-NG', {
+  const formatter = new Intl.NumberFormat('en-NG', {
     style: 'currency',
-    currency: 'NGN',
+    currency,
     minimumFractionDigits: 0,
-  }).format(amount);
-
-  const formattedBalance = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    minimumFractionDigits: 0,
-  }).format(remainingBalance);
+  });
+  const formattedAmount = formatter.format(amount);
+  const formattedBalance = formatter.format(remainingBalance);
 
   const message = `Dear ${borrowerName}, your payment of ${formattedAmount} to ${lenderName} has been received. Remaining balance: ${formattedBalance}. Thank you!`;
 
@@ -203,4 +126,47 @@ export async function sendPaymentConfirmation(
     to: phoneNumber,
     message,
   });
+}
+
+export async function sendPaymentReminder(
+  phoneNumber: string,
+  borrowerName: string,
+  amount: number,
+  dueDate: string,
+  currency: string = 'NGN'
+): Promise<SMSResult> {
+  const formatter = new Intl.NumberFormat('en-NG', { style: 'currency', currency, minimumFractionDigits: 0 });
+  const message = `Dear ${borrowerName}, this is a reminder that your payment of ${formatter.format(amount)} is due on ${dueDate}. Please make your payment on time to maintain your credit score.`;
+  return sendSMS({ to: phoneNumber, message });
+}
+
+export async function sendLoanApprovalNotification(
+  phoneNumber: string,
+  borrowerName: string,
+  amount: number,
+  currency: string = 'NGN'
+): Promise<SMSResult> {
+  const formatter = new Intl.NumberFormat('en-NG', { style: 'currency', currency, minimumFractionDigits: 0 });
+  const message = `Congratulations ${borrowerName}! Your loan application for ${formatter.format(amount)} has been approved. Funds will be disbursed shortly.`;
+  return sendSMS({ to: phoneNumber, message });
+}
+
+export async function sendLoanRejectionNotification(
+  phoneNumber: string,
+  borrowerName: string,
+  reason: string = 'eligibility criteria'
+): Promise<SMSResult> {
+  const message = `Dear ${borrowerName}, we regret to inform you that your loan application could not be approved at this time due to ${reason}. Please contact support for more details.`;
+  return sendSMS({ to: phoneNumber, message });
+}
+
+export async function sendDisbursementNotification(
+  phoneNumber: string,
+  borrowerName: string,
+  amount: number,
+  currency: string = 'NGN'
+): Promise<SMSResult> {
+  const formatter = new Intl.NumberFormat('en-NG', { style: 'currency', currency, minimumFractionDigits: 0 });
+  const message = `Dear ${borrowerName}, your loan of ${formatter.format(amount)} has been disbursed to your account. Please check your balance.`;
+  return sendSMS({ to: phoneNumber, message });
 }

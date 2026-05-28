@@ -9,7 +9,8 @@ import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { predictYield } from "./yieldPredictionService.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export interface HarvestForecast {
   id: string;
@@ -193,7 +194,7 @@ class HarvestForecastingService {
       });
       predictedYieldValue = yieldPrediction?.predictedYield || this.estimateBaseYield(cropKey, fieldSize);
       confidenceLevel = (yieldPrediction?.confidence || 70) / 100;
-    } catch {
+    } catch (err) {
       predictedYieldValue = this.estimateBaseYield(cropKey, fieldSize);
       confidenceLevel = 0.6;
     }
@@ -242,7 +243,7 @@ class HarvestForecastingService {
         forecast
       ));
     } catch (error) {
-      console.warn('[HarvestForecasting] Could not emit Kafka event:', error);
+      logger.warn('[HarvestForecasting] Could not emit Kafka event:', error);
     }
 
     return forecast;
@@ -495,7 +496,7 @@ class HarvestForecastingService {
         }],
       });
     } catch (error) {
-      console.warn('[HarvestForecasting] Could not emit Kafka event:', error);
+      logger.warn('[HarvestForecasting] Could not emit Kafka event:', error);
     }
 
     return { success: true, message: 'Application submitted successfully' };
@@ -614,7 +615,7 @@ class HarvestForecastingService {
         });
       }
     } catch (error) {
-      console.warn('[HarvestForecasting] Could not assess weather risks:', error);
+      logger.warn('[HarvestForecasting] Could not assess weather risks:', error);
     }
 
     return risks;

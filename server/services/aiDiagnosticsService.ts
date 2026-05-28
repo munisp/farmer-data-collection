@@ -389,7 +389,7 @@ export async function diagnoseNutrientDeficiency(
 /**
  * Get disease information by name
  */
-export function getDiseaseInfo(diseaseName: string): any {
+export function getDiseaseInfo(diseaseName: string): unknown {
   const diseaseKey = Object.keys(CROP_DISEASES).find(key => 
     CROP_DISEASES[key as keyof typeof CROP_DISEASES].name.toLowerCase().includes(diseaseName.toLowerCase())
   );
@@ -404,7 +404,7 @@ export function getDiseaseInfo(diseaseName: string): any {
 /**
  * Get pest information by name
  */
-export function getPestInfo(pestName: string): any {
+export function getPestInfo(pestName: string): unknown {
   const pestKey = Object.keys(CROP_PESTS).find(key =>
     CROP_PESTS[key as keyof typeof CROP_PESTS].name.toLowerCase().includes(pestName.toLowerCase())
   );

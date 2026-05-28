@@ -86,7 +86,7 @@ export interface KafkaEvent<T = any> {
   userId: string | number;
   timestamp: string;
   data: T;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Producer singleton
@@ -207,7 +207,7 @@ async function publishToDlq<T = unknown>(originalTopic: string, event: KafkaEven
       ],
     });
     logger.warn('[Kafka] Event sent to DLQ', { dlqTopic: `${originalTopic}.dlq`, eventId: event.eventId });
-  } catch {
+  } catch (err) {
     // DLQ publish also failed — nothing more we can do
   }
 }

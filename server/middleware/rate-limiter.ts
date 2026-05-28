@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { Redis } from 'ioredis';
+import { logger } from '../logger.js';
 
 interface RateLimitConfig {
   windowMs: number;      // Time window in milliseconds
@@ -148,7 +149,7 @@ export function createRateLimiter(config: RateLimitConfig, redisClient?: Redis) 
       next();
     } catch (error) {
       // On error, allow request through (fail open)
-      console.error('Rate limiter error:', error);
+      logger.error('Rate limiter error:', error);
       next();
     }
   };

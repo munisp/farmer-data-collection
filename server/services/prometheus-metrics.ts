@@ -9,6 +9,7 @@
  */
 
 import { Registry, Counter, Histogram, Gauge, collectDefaultMetrics } from 'prom-client';
+import { logger } from '../logger.js';
 
 // Create a Registry to register the metrics
 export const register = new Registry();
@@ -323,7 +324,7 @@ export async function updateBusinessMetrics(db: any) {
       totalLoanAmount.set({ status: stat.status }, stat.total || 0);
     }
   } catch (error) {
-    console.error('[Metrics] Error updating business metrics:', error);
+    logger.error('[Metrics] Error updating business metrics:', error);
   }
 }
 

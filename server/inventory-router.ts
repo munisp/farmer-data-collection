@@ -170,7 +170,7 @@ export const inventoryRouter = router({
       const userId = Number(ctx.user.id);
       const { id, unitCost, expiryDate, ...updateData } = input;
       
-      const finalUpdateData: any = { ...updateData };
+      const finalUpdateData: Record<string, unknown> = { ...updateData };
       if (unitCost !== undefined) {
         finalUpdateData.unitCost = Math.round(unitCost * 100); // Convert to cents
       }

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base";
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
+import { logger } from '../logger.js';
 
 export const spatialRouter = router({
   /**
@@ -412,10 +413,10 @@ export const spatialRouter = router({
             farm_id: farmId,
             name: feature.properties.name || feature.properties.farm_name,
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({
             feature: feature.properties.farm_name || feature.properties.name || "Unknown",
-            error: error.message,
+            error: (error instanceof Error ? error.message : String(error)),
           });
         }
       }
@@ -616,7 +617,7 @@ export const spatialRouter = router({
           limit: input.limit,
         });
       } catch (error) {
-        console.warn('[Spatial] GPS farm activity not available:', error);
+        logger.warn('[Spatial] GPS farm activity not available:', error);
         return [];
       }
     }),
@@ -641,7 +642,7 @@ export const spatialRouter = router({
           limit: input.limit,
         });
       } catch (error) {
-        console.warn('[Spatial] GPS device coverage not available:', error);
+        logger.warn('[Spatial] GPS device coverage not available:', error);
         return [];
       }
     }),
@@ -672,7 +673,7 @@ export const spatialRouter = router({
           limit: input.limit,
         });
       } catch (error) {
-        console.warn('[Spatial] GPS heatmap not available:', error);
+        logger.warn('[Spatial] GPS heatmap not available:', error);
         return [];
       }
     }),
@@ -686,7 +687,7 @@ export const spatialRouter = router({
       const service = getGPSAnalyticsService();
       return await service.getSummary();
     } catch (error) {
-      console.warn('[Spatial] GPS analytics summary not available:', error);
+      logger.warn('[Spatial] GPS analytics summary not available:', error);
       return {
         total_tracks: 0,
         total_devices: 0,
@@ -709,7 +710,7 @@ export const spatialRouter = router({
         const service = getGPSAnalyticsService();
         return await service.getTopFarmsByActivity(input.limit);
       } catch (error) {
-        console.warn('[Spatial] Top farms by GPS activity not available:', error);
+        logger.warn('[Spatial] Top farms by GPS activity not available:', error);
         return [];
       }
     }),
@@ -730,7 +731,7 @@ export const spatialRouter = router({
         const service = getGPSAnalyticsService();
         return await service.getFarmActivityTimeSeries(input.farmId, input.days);
       } catch (error) {
-        console.warn('[Spatial] GPS farm activity time series not available:', error);
+        logger.warn('[Spatial] GPS farm activity time series not available:', error);
         return [];
       }
     }),

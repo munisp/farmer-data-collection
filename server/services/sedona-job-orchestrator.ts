@@ -12,6 +12,7 @@
 import { BoundedMap } from '../cache/bounded-map.js';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import { logger } from '../logger.js';
 
 // Job configuration
 interface JobConfig {
@@ -103,11 +104,11 @@ class SedonaJobOrchestrator {
    */
   start(): void {
     if (this.schedulerInterval) {
-      console.log('[Sedona Orchestrator] Scheduler already running');
+      logger.info('[Sedona Orchestrator] Scheduler already running');
       return;
     }
 
-    console.log('[Sedona Orchestrator] Starting job scheduler');
+    logger.info('[Sedona Orchestrator] Starting job scheduler');
     
     // Check Spark/Sedona availability on startup
     this.checkSparkAvailability();
@@ -128,7 +129,7 @@ class SedonaJobOrchestrator {
     if (this.schedulerInterval) {
       clearInterval(this.schedulerInterval);
       this.schedulerInterval = null;
-      console.log('[Sedona Orchestrator] Scheduler stopped');
+      logger.info('[Sedona Orchestrator] Scheduler stopped');
     }
   }
 
@@ -156,7 +157,7 @@ class SedonaJobOrchestrator {
         ? (this.sedonaAvailable ? 'Spark and Sedona available' : 'Spark available, Sedona not found')
         : 'Spark not available';
 
-      console.log(`[Sedona Orchestrator] ${message}`);
+      logger.info(`[Sedona Orchestrator] ${message}`);
       
       return {
         spark: this.sparkAvailable,
@@ -167,7 +168,7 @@ class SedonaJobOrchestrator {
       this.sparkAvailable = false;
       this.sedonaAvailable = false;
       const message = `Spark check failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.warn(`[Sedona Orchestrator] ${message}`);
+      logger.warn(`[Sedona Orchestrator] ${message}`);
       return { spark: false, sedona: false, message };
     }
   }
@@ -200,7 +201,7 @@ class SedonaJobOrchestrator {
           const result = await this.executeJob(job);
           results.push(result);
         } catch (error) {
-          console.error(`[Sedona Orchestrator] Failed to run job ${job.name}:`, error);
+          logger.error(`[Sedona Orchestrator] Failed to run job ${job.name}:`, error);
         }
       }
     }
@@ -293,7 +294,7 @@ class SedonaJobOrchestrator {
       return false;
     }
     job.enabled = enabled;
-    console.log(`[Sedona Orchestrator] Job ${jobName} ${enabled ? 'enabled' : 'disabled'}`);
+    logger.info(`[Sedona Orchestrator] Job ${jobName} ${enabled ? 'enabled' : 'disabled'}`);
     return true;
   }
 
@@ -310,9 +311,9 @@ class SedonaJobOrchestrator {
       if (this.activeRuns.has(jobName)) continue;
       
       if (schedule.nextRun <= now) {
-        console.log(`[Sedona Orchestrator] Running scheduled job: ${jobName}`);
+        logger.info(`[Sedona Orchestrator] Running scheduled job: ${jobName}`);
         this.executeJob(job).catch(error => {
-          console.error(`[Sedona Orchestrator] Scheduled job failed: ${jobName}`, error);
+          logger.error(`[Sedona Orchestrator] Scheduled job failed: ${jobName}`, error);
         });
         
         // Update next run time
@@ -335,7 +336,7 @@ class SedonaJobOrchestrator {
     };
 
     this.activeRuns.set(job.name, run);
-    console.log(`[Sedona Orchestrator] Starting job: ${job.name} (attempt ${retryCount + 1}/${job.retries + 1})`);
+    logger.info(`[Sedona Orchestrator] Starting job: ${job.name} (attempt ${retryCount + 1}/${job.retries + 1})`);
 
     try {
       const scriptPath = path.join(
@@ -351,7 +352,7 @@ class SedonaJobOrchestrator {
       if (result.success) {
         run.status = 'completed';
         run.output = result.output;
-        console.log(`[Sedona Orchestrator] Job completed: ${job.name}`);
+        logger.info(`[Sedona Orchestrator] Job completed: ${job.name}`);
       } else {
         throw new Error(result.error || 'Job execution failed');
       }
@@ -365,12 +366,12 @@ class SedonaJobOrchestrator {
       }
       run.error = errorMessage;
 
-      console.error(`[Sedona Orchestrator] Job failed: ${job.name}`, errorMessage);
+      logger.error(`[Sedona Orchestrator] Job failed: ${job.name}`, errorMessage);
 
       // Retry with exponential backoff
       if (retryCount < job.retries) {
         const backoffMs = Math.pow(2, retryCount) * 1000;
-        console.log(`[Sedona Orchestrator] Retrying job ${job.name} in ${backoffMs}ms`);
+        logger.info(`[Sedona Orchestrator] Retrying job ${job.name} in ${backoffMs}ms`);
         
         await new Promise(resolve => setTimeout(resolve, backoffMs));
         this.activeRuns.delete(job.name);
@@ -517,7 +518,7 @@ export const sedonaOrchestrator = new SedonaJobOrchestrator();
 // Auto-start scheduler if ENABLE_SEDONA_SCHEDULER env var is set
 if (process.env.ENABLE_SEDONA_SCHEDULER === 'true') {
   sedonaOrchestrator.start();
-  console.log('[Sedona Orchestrator] Auto-started from environment variable');
+  logger.info('[Sedona Orchestrator] Auto-started from environment variable');
 }
 
 export default sedonaOrchestrator;

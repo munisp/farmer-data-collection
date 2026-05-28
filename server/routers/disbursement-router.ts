@@ -53,10 +53,10 @@ export const disbursementRouter = router({
 
         try {
           return await disbursementService.createDisbursement(input);
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to create disbursement",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -79,10 +79,10 @@ export const disbursementRouter = router({
           ...input,
           processedBy: ctx.user.id,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to process disbursement",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -105,10 +105,10 @@ export const disbursementRouter = router({
           ctx.user.id,
           input.notes
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to complete disbursement",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -131,10 +131,10 @@ export const disbursementRouter = router({
           ctx.user.id,
           input.failureReason
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to mark disbursement as failed",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -157,10 +157,10 @@ export const disbursementRouter = router({
           ctx.user.id,
           input.reason
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to cancel disbursement",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),

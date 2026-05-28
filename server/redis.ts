@@ -88,7 +88,7 @@ export async function closeRedis(): Promise<void> {
   if (redisClient) {
     try {
       await redisClient.quit();
-    } catch {
+    } catch (err) {
       redisClient.disconnect();
     }
     redisClient = null;

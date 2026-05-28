@@ -189,12 +189,15 @@ export const smsRouter = router({
       const messageContent = `Dear ${loan.borrowerName}, this is a reminder that your loan payment of ${formattedAmount} for loan ${loan.loanNumber} is due on ${formattedDate}. Please ensure timely payment to avoid penalties.`;
 
       // Send payment reminder
+      const dueDateStr = loan.nextPaymentDate instanceof Date
+        ? loan.nextPaymentDate.toISOString().split('T')[0]
+        : String(loan.nextPaymentDate || 'N/A');
       const result = await sendPaymentReminder(
         loan.borrowerPhone,
         loan.borrowerName,
         loan.monthlyPayment || loan.amount,
-        loan.nextPaymentDate || new Date(),
-        loan.loanNumber
+        dueDateStr,
+        'NGN'
       );
 
       // Log the SMS
@@ -281,7 +284,7 @@ export const smsRouter = router({
         .where(eq(userNotificationPreferences.userId, ctx.user.id));
 
       // Map frontend field names to database field names
-      const dbFields: any = {};
+      const dbFields: Record<string, unknown> = {};
       if (input.smsEnabled !== undefined) dbFields.smsEnabled = input.smsEnabled;
       if (input.paymentReminders !== undefined) dbFields.paymentReminders = input.paymentReminders;
       if (input.loanApprovals !== undefined) dbFields.loanApprovalNotifications = input.loanApprovals;

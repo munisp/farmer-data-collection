@@ -3,6 +3,7 @@ import { ussdService } from "../services/ussd.service.js";
 import { smsService } from "../services/sms.service.js";
 import { whatsappService } from "../services/whatsapp.service.js";
 import { USSDRequest } from "../../shared/ussd-types.js";
+import { logger } from '../logger.js';
 
 describe("Communication Channels Integration", () => {
   describe("USSD Service", () => {
@@ -99,8 +100,8 @@ describe("Communication Channels Integration", () => {
       const available = smsService.isAvailable();
       const providers = smsService.getAvailableProviders();
 
-      console.log("SMS Service Available:", available);
-      console.log("SMS Providers:", providers);
+      logger.info("SMS Service Available:", available);
+      logger.info("SMS Providers:", providers);
 
       // Service should be initialized (even if no credentials configured)
       expect(smsService).toBeDefined();
@@ -151,8 +152,8 @@ describe("Communication Channels Integration", () => {
       const available = whatsappService.isAvailable();
       const providers = whatsappService.getAvailableProviders();
 
-      console.log("WhatsApp Service Available:", available);
-      console.log("WhatsApp Providers:", providers);
+      logger.info("WhatsApp Service Available:", available);
+      logger.info("WhatsApp Providers:", providers);
 
       // Service should be initialized
       expect(whatsappService).toBeDefined();

@@ -4,6 +4,7 @@ import { WhatsAppMessage } from "../../shared/whatsapp-types.js";
 import { getDb } from "../db.js";
 import { messageLogs } from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
+import { logger } from '../logger.js';
 
 const router = express.Router();
 
@@ -29,9 +30,9 @@ async function updateMessageStatus(
       })
       .where(eq(messageLogs.externalMessageId, messageId));
 
-    console.log(`[WhatsApp] Updated message ${messageId} status to ${status}`);
+    logger.info(`[WhatsApp] Updated message ${messageId} status to ${status}`);
   } catch (error) {
-    console.error('[WhatsApp] Failed to update message status:', error);
+    logger.error('[WhatsApp] Failed to update message status:', error);
   }
 }
 
@@ -58,9 +59,9 @@ async function saveIncomingMessage(
       status: 'received',
     });
 
-    console.log(`[WhatsApp] Saved incoming message from ${from}`);
+    logger.info(`[WhatsApp] Saved incoming message from ${from}`);
   } catch (error) {
-    console.error('[WhatsApp] Failed to save incoming message:', error);
+    logger.error('[WhatsApp] Failed to save incoming message:', error);
   }
 }
 
@@ -93,9 +94,9 @@ router.post("/send", async (req, res) => {
     } else {
       res.status(500).json(result);
     }
-  } catch (error: any) {
-    console.error("[WhatsApp API] Send error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Send error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -118,9 +119,9 @@ router.post("/send-text", async (req, res) => {
     } else {
       res.status(500).json(result);
     }
-  } catch (error: any) {
-    console.error("[WhatsApp API] Send text error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Send text error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -150,9 +151,9 @@ router.post("/send-template", async (req, res) => {
     } else {
       res.status(500).json(result);
     }
-  } catch (error: any) {
-    console.error("[WhatsApp API] Send template error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Send template error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -175,9 +176,9 @@ router.post("/send-image", async (req, res) => {
     } else {
       res.status(500).json(result);
     }
-  } catch (error: any) {
-    console.error("[WhatsApp API] Send image error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Send image error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -206,9 +207,9 @@ router.post("/send-document", async (req, res) => {
     } else {
       res.status(500).json(result);
     }
-  } catch (error: any) {
-    console.error("[WhatsApp API] Send document error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Send document error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -240,9 +241,9 @@ router.post("/send-location", async (req, res) => {
     } else {
       res.status(500).json(result);
     }
-  } catch (error: any) {
-    console.error("[WhatsApp API] Send location error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Send location error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -260,9 +261,9 @@ router.get("/status", async (req, res) => {
       providers,
       configured: providers.length > 0,
     });
-  } catch (error: any) {
-    console.error("[WhatsApp API] Status error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Status error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -283,7 +284,7 @@ router.post("/webhook", async (req, res) => {
     for (const change of changes) {
       if (change.value?.messages) {
         for (const message of change.value.messages) {
-          console.log("[WhatsApp] Incoming message:", {
+          logger.info("[WhatsApp] Incoming message:", {
             from: message.from,
             type: message.type,
             timestamp: message.timestamp,
@@ -306,7 +307,7 @@ router.post("/webhook", async (req, res) => {
 
       if (change.value?.statuses) {
         for (const status of change.value.statuses) {
-          console.log("[WhatsApp] Message status update:", {
+          logger.info("[WhatsApp] Message status update:", {
             id: status.id,
             status: status.status,
             timestamp: status.timestamp,
@@ -319,9 +320,9 @@ router.post("/webhook", async (req, res) => {
     }
 
     res.status(200).json({ success: true });
-  } catch (error: any) {
-    console.error("[WhatsApp API] Webhook error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Webhook error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -337,7 +338,7 @@ router.get("/webhook", (req, res) => {
   const verifyToken = process.env.META_WHATSAPP_VERIFY_TOKEN || "your_verify_token";
 
   if (mode === "subscribe" && token === verifyToken) {
-    console.log("[WhatsApp] Webhook verified");
+    logger.info("[WhatsApp] Webhook verified");
     res.status(200).send(challenge);
   } else {
     res.status(403).send("Forbidden");
@@ -352,7 +353,7 @@ router.post("/twilio-status", async (req, res) => {
   try {
     const { MessageSid, MessageStatus, To, From, ErrorCode, ErrorMessage } = req.body;
 
-    console.log("[WhatsApp] Twilio status callback:", {
+    logger.info("[WhatsApp] Twilio status callback:", {
       MessageSid,
       MessageStatus,
       To,
@@ -365,9 +366,9 @@ router.post("/twilio-status", async (req, res) => {
     await updateMessageStatus(MessageSid, MessageStatus, ErrorCode, ErrorMessage);
 
     res.status(200).send("OK");
-  } catch (error: any) {
-    console.error("[WhatsApp API] Twilio status error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    logger.error("[WhatsApp API] Twilio status error:", error);
+    res.status(500).json({ error: (error instanceof Error ? error.message : String(error)) });
   }
 });
 

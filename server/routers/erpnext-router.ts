@@ -11,6 +11,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { ERPNextSyncService } from "../services/erpnext/erpnext-sync-service.js";
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypto";
+import { logger } from '../logger.js';
 
 /**
  * ERPNext Integration Router
@@ -61,7 +62,7 @@ function decryptApiKey(ciphertext: string): string {
     return decrypted;
   } catch (error) {
     // If decryption fails, assume it's unencrypted legacy data
-    console.warn('[ERPNext] Failed to decrypt, assuming legacy unencrypted data');
+    logger.warn('[ERPNext] Failed to decrypt, assuming legacy unencrypted data');
     return ciphertext;
   }
 }
@@ -151,10 +152,10 @@ export const erpnextRouter = router({
         success: isConnected,
         message: isConnected ? "Connection successful" : "Connection failed",
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        message: error.message,
+        message: (error instanceof Error ? error.message : String(error)),
       };
     }
   }),
@@ -325,10 +326,10 @@ export const erpnextRouter = router({
           recordsFailed: syncResult.recordsFailed || 0,
           errors: syncResult.errors || (syncResult.error ? [syncResult.error] : []),
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: error.message,
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),

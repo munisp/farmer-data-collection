@@ -42,7 +42,7 @@ export class RedisStore<T extends {}> {
         const raw = await redis.get(this.redisKey(key));
         if (raw) return JSON.parse(raw) as T;
         return undefined;
-      } catch {
+      } catch (err) {
         // Fall through to fallback
       }
     }
@@ -71,7 +71,7 @@ export class RedisStore<T extends {}> {
       try {
         const count = await redis.del(this.redisKey(key));
         return count > 0;
-      } catch {
+      } catch (err) {
         return false;
       }
     }
@@ -83,7 +83,7 @@ export class RedisStore<T extends {}> {
     if (redis) {
       try {
         return (await redis.exists(this.redisKey(key))) === 1;
-      } catch {
+      } catch (err) {
         // Fall through
       }
     }
@@ -96,7 +96,7 @@ export class RedisStore<T extends {}> {
       try {
         const keys = await redis.keys(`store:${this.prefix}:*`);
         return keys.length;
-      } catch {
+      } catch (err) {
         // Fall through
       }
     }
@@ -117,7 +117,7 @@ export class RedisStore<T extends {}> {
         return (results || [])
           .filter(([err, val]) => !err && val)
           .map(([, val]) => JSON.parse(val as string) as T);
-      } catch {
+      } catch (err) {
         // Fall through
       }
     }

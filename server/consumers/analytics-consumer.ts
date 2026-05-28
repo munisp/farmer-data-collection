@@ -1,5 +1,6 @@
 import { createConsumer, TOPICS } from '../kafka.js';
 import { getRedisClient } from '../redis.js';
+import { logger } from '../logger.js';
 
 /**
  * Analytics Consumer
@@ -23,13 +24,13 @@ interface AnalyticsMetrics {
 }
 
 export async function startAnalyticsConsumer() {
-  console.log('[AnalyticsConsumer] Starting...');
+  logger.info('[AnalyticsConsumer] Starting...');
 
   try {
     const consumer = await createConsumer('analytics-group');
     const redis = getRedisClient();
     if (!redis) {
-      console.warn('[AnalyticsConsumer] Redis unavailable — analytics consumer will skip cache writes');
+      logger.warn('[AnalyticsConsumer] Redis unavailable — analytics consumer will skip cache writes');
     }
     
     await consumer.subscribe({
@@ -142,18 +143,18 @@ export async function startAnalyticsConsumer() {
             await redis.set(METRICS_KEY, JSON.stringify(metrics), 'EX', 3600);
           }
 
-          console.log(`[AnalyticsConsumer] Updated metrics: ${entityType} ${eventType}`);
+          logger.info(`[AnalyticsConsumer] Updated metrics: ${entityType} ${eventType}`);
         } catch (error) {
-          console.error('[AnalyticsConsumer] Error processing message:', error);
+          logger.error('[AnalyticsConsumer] Error processing message:', error);
           // Don't throw - we don't want to stop the consumer on individual message errors
         }
       },
     });
 
-    console.log('[AnalyticsConsumer] Started successfully');
+    logger.info('[AnalyticsConsumer] Started successfully');
     return consumer;
   } catch (error) {
-    console.error('[AnalyticsConsumer] Failed to start:', error);
+    logger.error('[AnalyticsConsumer] Failed to start:', error);
     throw error;
   }
 }
@@ -179,7 +180,7 @@ export async function getAnalyticsMetrics(): Promise<AnalyticsMetrics | null> {
 
     return metrics;
   } catch (error) {
-    console.error('[Analytics] Error getting metrics:', error);
+    logger.error('[Analytics] Error getting metrics:', error);
     return null;
   }
 }

@@ -14,6 +14,7 @@
 
 import https from "node:https";
 import fs from "node:fs";
+import { logger } from '../logger.js';
 
 interface MtlsConfig {
   caCert: string;
@@ -27,7 +28,7 @@ const caCertPath = process.env.MTLS_CA_CERT ?? "";
 function loadCert(path: string): string | undefined {
   try {
     return fs.readFileSync(path, "utf-8");
-  } catch {
+  } catch (err) {
     return undefined;
   }
 }
@@ -48,7 +49,7 @@ export function createMtlsAgent(serviceName: string): https.Agent | undefined {
   const key = loadCert(keyPath);
 
   if (!ca || !cert || !key) {
-    console.warn(`[mTLS] Missing certificates for ${serviceName}, falling back to plain HTTP`);
+    logger.warn(`[mTLS] Missing certificates for ${serviceName}, falling back to plain HTTP`);
     return undefined;
   }
 

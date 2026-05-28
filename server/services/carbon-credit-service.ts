@@ -7,7 +7,8 @@
 import { db } from "../db.js";
 import { BoundedMap } from "../cache/bounded-map.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type SustainablePractice = 
   | 'no_till_farming'
@@ -422,7 +423,7 @@ class CarbonCreditService {
         }],
       });
     } catch (error) {
-      console.warn('[CarbonCredit] Could not emit Kafka event:', error);
+      logger.warn('[CarbonCredit] Could not emit Kafka event:', error);
     }
 
     return footprint;
@@ -564,7 +565,7 @@ class CarbonCreditService {
         }],
       });
     } catch (error) {
-      console.warn('[CarbonCredit] Could not emit Kafka event:', error);
+      logger.warn('[CarbonCredit] Could not emit Kafka event:', error);
     }
 
     return credit;

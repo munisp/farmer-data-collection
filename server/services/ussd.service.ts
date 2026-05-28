@@ -4,6 +4,7 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { USSDRequest, USSDResponse, USSDMenuStep } from "../../shared/ussd-types.js";
 import bcrypt from "bcryptjs";
 import { getUSSDSessionManager, USSDSession } from "./ussd-session-manager.js";
+import { logger } from '../logger.js';
 import {
   recordUssdSessionCreated,
   recordUssdSessionCompleted,
@@ -63,19 +64,20 @@ export class USSDService {
 
       // Legacy DB-based session handling
       return await this.handleWithDbSession(sessionId, phoneNumber, text, db, startTime);
-    } catch (error: any) {
-      console.error("[USSD] Request error:", error);
+    } catch (error: unknown) {
+      logger.error("[USSD] Request error:", error);
+      const err = error as any;
       if (USSD_CONFIG.enableMetrics) {
-        recordUssdError(error.code || "unknown_error");
+        recordUssdError(err?.code || "unknown_error");
       }
 
       const recoverableInfrastructureError =
-        error?.code === "ECONNREFUSED" ||
-        error?.code === "57P01" ||
-        error?.name === "DrizzleQueryError" ||
-        String(error?.message || "").includes("ECONNREFUSED") ||
-        String(error?.message || "").includes("connect") ||
-        String(error?.message || "").includes("Failed query");
+        err?.code === "ECONNREFUSED" ||
+        err?.code === "57P01" ||
+        err?.name === "DrizzleQueryError" ||
+        String(err?.message || "").includes("ECONNREFUSED") ||
+        String(err?.message || "").includes("connect") ||
+        String(err?.message || "").includes("Failed query");
 
       if (recoverableInfrastructureError) {
         return this.handleInMemoryFallback(sessionId, phoneNumber, text);
@@ -399,7 +401,7 @@ export class USSDService {
         if (USSD_CONFIG.enableMetrics) {
           recordUssdIdempotencyHit("register_confirm");
         }
-        console.log(`[USSD] Duplicate registration prevented for session ${session.sessionId}`);
+        logger.info(`[USSD] Duplicate registration prevented for session ${session.sessionId}`);
         return previousResult as USSDResponse;
       }
     }
@@ -682,7 +684,7 @@ export class USSDService {
 
           if (existingFarmer) {
             // Already registered - return success without creating duplicate
-            console.log(`[USSD] User ${phoneNumber} already registered, returning existing profile`);
+            logger.info(`[USSD] User ${phoneNumber} already registered, returning existing profile`);
             return {
               text: `You are already registered!\n\n` +
                     `Your farmer ID: ${userId}\n\n` +
@@ -725,7 +727,7 @@ export class USSDService {
         } catch (insertError: any) {
           // Handle duplicate key error gracefully
           if (insertError.code === "23505" || insertError.message?.includes("duplicate")) {
-            console.log(`[USSD] Farmer profile already exists for user ${userId}`);
+            logger.info(`[USSD] Farmer profile already exists for user ${userId}`);
             return {
               text: `You are already registered!\n\n` +
                     `Your farmer ID: ${userId}\n\n` +
@@ -755,8 +757,8 @@ export class USSDService {
                 `Thank you!`,
           continueSession: false,
         };
-      } catch (error: any) {
-        console.error("[USSD] Registration error:", error);
+      } catch (error: unknown) {
+        logger.error("[USSD] Registration error:", error);
         if (USSD_CONFIG.enableMetrics) {
           recordUssdError("registration_failed");
         }
@@ -1078,7 +1080,7 @@ export class USSDService {
           continueSession: false,
         };
       } catch (error) {
-        console.error("Registration error:", error);
+        logger.error("Registration error:", error);
         return {
           text: "Registration failed. Please try again later or contact support.",
           continueSession: false,
@@ -1224,7 +1226,7 @@ export class USSDService {
         continueSession: false,
       };
     } catch (error) {
-      console.error("View profile error:", error);
+      logger.error("View profile error:", error);
       return {
         text: "Error retrieving profile. Please try again later.",
         continueSession: false,
@@ -1319,7 +1321,7 @@ export class USSDService {
           .orderBy(desc(marketplaceOrders.createdAt))
           .limit(5);
         if (orders.length === 0) return { text: "No orders yet.", continueSession: false };
-        const orderList = orders.map((o: Record<string, unknown>) =>
+        const orderList = orders.map((o: Record<string, any>) =>
           `#${o.id}: ₦${o.totalAmount} - ${o.status}`
         ).join("\n");
         return { text: `My Orders:\n${orderList}`, continueSession: false };
@@ -1332,7 +1334,7 @@ export class USSDService {
   }
 
   private async handleMarketplaceBrowse(
-    sessionId: string, input: string, data: Record<string, unknown>, db: any
+    sessionId: string, input: string, data: Record<string, any>, db: any
   ): Promise<USSDResponse> {
     if (input === "0") return this.showMainMenu();
     const categories = (data.categories as string[]) || [];
@@ -1352,15 +1354,15 @@ export class USSDService {
       .limit(5);
 
     if (items.length === 0) return { text: `No ${category} available.`, continueSession: false };
-    const list = items.map((item: Record<string, unknown>, i: number) =>
+    const list = items.map((item: Record<string, any>, i: number) =>
       `${i + 1}. ${item.title} ${item.quantity}${item.unit} @₦${item.pricePerUnit}/${item.unit}`
     ).join("\n");
-    await this.updateSession(sessionId, USSDMenuStep.MARKETPLACE_BROWSE_CROP, { items: items.map((i: Record<string, unknown>) => i.id) }, db);
+    await this.updateSession(sessionId, USSDMenuStep.MARKETPLACE_BROWSE_CROP, { items: items.map((i: Record<string, any>) => i.id) }, db);
     return { text: `${category}:\n${list}\nSelect to buy (0=Back):`, continueSession: true };
   }
 
   private async handleMarketplaceBrowseCrop(
-    sessionId: string, input: string, data: Record<string, unknown>, db: any
+    sessionId: string, input: string, data: Record<string, any>, db: any
   ): Promise<USSDResponse> {
     if (input === "0") return this.showMainMenu();
     const itemIds = (data.items as number[]) || [];
@@ -1380,7 +1382,7 @@ export class USSDService {
   }
 
   private async handleMarketplaceBuyConfirm(
-    sessionId: string, input: string, data: Record<string, unknown>, phoneNumber: string, db: any
+    sessionId: string, input: string, data: Record<string, any>, phoneNumber: string, db: any
   ): Promise<USSDResponse> {
     if (input !== "1") return { text: "Order cancelled.", continueSession: false };
     const buyer = await db.query.users.findFirst({ where: eq(users.phoneNumber, phoneNumber) });
@@ -1397,14 +1399,14 @@ export class USSDService {
   }
 
   private async handleMarketplaceSellCrop(
-    sessionId: string, input: string, data: Record<string, unknown>, db: any
+    sessionId: string, input: string, data: Record<string, any>, db: any
   ): Promise<USSDResponse> {
     await this.updateSession(sessionId, USSDMenuStep.MARKETPLACE_SELL_QTY, { ...data, crop: input.trim() }, db);
     return { text: `Selling: ${input.trim()}\nEnter quantity (kg):`, continueSession: true };
   }
 
   private async handleMarketplaceSellQty(
-    sessionId: string, input: string, data: Record<string, unknown>, db: any
+    sessionId: string, input: string, data: Record<string, any>, db: any
   ): Promise<USSDResponse> {
     const qty = parseInt(input);
     if (isNaN(qty) || qty <= 0) return { text: "Invalid quantity. Enter a number:", continueSession: true };
@@ -1413,7 +1415,7 @@ export class USSDService {
   }
 
   private async handleMarketplaceSellPrice(
-    sessionId: string, input: string, data: Record<string, unknown>, db: any
+    sessionId: string, input: string, data: Record<string, any>, db: any
   ): Promise<USSDResponse> {
     const price = parseInt(input);
     if (isNaN(price) || price <= 0) return { text: "Invalid price. Enter a number:", continueSession: true };
@@ -1426,7 +1428,7 @@ export class USSDService {
   }
 
   private async handleMarketplaceSellConfirm(
-    sessionId: string, input: string, data: Record<string, unknown>, phoneNumber: string, db: any
+    sessionId: string, input: string, data: Record<string, any>, phoneNumber: string, db: any
   ): Promise<USSDResponse> {
     if (input !== "1") return { text: "Listing cancelled.", continueSession: false };
     const seller = await db.query.users.findFirst({ where: eq(users.phoneNumber, phoneNumber) });
@@ -1462,7 +1464,7 @@ export class USSDService {
           .where(and(eq(priceAlerts.userId, user.id), eq(priceAlerts.active, true)))
           .limit(5);
         if (alerts.length === 0) return { text: "No active alerts.", continueSession: false };
-        const list = alerts.map((a: Record<string, unknown>) =>
+        const list = alerts.map((a: Record<string, any>) =>
           `${a.crop}: ${a.alertType === "above" ? ">" : "<"} ₦${a.threshold}`
         ).join("\n");
         return { text: `Your Alerts:\n${list}`, continueSession: false };
@@ -1475,14 +1477,14 @@ export class USSDService {
   }
 
   private async handlePriceAlertCrop(
-    sessionId: string, input: string, data: Record<string, unknown>, db: any
+    sessionId: string, input: string, data: Record<string, any>, db: any
   ): Promise<USSDResponse> {
     await this.updateSession(sessionId, USSDMenuStep.PRICE_ALERT_THRESHOLD, { ...data, crop: input.trim() }, db);
     return { text: `Alert for ${input.trim()}\nEnter min price (₦/kg) to alert when above:`, continueSession: true };
   }
 
   private async handlePriceAlertThreshold(
-    sessionId: string, input: string, data: Record<string, unknown>, phoneNumber: string, db: any
+    sessionId: string, input: string, data: Record<string, any>, phoneNumber: string, db: any
   ): Promise<USSDResponse> {
     const threshold = parseInt(input);
     if (isNaN(threshold) || threshold <= 0) return { text: "Invalid price. Enter a number:", continueSession: true };
@@ -1506,7 +1508,7 @@ export class USSDService {
   // ======================== PAYMENT HANDLERS ========================
 
   private async handlePaymentAmount(
-    sessionId: string, input: string, data: Record<string, unknown>, phoneNumber: string, db: any
+    sessionId: string, input: string, data: Record<string, any>, phoneNumber: string, db: any
   ): Promise<USSDResponse> {
     const amount = parseInt(input);
     if (isNaN(amount) || amount < 10) return { text: "Minimum ₦10. Enter amount:", continueSession: true };
@@ -1518,7 +1520,7 @@ export class USSDService {
   }
 
   private async handlePaymentConfirm(
-    sessionId: string, input: string, data: Record<string, unknown>, phoneNumber: string, db: any
+    sessionId: string, input: string, data: Record<string, any>, phoneNumber: string, db: any
   ): Promise<USSDResponse> {
     if (input !== "1") return { text: "Payment cancelled.", continueSession: false };
     const user = await db.query.users.findFirst({ where: eq(users.phoneNumber, phoneNumber) });

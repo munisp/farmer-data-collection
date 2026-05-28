@@ -2,6 +2,7 @@ import crypto from "crypto";
 import express from "express";
 import { ussdService } from "../services/ussd.service.js";
 import { USSDRequest } from "../../shared/ussd-types.js";
+import { logger } from '../logger.js';
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.post("/", async (req, res) => {
     res.set("Content-Type", "text/plain");
     res.send(`${prefix} ${response.text}`);
   } catch (error) {
-    console.error("USSD error:", error);
+    logger.error("USSD error:", error);
     res.status(500).send("END Service error. Please try again.");
   }
 });
@@ -68,7 +69,7 @@ router.post("/test", async (req, res) => {
       text: response.text,
     });
   } catch (error) {
-    console.error("USSD test error:", error);
+    logger.error("USSD test error:", error);
     res.status(500).json({ error: "Service error" });
   }
 });

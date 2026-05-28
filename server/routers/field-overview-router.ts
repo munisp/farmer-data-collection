@@ -47,7 +47,7 @@ const parseBoundary = (value: unknown): Record<string, unknown> | null => {
   if (typeof value === 'string') {
     try {
       return JSON.parse(value) as Record<string, unknown>;
-    } catch {
+    } catch (err) {
       return null;
     }
   }

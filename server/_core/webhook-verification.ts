@@ -9,6 +9,7 @@
 
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../logger.js';
 
 /**
  * Verify Africa's Talking webhook signature
@@ -68,7 +69,7 @@ export function verifyStripeSignature(
     const currentTime = Math.floor(Date.now() / 1000);
     const webhookTime = parseInt(timestamp, 10);
     if (Math.abs(currentTime - webhookTime) > 300) {
-      console.warn('[Webhook] Stripe signature timestamp too old');
+      logger.warn('[Webhook] Stripe signature timestamp too old');
       return false;
     }
 
@@ -77,7 +78,7 @@ export function verifyStripeSignature(
       Buffer.from(expectedSignature)
     );
   } catch (error) {
-    console.error('[Webhook] Stripe signature verification error:', error);
+    logger.error('[Webhook] Stripe signature verification error:', error);
     return false;
   }
 }
@@ -112,13 +113,13 @@ export function africasTalkingWebhookMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Skip verification in development/test
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-      console.log('[Webhook] Skipping AT signature verification in dev/test mode');
+      logger.info('[Webhook] Skipping AT signature verification in dev/test mode');
       return next();
     }
 
     const apiKey = process.env.AFRICASTALKING_API_KEY;
     if (!apiKey) {
-      console.warn('[Webhook] AT API key not configured, skipping verification');
+      logger.warn('[Webhook] AT API key not configured, skipping verification');
       return next();
     }
 
@@ -126,7 +127,7 @@ export function africasTalkingWebhookMiddleware() {
     const payload = JSON.stringify(req.body);
 
     if (!verifyAfricasTalkingSignature(payload, signature, apiKey)) {
-      console.error('[Webhook] Invalid Africa\'s Talking signature');
+      logger.error('[Webhook] Invalid Africa\'s Talking signature');
       return res.status(401).json({ error: 'Invalid webhook signature' });
     }
 
@@ -141,13 +142,13 @@ export function stripeWebhookMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Skip verification in development/test
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-      console.log('[Webhook] Skipping Stripe signature verification in dev/test mode');
+      logger.info('[Webhook] Skipping Stripe signature verification in dev/test mode');
       return next();
     }
 
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      console.warn('[Webhook] Stripe webhook secret not configured, skipping verification');
+      logger.warn('[Webhook] Stripe webhook secret not configured, skipping verification');
       return next();
     }
 
@@ -155,7 +156,7 @@ export function stripeWebhookMiddleware() {
     const payload = (req as any).rawBody || JSON.stringify(req.body);
 
     if (!verifyStripeSignature(payload, signature, webhookSecret)) {
-      console.error('[Webhook] Invalid Stripe signature');
+      logger.error('[Webhook] Invalid Stripe signature');
       return res.status(401).json({ error: 'Invalid webhook signature' });
     }
 
@@ -170,13 +171,13 @@ export function paystackWebhookMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Skip verification in development/test
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-      console.log('[Webhook] Skipping Paystack signature verification in dev/test mode');
+      logger.info('[Webhook] Skipping Paystack signature verification in dev/test mode');
       return next();
     }
 
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
     if (!secretKey) {
-      console.warn('[Webhook] Paystack secret key not configured, skipping verification');
+      logger.warn('[Webhook] Paystack secret key not configured, skipping verification');
       return next();
     }
 
@@ -184,7 +185,7 @@ export function paystackWebhookMiddleware() {
     const payload = JSON.stringify(req.body);
 
     if (!verifyPaystackSignature(payload, signature, secretKey)) {
-      console.error('[Webhook] Invalid Paystack signature');
+      logger.error('[Webhook] Invalid Paystack signature');
       return res.status(401).json({ error: 'Invalid webhook signature' });
     }
 
@@ -209,7 +210,7 @@ export function createWebhookVerifier(options: {
 
     const secret = process.env[options.secretEnvVar];
     if (!secret) {
-      console.warn(`[Webhook] ${options.provider} secret not configured`);
+      logger.warn(`[Webhook] ${options.provider} secret not configured`);
       return next();
     }
 
@@ -228,11 +229,11 @@ export function createWebhookVerifier(options: {
       );
 
       if (!isValid) {
-        console.error(`[Webhook] Invalid ${options.provider} signature`);
+        logger.error(`[Webhook] Invalid ${options.provider} signature`);
         return res.status(401).json({ error: 'Invalid webhook signature' });
       }
     } catch (error) {
-      console.error(`[Webhook] ${options.provider} verification error:`, error);
+      logger.error(`[Webhook] ${options.provider} verification error:`, error);
       return res.status(401).json({ error: 'Invalid webhook signature' });
     }
 

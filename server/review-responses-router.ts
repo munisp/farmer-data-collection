@@ -3,6 +3,7 @@ import { router, protectedProcedure, publicProcedure } from "./_core/trpc-base.j
 import { getDb } from "./db.js";
 import { reviewResponses, productReviews, produceListings, users } from "../drizzle/schema.js";
 import { eq, and, desc } from "drizzle-orm";
+import { logger } from './logger.js';
 
 /**
  * Review Responses Router
@@ -105,10 +106,10 @@ export const reviewResponsesRouter = router({
             status: 'pending',
           });
           
-          console.log(`[ReviewResponse] Notification queued for user ${review.userId} for review ${input.reviewId}`);
+          logger.info(`[ReviewResponse] Notification queued for user ${review.userId} for review ${input.reviewId}`);
         }
       } catch (error) {
-        console.error("[ReviewResponse] Failed to queue notification:", error);
+        logger.error("[ReviewResponse] Failed to queue notification:", error);
         // Don't fail the response if notification fails
       }
 

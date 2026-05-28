@@ -262,7 +262,7 @@ export async function publishRepaymentProcessed(
 }
 
 // Farmer events
-export async function publishFarmerCreated(farmerId: number, userId: number, data: any) {
+export async function publishFarmerCreated(farmerId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(EVENT_TYPES.CREATED, 'farmer', farmerId, userId, data);
   await publishMultipleEvents([
     { topic: TOPICS.FARMER_EVENTS, event },
@@ -271,7 +271,7 @@ export async function publishFarmerCreated(farmerId: number, userId: number, dat
   ]);
 }
 
-export async function publishFarmerUpdated(farmerId: number, userId: number, data: any) {
+export async function publishFarmerUpdated(farmerId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(EVENT_TYPES.UPDATED, 'farmer', farmerId, userId, data);
   await publishMultipleEvents([
     { topic: TOPICS.FARMER_EVENTS, event },
@@ -299,7 +299,7 @@ export async function publishUserLogin(userId: number, email: string, metadata?:
   ]);
 }
 
-export async function publishUserRegistered(userId: number, email: string, data: any) {
+export async function publishUserRegistered(userId: number, email: string, data: Record<string, unknown>) {
   const event = createEvent(EVENT_TYPES.REGISTER, 'user', userId, userId, { email, ...data });
   await publishMultipleEvents([
     { topic: TOPICS.AUTH_EVENTS, event },

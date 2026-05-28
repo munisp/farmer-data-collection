@@ -98,7 +98,7 @@ export async function checkDbHealth(): Promise<{
     client.release();
     _healthy = true;
     _lastHealthCheck = now;
-  } catch {
+  } catch (err) {
     _healthy = false;
   }
 

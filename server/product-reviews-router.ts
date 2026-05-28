@@ -7,6 +7,7 @@ import { predictHelpfulness } from "./services/review-helpfulness-ml.js";
 import { productReviews, reviewVotes, marketplaceOrders, orderItems, users } from "../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { uploadReviewPhoto } from "./services/storage-service";
+import { logger } from './logger.js';
 
 /**
  * Product Reviews Router
@@ -135,7 +136,7 @@ export const productReviewsRouter = router({
             );
             photoUrls.push(result.url);
           } catch (error) {
-            console.error("Failed to upload review photo:", error);
+            logger.error("Failed to upload review photo:", error);
           }
         }
 

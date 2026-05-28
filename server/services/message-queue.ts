@@ -13,6 +13,7 @@ import crypto from "crypto";
 
 import { Redis } from "ioredis";
 import { EventEmitter } from "events";
+import { logger } from '../logger.js';
 
 // Message types
 export type MessageChannel = "sms" | "whatsapp" | "ussd";
@@ -28,7 +29,7 @@ export interface QueuedMessage {
   content: string;
   templateId?: string;
   templateParams?: Record<string, string>;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   priority: "high" | "normal" | "low";
   status: MessageStatus;
   provider?: string;
@@ -124,12 +125,12 @@ export class MessageQueueService extends EventEmitter {
     });
 
     this.redis.on("error", (err) => {
-      console.error("[MessageQueue] Redis error:", err);
+      logger.error("[MessageQueue] Redis error:", err);
       this.emit("error", err);
     });
 
     this.redis.on("connect", () => {
-      console.log("[MessageQueue] Redis connected");
+      logger.info("[MessageQueue] Redis connected");
       this.emit("connected");
     });
 
@@ -159,7 +160,7 @@ export class MessageQueueService extends EventEmitter {
     // Check for duplicate
     const existing = await this.redis.get(`${REDIS_KEYS.idempotency}:${idempotencyKey}`);
     if (existing) {
-      console.log(`[MessageQueue] Duplicate message detected: ${idempotencyKey}`);
+      logger.info(`[MessageQueue] Duplicate message detected: ${idempotencyKey}`);
       return existing;
     }
 
@@ -186,7 +187,7 @@ export class MessageQueueService extends EventEmitter {
     await pipeline.exec();
 
     this.emit("enqueued", queuedMessage);
-    console.log(`[MessageQueue] Message enqueued: ${id} (${message.channel} to ${message.to})`);
+    logger.info(`[MessageQueue] Message enqueued: ${id} (${message.channel} to ${message.to})`);
 
     return id;
   }
@@ -201,7 +202,7 @@ export class MessageQueueService extends EventEmitter {
       templateId?: string;
       templateParams?: Record<string, string>;
       priority?: "high" | "normal" | "low";
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
   ): Promise<string> {
     return this.enqueue({
@@ -227,7 +228,7 @@ export class MessageQueueService extends EventEmitter {
       templateId?: string;
       templateParams?: Record<string, string>;
       priority?: "high" | "normal" | "low";
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
   ): Promise<string> {
     return this.enqueue({
@@ -251,7 +252,7 @@ export class MessageQueueService extends EventEmitter {
       return;
     }
 
-    console.log(`[MessageQueue] Starting queue processing (interval: ${intervalMs}ms)`);
+    logger.info(`[MessageQueue] Starting queue processing (interval: ${intervalMs}ms)`);
     this.isProcessing = true;
 
     this.processingInterval = setInterval(async () => {
@@ -269,7 +270,7 @@ export class MessageQueueService extends EventEmitter {
       clearInterval(this.processingInterval);
       this.processingInterval = null;
     }
-    console.log("[MessageQueue] Queue processing stopped");
+    logger.info("[MessageQueue] Queue processing stopped");
   }
 
   /**
@@ -343,19 +344,19 @@ export class MessageQueueService extends EventEmitter {
         this.recordSuccess(provider);
 
         this.emit("sent", message);
-        console.log(`[MessageQueue] Message sent: ${messageId} via ${provider}`);
+        logger.info(`[MessageQueue] Message sent: ${messageId} via ${provider}`);
       } else {
         throw new Error(result.error || "Send failed");
       }
-    } catch (error: any) {
-      console.error(`[MessageQueue] Message failed: ${messageId}`, error.message);
+    } catch (error: unknown) {
+      logger.error(`[MessageQueue] Message failed: ${messageId}`, (error instanceof Error ? error.message : String(error)));
 
       // Record failure for circuit breaker
       if (message.provider) {
         this.recordFailure(message.provider);
       }
 
-      message.error = error.message;
+      message.error = (error instanceof Error ? error.message : String(error));
       message.updatedAt = Date.now();
 
       if (message.attempts >= message.maxAttempts) {
@@ -368,7 +369,7 @@ export class MessageQueueService extends EventEmitter {
         await this.updateStats("deadLetter", Date.now() - startTime);
 
         this.emit("dead_letter", message);
-        console.log(`[MessageQueue] Message moved to dead letter: ${messageId}`);
+        logger.info(`[MessageQueue] Message moved to dead letter: ${messageId}`);
       } else {
         // Schedule retry with exponential backoff
         const delay = this.calculateRetryDelay(message.attempts);
@@ -382,7 +383,7 @@ export class MessageQueueService extends EventEmitter {
         await this.updateStats("failed", Date.now() - startTime);
 
         this.emit("retry", message);
-        console.log(`[MessageQueue] Message scheduled for retry: ${messageId} (attempt ${message.attempts}/${message.maxAttempts}, delay ${delay}ms)`);
+        logger.info(`[MessageQueue] Message scheduled for retry: ${messageId} (attempt ${message.attempts}/${message.maxAttempts}, delay ${delay}ms)`);
       }
     }
   }
@@ -427,7 +428,7 @@ export class MessageQueueService extends EventEmitter {
         if (circuitBreaker.openedAt && Date.now() - circuitBreaker.openedAt > CIRCUIT_BREAKER_CONFIG.resetTimeoutMs) {
           circuitBreaker.state = "half_open";
           circuitBreaker.halfOpenAttempts = 1;
-          console.log(`[MessageQueue] Circuit breaker half-open: ${provider}`);
+          logger.info(`[MessageQueue] Circuit breaker half-open: ${provider}`);
           return provider;
         }
       }
@@ -448,7 +449,7 @@ export class MessageQueueService extends EventEmitter {
       circuitBreaker.state = "closed";
       circuitBreaker.failures = 0;
       circuitBreaker.halfOpenAttempts = 0;
-      console.log(`[MessageQueue] Circuit breaker closed: ${provider}`);
+      logger.info(`[MessageQueue] Circuit breaker closed: ${provider}`);
     }
 
     circuitBreaker.failures = 0;
@@ -468,12 +469,12 @@ export class MessageQueueService extends EventEmitter {
       // Back to open
       circuitBreaker.state = "open";
       circuitBreaker.openedAt = Date.now();
-      console.log(`[MessageQueue] Circuit breaker re-opened: ${provider}`);
+      logger.info(`[MessageQueue] Circuit breaker re-opened: ${provider}`);
     } else if (circuitBreaker.failures >= CIRCUIT_BREAKER_CONFIG.failureThreshold) {
       // Open circuit breaker
       circuitBreaker.state = "open";
       circuitBreaker.openedAt = Date.now();
-      console.log(`[MessageQueue] Circuit breaker opened: ${provider} (${circuitBreaker.failures} failures)`);
+      logger.info(`[MessageQueue] Circuit breaker opened: ${provider} (${circuitBreaker.failures} failures)`);
       this.emit("circuit_breaker_open", provider);
     }
   }
@@ -503,8 +504,8 @@ export class MessageQueueService extends EventEmitter {
       }
 
       return { success: false, error: "Unknown channel" };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: (error instanceof Error ? error.message : String(error)) };
     }
   }
 
@@ -620,7 +621,7 @@ export class MessageQueueService extends EventEmitter {
     await this.redis.zrem(REDIS_KEYS.deadLetter, messageId);
     await this.redis.zadd(REDIS_KEYS.queue, Date.now(), messageId);
 
-    console.log(`[MessageQueue] Dead letter message requeued: ${messageId}`);
+    logger.info(`[MessageQueue] Dead letter message requeued: ${messageId}`);
     return true;
   }
 
@@ -634,7 +635,7 @@ export class MessageQueueService extends EventEmitter {
   /**
    * Generate idempotency key
    */
-  private generateIdempotencyKey(data: any): string {
+  private generateIdempotencyKey(data: Record<string, unknown>): string {
     const crypto = require("crypto");
     const hash = crypto.createHash("sha256");
     hash.update(JSON.stringify(data) + Date.now().toString().slice(0, -4)); // 10-second window

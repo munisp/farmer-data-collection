@@ -148,7 +148,7 @@ export const droneRouter = router({
           }),
         }, { maxRetries: 2 });
         return res.json() as Promise<Record<string, unknown>>;
-      } catch {
+      } catch (err) {
         // Calculate locally if service unavailable
         const windFactor = Math.min(input.windSpeedMs / 15.0, 1.0);
         const tempFactor = input.temperatureC > 30 ? 0.3 : 0;
@@ -233,7 +233,7 @@ export const droneRouter = router({
       try {
         const res = await resilientFetch("drone-service", `${DRONE_SERVICE_URL}/api/v1/fleet/status`);
         return res.json() as Promise<Record<string, unknown>>;
-      } catch {
+      } catch (err) {
         return { drones: [], status: "service_unavailable" };
       }
     }),

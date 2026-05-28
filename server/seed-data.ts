@@ -13,6 +13,7 @@ import {
 } from '../drizzle/schema';
 import bcrypt from 'bcryptjs';
 import { and, eq, inArray } from 'drizzle-orm';
+import { logger } from './logger.js';
 
 interface SeedUserDefinition {
   email: string;
@@ -53,12 +54,12 @@ const seedUsers: SeedUserDefinition[] = [
 export async function seedDatabase() {
   const db = await getDb();
   if (!db) {
-    console.error('Database connection failed');
+    logger.error('Database connection failed');
     return;
   }
 
   try {
-    console.log('Starting database seeding...');
+    logger.info('Starting database seeding...');
 
     const userMap = new Map<string, number>();
 
@@ -84,7 +85,7 @@ export async function seedDatabase() {
         .returning();
 
       userMap.set(definition.email, createdUser.id);
-      console.log(`Seeded user: ${createdUser.email}`);
+      logger.info(`Seeded user: ${createdUser.email}`);
     }
 
     const primaryFarmerUserId = userMap.get('demo@farmer.com')!;
@@ -132,7 +133,7 @@ export async function seedDatabase() {
 
       const [createdFarmer] = await db.insert(farmers).values(profile).returning();
       farmerIdByUserId.set(profile.userId, createdFarmer.id);
-      console.log(`Seeded farmer: ${createdFarmer.firstName} ${createdFarmer.lastName}`);
+      logger.info(`Seeded farmer: ${createdFarmer.firstName} ${createdFarmer.lastName}`);
     }
 
     const farmDefinitions = [
@@ -172,7 +173,7 @@ export async function seedDatabase() {
 
       const [createdFarm] = await db.insert(farms).values(farmDefinition).returning();
       farmIdByUserId.set(farmDefinition.userId, createdFarm.id);
-      console.log(`Seeded farm: ${createdFarm.farmName}`);
+      logger.info(`Seeded farm: ${createdFarm.farmName}`);
     }
 
     const cropDefinitions = [
@@ -229,7 +230,7 @@ export async function seedDatabase() {
 
       const [createdCrop] = await db.insert(crops).values(cropDefinition).returning();
       cropIdByKey.set(`${cropDefinition.userId}:${cropDefinition.cropName}`, createdCrop.id);
-      console.log(`Seeded crop: ${createdCrop.cropName}`);
+      logger.info(`Seeded crop: ${createdCrop.cropName}`);
     }
 
     const existingBuyerProfile = await db.select().from(buyerProfiles).where(eq(buyerProfiles.userId, buyerUserId)).limit(1);
@@ -244,7 +245,7 @@ export async function seedDatabase() {
           maxDistance: 250,
         },
       });
-      console.log('Seeded buyer profile');
+      logger.info('Seeded buyer profile');
     }
 
     const listingDefinitions = [
@@ -334,7 +335,7 @@ export async function seedDatabase() {
 
       const [createdListing] = await db.insert(produceListings).values(listingDefinition as any).returning();
       listingIdsByTitle.set(listingDefinition.title, createdListing.id);
-      console.log(`Seeded listing: ${createdListing.title}`);
+      logger.info(`Seeded listing: ${createdListing.title}`);
     }
 
     const existingCartItems = await db.select().from(shoppingCartItems).where(eq(shoppingCartItems.userId, buyerUserId));
@@ -351,7 +352,7 @@ export async function seedDatabase() {
           quantity: 4,
         },
       ]);
-      console.log('Seeded marketplace cart');
+      logger.info('Seeded marketplace cart');
     }
 
     const existingOrders = await db.select().from(marketplaceOrders).where(eq(marketplaceOrders.buyerId, buyerUserId)).limit(1);
@@ -405,7 +406,7 @@ export async function seedDatabase() {
         },
       ]);
 
-      console.log('Seeded marketplace lifecycle order and conversation');
+      logger.info('Seeded marketplace lifecycle order and conversation');
     }
 
     const seededListingIds = Array.from(listingIdsByTitle.values());
@@ -416,7 +417,7 @@ export async function seedDatabase() {
         .where(inArray(produceListings.id, seededListingIds));
     }
 
-    console.log('Database seeding completed successfully!');
+    logger.info('Database seeding completed successfully!');
     return {
       success: true,
       users: Object.fromEntries(userMap.entries()),
@@ -425,7 +426,7 @@ export async function seedDatabase() {
       seededFarmers: farmerIdByUserId.size,
     };
   } catch (error) {
-    console.error('Error seeding database:', error);
+    logger.error('Error seeding database:', error);
     throw error;
   }
 }

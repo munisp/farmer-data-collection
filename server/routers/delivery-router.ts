@@ -32,7 +32,7 @@ async function callDeliveryService(path: string, body: Record<string, unknown>):
       body,
       { maxRetries: 3, timeoutMs: 10_000 },
     );
-  } catch {
+  } catch (err) {
     return { error: "Delivery service unavailable" };
   }
 }
@@ -92,7 +92,7 @@ export const deliveryRouter = router({
           LIMIT 1
         `);
         return (result as { rows: unknown[] }).rows[0] || null;
-      } catch {
+      } catch (err) {
         // PostGIS not available, return first active zone
         const zones = await db.select().from(deliveryZones).where(eq(deliveryZones.active, true)).limit(1);
         return zones[0] || null;
@@ -141,7 +141,7 @@ export const deliveryRouter = router({
           LIMIT 10
         `);
         return (result as { rows: unknown[] }).rows;
-      } catch {
+      } catch (err) {
         // Fallback: simple distance calculation
         const points = await db.select().from(collectionPoints).where(eq(collectionPoints.active, true));
         return points.filter(p => {

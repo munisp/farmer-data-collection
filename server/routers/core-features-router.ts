@@ -109,7 +109,7 @@ export const farmsRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const { id, ...data } = input;
-      const updateData: any = { updatedAt: new Date() };
+      const updateData: Record<string, any> = { updatedAt: new Date() };
       Object.entries(data).forEach(([key, val]) => {
         if (val !== undefined) updateData[key] = val || null;
       });
@@ -289,7 +289,7 @@ export const livestockRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const { id, ...data } = input;
-      const updateData: any = { updatedAt: new Date() };
+      const updateData: Record<string, any> = { updatedAt: new Date() };
       Object.entries(data).forEach(([key, val]) => {
         if (val !== undefined) updateData[key] = val;
       });
@@ -476,7 +476,7 @@ export const cropsRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const { id, expectedHarvestDate, actualHarvestDate, ...rest } = input;
-      const updateData: any = { updatedAt: new Date() };
+      const updateData: Record<string, any> = { updatedAt: new Date() };
       Object.entries(rest).forEach(([key, val]) => {
         if (val !== undefined) updateData[key] = val;
       });
@@ -704,7 +704,7 @@ export const harvestsRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const { id, ...data } = input;
-      const updateData: any = { updatedAt: new Date() };
+      const updateData: Record<string, any> = { updatedAt: new Date() };
       Object.entries(data).forEach(([key, val]) => {
         if (val !== undefined) updateData[key] = val;
       });
@@ -915,7 +915,7 @@ export const expensesRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const { id, expenseDate, ...rest } = input;
-      const updateData: any = { updatedAt: new Date() };
+      const updateData: Record<string, any> = { updatedAt: new Date() };
       Object.entries(rest).forEach(([key, val]) => {
         if (val !== undefined) updateData[key] = val;
       });
@@ -1144,7 +1144,7 @@ export const farmInputsRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const { id, applicationDate, ...rest } = input;
-      const updateData: any = { updatedAt: new Date() };
+      const updateData: Record<string, any> = { updatedAt: new Date() };
       Object.entries(rest).forEach(([key, val]) => {
         if (val !== undefined) updateData[key] = val;
       });
@@ -1336,7 +1336,7 @@ export const equipmentRouter = router({
     .mutation(async ({ input }) => {
       const db = await requireDb();
       const { id, unitCost, ...rest } = input;
-      const updateData: any = { updatedAt: new Date() };
+      const updateData: Record<string, any> = { updatedAt: new Date() };
       Object.entries(rest).forEach(([key, val]) => {
         if (val !== undefined) updateData[key] = val;
       });

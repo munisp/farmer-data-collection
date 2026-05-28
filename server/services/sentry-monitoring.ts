@@ -59,7 +59,7 @@ const Sentry = {
   },
   captureException: (error: Error) => {
     const eventId = `log-${Date.now()}`;
-    console.error(JSON.stringify({ level: 'error', event_id: eventId, message: error.message, stack: error.stack, timestamp: new Date().toISOString() }));
+    logger.error(JSON.stringify({ level: 'error', event_id: eventId, message: error.message, stack: error.stack, timestamp: new Date().toISOString() }));
     return eventId;
   },
   captureMessage: (message: string, level?: string) => {
@@ -112,6 +112,7 @@ const Sentry = {
 class ProfilingIntegration {}
 
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../logger.js';
 
 interface SentryConfig {
   dsn: string;
@@ -208,7 +209,7 @@ export function captureError(
   context?: {
     user?: { id: string; email?: string; role?: string };
     tags?: Record<string, string>;
-    extra?: Record<string, any>;
+    extra?: Record<string, unknown>;
     level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
   }
 ): string {
@@ -243,7 +244,7 @@ export function captureMessage(
   level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info',
   context?: {
     tags?: Record<string, string>;
-    extra?: Record<string, any>;
+    extra?: Record<string, unknown>;
   }
 ): string {
   Sentry.withScope((scope) => {
@@ -269,7 +270,7 @@ export function captureMessage(
 export function startTransaction(
   name: string,
   op: string,
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 ): Sentry.Transaction {
   const transaction = Sentry.startTransaction({
     name,
@@ -328,7 +329,7 @@ export class StructuredLogger {
   private log(
     level: 'debug' | 'info' | 'warning' | 'error',
     message: string,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): void {
     const timestamp = new Date().toISOString();
     const logEntry = {
@@ -352,19 +353,19 @@ export class StructuredLogger {
     });
   }
 
-  debug(message: string, data?: Record<string, any>): void {
+  debug(message: string, data?: Record<string, unknown>): void {
     this.log('debug', message, data);
   }
 
-  info(message: string, data?: Record<string, any>): void {
+  info(message: string, data?: Record<string, unknown>): void {
     this.log('info', message, data);
   }
 
-  warn(message: string, data?: Record<string, any>): void {
+  warn(message: string, data?: Record<string, unknown>): void {
     this.log('warning', message, data);
   }
 
-  error(message: string, error?: Error, data?: Record<string, any>): void {
+  error(message: string, error?: Error, data?: Record<string, unknown>): void {
     this.log('error', message, { ...data, error: error?.message, stack: error?.stack });
     
     if (error) {
@@ -385,7 +386,7 @@ export function traceMethod(op: string) {
   ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
       
       if (transaction) {
@@ -500,7 +501,7 @@ export function createSentryMonitoring(config?: Partial<SentryConfig>): void {
   if (defaultConfig.dsn) {
     initSentry({ ...defaultConfig, ...config });
   } else {
-    console.warn('Sentry DSN not configured, error monitoring disabled');
+    logger.warn('Sentry DSN not configured, error monitoring disabled');
   }
 }
 

@@ -9,7 +9,8 @@ import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type IrrigationType = 
   | 'drip' 
@@ -381,7 +382,7 @@ class WaterManagementService {
         adjustedForWeather = true;
       }
     } catch (error) {
-      console.warn('[WaterManagement] Could not get weather data:', error);
+      logger.warn('[WaterManagement] Could not get weather data:', error);
       recommendations.push('Weather data unavailable - using standard calculations');
     }
 
@@ -495,7 +496,7 @@ class WaterManagementService {
         }],
       });
     } catch (error) {
-      console.warn('[WaterManagement] Could not emit Kafka event:', error);
+      logger.warn('[WaterManagement] Could not emit Kafka event:', error);
     }
 
     return schedule;

@@ -25,6 +25,7 @@ import {
   type PayrollRecord,
 } from '../../../drizzle/financial-schema';
 import { eq, and, sql, desc, between } from 'drizzle-orm';
+import { logger } from '../../logger.js';
 
 export interface CreateEmployeeInput {
   userId: number;
@@ -91,7 +92,7 @@ export class HRService {
       isActive: true,
     }).returning();
 
-    console.log(`[HR] Created employee ${employeeNumber}: ${input.fullName}`);
+    logger.info(`[HR] Created employee ${employeeNumber}: ${input.fullName}`);
     return employee.id;
   }
 
@@ -129,7 +130,7 @@ export class HRService {
       workType: 'regular',
     }).returning();
 
-    console.log(`[HR] Employee ${input.employeeId} clocked in at ${entry.clockIn}`);
+    logger.info(`[HR] Employee ${input.employeeId} clocked in at ${entry.clockIn}`);
     return entry.id;
   }
 
@@ -176,7 +177,7 @@ export class HRService {
     // Update attendance record
     await this.updateAttendanceRecord(entry.employeeId, clockIn);
 
-    console.log(`[HR] Employee ${entry.employeeId} clocked out. Hours worked: ${hoursWorked.toFixed(2)}`);
+    logger.info(`[HR] Employee ${entry.employeeId} clocked out. Hours worked: ${hoursWorked.toFixed(2)}`);
   }
 
   /**
@@ -267,7 +268,7 @@ export class HRService {
       status: 'pending',
     }).returning();
 
-    console.log(`[HR] Leave request submitted for employee ${input.employeeId}`);
+    logger.info(`[HR] Leave request submitted for employee ${input.employeeId}`);
     return request.id;
   }
 
@@ -289,7 +290,7 @@ export class HRService {
       })
       .where(eq(leaveRequests.id, requestId));
 
-    console.log(`[HR] Leave request ${requestId} approved`);
+    logger.info(`[HR] Leave request ${requestId} approved`);
   }
 
   /**
@@ -311,7 +312,7 @@ export class HRService {
       })
       .where(eq(leaveRequests.id, requestId));
 
-    console.log(`[HR] Leave request ${requestId} rejected`);
+    logger.info(`[HR] Leave request ${requestId} rejected`);
   }
 
   /**
@@ -391,7 +392,7 @@ export class HRService {
       status: 'pending',
     }).returning();
 
-    console.log(`[HR] Payroll calculated for employee ${input.employeeId}: ₦${(netPay / 100).toFixed(2)}`);
+    logger.info(`[HR] Payroll calculated for employee ${input.employeeId}: ₦${(netPay / 100).toFixed(2)}`);
     return payroll.id;
   }
 
@@ -412,13 +413,13 @@ export class HRService {
       })
       .where(eq(payrollRecords.id, payrollId));
 
-    console.log(`[HR] Payroll ${payrollId} marked as paid`);
+    logger.info(`[HR] Payroll ${payrollId} marked as paid`);
   }
 
   /**
    * Get employee attendance summary
    */
-  async getAttendanceSummary(employeeId: number, startDate: Date, endDate: Date): Promise<any> {
+  async getAttendanceSummary(employeeId: number, startDate: Date, endDate: Date): Promise<unknown> {
     const database = await getDb();
     if (!database) {
       throw new Error('Database connection failed');
@@ -547,7 +548,7 @@ export class HRService {
       })
       .where(eq(employees.id, employeeId));
 
-    console.log(`[HR] Employee ${employeeId} terminated`);
+    logger.info(`[HR] Employee ${employeeId} terminated`);
   }
 }
 

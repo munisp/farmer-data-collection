@@ -178,7 +178,7 @@ const l1Cache = new LRUCache<string, { data: unknown; etag: string; expiresAt: n
   sizeCalculation: (value) => {
     try {
       return JSON.stringify(value.data).length;
-    } catch {
+    } catch (err) {
       return 1024;
     }
   },

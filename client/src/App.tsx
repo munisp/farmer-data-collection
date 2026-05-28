@@ -3,7 +3,7 @@ import { Route, Switch, Redirect, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, lazy, useState } from "react";
 
-import ErrorBoundary from "./components/ErrorBoundary";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { PWAInstallPrompt, OnlineStatusIndicator, PWAUpdatePrompt } from "./components/PWAInstallPrompt";
 import { LowBandwidthProvider, ConnectionBanner } from "./components/LowBandwidthProvider";
@@ -150,6 +150,7 @@ const AggregationHub = lazy(() => import("./pages/AggregationHub"));
 
 function Router() {
   return (
+    <ErrorBoundary>
     <Suspense fallback={null}>
       <Switch>
         <Route path="/login" component={Login} />
@@ -301,6 +302,7 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
     </Suspense>
+    </ErrorBoundary>
   );
 }
 

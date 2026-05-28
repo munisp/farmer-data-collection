@@ -9,6 +9,7 @@
 
 import { S3Client, HeadBucketCommand, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getLakehouseConfig, LAKEHOUSE_TABLES, type LakehouseConfig } from './lakehouse-config.js';
+import { logger } from '../../logger.js';
 
 // ============================================================================
 // Types
@@ -44,7 +45,7 @@ export interface ColumnSchema {
   comment?: string;
 }
 
-export interface QueryResult<T = Record<string, unknown>> {
+export interface QueryResult<T = Record<string, any>> {
   columns: string[];
   rows: T[];
   rowCount: number;
@@ -52,7 +53,7 @@ export interface QueryResult<T = Record<string, unknown>> {
 }
 
 // In-memory table storage for local development (production uses S3 + DuckDB)
-const tableStorage: Map<string, Record<string, unknown>[]> = new Map();
+const tableStorage: Map<string, Record<string, any>[]> = new Map();
 const tableMetadataStorage: Map<string, TableMetadata> = new Map();
 
 // ============================================================================
@@ -73,10 +74,10 @@ export class LakehouseClient {
    * Initialize connection to lakehouse - REAL IMPLEMENTATION
    */
   async connect(): Promise<void> {
-    console.log('[Lakehouse] Connecting to lakehouse...');
-    console.log(`  Storage: ${this.config.storage.type} @ ${this.config.storage.endpoint}`);
-    console.log(`  Table Format: ${this.config.tableFormat.type}`);
-    console.log(`  Query Engine: ${this.config.queryEngine.type}`);
+    logger.info('[Lakehouse] Connecting to lakehouse...');
+    logger.info(`  Storage: ${this.config.storage.type} @ ${this.config.storage.endpoint}`);
+    logger.info(`  Table Format: ${this.config.tableFormat.type}`);
+    logger.info(`  Query Engine: ${this.config.queryEngine.type}`);
 
     try {
       // Initialize S3 client
@@ -86,12 +87,12 @@ export class LakehouseClient {
       await this.verifyStorageConnection();
       
       this.connected = true;
-      console.log('[Lakehouse] Connected successfully');
+      logger.info('[Lakehouse] Connected successfully');
     } catch (error) {
-      console.warn('[Lakehouse] S3/MinIO connection failed, falling back to local storage:', error);
+      logger.warn('[Lakehouse] S3/MinIO connection failed, falling back to local storage:', error);
       this.useLocalStorage = true;
       this.connected = true;
-      console.log('[Lakehouse] Using local in-memory storage (development mode)');
+      logger.info('[Lakehouse] Using local in-memory storage (development mode)');
     }
   }
 
@@ -121,14 +122,15 @@ export class LakehouseClient {
     }
 
     const { bucket } = this.config.storage;
-    console.log(`[Lakehouse] Verifying storage connection to bucket: ${bucket}`);
+    logger.info(`[Lakehouse] Verifying storage connection to bucket: ${bucket}`);
     
     try {
       await this.s3Client.send(new HeadBucketCommand({ Bucket: bucket }));
-      console.log(`[Lakehouse] Bucket ${bucket} exists and is accessible`);
-    } catch (error: any) {
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
-        console.log(`[Lakehouse] Bucket ${bucket} not found, will use local storage`);
+      logger.info(`[Lakehouse] Bucket ${bucket} exists and is accessible`);
+    } catch (error: unknown) {
+      const err = error as any;
+      if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+        logger.info(`[Lakehouse] Bucket ${bucket} not found, will use local storage`);
         throw error;
       }
       throw error;
@@ -138,7 +140,7 @@ export class LakehouseClient {
   /**
    * Write data to a lakehouse table - REAL IMPLEMENTATION
    */
-  async writeTable<T extends Record<string, unknown>>(
+  async writeTable<T extends Record<string, any>>(
     tableName: string,
     data: T[],
     options: WriteOptions
@@ -151,9 +153,9 @@ export class LakehouseClient {
     const tableKey = tableName.replace('.', '/');
     const path = `${this.config.storage.bucket}/${tableKey}`;
 
-    console.log(`[Lakehouse] Writing ${data.length} rows to ${tableName}`);
-    console.log(`  Mode: ${options.mode}`);
-    console.log(`  Partitions: ${options.partitionBy?.join(', ') || 'none'}`);
+    logger.info(`[Lakehouse] Writing ${data.length} rows to ${tableName}`);
+    logger.info(`  Mode: ${options.mode}`);
+    logger.info(`  Partitions: ${options.partitionBy?.join(', ') || 'none'}`);
 
     if (this.useLocalStorage) {
       // Local storage mode
@@ -167,7 +169,7 @@ export class LakehouseClient {
   /**
    * Write to local in-memory storage
    */
-  private async writeToLocalStorage<T extends Record<string, unknown>>(
+  private async writeToLocalStorage<T extends Record<string, any>>(
     tableName: string,
     data: T[],
     options: WriteOptions
@@ -215,7 +217,7 @@ export class LakehouseClient {
   /**
    * Write to S3/MinIO storage - REAL IMPLEMENTATION
    */
-  private async writeToS3<T extends Record<string, unknown>>(
+  private async writeToS3<T extends Record<string, any>>(
     tableName: string,
     data: T[],
     options: WriteOptions
@@ -248,7 +250,7 @@ export class LakehouseClient {
       ContentType: 'application/json',
     }));
 
-    console.log(`[Lakehouse] Written ${data.length} rows to s3://${bucket}/${objectKey}`);
+    logger.info(`[Lakehouse] Written ${data.length} rows to s3://${bucket}/${objectKey}`);
 
     return {
       rowsWritten: data.length,
@@ -280,14 +282,14 @@ export class LakehouseClient {
         }
       }
     } catch (error) {
-      console.warn(`[Lakehouse] Error deleting table data: ${error}`);
+      logger.warn(`[Lakehouse] Error deleting table data: ${error}`);
     }
   }
 
   /**
    * Read data from a lakehouse table - REAL IMPLEMENTATION
    */
-  async readTable<T = Record<string, unknown>>(
+  async readTable<T = Record<string, any>>(
     tableName: string,
     options: ReadOptions = {}
   ): Promise<QueryResult<T>> {
@@ -322,9 +324,9 @@ export class LakehouseClient {
     // Apply column selection
     if (options.columns && options.columns.length > 0) {
       data = data.map(row => {
-        const filtered: Record<string, unknown> = {};
+        const filtered: Record<string, any> = {};
         for (const col of options.columns!) {
-          filtered[col] = (row as Record<string, unknown>)[col];
+          filtered[col] = (row as Record<string, any>)[col];
         }
         return filtered as T;
       });
@@ -391,9 +393,9 @@ export class LakehouseClient {
       // Apply column selection
       if (options.columns && options.columns.length > 0) {
         allData = allData.map(row => {
-          const filtered: Record<string, unknown> = {};
+          const filtered: Record<string, any> = {};
           for (const col of options.columns!) {
-            filtered[col] = (row as Record<string, unknown>)[col];
+            filtered[col] = (row as Record<string, any>)[col];
           }
           return filtered as T;
         });
@@ -411,7 +413,7 @@ export class LakehouseClient {
         executionTimeMs: Date.now() - startTime,
       };
     } catch (error) {
-      console.error(`[Lakehouse] Error reading from S3: ${error}`);
+      logger.error(`[Lakehouse] Error reading from S3: ${error}`);
       return {
         columns: [],
         rows: [],
@@ -432,7 +434,7 @@ export class LakehouseClient {
     const [, column, operator, value] = match;
     
     return data.filter(row => {
-      const rowValue = (row as Record<string, unknown>)[column];
+      const rowValue = (row as Record<string, any>)[column];
       const compareValue = isNaN(Number(value)) ? value : Number(value);
       
       switch (operator) {
@@ -450,7 +452,7 @@ export class LakehouseClient {
   /**
    * Execute a SQL query against the lakehouse - REAL IMPLEMENTATION
    */
-  async executeQuery<T = Record<string, unknown>>(
+  async executeQuery<T = Record<string, any>>(
     query: string
   ): Promise<QueryResult<T>> {
     if (!this.connected) {
@@ -458,7 +460,7 @@ export class LakehouseClient {
     }
 
     const startTime = Date.now();
-    console.log(`[Lakehouse] Executing query: ${query.substring(0, 100)}...`);
+    logger.info(`[Lakehouse] Executing query: ${query.substring(0, 100)}...`);
 
     // Parse simple SELECT queries
     const selectMatch = query.match(/SELECT\s+(.+?)\s+FROM\s+(\S+)(?:\s+WHERE\s+(.+?))?(?:\s+LIMIT\s+(\d+))?$/i);
@@ -475,7 +477,7 @@ export class LakehouseClient {
     }
 
     // For complex queries, return empty result (would use DuckDB/Trino in production)
-    console.log(`[Lakehouse] Complex query not supported in local mode, returning empty result`);
+    logger.info(`[Lakehouse] Complex query not supported in local mode, returning empty result`);
     
     return {
       columns: [],
@@ -493,7 +495,7 @@ export class LakehouseClient {
       throw new Error('Lakehouse client not connected. Call connect() first.');
     }
 
-    console.log(`[Lakehouse] Getting metadata for ${tableName}`);
+    logger.info(`[Lakehouse] Getting metadata for ${tableName}`);
 
     // Check local metadata first
     const localMetadata = tableMetadataStorage.get(tableName);
@@ -552,7 +554,7 @@ export class LakehouseClient {
           properties: {},
         };
       } catch (error) {
-        console.warn(`[Lakehouse] Error getting S3 metadata: ${error}`);
+        logger.warn(`[Lakehouse] Error getting S3 metadata: ${error}`);
       }
     }
 
@@ -570,7 +572,7 @@ export class LakehouseClient {
   /**
    * Infer schema from data
    */
-  private inferSchema(data: Record<string, unknown>[]): ColumnSchema[] {
+  private inferSchema(data: Record<string, any>[]): ColumnSchema[] {
     if (data.length === 0) return [];
 
     const firstRow = data[0];
@@ -606,9 +608,9 @@ export class LakehouseClient {
       throw new Error('Lakehouse client not connected. Call connect() first.');
     }
 
-    console.log(`[Lakehouse] Creating table ${tableName}`);
-    console.log(`  Columns: ${schema.map(c => c.name).join(', ')}`);
-    console.log(`  Partitions: ${partitionBy?.join(', ') || 'none'}`);
+    logger.info(`[Lakehouse] Creating table ${tableName}`);
+    logger.info(`  Columns: ${schema.map(c => c.name).join(', ')}`);
+    logger.info(`  Partitions: ${partitionBy?.join(', ') || 'none'}`);
 
     // Store metadata
     tableMetadataStorage.set(tableName, {
@@ -624,7 +626,7 @@ export class LakehouseClient {
     // Initialize empty table
     tableStorage.set(tableName, []);
 
-    console.log(`[Lakehouse] Table ${tableName} created successfully`);
+    logger.info(`[Lakehouse] Table ${tableName} created successfully`);
   }
 
   /**
@@ -635,7 +637,7 @@ export class LakehouseClient {
       throw new Error('Lakehouse client not connected. Call connect() first.');
     }
 
-    console.log(`[Lakehouse] Dropping table ${tableName}`);
+    logger.info(`[Lakehouse] Dropping table ${tableName}`);
     
     // Remove from local storage
     tableStorage.delete(tableName);
@@ -646,7 +648,7 @@ export class LakehouseClient {
       await this.deleteTableData(tableName);
     }
 
-    console.log(`[Lakehouse] Table ${tableName} dropped successfully`);
+    logger.info(`[Lakehouse] Table ${tableName} dropped successfully`);
   }
 
   /**
@@ -657,7 +659,7 @@ export class LakehouseClient {
       throw new Error('Lakehouse client not connected. Call connect() first.');
     }
 
-    console.log(`[Lakehouse] Optimizing table ${tableName}`);
+    logger.info(`[Lakehouse] Optimizing table ${tableName}`);
 
     // For local storage, compact data
     if (this.useLocalStorage) {
@@ -668,13 +670,13 @@ export class LakehouseClient {
           data.map(row => [JSON.stringify(row), row])
         ).values());
         tableStorage.set(tableName, uniqueData);
-        console.log(`[Lakehouse] Compacted ${data.length} rows to ${uniqueData.length} rows`);
+        logger.info(`[Lakehouse] Compacted ${data.length} rows to ${uniqueData.length} rows`);
       }
     }
 
     // For S3, would merge small files into larger ones
     // This is a placeholder for production implementation
-    console.log(`[Lakehouse] Table ${tableName} optimized`);
+    logger.info(`[Lakehouse] Table ${tableName} optimized`);
   }
 
   /**
@@ -717,7 +719,7 @@ export class LakehouseClient {
    * Disconnect from lakehouse
    */
   async disconnect(): Promise<void> {
-    console.log('[Lakehouse] Disconnecting...');
+    logger.info('[Lakehouse] Disconnecting...');
     this.s3Client = null;
     this.connected = false;
   }

@@ -117,7 +117,7 @@ export const weatherRouter = router({
             type: String(r.type),
             elevation: Number(r.elevation),
           }));
-        } catch {
+        } catch (err) {
           logger.warn('[Weather] weather_stations table not available, returning empty results');
         }
       }

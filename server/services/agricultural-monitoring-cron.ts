@@ -29,6 +29,7 @@ import {
   getHighPriorityAlerts,
   type WeatherConditions,
 } from './pest-disease-risk-service.js';
+import { logger } from '../logger.js';
 import {
   sendAllAgriculturalAlerts,
 } from './agricultural-notifications.js';
@@ -42,12 +43,12 @@ const activeCronJobs: Map<string, cron.ScheduledTask> = new Map();
  */
 export function startSoilMoistureMonitoring() {
   const job = cron.schedule('0 6 * * *', async () => {
-    console.log('[Cron] Running daily soil moisture monitoring...');
+    logger.info('[Cron] Running daily soil moisture monitoring...');
     
     try {
       const db = await getDb();
       if (!db) {
-        console.error('[Cron] Database not available');
+        logger.error('[Cron] Database not available');
         return;
       }
 
@@ -57,7 +58,7 @@ export function startSoilMoistureMonitoring() {
         .from(crops)
         .where(eq(crops.status, 'planted'));
 
-      console.log(`[Cron] Found ${activeCrops.length} active crops to monitor`);
+      logger.info(`[Cron] Found ${activeCrops.length} active crops to monitor`);
 
       for (const crop of activeCrops) {
         try {
@@ -78,20 +79,20 @@ export function startSoilMoistureMonitoring() {
           //   });
           // }
           
-          console.log(`[Cron] Processed soil moisture for crop ${crop.id}`);
+          logger.info(`[Cron] Processed soil moisture for crop ${crop.id}`);
         } catch (error) {
-          console.error(`[Cron] Error processing crop ${crop.id}:`, error);
+          logger.error(`[Cron] Error processing crop ${crop.id}:`, error);
         }
       }
       
-      console.log('[Cron] Soil moisture monitoring completed');
+      logger.info('[Cron] Soil moisture monitoring completed');
     } catch (error) {
-      console.error('[Cron] Error in soil moisture monitoring:', error);
+      logger.error('[Cron] Error in soil moisture monitoring:', error);
     }
   });
 
   activeCronJobs.set('soil-moisture', job);
-  console.log('[Cron] Soil moisture monitoring scheduled (daily at 6:00 AM)');
+  logger.info('[Cron] Soil moisture monitoring scheduled (daily at 6:00 AM)');
 }
 
 /**
@@ -100,12 +101,12 @@ export function startSoilMoistureMonitoring() {
  */
 export function startGDDTracking() {
   const job = cron.schedule('0 7 * * *', async () => {
-    console.log('[Cron] Running daily GDD accumulation update...');
+    logger.info('[Cron] Running daily GDD accumulation update...');
     
     try {
       const db = await getDb();
       if (!db) {
-        console.error('[Cron] Database not available');
+        logger.error('[Cron] Database not available');
         return;
       }
 
@@ -115,7 +116,7 @@ export function startGDDTracking() {
         .from(crops)
         .where(eq(crops.status, 'planted'));
 
-      console.log(`[Cron] Found ${activeCrops.length} crops for GDD tracking`);
+      logger.info(`[Cron] Found ${activeCrops.length} crops for GDD tracking`);
 
       for (const crop of activeCrops) {
         try {
@@ -156,20 +157,20 @@ export function startGDDTracking() {
           //   });
           // }
           
-          console.log(`[Cron] Updated GDD for crop ${crop.id}`);
+          logger.info(`[Cron] Updated GDD for crop ${crop.id}`);
         } catch (error) {
-          console.error(`[Cron] Error processing GDD for crop ${crop.id}:`, error);
+          logger.error(`[Cron] Error processing GDD for crop ${crop.id}:`, error);
         }
       }
       
-      console.log('[Cron] GDD tracking completed');
+      logger.info('[Cron] GDD tracking completed');
     } catch (error) {
-      console.error('[Cron] Error in GDD tracking:', error);
+      logger.error('[Cron] Error in GDD tracking:', error);
     }
   });
 
   activeCronJobs.set('gdd-tracking', job);
-  console.log('[Cron] GDD tracking scheduled (daily at 7:00 AM)');
+  logger.info('[Cron] GDD tracking scheduled (daily at 7:00 AM)');
 }
 
 /**
@@ -178,12 +179,12 @@ export function startGDDTracking() {
  */
 export function startPestDiseaseMonitoring() {
   const job = cron.schedule('0 8 * * *', async () => {
-    console.log('[Cron] Running daily pest/disease risk assessment...');
+    logger.info('[Cron] Running daily pest/disease risk assessment...');
     
     try {
       const db = await getDb();
       if (!db) {
-        console.error('[Cron] Database not available');
+        logger.error('[Cron] Database not available');
         return;
       }
 
@@ -193,7 +194,7 @@ export function startPestDiseaseMonitoring() {
         .from(crops)
         .where(eq(crops.status, 'planted'));
 
-      console.log(`[Cron] Found ${activeCrops.length} crops for risk assessment`);
+      logger.info(`[Cron] Found ${activeCrops.length} crops for risk assessment`);
 
       // Get current weather conditions (would fetch from weather API)
       const weather: WeatherConditions = {
@@ -236,20 +237,20 @@ export function startPestDiseaseMonitoring() {
             }
           }
           
-          console.log(`[Cron] Assessed risks for crop ${crop.id}`);
+          logger.info(`[Cron] Assessed risks for crop ${crop.id}`);
         } catch (error) {
-          console.error(`[Cron] Error assessing risks for crop ${crop.id}:`, error);
+          logger.error(`[Cron] Error assessing risks for crop ${crop.id}:`, error);
         }
       }
       
-      console.log('[Cron] Pest/disease monitoring completed');
+      logger.info('[Cron] Pest/disease monitoring completed');
     } catch (error) {
-      console.error('[Cron] Error in pest/disease monitoring:', error);
+      logger.error('[Cron] Error in pest/disease monitoring:', error);
     }
   });
 
   activeCronJobs.set('pest-disease', job);
-  console.log('[Cron] Pest/disease monitoring scheduled (daily at 8:00 AM)');
+  logger.info('[Cron] Pest/disease monitoring scheduled (daily at 8:00 AM)');
 }
 
 /**
@@ -258,22 +259,22 @@ export function startPestDiseaseMonitoring() {
  */
 export function startSMSNotifications() {
   const job = cron.schedule('0 9 * * *', async () => {
-    console.log('[Cron] Running daily SMS notification service...');
+    logger.info('[Cron] Running daily SMS notification service...');
     
     try {
       const results = await sendAllAgriculturalAlerts();
       
-      console.log('[Cron] SMS notification service completed');
-      console.log(`  - Irrigation alerts: ${results.irrigation.sentCount} sent, ${results.irrigation.failedCount} failed`);
-      console.log(`  - Harvest alerts: ${results.harvest.sentCount} sent, ${results.harvest.failedCount} failed`);
-      console.log(`  - Pest/disease alerts: ${results.pestDisease.sentCount} sent, ${results.pestDisease.failedCount} failed`);
+      logger.info('[Cron] SMS notification service completed');
+      logger.info(`  - Irrigation alerts: ${results.irrigation.sentCount} sent, ${results.irrigation.failedCount} failed`);
+      logger.info(`  - Harvest alerts: ${results.harvest.sentCount} sent, ${results.harvest.failedCount} failed`);
+      logger.info(`  - Pest/disease alerts: ${results.pestDisease.sentCount} sent, ${results.pestDisease.failedCount} failed`);
     } catch (error) {
-      console.error('[Cron] Error in SMS notification service:', error);
+      logger.error('[Cron] Error in SMS notification service:', error);
     }
   });
 
   activeCronJobs.set('sms-notifications', job);
-  console.log('[Cron] SMS notifications scheduled (daily at 9:00 AM)');
+  logger.info('[Cron] SMS notifications scheduled (daily at 9:00 AM)');
 }
 
 /**
@@ -282,12 +283,12 @@ export function startSMSNotifications() {
  */
 export function startWeeklySummary() {
   const job = cron.schedule('0 10 * * 1', async () => {
-    console.log('[Cron] Generating weekly agricultural intelligence summary...');
+    logger.info('[Cron] Generating weekly agricultural intelligence summary...');
     
     try {
       const db = await getDb();
       if (!db) {
-        console.error('[Cron] Database not available');
+        logger.error('[Cron] Database not available');
         return;
       }
 
@@ -295,21 +296,21 @@ export function startWeeklySummary() {
       // Generate weekly summary for each user
       // Send email/SMS with summary
       
-      console.log('[Cron] Weekly summary completed');
+      logger.info('[Cron] Weekly summary completed');
     } catch (error) {
-      console.error('[Cron] Error generating weekly summary:', error);
+      logger.error('[Cron] Error generating weekly summary:', error);
     }
   });
 
   activeCronJobs.set('weekly-summary', job);
-  console.log('[Cron] Weekly summary scheduled (Mondays at 10:00 AM)');
+  logger.info('[Cron] Weekly summary scheduled (Mondays at 10:00 AM)');
 }
 
 /**
  * Start all agricultural monitoring cron jobs
  */
 export function startAllMonitoring() {
-  console.log('[Cron] Starting all agricultural monitoring jobs...');
+  logger.info('[Cron] Starting all agricultural monitoring jobs...');
   
   startSoilMoistureMonitoring();
   startGDDTracking();
@@ -317,22 +318,22 @@ export function startAllMonitoring() {
   startSMSNotifications();
   startWeeklySummary();
   
-  console.log('[Cron] All monitoring jobs started successfully');
+  logger.info('[Cron] All monitoring jobs started successfully');
 }
 
 /**
  * Stop all cron jobs
  */
 export function stopAllMonitoring() {
-  console.log('[Cron] Stopping all agricultural monitoring jobs...');
+  logger.info('[Cron] Stopping all agricultural monitoring jobs...');
   
   activeCronJobs.forEach((job, name) => {
     job.stop();
-    console.log(`[Cron] Stopped ${name}`);
+    logger.info(`[Cron] Stopped ${name}`);
   });
   
   activeCronJobs.clear();
-  console.log('[Cron] All monitoring jobs stopped');
+  logger.info('[Cron] All monitoring jobs stopped');
 }
 
 /**

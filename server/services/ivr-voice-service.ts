@@ -5,6 +5,7 @@
 
 import { Request, Response } from 'express';
 import { eq, and, desc } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 // Voice menu states
 export enum IVRState {
@@ -389,10 +390,10 @@ export class IVRVoiceService {
             region: session.data.region || '',
             verificationStatus: 'pending',
           });
-          console.log(`[IVR] Farmer registered: ${farmerId} (${session.data.name}) via phone ${session.phoneNumber}`);
+          logger.info(`[IVR] Farmer registered: ${farmerId} (${session.data.name}) via phone ${session.phoneNumber}`);
         }
       } catch (err) {
-        console.error('[IVR] Failed to save farmer to database:', err);
+        logger.error('[IVR] Failed to save farmer to database:', err);
       }
 
       this.deleteSession(session.sessionId);
@@ -449,7 +450,7 @@ export class IVRVoiceService {
         }
       }
     } catch (err) {
-      console.error('[IVR] Failed to fetch loan:', err);
+      logger.error('[IVR] Failed to fetch loan:', err);
     }
 
     if (!loan) {
@@ -554,10 +555,10 @@ export class IVRVoiceService {
             purpose: session.data.loanPurpose || 'IVR application',
             applicationDate: new Date(),
           });
-          console.log(`[IVR] Loan application created: ${reference} for ₦${session.data.loanAmount}`);
+          logger.info(`[IVR] Loan application created: ${reference} for ₦${session.data.loanAmount}`);
         }
       } catch (err) {
-        console.error('[IVR] Failed to create loan application:', err);
+        logger.error('[IVR] Failed to create loan application:', err);
       }
 
       this.deleteSession(session.sessionId);
@@ -620,7 +621,7 @@ export class IVRVoiceService {
         if (rice) prices.ricePrice = `₦${avg(rice).toLocaleString()}`;
       }
     } catch (err) {
-      console.error('[IVR] Failed to fetch market prices:', err);
+      logger.error('[IVR] Failed to fetch market prices:', err);
     }
 
     this.updateSession(session.sessionId, { state: IVRState.MAIN_MENU });
@@ -663,7 +664,7 @@ export class IVRVoiceService {
         }
       }
     } catch (err) {
-      console.error('[IVR] Failed to fetch weather data:', err);
+      logger.error('[IVR] Failed to fetch weather data:', err);
     }
 
     this.updateSession(session.sessionId, { state: IVRState.MAIN_MENU });

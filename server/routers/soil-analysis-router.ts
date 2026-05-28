@@ -29,7 +29,7 @@ async function callMLService(path: string, body: Record<string, unknown>): Promi
       body,
       { maxRetries: 2, timeoutMs: 15_000 },
     );
-  } catch {
+  } catch (err) {
     return { error: "ML inference service unavailable" };
   }
 }
@@ -114,7 +114,7 @@ export const soilAnalysisRouter = router({
             }],
           });
         }
-      } catch {
+      } catch (err) {
         // Non-critical: analytics will catch up
       }
 

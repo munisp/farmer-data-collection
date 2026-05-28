@@ -8,6 +8,7 @@ import { loans } from '../../drizzle/financial-schema';
 import { eq } from 'drizzle-orm';
 import { TigerBeetleLedger } from './tigerbeetle-ledger';
 import { publishEvent, createEvent, TOPICS, EVENT_TYPES } from '../kafka';
+import { logger } from '../logger.js';
 
 interface ReconciliationResult {
   status: 'success' | 'discrepancy' | 'error';
@@ -43,7 +44,7 @@ export class TigerBeetlePostgresReconciliation {
     const tbAddress = process.env.TIGERBEETLE_ADDRESS || '127.0.0.1:3000';
     await this.ledger.connect([tbAddress]);
     this.connected = true;
-    console.log('[Reconciliation] Connected to TigerBeetle');
+    logger.info('[Reconciliation] Connected to TigerBeetle');
   }
 
   async disconnect(): Promise<void> {
@@ -59,7 +60,7 @@ export class TigerBeetlePostgresReconciliation {
     const startTime = new Date();
     const results: ReconciliationResult[] = [];
 
-    console.log(`[Reconciliation] Starting loan balance reconciliation: ${runId}`);
+    logger.info(`[Reconciliation] Starting loan balance reconciliation: ${runId}`);
 
     try {
       if (!db) {
@@ -99,7 +100,7 @@ export class TigerBeetlePostgresReconciliation {
 
           if (difference > 0) {
             result.action = 'MANUAL_REVIEW_REQUIRED';
-            console.warn(`[Reconciliation] Discrepancy found for loan ${loan.id}: PG=${pgBalance}, TB=${tbBalance}`);
+            logger.warn(`[Reconciliation] Discrepancy found for loan ${loan.id}: PG=${pgBalance}, TB=${tbBalance}`);
             
             // Publish discrepancy event to Kafka
             await publishEvent(TOPICS.AUDIT_TRAIL, createEvent(
@@ -131,7 +132,7 @@ export class TigerBeetlePostgresReconciliation {
         }
       }
     } catch (error) {
-      console.error('[Reconciliation] Error during loan reconciliation:', error);
+      logger.error('[Reconciliation] Error during loan reconciliation:', error);
     }
 
     const endTime = new Date();
@@ -159,7 +160,7 @@ export class TigerBeetlePostgresReconciliation {
     let updated = 0;
     let errors = 0;
 
-    console.log('[Reconciliation] Starting loan status sync');
+    logger.info('[Reconciliation] Starting loan status sync');
 
     try {
       if (!db) {
@@ -190,7 +191,7 @@ export class TigerBeetlePostgresReconciliation {
               .where(eq(loans.id, loan.id));
             
             updated++;
-            console.log(`[Reconciliation] Marked loan ${loan.id} as paid based on TigerBeetle balance`);
+            logger.info(`[Reconciliation] Marked loan ${loan.id} as paid based on TigerBeetle balance`);
 
             // Publish sync event
             await publishEvent(TOPICS.AUDIT_TRAIL, createEvent(
@@ -207,11 +208,11 @@ export class TigerBeetlePostgresReconciliation {
           }
         } catch (error) {
           errors++;
-          console.error(`[Reconciliation] Error syncing loan ${loan.id}:`, error);
+          logger.error(`[Reconciliation] Error syncing loan ${loan.id}:`, error);
         }
       }
     } catch (error) {
-      console.error('[Reconciliation] Error during loan status sync:', error);
+      logger.error('[Reconciliation] Error during loan status sync:', error);
     }
 
     return { updated, errors };
@@ -250,9 +251,9 @@ export class TigerBeetlePostgresReconciliation {
         }
       ));
 
-      console.log(`[Reconciliation] Report ${report.runId} stored in audit trail`);
+      logger.info(`[Reconciliation] Report ${report.runId} stored in audit trail`);
     } catch (error) {
-      console.error('[Reconciliation] Error storing report:', error);
+      logger.error('[Reconciliation] Error storing report:', error);
     }
   }
 
@@ -263,12 +264,12 @@ export class TigerBeetlePostgresReconciliation {
     loanReport: ReconciliationReport;
     syncResult: { updated: number; errors: number };
   }> {
-    console.log('[Reconciliation] Starting full reconciliation run');
+    logger.info('[Reconciliation] Starting full reconciliation run');
 
     const loanReport = await this.reconcileLoanBalances();
     const syncResult = await this.syncLoanStatuses();
 
-    console.log(`[Reconciliation] Full reconciliation complete:
+    logger.info(`[Reconciliation] Full reconciliation complete:
       - Loans checked: ${loanReport.totalRecords}
       - Discrepancies: ${loanReport.discrepancyCount}
       - Statuses synced: ${syncResult.updated}

@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { checkPermission, setOwner, createRelationship } from './permify';
+import { logger } from './logger.js';
 
 /**
  * Permify authorization middleware for tRPC procedures
@@ -73,9 +74,9 @@ export function setOwnershipOnCreate(
       try {
         const resourceId = getResourceId(result);
         await setOwner(resource, resourceId, ctx.userId);
-        console.log(`[Permify] Set owner: user:${ctx.userId} owns ${resource}:${resourceId}`);
+        logger.info(`[Permify] Set owner: user:${ctx.userId} owns ${resource}:${resourceId}`);
       } catch (error) {
-        console.error('[Permify] Failed to set ownership:', error);
+        logger.error('[Permify] Failed to set ownership:', error);
         // Don't fail the request if permission setup fails
       }
     }
@@ -97,7 +98,7 @@ export async function isAdmin(userId: string | number): Promise<boolean> {
     );
     return hasAdminPermission;
   } catch (error) {
-    console.error('[Permify] Admin check failed:', error);
+    logger.error('[Permify] Admin check failed:', error);
     return false;
   }
 }

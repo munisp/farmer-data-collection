@@ -11,6 +11,7 @@
 
 import { getDb } from '../db.js';
 import { sql } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 // Metrics storage (in production, would use Prometheus/StatsD)
 interface GPSMetrics {
@@ -186,14 +187,14 @@ class GPSMonitoringService {
       const check = await this.checkPostgisAvailability();
       
       if (check.available) {
-        console.log(`[GPS Monitoring] PostGIS enabled successfully: ${check.version}`);
+        logger.info(`[GPS Monitoring] PostGIS enabled successfully: ${check.version}`);
         return { success: true, message: `PostGIS ${check.version} enabled` };
       }
 
       return { success: false, message: check.error || 'Failed to enable PostGIS' };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[GPS Monitoring] Failed to enable PostGIS:', errorMessage);
+      logger.error('[GPS Monitoring] Failed to enable PostGIS:', errorMessage);
       return { success: false, message: errorMessage };
     }
   }
@@ -327,13 +328,13 @@ class GPSMonitoringService {
    * Trigger an alert
    */
   private triggerAlert(alert: GPSAlert): void {
-    console.warn(`[GPS Alert] ${alert.severity.toUpperCase()}: ${alert.message}`, alert.data);
+    logger.warn(`[GPS Alert] ${alert.severity.toUpperCase()}: ${alert.message}`, alert.data);
     
     for (const callback of this.alertCallbacks) {
       try {
         callback(alert);
       } catch (error) {
-        console.error('[GPS Monitoring] Alert callback error:', error);
+        logger.error('[GPS Monitoring] Alert callback error:', error);
       }
     }
   }
@@ -341,8 +342,8 @@ class GPSMonitoringService {
   /**
    * Structured logging for metrics
    */
-  private logMetric(event: string, data: Record<string, any>): void {
-    console.log(JSON.stringify({
+  private logMetric(event: string, data: Record<string, unknown>): void {
+    logger.info(JSON.stringify({
       timestamp: new Date().toISOString(),
       service: 'gps-monitoring',
       event,
@@ -398,7 +399,7 @@ export interface GPSAlert {
   type: 'high_rejection_rate' | 'high_duplicate_rate' | 'postgis_failure';
   severity: 'warning' | 'error';
   message: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface GPSHealthStatus {
@@ -418,19 +419,19 @@ export const gpsMetrics = new GPSMonitoringService();
 // Initialize PostGIS check on startup
 gpsMetrics.checkPostgisAvailability().then((result) => {
   if (!result.available) {
-    console.warn('[GPS Monitoring] PostGIS not available:', result.error);
-    console.warn('[GPS Monitoring] Geofencing will use fallback JSON boundaries');
+    logger.warn('[GPS Monitoring] PostGIS not available:', result.error);
+    logger.warn('[GPS Monitoring] Geofencing will use fallback JSON boundaries');
   } else {
-    console.log(`[GPS Monitoring] PostGIS available: ${result.version}`);
+    logger.info(`[GPS Monitoring] PostGIS available: ${result.version}`);
   }
 }).catch((error) => {
-  console.error('[GPS Monitoring] Failed to check PostGIS:', error);
+  logger.error('[GPS Monitoring] Failed to check PostGIS:', error);
 });
 
 // Periodic metrics reset (every hour)
 setInterval(() => {
   const metrics = gpsMetrics.getMetrics();
-  console.log('[GPS Monitoring] Hourly metrics summary:', JSON.stringify(metrics));
+  logger.info('[GPS Monitoring] Hourly metrics summary:', JSON.stringify(metrics));
   gpsMetrics.resetMetrics();
 }, 60 * 60 * 1000);
 

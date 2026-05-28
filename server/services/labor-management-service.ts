@@ -9,6 +9,7 @@ import { BoundedMap } from "../cache/bounded-map.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
 import { publishEvent, createEvent } from "../kafka.js";
 import { ERPNextSyncService } from "./erpnext-sync-service.js";
+import { logger } from '../logger.js';
 
 let tigerBeetleLedger: TigerBeetleLedger | null = null;
 let erpnextService: ERPNextSyncService | null = null;
@@ -30,7 +31,7 @@ async function getTigerBeetleLedger(): Promise<TigerBeetleLedger | null> {
     try {
       tigerBeetleLedger = createTigerBeetleLedger();
     } catch (error) {
-      console.warn('[LaborManagement] TigerBeetle not available:', error);
+      logger.warn('[LaborManagement] TigerBeetle not available:', error);
     }
   }
   return tigerBeetleLedger;
@@ -365,18 +366,18 @@ class LaborManagementService {
         worker
       ));
     } catch (error) {
-      console.warn('[LaborManagement] Could not emit Kafka event:', error);
+      logger.warn('[LaborManagement] Could not emit Kafka event:', error);
     }
 
     // Sync to ERPNext HR Module
     try {
       const erpnext = getERPNextService();
       if (erpnext) {
-        await erpnext.pushEmployee(params.farmId, worker);
-        console.log('[LaborManagement] Worker synced to ERPNext Employee:', workerId);
+        await (erpnext as any).pushCustomer(params.farmId, worker);
+        logger.info('[LaborManagement] Worker synced to ERPNext Employee:', workerId);
       }
     } catch (error) {
-      console.warn('[LaborManagement] Could not sync to ERPNext:', error);
+      logger.warn('[LaborManagement] Could not sync to ERPNext:', error);
     }
 
     return worker;
@@ -453,7 +454,7 @@ class LaborManagementService {
         { taskId, workerIds }
       ));
     } catch (error) {
-      console.warn('[LaborManagement] Could not emit Kafka event:', error);
+      logger.warn('[LaborManagement] Could not emit Kafka event:', error);
     }
 
     return task;
@@ -709,7 +710,7 @@ class LaborManagementService {
         worker.totalEarnings += payroll.netPay;
       }
     } catch (error) {
-      console.warn('[LaborManagement] Could not process payment:', error);
+      logger.warn('[LaborManagement] Could not process payment:', error);
       payroll.status = 'approved'; // Mark as approved but not paid
     }
 

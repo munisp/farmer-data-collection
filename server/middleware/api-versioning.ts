@@ -155,7 +155,7 @@ export function transformResponse(version: ApiVersion, data: any, resourceType: 
 }
 
 // Farmer response transformations
-function transformFarmerResponse(version: ApiVersion, data: any): any {
+function transformFarmerResponse(version: ApiVersion, data: Record<string, any>): any {
   if (version === 'v1') {
     // V1: Flat structure, snake_case
     return {
@@ -199,7 +199,7 @@ function transformFarmerResponse(version: ApiVersion, data: any): any {
 }
 
 // Loan response transformations
-function transformLoanResponse(version: ApiVersion, data: any): any {
+function transformLoanResponse(version: ApiVersion, data: Record<string, any>): any {
   if (version === 'v1') {
     return {
       id: data.id,
@@ -242,7 +242,7 @@ function transformLoanResponse(version: ApiVersion, data: any): any {
 }
 
 // Harvest response transformations
-function transformHarvestResponse(version: ApiVersion, data: any): any {
+function transformHarvestResponse(version: ApiVersion, data: Record<string, any>): any {
   if (version === 'v1') {
     return {
       id: data.id,
@@ -288,7 +288,7 @@ export function transformRequest(version: ApiVersion, data: any, resourceType: s
   }
 }
 
-function transformFarmerRequest(version: ApiVersion, data: any): any {
+function transformFarmerRequest(version: ApiVersion, data: Record<string, any>): any {
   if (version === 'v1') {
     // V1 uses snake_case, transform to internal format
     return {
@@ -317,7 +317,7 @@ function transformFarmerRequest(version: ApiVersion, data: any): any {
   };
 }
 
-function transformLoanRequest(version: ApiVersion, data: any): any {
+function transformLoanRequest(version: ApiVersion, data: Record<string, any>): any {
   if (version === 'v1') {
     return {
       farmerId: data.farmer_id,

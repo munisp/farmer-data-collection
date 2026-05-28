@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * ML Credit Scoring Service
  * Machine learning model for farmer credit risk assessment
@@ -587,11 +588,11 @@ export class MLCreditScoringService {
     actualRepaymentDays: number;
   }>): Promise<{ accuracy: number; auc: number; featureImportance: Record<string, number> }> {
     if (historicalData.length < 10) {
-      console.warn(`[Credit Scoring] Insufficient training data: ${historicalData.length} records (need 10+)`);
+      logger.warn(`[Credit Scoring] Insufficient training data: ${historicalData.length} records (need 10+)`);
       return { accuracy: 0, auc: 0, featureImportance: {} };
     }
 
-    console.log(`[Credit Scoring] Training on ${historicalData.length} records...`);
+    logger.info(`[Credit Scoring] Training on ${historicalData.length} records...`);
 
     // Filter to completed outcomes only
     const completed = historicalData.filter(d => d.outcome === 'repaid' || d.outcome === 'defaulted');
@@ -685,7 +686,7 @@ export class MLCreditScoringService {
       featureImportance[name] = Math.abs(weights[i]) / totalWeight;
     });
 
-    console.log(`[Credit Scoring] Training complete: accuracy=${accuracy.toFixed(3)}, AUC=${auc.toFixed(3)}, samples=${completed.length}`);
+    logger.info(`[Credit Scoring] Training complete: accuracy=${accuracy.toFixed(3)}, AUC=${auc.toFixed(3)}, samples=${completed.length}`);
 
     return { accuracy, auc, featureImportance };
   }

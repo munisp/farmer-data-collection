@@ -2,6 +2,7 @@ import { getDb } from '../db';
 import { loans, loanRepayments } from '../../drizzle/financial-schema';
 import { users } from '../../drizzle/schema';
 import { eq, and, lte, gte, sql } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 interface PaymentReminder {
   loanId: number;
@@ -345,9 +346,9 @@ export async function sendEmailReminder(reminder: PaymentReminder): Promise<bool
   const fromEmail = process.env.SMTP_FROM || 'notifications@farmer-data-collection.com';
   
   if (!smtpUser || !smtpPass) {
-    console.warn('[Payment Reminder] SMTP credentials not configured, logging email instead');
-    console.log(`[EMAIL] To: ${reminder.borrowerEmail}`);
-    console.log(`[EMAIL] Subject: ${subject}`);
+    logger.warn('[Payment Reminder] SMTP credentials not configured, logging email instead');
+    logger.info(`[EMAIL] To: ${reminder.borrowerEmail}`);
+    logger.info(`[EMAIL] Subject: ${subject}`);
     return true;
   }
   
@@ -372,10 +373,10 @@ export async function sendEmailReminder(reminder: PaymentReminder): Promise<bool
       html,
     });
     
-    console.log(`[Payment Reminder] Email sent to ${reminder.borrowerEmail}`);
+    logger.info(`[Payment Reminder] Email sent to ${reminder.borrowerEmail}`);
     return true;
   } catch (error) {
-    console.error('[Payment Reminder] Email send error:', error);
+    logger.error('[Payment Reminder] Email send error:', error);
     return false;
   }
 }
@@ -392,9 +393,9 @@ export async function sendSMSReminder(reminder: PaymentReminder): Promise<boolea
   const atSenderId = process.env.AFRICASTALKING_SENDER_ID;
   
   if (!atApiKey) {
-    console.warn('[Payment Reminder] Africa\'s Talking API key not configured, logging SMS instead');
-    console.log(`[SMS] To: ${reminder.borrowerPhone}`);
-    console.log(`[SMS] Message: ${message}`);
+    logger.warn('[Payment Reminder] Africa\'s Talking API key not configured, logging SMS instead');
+    logger.info(`[SMS] To: ${reminder.borrowerPhone}`);
+    logger.info(`[SMS] Message: ${message}`);
     return true;
   }
   
@@ -413,10 +414,10 @@ export async function sendSMSReminder(reminder: PaymentReminder): Promise<boolea
       from: atSenderId,
     });
     
-    console.log(`[Payment Reminder] SMS sent to ${reminder.borrowerPhone}`);
+    logger.info(`[Payment Reminder] SMS sent to ${reminder.borrowerPhone}`);
     return true;
   } catch (error) {
-    console.error('[Payment Reminder] SMS send error:', error);
+    logger.error('[Payment Reminder] SMS send error:', error);
     return false;
   }
 }
@@ -436,11 +437,11 @@ export async function processPaymentReminders(daysAhead: number): Promise<void> 
         await sendSMSReminder(reminder);
       }
     } catch (error) {
-      console.error(`Failed to send reminder for loan ${reminder.loanNumber}:`, error);
+      logger.error(`Failed to send reminder for loan ${reminder.loanNumber}:`, error);
     }
   }
   
-  console.log(`Processed ${reminders.length} payment reminders for ${daysAhead} days ahead`);
+  logger.info(`Processed ${reminders.length} payment reminders for ${daysAhead} days ahead`);
 }
 
 /**
@@ -458,9 +459,9 @@ export async function processOverdueReminders(): Promise<void> {
         await sendSMSReminder(reminder);
       }
     } catch (error) {
-      console.error(`Failed to send overdue reminder for loan ${reminder.loanNumber}:`, error);
+      logger.error(`Failed to send overdue reminder for loan ${reminder.loanNumber}:`, error);
     }
   }
   
-  console.log(`Processed ${reminders.length} overdue payment reminders`);
+  logger.info(`Processed ${reminders.length} overdue payment reminders`);
 }

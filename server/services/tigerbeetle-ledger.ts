@@ -5,6 +5,7 @@ import crypto from "crypto";
  */
 
 import { createClient, Account, Transfer, CreateAccountError, CreateTransferError } from 'tigerbeetle-node';
+import { logger } from '../logger.js';
 
 // Account types for the ag-fintech platform
 export enum AccountType {
@@ -82,7 +83,7 @@ export class TigerBeetleLedger {
       });
       this.connected = true;
     } catch (error) {
-      console.error('Failed to connect to TigerBeetle:', error);
+      logger.error('Failed to connect to TigerBeetle:', error);
       throw error;
     }
   }

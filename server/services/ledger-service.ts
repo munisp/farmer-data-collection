@@ -52,7 +52,7 @@ export interface TransferParams {
   sourceType: SourceType;
   sourceId?: string;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdBy?: number;
 }
 

@@ -9,6 +9,7 @@ import { BoundedMap } from "../cache/bounded-map.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
 import { createTemporalService, TemporalWorkflowService } from "./temporal-workflow-service.js";
 import { publishEvent, createEvent } from "../kafka.js";
+import { logger } from '../logger.js';
 
 let tigerBeetleLedger: TigerBeetleLedger | null = null;
 
@@ -17,7 +18,7 @@ async function getTigerBeetleLedger(): Promise<TigerBeetleLedger | null> {
     try {
       tigerBeetleLedger = createTigerBeetleLedger();
     } catch (error) {
-      console.warn('[InputFinancing] TigerBeetle not available:', error);
+      logger.warn('[InputFinancing] TigerBeetle not available:', error);
     }
   }
   return tigerBeetleLedger;
@@ -383,7 +384,7 @@ class InputFinancingService {
         });
       }
     } catch (error) {
-      console.warn('[InputFinancing] Could not record in TigerBeetle:', error);
+      logger.warn('[InputFinancing] Could not record in TigerBeetle:', error);
     }
 
     // Emit event
@@ -396,7 +397,7 @@ class InputFinancingService {
         creditLine
       ));
     } catch (error) {
-      console.warn('[InputFinancing] Could not emit Kafka event:', error);
+      logger.warn('[InputFinancing] Could not emit Kafka event:', error);
     }
 
     return creditLine;
@@ -497,7 +498,7 @@ class InputFinancingService {
         disbursement.transactionId = txResult?.transactionId;
       }
     } catch (error) {
-      console.warn('[InputFinancing] Could not disburse:', error);
+      logger.warn('[InputFinancing] Could not disburse:', error);
     }
 
     // Update credit line
@@ -561,7 +562,7 @@ class InputFinancingService {
         repayment.transactionId = txResult?.transactionId;
       }
     } catch (error) {
-      console.warn('[InputFinancing] Could not record repayment:', error);
+      logger.warn('[InputFinancing] Could not record repayment:', error);
     }
 
     creditLine.repayments.push(repayment);
@@ -709,7 +710,7 @@ class InputFinancingService {
       const scorer = new CreditScoringService();
       const result = await scorer.calculateCreditScore(farmerId);
       return result.score;
-    } catch {
+    } catch (err) {
       return 600; // conservative default if scoring unavailable
     }
   }
@@ -746,7 +747,7 @@ class InputFinancingService {
         previousLoansRepaid: repaid,
         defaultRate: total > 0 ? defaulted / total : 0,
       };
-    } catch {
+    } catch (err) {
       return { totalHectares: 2, cooperativeMember: false, previousLoansRepaid: 0, defaultRate: 0 };
     }
   }

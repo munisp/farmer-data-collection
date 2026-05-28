@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * Temporal Workflow Service
  * Provides durable workflow orchestration for loan processing, payments, and background jobs
@@ -34,11 +35,11 @@ class WorkflowClientStub implements WorkflowClient {
   async start(_workflow: unknown, options: unknown): Promise<WorkflowHandle> {
     const opts = options as { workflowId?: string };
     const workflowId = opts.workflowId || `stub-${Date.now()}`;
-    console.warn('[Temporal] Stub: Workflow started (Temporal not installed)');
+    logger.warn('[Temporal] Stub: Workflow started (Temporal not installed)');
     return {
       workflowId,
       describe: async () => ({ status: { name: 'STUB_RUNNING' } }),
-      cancel: async () => { console.warn('[Temporal] Stub: Workflow cancelled'); },
+      cancel: async () => { logger.warn('[Temporal] Stub: Workflow cancelled'); },
     };
   }
   
@@ -46,7 +47,7 @@ class WorkflowClientStub implements WorkflowClient {
     return {
       workflowId,
       describe: async () => ({ status: { name: 'STUB_RUNNING' } }),
-      cancel: async () => { console.warn('[Temporal] Stub: Workflow cancelled'); },
+      cancel: async () => { logger.warn('[Temporal] Stub: Workflow cancelled'); },
     };
   }
 }
@@ -110,7 +111,7 @@ export const activities = {
       const scorer = new CreditScoringService();
       const result = await scorer.calculateCreditScore(parseInt(farmerId, 10));
       return { score: result.score, eligible: result.score >= 500 };
-    } catch {
+    } catch (err) {
       return { score: 600, eligible: true }; // conservative default
     }
   },
@@ -127,11 +128,11 @@ export const activities = {
   },
 
   async notifyLoanOfficer(applicationId: string, status: string): Promise<void> {
-    console.log(`Notifying loan officer about application ${applicationId}: ${status}`);
+    logger.info(`Notifying loan officer about application ${applicationId}: ${status}`);
   },
 
   async notifyFarmer(farmerId: string, message: string, channel: 'sms' | 'push' | 'email'): Promise<void> {
-    console.log(`Notifying farmer ${farmerId} via ${channel}: ${message}`);
+    logger.info(`Notifying farmer ${farmerId} via ${channel}: ${message}`);
   },
 
   // Disbursement activities
@@ -153,7 +154,7 @@ export const activities = {
   },
 
   async updateLoanStatus(loanId: string, status: string): Promise<void> {
-    console.log(`Updating loan ${loanId} status to ${status}`);
+    logger.info(`Updating loan ${loanId} status to ${status}`);
   },
 
   // ============================================
@@ -173,7 +174,7 @@ export const activities = {
       const data = await response.json();
       return { found: true, displayName: data.party?.name, fspId: data.party?.fspId };
     } catch (error) {
-      console.error('[Temporal] Mojaloop party lookup failed:', error);
+      logger.error('[Temporal] Mojaloop party lookup failed:', error);
       return { found: false };
     }
   },
@@ -195,7 +196,7 @@ export const activities = {
       const data = await response.json();
       return { quoteId: data.quoteId, fees: parseFloat(data.fees?.amount || '0'), expiration: data.expiration };
     } catch (error) {
-      console.error('[Temporal] Mojaloop quote request failed:', error);
+      logger.error('[Temporal] Mojaloop quote request failed:', error);
       return null;
     }
   },
@@ -218,7 +219,7 @@ export const activities = {
       const data = await response.json();
       return { transferId: data.transferId, status: data.transferState };
     } catch (error) {
-      console.error('[Temporal] Mojaloop transfer failed:', error);
+      logger.error('[Temporal] Mojaloop transfer failed:', error);
       return null;
     }
   },
@@ -240,7 +241,7 @@ export const activities = {
       const data = await response.json();
       return { success: true, accounts: data.accounts };
     } catch (error) {
-      console.error('[Temporal] TigerBeetle create accounts failed:', error);
+      logger.error('[Temporal] TigerBeetle create accounts failed:', error);
       return { success: false };
     }
   },
@@ -258,7 +259,7 @@ export const activities = {
       const data = await response.json();
       return { success: true, transferId: data.transferId };
     } catch (error) {
-      console.error('[Temporal] TigerBeetle disbursement failed:', error);
+      logger.error('[Temporal] TigerBeetle disbursement failed:', error);
       return { success: false };
     }
   },
@@ -276,7 +277,7 @@ export const activities = {
       const data = await response.json();
       return { success: true, transferId: data.transferId };
     } catch (error) {
-      console.error('[Temporal] TigerBeetle repayment failed:', error);
+      logger.error('[Temporal] TigerBeetle repayment failed:', error);
       return { success: false };
     }
   },
@@ -290,7 +291,7 @@ export const activities = {
       const data = await response.json();
       return { cashBalance: data.cashBalance || 0, outstandingLoans: data.outstandingLoans || 0 };
     } catch (error) {
-      console.error('[Temporal] TigerBeetle get balance failed:', error);
+      logger.error('[Temporal] TigerBeetle get balance failed:', error);
       return null;
     }
   },
@@ -308,7 +309,7 @@ export const activities = {
       const data = await response.json();
       return { success: true, pendingTransferId: data.pendingTransferId };
     } catch (error) {
-      console.error('[Temporal] TigerBeetle escrow initiation failed:', error);
+      logger.error('[Temporal] TigerBeetle escrow initiation failed:', error);
       return { success: false };
     }
   },
@@ -324,7 +325,7 @@ export const activities = {
       });
       return { success: response.ok };
     } catch (error) {
-      console.error('[Temporal] TigerBeetle escrow release failed:', error);
+      logger.error('[Temporal] TigerBeetle escrow release failed:', error);
       return { success: false };
     }
   },
@@ -340,14 +341,14 @@ export const activities = {
       });
       return { success: response.ok };
     } catch (error) {
-      console.error('[Temporal] TigerBeetle escrow void failed:', error);
+      logger.error('[Temporal] TigerBeetle escrow void failed:', error);
       return { success: false };
     }
   },
 
   // Payment collection activities
   async sendPaymentReminder(farmerId: string, amount: number, dueDate: string): Promise<void> {
-    console.log(`Sending payment reminder to ${farmerId}: ${amount} due on ${dueDate}`);
+    logger.info(`Sending payment reminder to ${farmerId}: ${amount} due on ${dueDate}`);
   },
 
   async initiateSTKPush(phoneNumber: string, amount: number, reference: string): Promise<{ checkoutRequestId: string }> {
@@ -362,7 +363,7 @@ export const activities = {
   },
 
   async recordPayment(loanId: string, amount: number, transactionId: string): Promise<void> {
-    console.log(`Recording payment for loan ${loanId}: ${amount} (${transactionId})`);
+    logger.info(`Recording payment for loan ${loanId}: ${amount} (${transactionId})`);
   },
 
   // Sync activities
@@ -371,12 +372,12 @@ export const activities = {
     return [];
   },
 
-  async applyClientChanges(entityType: string, changes: any[]): Promise<{ applied: number; conflicts: number }> {
+  async applyClientChanges(entityType: string, changes: unknown[]): Promise<{ applied: number; conflicts: number }> {
     return { applied: changes.length, conflicts: 0 };
   },
 
-  async resolveConflicts(conflicts: any[]): Promise<void> {
-    console.log(`Resolving ${conflicts.length} conflicts`);
+  async resolveConflicts(conflicts: unknown[]): Promise<void> {
+    logger.info(`Resolving ${conflicts.length} conflicts`);
   },
 };
 

@@ -4,6 +4,7 @@ import { users } from "../../drizzle/schema.js";
 import { eq, and, lte, gte, isNull, sql } from "drizzle-orm";
 import { smsService } from "./sms.service.js";
 import { sendEmail } from "./email-service.js";
+import { logger } from '../logger.js';
 
 /**
  * Payment Reminder Service
@@ -121,14 +122,14 @@ export class PaymentReminderService {
       const result = await smsService.sendSMS({ to: payment.userPhone || '', message });
       
       if (result.success) {
-        console.log(`[Payment Reminder SMS] Sent to ${payment.userPhone} (Message ID: ${result.messageId})`);
+        logger.info(`[Payment Reminder SMS] Sent to ${payment.userPhone} (Message ID: ${result.messageId})`);
         return true;
       } else {
-        console.error(`[Payment Reminder SMS] Failed to send to ${payment.userPhone}: ${result.error}`);
+        logger.error(`[Payment Reminder SMS] Failed to send to ${payment.userPhone}: ${result.error}`);
         return false;
       }
     } catch (error) {
-      console.error(`Failed to send SMS reminder for loan ${payment.loanNumber}:`, error);
+      logger.error(`Failed to send SMS reminder for loan ${payment.loanNumber}:`, error);
       return false;
     }
   }
@@ -153,14 +154,14 @@ export class PaymentReminderService {
       });
 
       if (result) {
-        console.log(`[Payment Reminder Email] Sent to ${payment.userEmail}`);
+        logger.info(`[Payment Reminder Email] Sent to ${payment.userEmail}`);
         return true;
       } else {
-        console.error(`[Payment Reminder Email] Failed to send to ${payment.userEmail}`);
+        logger.error(`[Payment Reminder Email] Failed to send to ${payment.userEmail}`);
         return false;
       }
     } catch (error) {
-      console.error(`Failed to send email reminder for loan ${payment.loanNumber}:`, error);
+      logger.error(`Failed to send email reminder for loan ${payment.loanNumber}:`, error);
       return false;
     }
   }
@@ -180,7 +181,7 @@ export class PaymentReminderService {
     let emailSent = 0;
     let failed = 0;
 
-    console.log(`\n📅 Processing ${upcomingPayments.length} payment reminders...`);
+    logger.info(`\n📅 Processing ${upcomingPayments.length} payment reminders...`);
 
     for (const payment of upcomingPayments) {
       try {
@@ -194,22 +195,22 @@ export class PaymentReminderService {
           failed++;
         }
 
-        console.log(
+        logger.info(
           `  ✅ Loan ${payment.loanNumber}: ${payment.daysUntilDue} days until payment (₦${
             payment.monthlyPayment / 100
           })`
         );
       } catch (error) {
-        console.error(`  ❌ Failed to process reminder for loan ${payment.loanNumber}:`, error);
+        logger.error(`  ❌ Failed to process reminder for loan ${payment.loanNumber}:`, error);
         failed++;
       }
     }
 
-    console.log(`\n📊 Reminder Summary:`);
-    console.log(`  Total payments: ${upcomingPayments.length}`);
-    console.log(`  SMS sent: ${smsSent}`);
-    console.log(`  Emails sent: ${emailSent}`);
-    console.log(`  Failed: ${failed}\n`);
+    logger.info(`\n📊 Reminder Summary:`);
+    logger.info(`  Total payments: ${upcomingPayments.length}`);
+    logger.info(`  SMS sent: ${smsSent}`);
+    logger.info(`  Emails sent: ${emailSent}`);
+    logger.info(`  Failed: ${failed}\n`);
 
     return {
       total: upcomingPayments.length,
@@ -340,11 +341,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   reminderService
     .processReminders()
     .then((result) => {
-      console.log("✅ Payment reminder processing completed successfully");
+      logger.info("✅ Payment reminder processing completed successfully");
       process.exit(0);
     })
     .catch((error) => {
-      console.error("❌ Payment reminder processing failed:", error);
+      logger.error("❌ Payment reminder processing failed:", error);
       process.exit(1);
     });
 }

@@ -26,7 +26,7 @@ async function callColdChainService(path: string, body: Record<string, unknown>)
       body,
       { maxRetries: 3, timeoutMs: 10_000 },
     );
-  } catch {
+  } catch (err) {
     return { error: "Cold chain service unavailable" };
   }
 }
@@ -225,7 +225,7 @@ export const coldChainRouter = router({
       try {
         const resp = await resilientFetch("cold-chain-service", `${COLD_CHAIN_SERVICE_URL}/api/crops`, undefined, { timeoutMs: 5000 });
         return await resp.json();
-      } catch {
+      } catch (err) {
         return { error: "Cold chain service unavailable" };
       }
     }),

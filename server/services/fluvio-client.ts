@@ -30,7 +30,7 @@ class FluvioClient {
       const result = await resp.json() as { event_id: string };
       this.healthy = true;
       return result.event_id;
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return null;
     }
@@ -49,7 +49,7 @@ class FluvioClient {
 
       this.healthy = true;
       return resp.json();
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return { produced: 0, errors: events.length };
     }
@@ -69,7 +69,7 @@ class FluvioClient {
       const data = await resp.json() as { events: StreamEvent[] };
       this.healthy = true;
       return data.events;
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return [];
     }
@@ -83,7 +83,7 @@ class FluvioClient {
       if (!resp.ok) return [];
       this.healthy = true;
       return resp.json();
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return [];
     }

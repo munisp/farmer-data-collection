@@ -17,6 +17,7 @@ import {
 } from "../drizzle/schema.js";
 import { eq, and, desc, sql, gte, lte, like, or, inArray } from "drizzle-orm";
 import { createEscrowForOrder, notifyOrderStatusChange, requestDeliveryForOrder } from "./services/order-orchestration.js";
+import { logger } from './logger.js';
 
 // ============================================================================
 // Validation Schemas
@@ -173,7 +174,7 @@ export const marketplaceRouter = router({
         throw new Error("Listing not found or you don't have permission to edit it");
       }
       
-      const updates: any = {};
+      const updates: Record<string, any> = {};
       if (input.title) updates.title = input.title;
       if (input.description !== undefined) updates.description = input.description;
       if (input.quantity) {
@@ -500,7 +501,7 @@ export const marketplaceRouter = router({
         .leftJoin(users, eq(produceListings.userId, users.id))
         .where(eq(shoppingCartItems.userId, userId));
       
-      return cartItems.map((item: any) => ({
+      return cartItems.map((item: Record<string, any>) => ({
         ...item,
         listingPhotos: typeof item.listingPhotos === 'string' 
           ? JSON.parse(item.listingPhotos) 
@@ -605,7 +606,7 @@ export const marketplaceRouter = router({
       }
       
       // Fetch listing details
-      const listingIds = input.items.map((item: any) => item.listingId);
+      const listingIds = input.items.map((item: Record<string, any>) => item.listingId);
       const listings = await db
         .select()
         .from(produceListings)
@@ -860,7 +861,7 @@ export const marketplaceRouter = router({
         throw new Error("A tracking number is required before marking an order as shipped");
       }
       
-      const updates: any = { 
+      const updates: Record<string, any> = { 
         status: input.status,
         updatedAt: new Date(),
       };
@@ -1146,7 +1147,7 @@ export const marketplaceRouter = router({
           responsive: responsiveUrls, // Multiple sizes
         };
       } catch (error) {
-        console.error('[Marketplace] Image upload error:', error);
+        logger.error('[Marketplace] Image upload error:', error);
         throw new Error('Failed to upload image');
       }
     }),
@@ -1344,7 +1345,7 @@ export const marketplaceRouter = router({
         throw new Error("Product not found or you don't have permission to edit it");
       }
       
-      const updates: any = { updatedAt: new Date() };
+      const updates: Record<string, any> = { updatedAt: new Date() };
       if (input.price !== undefined) {
         const priceInCents = Math.round(input.price * 100);
         updates.pricePerUnit = priceInCents;
@@ -1447,7 +1448,7 @@ export const marketplaceRouter = router({
       const buyerId = ctx.user.id;
       
       // Fetch listing details (using productId as listingId)
-      const listingIds = input.items.map((item: any) => item.productId);
+      const listingIds = input.items.map((item: Record<string, any>) => item.productId);
       const listings = await db
         .select()
         .from(produceListings)
@@ -1585,7 +1586,7 @@ export const marketplaceRouter = router({
         totalAmount: order.totalAmount / 100, // Convert cents back to dollars
         status: order.status,
         paymentStatus: order.paymentStatus,
-        items: items.map((item: any) => ({
+        items: items.map((item: Record<string, any>) => ({
           id: item.id,
           productId: item.listingId,
           quantity: item.quantity,

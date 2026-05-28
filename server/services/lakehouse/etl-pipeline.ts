@@ -10,6 +10,7 @@
 import { getLakehouseClient, type QueryResult } from './lakehouse-client.js';
 import { LAKEHOUSE_TABLES, PARTITION_STRATEGIES, RETENTION_POLICIES } from './lakehouse-config.js';
 import { getFeatureStore } from './feature-store.js';
+import { logger } from '../../logger.js';
 
 // ============================================================================
 // Types
@@ -193,7 +194,7 @@ export class ETLPipelineService {
    */
   registerPipeline(config: PipelineConfig): void {
     this.pipelines.set(config.name, config);
-    console.log(`[ETL] Registered pipeline: ${config.name}`);
+    logger.info(`[ETL] Registered pipeline: ${config.name}`);
   }
 
   /**
@@ -240,7 +241,7 @@ export class ETLPipelineService {
     };
     this.runHistory.push(run);
 
-    console.log(`[ETL] Starting pipeline: ${pipelineName}`);
+    logger.info(`[ETL] Starting pipeline: ${pipelineName}`);
     const startTime = Date.now();
 
     try {
@@ -265,7 +266,7 @@ export class ETLPipelineService {
       run.rowsProcessed = result.rowsRead;
       run.rowsWritten = result.rowsWritten;
 
-      console.log(`[ETL] Pipeline ${pipelineName} completed: ${result.rowsWritten} rows written`);
+      logger.info(`[ETL] Pipeline ${pipelineName} completed: ${result.rowsWritten} rows written`);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -273,7 +274,7 @@ export class ETLPipelineService {
       run.endTime = new Date();
       run.errorMessage = errorMessage;
 
-      console.error(`[ETL] Pipeline ${pipelineName} failed:`, error);
+      logger.error(`[ETL] Pipeline ${pipelineName} failed:`, error);
       return {
         success: false,
         rowsRead: 0,
@@ -307,7 +308,7 @@ export class ETLPipelineService {
       transformQuery = this.buildGenericTransformQuery(config);
     }
 
-    console.log(`[ETL] Executing transform query for ${config.name}`);
+    logger.info(`[ETL] Executing transform query for ${config.name}`);
 
     // Execute transformation
     const result = await lakehouse.executeQuery(transformQuery);
@@ -355,7 +356,7 @@ export class ETLPipelineService {
       aggregationQuery = `SELECT '${reportDate}' as report_date`;
     }
 
-    console.log(`[ETL] Executing aggregation query for ${config.name}`);
+    logger.info(`[ETL] Executing aggregation query for ${config.name}`);
 
     const result = await lakehouse.executeQuery(aggregationQuery);
 
@@ -399,7 +400,7 @@ export class ETLPipelineService {
       featureQuery = `SELECT '${featureDate}' as feature_date`;
     }
 
-    console.log(`[ETL] Executing feature engineering query for ${config.name}`);
+    logger.info(`[ETL] Executing feature engineering query for ${config.name}`);
 
     const result = await lakehouse.executeQuery(featureQuery);
 
@@ -955,7 +956,7 @@ export class ETLPipelineService {
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
       const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
 
-      console.log(`[ETL] Applying retention policy for ${layer}: deleting data older than ${cutoffDateStr}`);
+      logger.info(`[ETL] Applying retention policy for ${layer}: deleting data older than ${cutoffDateStr}`);
 
       // In production, this would execute DELETE statements
       // await lakehouse.executeQuery(`DELETE FROM ${layer}.* WHERE partition_date < '${cutoffDateStr}'`);

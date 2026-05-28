@@ -12,6 +12,7 @@ import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
 import { createTemporalService, TemporalWorkflowService } from "./temporal-workflow-service.js";
 import { publishEvent, createEvent } from "../kafka.js";
+import { logger } from '../logger.js';
 
 let tigerBeetleLedger: TigerBeetleLedger | null = null;
 let temporalWorkflowService: TemporalWorkflowService | null = null;
@@ -21,7 +22,7 @@ async function getTigerBeetleLedger(): Promise<TigerBeetleLedger | null> {
     try {
       tigerBeetleLedger = createTigerBeetleLedger();
     } catch (error) {
-      console.warn('[Insurance] TigerBeetle not available:', error);
+      logger.warn('[Insurance] TigerBeetle not available:', error);
     }
   }
   return tigerBeetleLedger;
@@ -32,7 +33,7 @@ async function getTemporalService(): Promise<TemporalWorkflowService | null> {
     try {
       temporalWorkflowService = createTemporalService();
     } catch (error) {
-      console.warn('[Insurance] Temporal not available:', error);
+      logger.warn('[Insurance] Temporal not available:', error);
     }
   }
   return temporalWorkflowService;
@@ -90,7 +91,7 @@ export interface InsurancePayout {
   triggeredBy: InsurancePeril;
   amount: number;
   status: 'pending' | 'approved' | 'disbursed' | 'rejected';
-  triggerData: Record<string, any>;
+  triggerData: Record<string, unknown>;
   disbursedAt?: Date;
   transactionId?: string;
 }
@@ -248,7 +249,7 @@ class CropInsuranceService {
       const historicalRisk = await this.assessHistoricalRisk(latitude, longitude, perils);
       riskAdjustment *= historicalRisk;
     } catch (error) {
-      console.warn('[Insurance] Could not fetch historical risk data:', error);
+      logger.warn('[Insurance] Could not fetch historical risk data:', error);
     }
 
     // Calculate final premium
@@ -327,7 +328,7 @@ class CropInsuranceService {
         });
       }
     } catch (error) {
-      console.warn('[Insurance] Could not record premium in TigerBeetle:', error);
+      logger.warn('[Insurance] Could not record premium in TigerBeetle:', error);
     }
 
     // Emit event for policy creation
@@ -340,7 +341,7 @@ class CropInsuranceService {
         policy
       ));
     } catch (error) {
-      console.warn('[Insurance] Could not emit Kafka event:', error);
+      logger.warn('[Insurance] Could not emit Kafka event:', error);
     }
 
     // Start monitoring workflow via Temporal
@@ -354,7 +355,7 @@ class CropInsuranceService {
         });
       }
     } catch (error) {
-      console.warn('[Insurance] Could not start Temporal workflow:', error);
+      logger.warn('[Insurance] Could not start Temporal workflow:', error);
     }
 
     return policy;
@@ -366,7 +367,7 @@ class CropInsuranceService {
   async checkTriggers(policyId: string): Promise<{
     triggered: boolean;
     triggeredPerils: InsurancePeril[];
-    triggerData: Record<string, any>;
+    triggerData: Record<string, unknown>;
   }> {
     const policy = this.policies.get(policyId);
     if (!policy || policy.status !== 'active') {
@@ -374,7 +375,7 @@ class CropInsuranceService {
     }
 
     const triggeredPerils: InsurancePeril[] = [];
-    const triggerData: Record<string, any> = {};
+    const triggerData: Record<string, unknown> = {};
 
     // Get farm location (would come from database)
     const farmLocation = { latitude: 6.5244, longitude: 3.3792 }; // Default Lagos
@@ -387,7 +388,7 @@ class CropInsuranceService {
           triggerData[trigger.peril] = isTriggered.data;
         }
       } catch (error) {
-        console.warn(`[Insurance] Error evaluating trigger ${trigger.peril}:`, error);
+        logger.warn(`[Insurance] Error evaluating trigger ${trigger.peril}:`, error);
       }
     }
 
@@ -401,7 +402,7 @@ class CropInsuranceService {
   /**
    * Process automatic payout when triggers are met
    */
-  async processAutomaticPayout(policyId: string, triggeredPeril: InsurancePeril, triggerData: Record<string, any>): Promise<InsurancePayout | null> {
+  async processAutomaticPayout(policyId: string, triggeredPeril: InsurancePeril, triggerData: Record<string, unknown>): Promise<InsurancePayout | null> {
     const policy = this.policies.get(policyId);
     if (!policy || policy.status !== 'active') {
       return null;
@@ -447,7 +448,7 @@ class CropInsuranceService {
           payout.transactionId = txResult?.transactionId;
         }
       } catch (error) {
-        console.warn('[Insurance] Could not disburse payout:', error);
+        logger.warn('[Insurance] Could not disburse payout:', error);
       }
     }
 
@@ -464,7 +465,7 @@ class CropInsuranceService {
         payout
       ));
     } catch (error) {
-      console.warn('[Insurance] Could not emit payout event:', error);
+      logger.warn('[Insurance] Could not emit payout event:', error);
     }
 
     return payout;
@@ -533,7 +534,7 @@ class CropInsuranceService {
     }
 
     this.monitoringInterval = setInterval(async () => {
-      console.log('[Insurance] Running trigger check for all active policies...');
+      logger.info('[Insurance] Running trigger check for all active policies...');
       
       for (const [policyId, policy] of this.policies) {
         if (policy.status !== 'active') continue;
@@ -546,12 +547,12 @@ class CropInsuranceService {
             }
           }
         } catch (error) {
-          console.error(`[Insurance] Error checking policy ${policyId}:`, error);
+          logger.error(`[Insurance] Error checking policy ${policyId}:`, error);
         }
       }
     }, intervalMs);
 
-    console.log('[Insurance] Monitoring started');
+    logger.info('[Insurance] Monitoring started');
   }
 
   /**
@@ -561,7 +562,7 @@ class CropInsuranceService {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('[Insurance] Monitoring stopped');
+      logger.info('[Insurance] Monitoring stopped');
     }
   }
 
@@ -600,18 +601,18 @@ class CropInsuranceService {
       if (perils.includes('drought' as InsurancePeril)) riskMultiplier += 0.05;
       
       return Math.max(0.8, Math.min(1.3, riskMultiplier));
-    } catch {
+    } catch (err) {
       return 1.0;
     }
   }
 
   private async evaluateTrigger(trigger: InsuranceTrigger, location: { latitude: number; longitude: number }): Promise<{
     triggered: boolean;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
   }> {
     // Get current weather data
     let currentValue: number;
-    const data: Record<string, any> = {};
+    const data: Record<string, unknown> = {};
 
     try {
       // Would integrate with actual weather service
@@ -634,7 +635,7 @@ class CropInsuranceService {
       data.currentValue = currentValue;
       data.threshold = trigger.threshold;
       data.measurementDate = new Date().toISOString();
-    } catch {
+    } catch (err) {
       // Use mock data if weather service unavailable
       currentValue = trigger.metric === 'rainfall_mm' ? 100 : 28;
       data.currentValue = currentValue;
@@ -660,7 +661,7 @@ class CropInsuranceService {
     return { triggered, data };
   }
 
-  private verifyTriggerData(triggerData: Record<string, any>): boolean {
+  private verifyTriggerData(triggerData: Record<string, unknown>): boolean {
     // Would implement verification logic (e.g., cross-reference with satellite data)
     return triggerData.source !== 'mock';
   }

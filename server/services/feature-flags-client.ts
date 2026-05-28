@@ -55,7 +55,7 @@ class FeatureFlagsClient {
       this.cache.set(cacheKey, { result, expires: Date.now() + this.cacheTTL });
       this.healthy = true;
       return result.enabled;
-    } catch {
+    } catch (err) {
       this.healthy = false;
       return defaultValue;
     }
@@ -79,7 +79,7 @@ class FeatureFlagsClient {
 
       const results: FlagEvalResult[] = await resp.json();
       return Object.fromEntries(results.map((r) => [r.flag_name, r.enabled]));
-    } catch {
+    } catch (err) {
       return Object.fromEntries(flags.map((f) => [f, false]));
     }
   }
@@ -91,7 +91,7 @@ class FeatureFlagsClient {
       });
       if (!resp.ok) return [];
       return resp.json();
-    } catch {
+    } catch (err) {
       return [];
     }
   }
@@ -105,7 +105,7 @@ class FeatureFlagsClient {
         signal: AbortSignal.timeout(3000),
       });
       return resp.ok;
-    } catch {
+    } catch (err) {
       return false;
     }
   }

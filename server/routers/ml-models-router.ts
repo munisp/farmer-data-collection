@@ -5,6 +5,7 @@ import { getDb } from "../db.js";
 import { mlModels, modelDownloads, modelBenchmarks, communityModels, modelSyncQueue, modelRatings } from "../../drizzle/schema-ml-models.js";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import axios from "axios";
+import { logger } from '../logger.js';
 
 /**
  * ML Models Router
@@ -239,7 +240,7 @@ export const mlModelsRouter = router({
       const response = await axios.get(`${ML_SERVICE_URL}/model-packs`);
       return response.data;
     } catch (error) {
-      console.error("Failed to fetch model packs:", error);
+      logger.error("Failed to fetch model packs:", error);
       throw new Error("Failed to fetch model packs from ML service");
     }
   }),
@@ -253,7 +254,7 @@ export const mlModelsRouter = router({
    */
   downloadModel: protectedProcedure
     .input(z.object({ modelId: z.number(), deviceInfo: z.record(z.string(), z.any()).optional() }))
-    .mutation(async ({ input, ctx }: { input: { modelId: number; deviceInfo?: Record<string, any> }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { modelId: number; deviceInfo?: Record<string, unknown> }; ctx: any }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -385,7 +386,7 @@ export const mlModelsRouter = router({
 
         return response.data;
       } catch (error) {
-        console.error("Inference failed:", error);
+        logger.error("Inference failed:", error);
         throw new Error("Inference failed");
       }
     }),
@@ -558,7 +559,7 @@ export const mlModelsRouter = router({
 
         return response.data;
       } catch (error) {
-        console.error("Optimization failed:", error);
+        logger.error("Optimization failed:", error);
         throw new Error("Optimization failed");
       }
     }),
@@ -571,7 +572,7 @@ export const mlModelsRouter = router({
       const response = await axios.get(`${MODEL_SERVING_URL}/device/capability`);
       return response.data;
     } catch (error) {
-      console.error("Device capability detection failed:", error);
+      logger.error("Device capability detection failed:", error);
       // Return default capability
       return {
         capability: {
@@ -650,7 +651,7 @@ export const mlModelsRouter = router({
 
         return { benchmark, benchmarkData };
       } catch (error) {
-        console.error("Benchmarking failed:", error);
+        logger.error("Benchmarking failed:", error);
         throw new Error("Benchmarking failed");
       }
     }),

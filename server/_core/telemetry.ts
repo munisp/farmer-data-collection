@@ -17,6 +17,7 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
+import { logger } from '../logger.js';
 
 // Service name for identification in traces
 const SERVICE_NAME = 'farmer-platform-backend';
@@ -32,7 +33,7 @@ const TRACING_ENABLED = process.env.ENABLE_TRACING !== 'false';
  */
 export function initTelemetry(): NodeSDK | null {
   if (!TRACING_ENABLED) {
-    console.log('[Telemetry] Tracing disabled');
+    logger.info('[Telemetry] Tracing disabled');
     return null;
   }
 
@@ -72,20 +73,20 @@ export function initTelemetry(): NodeSDK | null {
 
     // Start the SDK
     sdk.start();
-    console.log('[Telemetry] OpenTelemetry initialized');
-    console.log(`[Telemetry] Exporting traces to: ${JAEGER_ENDPOINT}`);
+    logger.info('[Telemetry] OpenTelemetry initialized');
+    logger.info(`[Telemetry] Exporting traces to: ${JAEGER_ENDPOINT}`);
 
     // Graceful shutdown
     process.on('SIGTERM', () => {
       sdk.shutdown()
-        .then(() => console.log('[Telemetry] SDK shut down successfully'))
-        .catch((error) => console.error('[Telemetry] Error shutting down SDK', error))
+        .then(() => logger.info('[Telemetry] SDK shut down successfully'))
+        .catch((error) => logger.error('[Telemetry] Error shutting down SDK', error))
         .finally(() => process.exit(0));
     });
 
     return sdk;
   } catch (error) {
-    console.error('[Telemetry] Failed to initialize OpenTelemetry:', error);
+    logger.error('[Telemetry] Failed to initialize OpenTelemetry:', error);
     return null;
   }
 }
@@ -119,13 +120,13 @@ export function getTraceContext() {
  *   span.setStatus({ code: SpanStatusCode.OK });
  *   return result;
  * } catch (error) {
- *   span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+ *   span.setStatus({ code: SpanStatusCode.ERROR, message: (error instanceof Error ? error.message : String(error)) });
  *   throw error;
  * } finally {
  *   span.end();
  * }
  */
-export function createSpan(name: string, attributes: Record<string, any> = {}) {
+export function createSpan(name: string, attributes: Record<string, unknown> = {}) {
   const { trace } = require('@opentelemetry/api');
   const tracer = trace.getTracer(SERVICE_NAME);
   
@@ -142,11 +143,11 @@ export function createSpan(name: string, attributes: Record<string, any> = {}) {
  *   return await doSomething(param);
  * });
  */
-export function traceAsync<T extends (...args: any[]) => Promise<any>>(
+export function traceAsync<T extends (...args: unknown[]) => Promise<unknown>>(
   name: string,
   fn: T
 ): T {
-  return (async (...args: any[]) => {
+  return (async (...args: unknown[]) => {
     const span = createSpan(name, {
       'function.args': JSON.stringify(args),
     });
@@ -156,11 +157,11 @@ export function traceAsync<T extends (...args: any[]) => Promise<any>>(
       const { SpanStatusCode } = require('@opentelemetry/api');
       span.setStatus({ code: SpanStatusCode.OK });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const { SpanStatusCode } = require('@opentelemetry/api');
       span.setStatus({
         code: SpanStatusCode.ERROR,
-        message: error.message,
+        message: (error instanceof Error ? error.message : String(error)),
       });
       span.recordException(error);
       throw error;
@@ -173,7 +174,7 @@ export function traceAsync<T extends (...args: any[]) => Promise<any>>(
 /**
  * Add custom attributes to the current span
  */
-export function addSpanAttributes(attributes: Record<string, any>) {
+export function addSpanAttributes(attributes: Record<string, unknown>) {
   const { trace, context } = require('@opentelemetry/api');
   const span = trace.getSpan(context.active());
   
@@ -187,7 +188,7 @@ export function addSpanAttributes(attributes: Record<string, any>) {
 /**
  * Add an event to the current span
  */
-export function addSpanEvent(name: string, attributes?: Record<string, any>) {
+export function addSpanEvent(name: string, attributes?: Record<string, unknown>) {
   const { trace, context } = require('@opentelemetry/api');
   const span = trace.getSpan(context.active());
   

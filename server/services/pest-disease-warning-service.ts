@@ -9,7 +9,8 @@ import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => { const p = await getProducer(); if (p) return p.send(payload); } };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type PestType = 
   | 'fall_armyworm' 
@@ -791,7 +792,7 @@ class PestDiseaseWarningService {
         }],
       });
     } catch (error) {
-      console.warn('[PestDiseaseWarning] Could not emit Kafka event:', error);
+      logger.warn('[PestDiseaseWarning] Could not emit Kafka event:', error);
     }
 
     return assessment;
@@ -850,7 +851,7 @@ class PestDiseaseWarningService {
         }],
       });
     } catch (error) {
-      console.warn('[PestDiseaseWarning] Could not emit Kafka event:', error);
+      logger.warn('[PestDiseaseWarning] Could not emit Kafka event:', error);
     }
 
     return report;
@@ -912,13 +913,13 @@ class PestDiseaseWarningService {
     }
 
     this.monitoringInterval = setInterval(async () => {
-      console.log('[PestDiseaseWarning] Running regional monitoring...');
+      logger.info('[PestDiseaseWarning] Running regional monitoring...');
       
       // Would scan satellite imagery and weather data for outbreak indicators
       // and update alerts accordingly
     }, intervalMs);
 
-    console.log('[PestDiseaseWarning] Monitoring started');
+    logger.info('[PestDiseaseWarning] Monitoring started');
   }
 
   /**
@@ -945,7 +946,7 @@ class PestDiseaseWarningService {
         humidity: weather?.humidity || 70,
         rainfall: weather?.precipitation || 0,
       };
-    } catch {
+    } catch (err) {
       return { temperature: 28, humidity: 70, rainfall: 0 };
     }
   }

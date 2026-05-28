@@ -5,9 +5,10 @@ import { eq } from "drizzle-orm";
 import { router, publicProcedure } from "./_core/trpc-base.js";
 import { getDb } from "./db.js";
 import { users } from "../drizzle/schema.js";
+import { logger } from './logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
+  logger.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
   return "dev-only-secret-do-not-use-in-production";
 })();
 
@@ -289,7 +290,7 @@ export const authRouter = router({
         throw error;
       }
     } catch (error) {
-      console.error("[Auth.me] Error:", error);
+      logger.error("[Auth.me] Error:", error);
       return null;
     }
   }),

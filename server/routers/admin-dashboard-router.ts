@@ -274,7 +274,7 @@ export const adminDashboardRouter = router({
         await db.execute(sql`SELECT 1`);
         dbLatency = Date.now() - start;
         dbStatus = dbLatency < 100 ? 'healthy' : 'degraded';
-      } catch {
+      } catch (err) {
         dbStatus = 'down';
       }
 
@@ -290,7 +290,7 @@ export const adminDashboardRouter = router({
           redisHitRate = hits + misses > 0 ? hits / (hits + misses) : 0;
           redisStatus = redisHitRate > 0.8 ? 'healthy' : 'degraded';
         }
-      } catch {
+      } catch (err) {
         redisStatus = 'degraded';
       }
 

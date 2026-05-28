@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { router, publicProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { logger } from '../logger.js';
 import {
   handleUSSDSession,
   parseSMSCommand,
@@ -44,12 +45,12 @@ const ALLOWED_IP_RANGES = [
  */
 function verifyWebhookRequest(ctx: any): void {
   if (!WEBHOOK_VERIFICATION_ENABLED) {
-    console.log('[Webhook] Verification disabled via AFRICAS_TALKING_WEBHOOK_VERIFY=false');
+    logger.info('[Webhook] Verification disabled via AFRICAS_TALKING_WEBHOOK_VERIFY=false');
     return;
   }
 
   if (!WEBHOOK_SECRET) {
-    console.warn('[Webhook] AFRICAS_TALKING_WEBHOOK_SECRET not configured - skipping verification');
+    logger.warn('[Webhook] AFRICAS_TALKING_WEBHOOK_SECRET not configured - skipping verification');
     return;
   }
 
@@ -59,7 +60,7 @@ function verifyWebhookRequest(ctx: any): void {
   const providedSecret = headerSecret || querySecret;
 
   if (!providedSecret) {
-    console.error('[Webhook] No webhook secret provided in request');
+    logger.error('[Webhook] No webhook secret provided in request');
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'Webhook verification failed: missing secret',
@@ -67,14 +68,14 @@ function verifyWebhookRequest(ctx: any): void {
   }
 
   if (providedSecret !== WEBHOOK_SECRET) {
-    console.error('[Webhook] Invalid webhook secret provided');
+    logger.error('[Webhook] Invalid webhook secret provided');
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'Webhook verification failed: invalid secret',
     });
   }
 
-  console.log('[Webhook] Request verified successfully');
+  logger.info('[Webhook] Request verified successfully');
 }
 
 /**
@@ -104,7 +105,7 @@ export const africasTalkingRouter = router({
       const response = await handleUSSDSession(input);
       
       // Log USSD interaction with correlation ID
-      console.log('[USSD]', {
+      logger.info('[USSD]', {
         correlationId,
         sessionId: input.sessionId,
         phoneNumber: input.phoneNumber,
@@ -139,7 +140,7 @@ export const africasTalkingRouter = router({
       const responseText = parseSMSCommand(input);
       
       // Log SMS interaction with correlation ID
-      console.log('[SMS]', {
+      logger.info('[SMS]', {
         correlationId,
         externalId: input.id,
         from: input.from,
@@ -179,7 +180,7 @@ export const africasTalkingRouter = router({
       const responseText = handleWhatsAppMessage(input);
       
       // Log WhatsApp interaction with correlation ID
-      console.log('[WhatsApp]', {
+      logger.info('[WhatsApp]', {
         correlationId,
         externalId: input.id,
         from: input.from,
@@ -220,7 +221,7 @@ export const africasTalkingRouter = router({
       const correlationId = generateCorrelationId();
       
       // Log delivery status with correlation ID
-      console.log('[Delivery Report]', {
+      logger.info('[Delivery Report]', {
         correlationId,
         externalId: input.id,
         status: input.status,
@@ -251,7 +252,7 @@ export const africasTalkingRouter = router({
             .limit(1);
           
           if (existingEvent.length > 0) {
-            console.log(`[Delivery Report] Duplicate event detected for ${input.id}, skipping processing`);
+            logger.info(`[Delivery Report] Duplicate event detected for ${input.id}, skipping processing`);
             return {
               success: true,
               message: 'Delivery report already processed (duplicate)',
@@ -292,10 +293,10 @@ export const africasTalkingRouter = router({
             metadata: { status: input.status, phoneNumber: input.phoneNumber },
           }).onConflictDoNothing();
           
-          console.log(`[Delivery Report] Updated message ${input.id} status to ${mappedStatus}`);
+          logger.info(`[Delivery Report] Updated message ${input.id} status to ${mappedStatus}`);
         }
       } catch (error) {
-        console.error('[Delivery Report] Failed to update message status:', error);
+        logger.error('[Delivery Report] Failed to update message status:', error);
         // Don't fail the webhook if database update fails
       }
 

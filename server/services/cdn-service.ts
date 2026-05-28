@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * CDN Service
  * 
@@ -82,7 +83,7 @@ export function transformToCDN(s3Url: string, options?: ImageTransformOptions): 
 
     return cdnUrl;
   } catch (error) {
-    console.error('[CDN] Error transforming URL:', error);
+    logger.error('[CDN] Error transforming URL:', error);
     return s3Url; // Fallback to original URL
   }
 }
@@ -193,7 +194,7 @@ export function isCDNUrl(url: string): boolean {
   try {
     const urlObj = new URL(url);
     return urlObj.hostname === config.domain;
-  } catch {
+  } catch (err) {
     return false;
   }
 }
@@ -206,11 +207,11 @@ export async function purgeCDNCache(urls: string[]): Promise<void> {
   const config = getCDNConfig();
   
   if (!config.enabled) {
-    console.log('[CDN] Cache purge skipped - CDN disabled');
+    logger.info('[CDN] Cache purge skipped - CDN disabled');
     return;
   }
 
-  console.log(`[CDN] Purging cache for ${urls.length} URLs`);
+  logger.info(`[CDN] Purging cache for ${urls.length} URLs`);
 
   switch (config.provider) {
     case 'cloudfront':
@@ -223,7 +224,7 @@ export async function purgeCDNCache(urls: string[]): Promise<void> {
       await purgeCustomCDNCache(urls);
       break;
     default:
-      console.warn(`[CDN] Unknown provider: ${config.provider}`);
+      logger.warn(`[CDN] Unknown provider: ${config.provider}`);
   }
 }
 
@@ -234,7 +235,7 @@ async function purgeCloudFrontCache(urls: string[]): Promise<void> {
   const distributionId = process.env.CLOUDFRONT_DISTRIBUTION_ID;
   
   if (!distributionId) {
-    console.warn('[CDN] CloudFront distribution ID not configured');
+    logger.warn('[CDN] CloudFront distribution ID not configured');
     return;
   }
 
@@ -250,7 +251,7 @@ async function purgeCloudFrontCache(urls: string[]): Promise<void> {
       try {
         const urlObj = new URL(url);
         return urlObj.pathname;
-      } catch {
+      } catch (err) {
         return url;
       }
     });
@@ -267,9 +268,9 @@ async function purgeCloudFrontCache(urls: string[]): Promise<void> {
     });
 
     const response = await client.send(command);
-    console.log(`[CDN] CloudFront invalidation created: ${response.Invalidation?.Id}`);
+    logger.info(`[CDN] CloudFront invalidation created: ${response.Invalidation?.Id}`);
   } catch (error) {
-    console.error('[CDN] CloudFront cache purge failed:', error);
+    logger.error('[CDN] CloudFront cache purge failed:', error);
   }
 }
 
@@ -281,7 +282,7 @@ async function purgeCloudflareCache(urls: string[]): Promise<void> {
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
   
   if (!zoneId || !apiToken) {
-    console.warn('[CDN] Cloudflare credentials not configured');
+    logger.warn('[CDN] Cloudflare credentials not configured');
     return;
   }
 
@@ -301,12 +302,12 @@ async function purgeCloudflareCache(urls: string[]): Promise<void> {
     const result = await response.json();
     
     if (result.success) {
-      console.log(`[CDN] Cloudflare cache purged for ${urls.length} URLs`);
+      logger.info(`[CDN] Cloudflare cache purged for ${urls.length} URLs`);
     } else {
-      console.error('[CDN] Cloudflare cache purge failed:', result.errors);
+      logger.error('[CDN] Cloudflare cache purge failed:', result.errors);
     }
   } catch (error) {
-    console.error('[CDN] Cloudflare cache purge failed:', error);
+    logger.error('[CDN] Cloudflare cache purge failed:', error);
   }
 }
 
@@ -318,7 +319,7 @@ async function purgeCustomCDNCache(urls: string[]): Promise<void> {
   const purgeApiKey = process.env.CDN_PURGE_API_KEY;
   
   if (!purgeEndpoint) {
-    console.warn('[CDN] Custom CDN purge endpoint not configured');
+    logger.warn('[CDN] Custom CDN purge endpoint not configured');
     return;
   }
 
@@ -338,12 +339,12 @@ async function purgeCustomCDNCache(urls: string[]): Promise<void> {
     });
 
     if (response.ok) {
-      console.log(`[CDN] Custom CDN cache purged for ${urls.length} URLs`);
+      logger.info(`[CDN] Custom CDN cache purged for ${urls.length} URLs`);
     } else {
-      console.error('[CDN] Custom CDN cache purge failed:', response.statusText);
+      logger.error('[CDN] Custom CDN cache purge failed:', response.statusText);
     }
   } catch (error) {
-    console.error('[CDN] Custom CDN cache purge failed:', error);
+    logger.error('[CDN] Custom CDN cache purge failed:', error);
   }
 }
 

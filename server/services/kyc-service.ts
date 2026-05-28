@@ -6,6 +6,7 @@
 import { eq, and, desc } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import crypto from 'crypto';
+import { logger } from '../logger.js';
 
 // Types
 export type KycTier = 'unverified' | 'basic' | 'standard' | 'enhanced' | 'premium';
@@ -241,12 +242,12 @@ export class KycService {
           message: `Your AgriFinance verification code is: ${code}. Valid for 10 minutes. Do not share this code.`,
         });
       } catch (error) {
-        console.error('Failed to send SMS:', error);
+        logger.error('Failed to send SMS:', error);
         return { success: false, message: 'Failed to send SMS. Please try again.', expiresIn: 0 };
       }
     } else {
       // Log for development
-      console.log(`[DEV] Phone OTP for ${phoneNumber}: ${code}`);
+      logger.info(`[DEV] Phone OTP for ${phoneNumber}: ${code}`);
     }
 
     return { success: true, message: 'OTP sent successfully', expiresIn: 600 };
@@ -333,11 +334,11 @@ export class KycService {
           `,
         });
       } catch (error) {
-        console.error('Failed to send email:', error);
+        logger.error('Failed to send email:', error);
         return { success: false, message: 'Failed to send email. Please try again.', expiresIn: 0 };
       }
     } else {
-      console.log(`[DEV] Email OTP for ${email}: ${code}`);
+      logger.info(`[DEV] Email OTP for ${email}: ${code}`);
     }
 
     return { success: true, message: 'OTP sent successfully', expiresIn: 1800 };
@@ -453,7 +454,7 @@ export class KycService {
         warnings: warnings.length > 0 ? warnings : undefined,
       };
     } catch (error) {
-      console.error('Document verification failed:', error);
+      logger.error('Document verification failed:', error);
       return {
         success: false,
         verified: false,
@@ -504,7 +505,7 @@ export class KycService {
         };
       }
     } catch (err) {
-      console.warn('PaddleOCR service unavailable, using fallback extraction:', err);
+      logger.warn('PaddleOCR service unavailable, using fallback extraction:', err);
     }
 
     // Fallback: return placeholder extraction for development
@@ -781,7 +782,7 @@ export class KycService {
         };
       }
     } catch (err) {
-      console.warn('Face match service unavailable, using fallback:', err);
+      logger.warn('Face match service unavailable, using fallback:', err);
     }
 
     // Fallback for development

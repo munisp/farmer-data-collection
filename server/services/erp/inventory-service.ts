@@ -19,6 +19,7 @@ import {
   type Supplier,
 } from '../../../drizzle/financial-schema';
 import { eq, and, sql, desc, lt } from 'drizzle-orm';
+import { logger } from '../../logger.js';
 
 export interface CreateInventoryItemInput {
   userId: number;
@@ -84,7 +85,7 @@ export class InventoryService {
       batchNumber: input.batchNumber,
     }).returning();
 
-    console.log(`[Inventory] Created item: ${input.itemName}`);
+    logger.info(`[Inventory] Created item: ${input.itemName}`);
     return item.id;
   }
 
@@ -172,7 +173,7 @@ export class InventoryService {
         .where(eq(inventoryItems.id, input.itemId));
     }
 
-    console.log(`[Inventory] ${input.transactionType}: ${input.quantity} ${item.unit} of ${item.itemName}`);
+    logger.info(`[Inventory] ${input.transactionType}: ${input.quantity} ${item.unit} of ${item.itemName}`);
     return transaction.id;
   }
 
@@ -221,7 +222,7 @@ export class InventoryService {
   /**
    * Get inventory valuation
    */
-  async getInventoryValuation(userId: number): Promise<any> {
+  async getInventoryValuation(userId: number): Promise<unknown> {
     const database = await getDb();
     if (!database) {
       throw new Error('Database connection failed');
@@ -318,7 +319,7 @@ export class InventoryService {
       isActive: true,
     }).returning();
 
-    console.log(`[Inventory] Created supplier: ${input.name}`);
+    logger.info(`[Inventory] Created supplier: ${input.name}`);
     return supplier.id;
   }
 
@@ -396,7 +397,7 @@ export class InventoryService {
       })
       .where(eq(suppliers.id, supplierId));
 
-    console.log(`[Inventory] Updated supplier ${supplierId} rating to ${rating}`);
+    logger.info(`[Inventory] Updated supplier ${supplierId} rating to ${rating}`);
   }
 }
 

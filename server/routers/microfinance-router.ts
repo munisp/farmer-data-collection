@@ -542,7 +542,7 @@ export const microfinanceRouter = router({
     let factorsData;
     try {
       factorsData = latestScore.factors ? JSON.parse(latestScore.factors) : null;
-    } catch {
+    } catch (err) {
       factorsData = null;
     }
 
@@ -914,12 +914,15 @@ export const microfinanceRouter = router({
       }
 
       const borrowerName = `${loanData.user.firstName || ''} ${loanData.user.lastName || ''}`.trim();
+      const dueDate = loanData.loan.nextPaymentDue instanceof Date
+        ? loanData.loan.nextPaymentDue.toISOString().split('T')[0]
+        : String(loanData.loan.nextPaymentDue || 'N/A');
       const result = await sendPaymentReminder(
         loanData.user.phoneNumber,
         borrowerName,
         loanData.loan.monthlyPayment || 0,
-        loanData.loan.nextPaymentDue,
-        loanData.lender.name || 'Unknown Lender'
+        dueDate,
+        'NGN'
       );
 
       if (!result.success) {
@@ -1021,8 +1024,7 @@ export const microfinanceRouter = router({
       const result = await sendLoanRejectionNotification(
         loanData.user.phoneNumber,
         borrowerName,
-        loanData.lender.name || 'Unknown Lender',
-        input.reason
+        input.reason || 'eligibility criteria'
       );
 
       if (!result.success) {
@@ -1075,9 +1077,10 @@ export const microfinanceRouter = router({
       const result = await sendPaymentConfirmation(
         loanData.user.phoneNumber,
         borrowerName,
+        loanData.lender.name || 'Unknown Lender',
         input.paymentAmount,
         Math.max(0, remainingBalance),
-        loanData.lender.name || 'Unknown Lender'
+        'NGN'
       );
 
       if (!result.success) {

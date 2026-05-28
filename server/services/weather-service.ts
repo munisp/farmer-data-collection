@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * Weather Service
  * Integrates with OpenWeatherMap API for weather data
@@ -52,7 +53,7 @@ export class WeatherService {
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.OPENWEATHER_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('OpenWeatherMap API key not configured. Weather features will not work.');
+      logger.warn('OpenWeatherMap API key not configured. Weather features will not work.');
     }
   }
 
@@ -61,7 +62,7 @@ export class WeatherService {
    */
   async getCurrentWeather(lat: number, lon: number): Promise<WeatherData | null> {
     if (!this.apiKey) {
-      console.error('OpenWeatherMap API key not configured');
+      logger.error('OpenWeatherMap API key not configured');
       return null;
     }
 
@@ -93,7 +94,7 @@ export class WeatherService {
         precipitation: data.rain?.['1h'] ?? data.rain?.['3h'] ?? data.snow?.['1h'] ?? 0,
       };
     } catch (error) {
-      console.error('Error fetching current weather:', error);
+      logger.error('Error fetching current weather:', error);
       return null;
     }
   }
@@ -103,7 +104,7 @@ export class WeatherService {
    */
   async getForecast(lat: number, lon: number): Promise<ForecastData[]> {
     if (!this.apiKey) {
-      console.error('OpenWeatherMap API key not configured');
+      logger.error('OpenWeatherMap API key not configured');
       return [];
     }
 
@@ -120,7 +121,7 @@ export class WeatherService {
       // Group by day and aggregate
       const dailyForecasts = new Map<string, any[]>();
 
-      data.list.forEach((item: any) => {
+      data.list.forEach((item: Record<string, any>) => {
         const date = new Date(item.dt * 1000);
         const dateKey = date.toISOString().split('T')[0];
 
@@ -171,7 +172,7 @@ export class WeatherService {
 
       return forecasts.slice(0, 5); // Return 5 days
     } catch (error) {
-      console.error('Error fetching forecast:', error);
+      logger.error('Error fetching forecast:', error);
       return [];
     }
   }
@@ -181,7 +182,7 @@ export class WeatherService {
    */
   async getWeatherAlerts(lat: number, lon: number): Promise<WeatherAlert[]> {
     if (!this.apiKey) {
-      console.error('OpenWeatherMap API key not configured');
+      logger.error('OpenWeatherMap API key not configured');
       return [];
     }
 
@@ -209,7 +210,7 @@ export class WeatherService {
         severity: this.mapSeverity(alert.tags),
       }));
     } catch (error) {
-      console.error('Error fetching weather alerts:', error);
+      logger.error('Error fetching weather alerts:', error);
       return [];
     }
   }
@@ -219,7 +220,7 @@ export class WeatherService {
    */
   async getHistoricalWeather(lat: number, lon: number, days: number = 5): Promise<WeatherData[]> {
     if (!this.apiKey) {
-      console.error('OpenWeatherMap API key not configured');
+      logger.error('OpenWeatherMap API key not configured');
       return [];
     }
 
@@ -237,7 +238,7 @@ export class WeatherService {
         const response = await fetch(url);
 
         if (!response.ok) {
-          console.warn(`Historical weather not available for ${i} days ago`);
+          logger.warn(`Historical weather not available for ${i} days ago`);
           continue;
         }
 
@@ -266,7 +267,7 @@ export class WeatherService {
 
       return historicalData.reverse(); // Oldest first
     } catch (error) {
-      console.error('Error fetching historical weather:', error);
+      logger.error('Error fetching historical weather:', error);
       return [];
     }
   }

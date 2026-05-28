@@ -128,7 +128,7 @@ export const moderationAnalyticsRouter = router({
         .limit(input.limit)
         .offset(input.offset);
 
-      return queue.map((item: any) => ({
+      return queue.map((item: Record<string, any>) => ({
         ...item,
         photos: item.photos ? item.photos.split(",") : [],
       }));

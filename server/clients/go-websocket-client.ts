@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * Go WebSocket Service Client
  * 
@@ -73,7 +74,7 @@ export class GoWebSocketClient {
         this.ws = new WebSocket(this.url);
 
         this.ws.onopen = () => {
-          console.log('[WebSocket] Connected to realtime service');
+          logger.info('[WebSocket] Connected to realtime service');
           this.reconnectAttempts = 0;
           
           // Resubscribe to channels after reconnection
@@ -90,19 +91,19 @@ export class GoWebSocketClient {
             const message: WebSocketMessage = JSON.parse(event.data);
             this.handleMessage(message);
           } catch (error) {
-            console.error('[WebSocket] Failed to parse message:', error);
+            logger.error('[WebSocket] Failed to parse message:', error);
           }
         };
 
         this.ws.onerror = (event) => {
           const error = new Error('WebSocket error occurred');
-          console.error('[WebSocket] Error:', error);
+          logger.error('[WebSocket] Error:', error);
           this.errorHandlers.forEach(handler => handler(error));
           reject(error);
         };
 
         this.ws.onclose = () => {
-          console.log('[WebSocket] Connection closed');
+          logger.info('[WebSocket] Connection closed');
           this.disconnectHandlers.forEach(handler => handler());
 
           if (!this.isIntentionalClose && this.reconnectAttempts < this.maxReconnectAttempts) {
@@ -133,13 +134,13 @@ export class GoWebSocketClient {
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
     
-    console.log(
+    logger.info(
       `[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`
     );
 
     setTimeout(() => {
       this.connect().catch(error => {
-        console.error('[WebSocket] Reconnection failed:', error);
+        logger.error('[WebSocket] Reconnection failed:', error);
       });
     }, delay);
   }
@@ -167,7 +168,7 @@ export class GoWebSocketClient {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     } else {
-      console.warn('[WebSocket] Cannot send message, connection not open');
+      logger.warn('[WebSocket] Cannot send message, connection not open');
     }
   }
 
@@ -298,7 +299,7 @@ export class MarketplaceWebSocket extends GoWebSocketClient {
   /**
    * Handle marketplace updates
    */
-  onMarketplaceUpdate(handler: (data: any) => void): void {
+  onMarketplaceUpdate(handler: (data: Record<string, unknown>) => void): void {
     this.on('marketplace_update', (message) => {
       handler(message.data);
     });
@@ -307,7 +308,7 @@ export class MarketplaceWebSocket extends GoWebSocketClient {
   /**
    * Handle order updates
    */
-  onOrderUpdate(handler: (data: any) => void): void {
+  onOrderUpdate(handler: (data: Record<string, unknown>) => void): void {
     this.on('order_update', (message) => {
       handler(message.data);
     });
@@ -316,7 +317,7 @@ export class MarketplaceWebSocket extends GoWebSocketClient {
   /**
    * Handle message updates
    */
-  onMessageUpdate(handler: (data: any) => void): void {
+  onMessageUpdate(handler: (data: Record<string, unknown>) => void): void {
     this.on('message_update', (message) => {
       handler(message.data);
     });
@@ -325,7 +326,7 @@ export class MarketplaceWebSocket extends GoWebSocketClient {
   /**
    * Handle price alerts
    */
-  onPriceAlert(handler: (data: any) => void): void {
+  onPriceAlert(handler: (data: Record<string, unknown>) => void): void {
     this.on('price_alert', (message) => {
       handler(message.data);
     });
@@ -370,7 +371,7 @@ export class WebSocketBroadcaster {
 
       return await response.json();
     } catch (error) {
-      console.error('[Broadcaster] Failed to broadcast:', error);
+      logger.error('[Broadcaster] Failed to broadcast:', error);
       throw error;
     }
   }
@@ -388,7 +389,7 @@ export class WebSocketBroadcaster {
 
       return await response.json();
     } catch (error) {
-      console.error('[Broadcaster] Failed to get stats:', error);
+      logger.error('[Broadcaster] Failed to get stats:', error);
       throw error;
     }
   }
@@ -406,7 +407,7 @@ export class WebSocketBroadcaster {
 
       return await response.json();
     } catch (error) {
-      console.error('[Broadcaster] Health check failed:', error);
+      logger.error('[Broadcaster] Health check failed:', error);
       throw error;
     }
   }

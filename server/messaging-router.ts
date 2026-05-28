@@ -23,6 +23,7 @@ import { eq, and, desc, gt, sql } from "drizzle-orm";
 // @ts-ignore - No type definitions available
 import AfricasTalking from "africastalking";
 import * as MessagingService from "./services/messaging-service.js";
+import { logger } from './logger.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -63,15 +64,15 @@ async function sendSMSVerificationCode(phoneNumber: string, code: string): Promi
         message,
         from: process.env.AFRICASTALKING_SENDER_ID,
       });
-      console.log(`[Messaging] SMS verification code sent to ${phoneNumber}:`, result);
+      logger.info(`[Messaging] SMS verification code sent to ${phoneNumber}:`, result);
       return true;
     } catch (error) {
-      console.error(`[Messaging] Failed to send SMS to ${phoneNumber}:`, error);
+      logger.error(`[Messaging] Failed to send SMS to ${phoneNumber}:`, error);
       return false;
     }
   } else {
     // Fallback: Log the code for development/testing
-    console.log(`[Messaging] SMS (dev mode) - Verification code for ${phoneNumber}: ${code}`);
+    logger.info(`[Messaging] SMS (dev mode) - Verification code for ${phoneNumber}: ${code}`);
     return true;
   }
 }
@@ -87,14 +88,14 @@ async function sendSMSMessage(phoneNumber: string, message: string): Promise<boo
         message,
         from: process.env.AFRICASTALKING_SENDER_ID,
       });
-      console.log(`[Messaging] SMS sent to ${phoneNumber}:`, result);
+      logger.info(`[Messaging] SMS sent to ${phoneNumber}:`, result);
       return true;
     } catch (error) {
-      console.error(`[Messaging] Failed to send SMS to ${phoneNumber}:`, error);
+      logger.error(`[Messaging] Failed to send SMS to ${phoneNumber}:`, error);
       return false;
     }
   } else {
-    console.log(`[Messaging] SMS (dev mode) to ${phoneNumber}: ${message}`);
+    logger.info(`[Messaging] SMS (dev mode) to ${phoneNumber}: ${message}`);
     return true;
   }
 }
@@ -551,7 +552,7 @@ async function buildUSSDMenu(
         return { text: `END ${t("error_invalid", lang)}`, isEnd: true };
     }
   } catch (error) {
-    console.error("USSD menu error:", error);
+    logger.error("USSD menu error:", error);
     return {
       text: `END Error occurred. Please try again later.`,
       isEnd: true,
@@ -788,7 +789,7 @@ async function handleUSSDInput(
         return { nextState: "main_menu", context: {} };
     }
   } catch (error) {
-    console.error("USSD input handling error:", error);
+    logger.error("USSD input handling error:", error);
     return { nextState: "main_menu", context: { ...context, error: String(error) } };
   }
 }
@@ -947,7 +948,7 @@ async function handleSMSCommand(
         return `Unknown command: ${command}\nReply HELP for available commands.`;
     }
   } catch (error) {
-    console.error("SMS command error:", error);
+    logger.error("SMS command error:", error);
     return "Error processing command. Please try again later.";
   }
 }
@@ -1145,7 +1146,7 @@ async function handleWhatsAppMessage(
       "Or reply 'help' for more information."
     );
   } catch (error) {
-    console.error("WhatsApp message error:", error);
+    logger.error("WhatsApp message error:", error);
     return "Sorry, an error occurred. Please try again later.";
   }
 }
@@ -1203,7 +1204,7 @@ export const messagingRouter = router({
 
         return { response: menu.text };
       } catch (error) {
-        console.error("USSD callback error:", error);
+        logger.error("USSD callback error:", error);
         return { response: "END Error occurred. Please try again later." };
       }
     }),
@@ -1246,7 +1247,7 @@ export const messagingRouter = router({
 
         return { success: true };
       } catch (error) {
-        console.error("SMS callback error:", error);
+        logger.error("SMS callback error:", error);
         return { success: false, error: String(error) };
       }
     }),
@@ -1299,7 +1300,7 @@ export const messagingRouter = router({
 
           return { success: true, response: responseText };
         } catch (error) {
-          console.error('WhatsApp media analysis error:', error);
+          logger.error('WhatsApp media analysis error:', error);
           return {
             success: true,
             response: '❌ Sorry, I couldn\'t analyze the image. Please make sure it\'s a clear photo of the crop and try again.'
@@ -1345,10 +1346,10 @@ export const messagingRouter = router({
             });
             
             if (!whatsappResponse.ok) {
-              console.error('[Messaging] WhatsApp send failed:', await whatsappResponse.text());
+              logger.error('[Messaging] WhatsApp send failed:', await whatsappResponse.text());
             }
           } catch (error) {
-            console.error('[Messaging] WhatsApp send error:', error);
+            logger.error('[Messaging] WhatsApp send error:', error);
           }
         }
         
@@ -1356,7 +1357,7 @@ export const messagingRouter = router({
 
         return { success: true, response: responseText };
       } catch (error) {
-        console.error("WhatsApp callback error:", error);
+        logger.error("WhatsApp callback error:", error);
         return { success: false, error: String(error) };
       }
     }),
@@ -1388,7 +1389,7 @@ export const messagingRouter = router({
           });
           return { success: true };
         } catch (error) {
-          console.error("SMS send error:", error);
+          logger.error("SMS send error:", error);
           return { success: false, error: String(error) };
         }
       }
