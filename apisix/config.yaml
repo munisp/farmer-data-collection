@@ -1,0 +1,22 @@
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+  ssl:
+    enable: true
+    listen_port: 9443
+
+deployment:
+  admin:
+    admin_listen:
+      ip: 0.0.0.0
+      port: 9180
+    admin_key:
+      - name: admin
+        key: farmconnect-apisix-admin-key
+        role: admin
+
+plugin_attr:
+  prometheus:
+    export_addr:
+      ip: 0.0.0.0
+      port: 9091

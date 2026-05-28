@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: farmconnect-config
+  namespace: farmconnect
+data:
+  NODE_ENV: production
+  PORT: "3001"
+  DEFAULT_CURRENCY: "NGN"
+  LOG_LEVEL: info
+  SERVICE_NAME: farmer-data-collection
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  KAFKA_BROKERS: kafka:9092
+  KEYCLOAK_URL: http://keycloak:8080
+  PERMIFY_ENDPOINT: http://permify:3476
+  OPENSEARCH_URL: http://opensearch:9200
+  TEMPORAL_ADDRESS: temporal:7233
+  FEATURE_FLAGS_SERVICE_URL: http://feature-flags:8101
+  SEARCH_SERVICE_URL: http://search-proxy:8104
+  WAF_SERVICE_URL: http://waf-security:8105
+  FLUVIO_SERVICE_URL: http://fluvio-streaming:8106
+  WEATHER_SERVICE_URL: http://weather-alerts:8107
+  CREDIT_SCORING_SERVICE_URL: http://credit-scoring:8108
+  VOICE_SERVICE_URL: http://voice-navigation:8109
+  TILE_CACHE_URL: http://tile-cache:8097
+  GO_WEBSOCKET_SERVICE_URL: http://gps-streaming:8098
+  SPATIAL_QUERY_SERVICE_URL: http://spatial-queries:8099
+  GEOCODING_SERVICE_URL: http://geocoding:8100
+  ML_SERVICE_URL: http://ml-service:8001
+  MOJALOOP_API_URL: http://mojaloop:8444
+  MOJALOOP_FSP_ID: farmer-fsp
+  TIGERBEETLE_ADDRESS: tigerbeetle:3000
+  CDN_ENABLED: "false"
+  ENABLE_TRACING: "true"
+  JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+  DAPR_HOST: localhost
+  DAPR_HTTP_PORT: "3500"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: farmconnect-secrets
+  namespace: farmconnect
+type: Opaque
+stringData:
+  DATABASE_URL: postgresql://postgres:postgres@pgbouncer:6432/farmer_data
+  JWT_SECRET: "change-this-in-production-min-16-chars"
+  REDIS_PASSWORD: ""
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: whatsapp-secrets
+  namespace: farmconnect
+type: Opaque
+stringData:
+  META_WHATSAPP_ACCESS_TOKEN: ""
+  META_WHATSAPP_PHONE_NUMBER_ID: ""
+  META_WHATSAPP_VERIFY_TOKEN: "farmconnect-webhook-verify"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: weather-secrets
+  namespace: farmconnect
+type: Opaque
+stringData:
+  OPENWEATHER_API_KEY: ""

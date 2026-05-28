@@ -198,6 +198,25 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks — split large dependencies
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-radix': [
+            '@radix-ui/react-accordion', '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu', '@radix-ui/react-select',
+            '@radix-ui/react-tabs', '@radix-ui/react-tooltip',
+            '@radix-ui/react-popover', '@radix-ui/react-checkbox',
+          ],
+          'vendor-charts': ['recharts'],
+          'vendor-map': ['maplibre-gl'],
+          'vendor-query': ['@tanstack/react-query', '@trpc/client', '@trpc/react-query'],
+          'vendor-i18n': ['i18next', 'react-i18next'],
+          'vendor-forms': ['react-hook-form', 'zod'],
+        },
+      },
+    },
   },
   server: {
     port: 3000,

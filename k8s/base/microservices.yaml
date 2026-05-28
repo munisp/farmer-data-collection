@@ -1,0 +1,383 @@
+## Go Microservices
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feature-flags
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: feature-flags
+  template:
+    metadata:
+      labels:
+        app: feature-flags
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "feature-flags"
+        dapr.io/app-port: "8101"
+    spec:
+      containers:
+        - name: feature-flags
+          image: farmconnect/feature-flags:latest
+          ports:
+            - containerPort: 8101
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8101
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: feature-flags
+  namespace: farmconnect
+spec:
+  selector:
+    app: feature-flags
+  ports:
+    - port: 8101
+      targetPort: 8101
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatsapp-service
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: whatsapp-service
+  template:
+    metadata:
+      labels:
+        app: whatsapp-service
+    spec:
+      containers:
+        - name: whatsapp
+          image: farmconnect/whatsapp-service:latest
+          ports:
+            - containerPort: 8102
+          envFrom:
+            - secretRef:
+                name: whatsapp-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whatsapp-service
+  namespace: farmconnect
+spec:
+  selector:
+    app: whatsapp-service
+  ports:
+    - port: 8102
+      targetPort: 8102
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qr-traceability
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: qr-traceability
+  template:
+    metadata:
+      labels:
+        app: qr-traceability
+    spec:
+      containers:
+        - name: qr
+          image: farmconnect/qr-traceability:latest
+          ports:
+            - containerPort: 8103
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qr-traceability
+  namespace: farmconnect
+spec:
+  selector:
+    app: qr-traceability
+  ports:
+    - port: 8103
+      targetPort: 8103
+---
+## Rust Microservices
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-proxy
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: search-proxy
+  template:
+    metadata:
+      labels:
+        app: search-proxy
+    spec:
+      containers:
+        - name: search
+          image: farmconnect/search-proxy:latest
+          ports:
+            - containerPort: 8104
+          env:
+            - name: OPENSEARCH_URL
+              value: http://opensearch:9200
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: search-proxy
+  namespace: farmconnect
+spec:
+  selector:
+    app: search-proxy
+  ports:
+    - port: 8104
+      targetPort: 8104
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: waf-security
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: waf-security
+  template:
+    metadata:
+      labels:
+        app: waf-security
+    spec:
+      containers:
+        - name: waf
+          image: farmconnect/waf-security:latest
+          ports:
+            - containerPort: 8105
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: waf-security
+  namespace: farmconnect
+spec:
+  selector:
+    app: waf-security
+  ports:
+    - port: 8105
+      targetPort: 8105
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluvio-streaming
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fluvio-streaming
+  template:
+    metadata:
+      labels:
+        app: fluvio-streaming
+    spec:
+      containers:
+        - name: fluvio
+          image: farmconnect/fluvio-streaming:latest
+          ports:
+            - containerPort: 8106
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluvio-streaming
+  namespace: farmconnect
+spec:
+  selector:
+    app: fluvio-streaming
+  ports:
+    - port: 8106
+      targetPort: 8106
+---
+## Python Microservices
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-alerts
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: weather-alerts
+  template:
+    metadata:
+      labels:
+        app: weather-alerts
+    spec:
+      containers:
+        - name: weather
+          image: farmconnect/weather-alerts:latest
+          ports:
+            - containerPort: 8107
+          envFrom:
+            - secretRef:
+                name: weather-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-alerts
+  namespace: farmconnect
+spec:
+  selector:
+    app: weather-alerts
+  ports:
+    - port: 8107
+      targetPort: 8107
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: credit-scoring
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: credit-scoring
+  template:
+    metadata:
+      labels:
+        app: credit-scoring
+    spec:
+      containers:
+        - name: credit
+          image: farmconnect/credit-scoring:latest
+          ports:
+            - containerPort: 8108
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: credit-scoring
+  namespace: farmconnect
+spec:
+  selector:
+    app: credit-scoring
+  ports:
+    - port: 8108
+      targetPort: 8108
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-navigation
+  namespace: farmconnect
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: voice-navigation
+  template:
+    metadata:
+      labels:
+        app: voice-navigation
+    spec:
+      containers:
+        - name: voice
+          image: farmconnect/voice-navigation:latest
+          ports:
+            - containerPort: 8109
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voice-navigation
+  namespace: farmconnect
+spec:
+  selector:
+    app: voice-navigation
+  ports:
+    - port: 8109
+      targetPort: 8109

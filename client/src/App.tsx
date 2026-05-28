@@ -143,6 +143,9 @@ const SoilAnalysis = lazy(() => import("./pages/SoilAnalysis"));
 const RetailStoreDashboard = lazy(() => import("./pages/RetailStoreDashboard"));
 const OrderReturns = lazy(() => import("./pages/OrderReturns"));
 const FreshnessTracking = lazy(() => import("./pages/FreshnessTracking"));
+const WeatherAlerts = lazy(() => import("./pages/WeatherAlerts"));
+const PaymentReconciliation = lazy(() => import("./pages/PaymentReconciliation"));
+const VoiceNavigation = lazy(() => import("./pages/VoiceNavigation"));
 
 function Router() {
   return (
@@ -288,6 +291,10 @@ function Router() {
         <Route path="/retail/bulk-order" component={RetailStoreDashboard} />
         <Route path="/returns" component={OrderReturns} />
         <Route path="/freshness" component={FreshnessTracking} />
+        <Route path="/weather-alerts" component={WeatherAlerts} />
+        <Route path="/payment-reconciliation" component={PaymentReconciliation} />
+        <Route path="/voice-navigation" component={VoiceNavigation} />
+        <Route path="/cooperative-dashboard" component={CooperativeDashboard} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

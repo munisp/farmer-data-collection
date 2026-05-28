@@ -6,6 +6,24 @@ export default defineConfig({
     environment: 'node',
     include: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
     exclude: ['node_modules', 'dist', 'client'],
-    testTimeout: 30000, // 30 seconds for slow tests
+    testTimeout: 30000,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'text-summary', 'json', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['server/**/*.ts'],
+      exclude: [
+        'server/**/__tests__/**',
+        'server/**/*.test.ts',
+        'server/**/*.spec.ts',
+        'node_modules/**',
+      ],
+      thresholds: {
+        lines: 40,
+        functions: 40,
+        branches: 30,
+        statements: 40,
+      },
+    },
   },
 });
