@@ -104,7 +104,7 @@ The **Farmer Data Collection App** is a comprehensive, production-ready web appl
 - Retention metrics (Day 1, Day 7, Day 30)
 
 ### 7. Offline Capabilities
-- **Local PGLite Database**
+- **Local SQLite WASM + OPFS Database**
   - Stores data locally for offline access
   - Enables data collection without internet
   
@@ -150,7 +150,7 @@ The **Farmer Data Collection App** is a comprehensive, production-ready web appl
 - **Tailwind CSS 4** - Utility-first styling
 - **shadcn/ui** - High-quality UI components
 - **Wouter** - Lightweight routing
-- **PGLite** - Client-side PostgreSQL database for offline support
+- **SQLite WASM + OPFS** - Client-side database for offline support
 - **Google Maps JavaScript API** - Map integration via Manus proxy
 
 ### Backend
@@ -224,7 +224,7 @@ The **Farmer Data Collection App** is a comprehensive, production-ready web appl
 5. Export analytics to CSV
 
 ### Workflow 4: Offline Data Collection
-1. Application automatically stores data in local PGLite database
+1. Application automatically stores data in local SQLite WASM database
 2. Field agents can register farmers without internet
 3. Data queued for sync
 4. When online, click "Sync Now" or wait for automatic sync
@@ -290,7 +290,7 @@ All tables include sync metadata columns:
 
 ## Performance Optimizations
 
-- Client-side caching with PGLite
+- Client-side caching with SQLite WASM
 - Redis caching for frequently accessed data
 - Lazy loading of components
 - Image optimization and compression

@@ -185,9 +185,7 @@ const plugins = [
 
 export default defineConfig({
   plugins,
-  optimizeDeps: {
-    exclude: ['@electric-sql/pglite'],
-  },
+  optimizeDeps: {},
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

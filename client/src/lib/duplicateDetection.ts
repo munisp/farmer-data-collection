@@ -2,8 +2,7 @@
  * Duplicate detection utilities for farmer data
  */
 
-import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
+import { getDb } from "@/db";
 import { farmers } from "@/db/schema";
 import { eq, or, and, ne, sql } from "drizzle-orm";
 
@@ -70,7 +69,7 @@ function calculateSimilarity(str1: string, str2: string): number {
  * Check for duplicate farmers based on phone number, national ID, and name similarity
  */
 export async function checkForDuplicates(
-  db: PGlite,
+  _db: any,
   farmerData: {
     firstName: string;
     lastName: string;
@@ -81,7 +80,7 @@ export async function checkForDuplicates(
   userId: number,
   excludeId?: number
 ): Promise<DuplicateMatch[]> {
-  const drizzleDb = drizzle(db);
+  const drizzleDb = await getDb();
   const duplicates: DuplicateMatch[] = [];
 
   try {

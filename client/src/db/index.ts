@@ -1,27 +1,20 @@
-type DrizzleDatabase = any;
-type PGliteClient = any;
+import { getDatabase } from './dbFactory';
+import type { LocalDb } from './localDb';
 
-// Create a promise that will resolve to the initialized database
+type DrizzleDatabase = any;
+
 let dbInstance: DrizzleDatabase | null = null;
-let clientInstance: PGliteClient | null = null;
+let clientInstance: LocalDb | null = null;
 let initPromise: Promise<void> | null = null;
 
 async function initializeDatabase() {
   if (!initPromise) {
     initPromise = (async () => {
-      const [{ PGlite }, { drizzle }, schema] = await Promise.all([
-        import('@electric-sql/pglite'),
-        import('drizzle-orm/pglite'),
-        import('./schema'),
-      ]);
+      // Use SQLite WASM database via dbFactory
+      clientInstance = await getDatabase();
 
-      // Initialize PGlite database (client-side PostgreSQL)
-      clientInstance = await PGlite.create({
-        dataDir: 'idb://farmer-data-collection',
-      });
-
-      // Create Drizzle ORM instance
-      dbInstance = drizzle(clientInstance, { schema });
+      // The LocalDb instance serves as both client and db
+      dbInstance = clientInstance;
     })();
   }
 
@@ -53,7 +46,7 @@ export const db = new Proxy({} as DrizzleDatabase, {
   },
 });
 
-export const client = new Proxy({} as PGliteClient, {
+export const client = new Proxy({} as LocalDb, {
   get: () => {
     throw new Error('Client not initialized. Use getClient() instead.');
   },

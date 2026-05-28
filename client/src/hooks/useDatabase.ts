@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { getDb } from "@/db";
 import { sql } from "drizzle-orm";
-import type { PgliteDatabase } from "drizzle-orm/pglite";
+import type { LocalDb } from "@/db/localDb";
 
 export function useDatabase() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [db, setDb] = useState<PgliteDatabase<Record<string, never>> | null>(null);
+  const [db, setDb] = useState<LocalDb | null>(null);
 
   useEffect(() => {
     const initDatabase = async () => {

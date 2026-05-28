@@ -399,7 +399,7 @@ export function SyncStatus() {
 
   // Core sync logic - can be called by manual sync or auto-sync
   const performSync = async (showToast: boolean = true, reloadOnChanges: boolean = true): Promise<number> => {
-    // Get the raw PGlite client for direct SQL queries
+    // Get the client for direct SQL queries
     if (!clientRef.current) {
       clientRef.current = await getClient();
     }
