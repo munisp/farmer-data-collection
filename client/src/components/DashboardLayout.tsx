@@ -49,7 +49,18 @@ import {
   ClipboardList,
   Target,
   Briefcase,
-  Globe
+  Globe,
+  Phone,
+  Thermometer,
+  Wifi,
+  Bot,
+  Leaf,
+  Plane,
+  Award,
+  Home,
+  Zap,
+  BookOpen,
+  Activity
 } from "lucide-react";
 
 // Navigation sections organized by domain
@@ -62,9 +73,13 @@ const navSections = [
       { href: "/farmers-enhanced", label: "Manage Farmers", icon: Users },
       { href: "/farms", label: "Farms", icon: Tractor },
       { href: "/crops", label: "Crops", icon: Sprout },
+      { href: "/crop-wizard", label: "Crop Wizard", icon: Sprout },
+      { href: "/crops/dashboard", label: "Crop Dashboard", icon: Sprout },
       { href: "/livestock", label: "Livestock", icon: Truck },
       { href: "/harvests", label: "Harvests", icon: Package },
       { href: "/expenses", label: "Expenses", icon: Receipt },
+      { href: "/multi-farm", label: "Multi-Farm", icon: Home },
+      { href: "/onboarding", label: "Onboarding Wizard", icon: BookOpen },
     ]
   },
   {
@@ -76,25 +91,37 @@ const navSections = [
       { href: "/traceability", label: "Traceability", icon: Target },
     ]
   },
-    {
-      title: "Marketplace",
-      items: [
-        { href: "/marketplace", label: "Browse Marketplace", icon: ShoppingCart },
-        { href: "/group-buying", label: "Group Buying", icon: Users },
-        { href: "/marketplace/create", label: "Create Listing", icon: Package },
-        { href: "/my-listings", label: "My Listings", icon: ClipboardList },
-        { href: "/my-orders", label: "My Orders", icon: ShoppingCart },
-        { href: "/my-sales", label: "My Sales", icon: Receipt },
-        { href: "/cart", label: "Shopping Cart", icon: ShoppingCart },
-        { href: "/messages", label: "Messages", icon: MessageSquare },
-      ]
-    },
+  {
+    title: "Marketplace",
+    items: [
+      { href: "/marketplace", label: "Browse Marketplace", icon: ShoppingCart },
+      { href: "/group-buying", label: "Group Buying", icon: Users },
+      { href: "/marketplace/create", label: "Create Listing", icon: Package },
+      { href: "/my-listings", label: "My Listings", icon: ClipboardList },
+      { href: "/my-orders", label: "My Orders", icon: ShoppingCart },
+      { href: "/my-sales", label: "My Sales", icon: Receipt },
+      { href: "/cart", label: "Shopping Cart", icon: ShoppingCart },
+      { href: "/checkout", label: "Checkout", icon: CreditCard },
+      { href: "/messages", label: "Messages", icon: MessageSquare },
+      { href: "/seller-analytics", label: "Seller Analytics", icon: LineChart },
+      { href: "/transactions", label: "Transaction History", icon: Receipt },
+    ]
+  },
   {
     title: "Commodity Exchange",
     items: [
       { href: "/exchange", label: "Exchange Dashboard", icon: TrendingUp },
       { href: "/exchange/my-orders", label: "My Exchange Orders", icon: ClipboardList },
       { href: "/exchange/my-trades", label: "My Trades", icon: LineChart },
+    ]
+  },
+  {
+    title: "Supply Chain & Delivery",
+    items: [
+      { href: "/delivery", label: "Delivery Dashboard", icon: Truck },
+      { href: "/cold-chain", label: "Cold Chain Monitoring", icon: Thermometer },
+      { href: "/price-alerts", label: "Price Alerts", icon: Bell },
+      { href: "/subscriptions", label: "Subscription Boxes", icon: Package },
     ]
   },
   {
@@ -108,37 +135,54 @@ const navSections = [
       { href: "/banking", label: "Banking Dashboard", icon: Building2 },
       { href: "/accounting", label: "Accounting", icon: Calculator },
       { href: "/credit-score", label: "Credit Score", icon: Target },
+      { href: "/credit-score-view", label: "Score Details", icon: Target },
       { href: "/loan-calculator", label: "Loan Calculator", icon: Calculator },
       { href: "/lender-comparison", label: "Compare Lenders", icon: LineChart },
       { href: "/borrower-dashboard", label: "Borrower Dashboard", icon: Wallet },
+      { href: "/mobile-money", label: "Mobile Money", icon: Phone },
+      { href: "/chama", label: "Chama / VSLA", icon: Users },
+      { href: "/disbursement-analytics", label: "Disbursement Analytics", icon: BarChart3 },
     ]
   },
   {
     title: "Spatial & Weather",
     items: [
       { href: "/farmers-map", label: "Farmers Map", icon: MapPin },
-            { href: "/gps-tracking", label: "GPS Tracking", icon: MapPin },
-            { href: "/farm-geotagging", label: "Geotag My Farm", icon: Target },
-                  { href: "/satellite-imagery", label: "Satellite Imagery", icon: Satellite },
-            { href: "/field-overview", label: "Field Overview (EOS)", icon: Satellite },
-            { href: "/spatial-analytics", label: "Spatial Analytics", icon: Globe },
-            { href: "/weather", label: "Weather Dashboard", icon: Cloud },
-            { href: "/precision-agriculture", label: "Precision Agriculture", icon: Target },
+      { href: "/gps-tracking", label: "GPS Tracking", icon: MapPin },
+      { href: "/farm-geotagging", label: "Geotag My Farm", icon: Target },
+      { href: "/satellite-imagery", label: "Satellite Imagery", icon: Satellite },
+      { href: "/field-overview", label: "Field Overview (EOS)", icon: Satellite },
+      { href: "/spatial-analytics", label: "Spatial Analytics", icon: Globe },
+      { href: "/weather", label: "Weather Dashboard", icon: Cloud },
+      { href: "/precision-agriculture", label: "Precision Agriculture", icon: Target },
     ]
   },
   {
-        title: "AI & Analytics",
-        items: [
-          { href: "/analytics", label: "Analytics", icon: BarChart3 },
-          { href: "/advanced-analytics", label: "Advanced Analytics", icon: LineChart },
-          { href: "/ai-diagnosis", label: "AI Crop Diagnosis", icon: Brain },
-          { href: "/yield-prediction", label: "Yield Prediction", icon: TrendingUp },
-          { href: "/land-suitability", label: "Land Suitability", icon: Sprout },
-          { href: "/price-forecast", label: "Price Forecast", icon: LineChart },
-          { href: "/agricultural-intelligence", label: "Ag Intelligence", icon: Brain },
-          { href: "/models", label: "ML Models", icon: Brain },
-          { href: "/input-yield-analytics", label: "Input/Yield Analytics", icon: BarChart3 },
-        ]
+    title: "AI & Analytics",
+    items: [
+      { href: "/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/advanced-analytics", label: "Advanced Analytics", icon: LineChart },
+      { href: "/ai-diagnosis", label: "AI Crop Diagnosis", icon: Brain },
+      { href: "/soil-analysis", label: "Soil Analysis", icon: Leaf },
+      { href: "/yield-prediction", label: "Yield Prediction", icon: TrendingUp },
+      { href: "/land-suitability", label: "Land Suitability", icon: Sprout },
+      { href: "/price-forecast", label: "Price Forecast", icon: LineChart },
+      { href: "/agricultural-intelligence", label: "Ag Intelligence", icon: Brain },
+      { href: "/ai-advisor", label: "AI Advisor", icon: Bot },
+      { href: "/models", label: "ML Models", icon: Brain },
+      { href: "/models/downloads", label: "Model Downloads", icon: Brain },
+      { href: "/models/benchmarks", label: "Model Benchmarks", icon: Brain },
+      { href: "/input-yield-analytics", label: "Input/Yield Analytics", icon: BarChart3 },
+      { href: "/agricultural-models", label: "Agricultural Models", icon: Zap },
+    ]
+  },
+  {
+    title: "Equipment & IoT",
+    items: [
+      { href: "/drone-operations", label: "Drone Operations", icon: Plane },
+      { href: "/equipment-fleet", label: "Equipment Fleet", icon: Truck },
+      { href: "/iot-sensors", label: "IoT Sensors", icon: Wifi },
+    ]
   },
   {
     title: "Reports & Export",
@@ -157,19 +201,44 @@ const navSections = [
       { href: "/field-agent", label: "Field Agent Dashboard", icon: Briefcase },
       { href: "/agent-tasks", label: "Agent Tasks", icon: ClipboardList },
       { href: "/farmer-verification", label: "Farmer Verification", icon: UserCheck },
+      { href: "/kyc", label: "KYC / KYB Verification", icon: Shield },
+    ]
+  },
+  {
+    title: "Notifications & Preferences",
+    items: [
+      { href: "/notifications", label: "Notification Center", icon: Bell },
+      { href: "/notification-preferences", label: "Notification Preferences", icon: Settings },
+      { href: "/achievements", label: "Achievements", icon: Award },
+      { href: "/journeys", label: "User Journeys", icon: Activity },
+      { href: "/event-analytics", label: "Event Analytics", icon: BarChart3 },
+      { href: "/settings", label: "Settings", icon: Settings },
     ]
   },
 ];
 
 const adminNavItems = [
   { href: "/admin", label: "Admin Dashboard", icon: Shield },
+  { href: "/admin/dashboard", label: "Workflow Admin", icon: LayoutDashboard },
+  { href: "/admin/users", label: "User Management", icon: Users },
+  { href: "/admin/audit-logs", label: "Audit Logs", icon: FileText },
   { href: "/loan-approvals", label: "Loan Approvals", icon: CreditCard },
   { href: "/admin/disbursements", label: "Disbursements", icon: Wallet },
   { href: "/admin/risk-assessment", label: "Risk Assessment", icon: Target },
   { href: "/risk-compliance", label: "Risk & Compliance", icon: Shield },
   { href: "/portfolio-risk", label: "Portfolio at Risk", icon: LineChart },
   { href: "/admin/sms-management", label: "SMS Management", icon: MessageSquare },
+  { href: "/admin/sms-templates", label: "SMS Templates", icon: FileText },
+  { href: "/admin/sms-scheduling", label: "SMS Scheduling", icon: ClipboardList },
+  { href: "/admin/sms-analytics", label: "SMS Analytics", icon: BarChart3 },
+  { href: "/admin/workflows", label: "Workflows", icon: Activity },
+  { href: "/admin/workflow-analytics", label: "Workflow Analytics", icon: BarChart3 },
+  { href: "/admin/review-analytics", label: "Review Analytics", icon: LineChart },
+  { href: "/admin/moderation-analytics", label: "Moderation", icon: Shield },
+  { href: "/admin/erpnext-integration", label: "ERPNext Integration", icon: Globe },
+  { href: "/admin/kyc", label: "KYC Admin", icon: Shield },
   { href: "/data-quality", label: "Data Quality", icon: BarChart3 },
+  { href: "/hr", label: "HR Dashboard", icon: Users },
 ];
 
 // Hub routes that show category grid instead of a specific page
