@@ -138,7 +138,7 @@ const TIER_CONFIG: Record<KycTier, {
   },
   basic: {
     requiredVerifications: ['phone'],
-    dailyLimit: 50000, // 50,000 KES
+    dailyLimit: 50000, // in platform currency
     monthlyLimit: 200000,
     singleLimit: 20000,
     maxLoan: 10000,

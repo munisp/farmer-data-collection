@@ -31,7 +31,7 @@ export async function createEscrowForOrder(
   buyerId: number,
   sellerId: number,
   totalAmount: number,
-  currency: string = "KES",
+  currency: string = "NGN",
 ): Promise<{ escrowId: number } | null> {
   const db = await getDb();
   if (!db) return null;
@@ -414,7 +414,7 @@ export async function estimateDeliveryFee(
 
     return {
       fee: (result.fee as number) || calculateFallbackFee(sellerLocation, geocoded, weightKg, coldChain),
-      currency: (result.currency as string) || "KES",
+      currency: (result.currency as string) || "NGN",
       estimatedMinutes: (result.estimated_minutes as number) || 60,
       distanceKm: (result.distance_km as number) || 10,
     };
@@ -422,7 +422,7 @@ export async function estimateDeliveryFee(
     const geocoded = await geocodeAddress(buyerAddress);
     return {
       fee: calculateFallbackFee(sellerLocation, geocoded, weightKg, coldChain),
-      currency: "KES",
+      currency: "NGN",
       estimatedMinutes: 60,
       distanceKm: 10,
     };

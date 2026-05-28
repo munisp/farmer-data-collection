@@ -543,7 +543,7 @@ export const cooperativeRouter = router({
       cropType: z.string(),
       totalQuantityKg: z.number().min(1),
       pricePerKg: z.number().min(1),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       qualityGrade: z.enum(["A", "B", "C"]),
       harvestDate: z.string(),
       memberContributions: z.array(z.object({
@@ -599,7 +599,7 @@ export const cooperativeRouter = router({
     .input(z.object({
       listingId: z.string(),
       totalRevenue: z.number(),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       memberContributions: z.array(z.object({
         memberId: z.number(),
         quantityKg: z.number(),

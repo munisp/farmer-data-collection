@@ -223,7 +223,7 @@ export const platformAdvancedRouter = router({
       appName: z.string(),
       features: z.array(z.string()),
       region: z.string(),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       language: z.string().default("en"),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -266,8 +266,8 @@ export const platformAdvancedRouter = router({
         tenantId: input.tenantId ?? "default",
         branding: { primaryColor: "#16a34a", logo: "/logo.png", appName: "FarmConnect" },
         features: ["marketplace", "loans", "weather", "delivery", "cooperatives"],
-        region: "east_africa",
-        currency: "KES",
+        region: "west_africa",
+        currency: "NGN",
         language: "en",
       };
     }),

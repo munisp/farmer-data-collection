@@ -58,7 +58,7 @@ export const deliveryRouter = router({
       polygonWkt: z.string().optional(),
       baseFee: z.number().default(100),
       perKmFee: z.number().default(15),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
     }))
     .mutation(async ({ input }) => {
       const db = await requireDb();

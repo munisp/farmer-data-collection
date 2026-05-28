@@ -318,7 +318,7 @@ export const retailStoreRouter = router({
 
       // Auto-create escrow for prepaid orders
       if (store.paymentTerms === "prepaid") {
-        await createEscrowForOrder(order.id, store.ownerId, so.sellerId, totalAmount, store.currency || "KES");
+        await createEscrowForOrder(order.id, store.ownerId, so.sellerId, totalAmount, store.currency || "NGN");
       }
 
       return { order, totalAmount };
@@ -450,7 +450,7 @@ export const retailStoreRouter = router({
         });
 
         if (store.paymentTerms === "prepaid") {
-          await createEscrowForOrder(order.id, ctx.user.id, sellerId, totalAmount, store.currency || "KES");
+          await createEscrowForOrder(order.id, ctx.user.id, sellerId, totalAmount, store.currency || "NGN");
         }
 
         orders.push(order);

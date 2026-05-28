@@ -36,11 +36,11 @@ class PaymentService {
 
     // Validate amount
     if (amount < 10) {
-      throw new Error('Minimum amount is KES 10');
+      throw new Error('Minimum amount is ₦ 10');
     }
 
     if (amount > 150000) {
-      throw new Error('Maximum amount is KES 150,000');
+      throw new Error('Maximum amount is ₦ 150,000');
     }
 
     const result = await mockMpesa.stkPush({
@@ -239,13 +239,13 @@ describe('PaymentService', () => {
     it('should reject amount below minimum', async () => {
       await expect(
         service.initiateMpesaPayment('0712345678', 5, 'LOAN-001')
-      ).rejects.toThrow('Minimum amount is KES 10');
+      ).rejects.toThrow('Minimum amount is ₦ 10');
     });
 
     it('should reject amount above maximum', async () => {
       await expect(
         service.initiateMpesaPayment('0712345678', 200000, 'LOAN-001')
-      ).rejects.toThrow('Maximum amount is KES 150,000');
+      ).rejects.toThrow('Maximum amount is ₦ 150,000');
     });
 
     it('should verify successful M-Pesa payment', async () => {

@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { Link } from "wouter";
+import { useLocalization } from "@/contexts/LocalizationContext";
 
 export default function EquipmentFleetDashboard() {
+  const { formatCurrency } = useLocalization();
   const [activeTab, setActiveTab] = useState("fleet");
   const [equipment] = useState([
     { id: "EQ-1", type: "tractor", brand: "John Deere", model: "6120M", hp: 120, hours: 2450, fuel: 72, status: "operating", speed: 8.5, lat: -1.28, lon: 36.82 },
@@ -120,7 +122,7 @@ export default function EquipmentFleetDashboard() {
                         </div>
                         <span className="text-sm">{pred.wearPct}% wear</span>
                       </div>
-                      <p className="text-sm text-gray-600">{pred.action} — Est. KES {pred.estimatedCost.toLocaleString()}</p>
+                      <p className="text-sm text-gray-600">{pred.action} — Est. {formatCurrency(pred.estimatedCost)}</p>
                       <p className="text-xs text-gray-400">{pred.daysToFailure} days until predicted failure</p>
                     </div>
                   ))}
@@ -142,7 +144,7 @@ export default function EquipmentFleetDashboard() {
                         <div className="text-xs text-gray-400">⭐ {listing.rating} ({listing.bookings} bookings)</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-green-600">KES {listing.pricePerHa.toLocaleString()}/ha</div>
+                        <div className="text-lg font-bold text-green-600">{formatCurrency(listing.pricePerHa)}/ha</div>
                         <button className="mt-1 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Book Now</button>
                       </div>
                     </div>

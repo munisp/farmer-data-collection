@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { RotateCcw, Package, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useLocalization } from "@/contexts/LocalizationContext";
 
 export default function OrderReturns() {
   const { toast } = useToast();
+  const { formatCurrency } = useLocalization();
   const [tab, setTab] = useState<"buyer" | "seller">("buyer");
   const [showForm, setShowForm] = useState(false);
   const [returnForm, setReturnForm] = useState({
@@ -135,7 +137,7 @@ export default function OrderReturns() {
                         <span className={`px-2 py-1 rounded text-xs capitalize ${statusColors[ret.status] || ""}`}>
                           {ret.status}
                         </span>
-                        {ret.refundAmount && <span className="text-sm font-medium">KES {ret.refundAmount.toLocaleString()}</span>}
+                        {ret.refundAmount && <span className="text-sm font-medium">{formatCurrency(ret.refundAmount)}</span>}
                       </div>
                     </div>
                     {tab === "seller" && ret.status === "requested" && (

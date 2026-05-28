@@ -41,7 +41,7 @@ export const subscriptionRouter = router({
         quantityKg: z.number(),
       })),
       pricePerDelivery: z.number().positive(),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       frequency: z.enum(["weekly", "biweekly", "monthly"]),
       maxSubscribers: z.number().optional(),
     }))
@@ -218,7 +218,7 @@ export const subscriptionRouter = router({
       cropType: z.string(),
       totalQuantityKg: z.number().positive(),
       pricePerKg: z.number().positive(),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       qualityGrade: z.string().default("B"),
       deliverySchedule: z.array(z.object({
         date: z.string(),

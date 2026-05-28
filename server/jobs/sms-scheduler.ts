@@ -56,7 +56,7 @@ export async function processPendingScheduledMessages() {
               sentAt: new Date(),
               deliveryStatus: "sent",
               messageId: recipient.messageId,
-              cost: Math.round(parseFloat(recipient.cost.replace('KES ', '')) * 100), // Convert to cents
+              cost: Math.round(parseFloat(recipient.cost.replace(/^[A-Z₦]{1,4}\s?/, '')) * 100), // Convert to minor units
               updatedAt: new Date(),
             })
             .where(eq(smsScheduledMessages.id, message.id));

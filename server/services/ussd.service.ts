@@ -535,7 +535,7 @@ export class USSDService {
 
       case "4":
         await this.sessionManager.updateSession(sessionId, { step: USSDMenuStep.PAYMENT_MENU, data: { phoneNumber } });
-        return { text: "M-Pesa Payment\nEnter amount (KES):", continueSession: true };
+        return { text: "M-Pesa Payment\nEnter amount (₦):", continueSession: true };
 
       case "5":
         await this.sessionManager.updateSession(sessionId, { step: USSDMenuStep.VIEW_PROFILE, data: {} });
@@ -876,7 +876,7 @@ export class USSDService {
       case "4":
         await this.updateSession(sessionId, USSDMenuStep.PAYMENT_MENU, { phoneNumber }, db);
         return {
-          text: "M-Pesa Payment\nEnter amount (KES):",
+          text: "M-Pesa Payment\nEnter amount (₦):",
           continueSession: true,
         };
 
@@ -1320,7 +1320,7 @@ export class USSDService {
           .limit(5);
         if (orders.length === 0) return { text: "No orders yet.", continueSession: false };
         const orderList = orders.map((o: Record<string, unknown>) =>
-          `#${o.id}: KES ${o.totalAmount} - ${o.status}`
+          `#${o.id}: ₦${o.totalAmount} - ${o.status}`
         ).join("\n");
         return { text: `My Orders:\n${orderList}`, continueSession: false };
       }
@@ -1353,7 +1353,7 @@ export class USSDService {
 
     if (items.length === 0) return { text: `No ${category} available.`, continueSession: false };
     const list = items.map((item: Record<string, unknown>, i: number) =>
-      `${i + 1}. ${item.title} ${item.quantity}${item.unit} @KES${item.pricePerUnit}/${item.unit}`
+      `${i + 1}. ${item.title} ${item.quantity}${item.unit} @₦${item.pricePerUnit}/${item.unit}`
     ).join("\n");
     await this.updateSession(sessionId, USSDMenuStep.MARKETPLACE_BROWSE_CROP, { items: items.map((i: Record<string, unknown>) => i.id) }, db);
     return { text: `${category}:\n${list}\nSelect to buy (0=Back):`, continueSession: true };
@@ -1374,7 +1374,7 @@ export class USSDService {
       unit: listing.unit, quantity: listing.quantity, sellerId: listing.userId,
     }, db);
     return {
-      text: `${listing.title}\nPrice: KES ${listing.pricePerUnit}/${listing.unit}\nAvailable: ${listing.quantity} ${listing.unit}\n\n1. Buy Now\n0. Cancel`,
+      text: `${listing.title}\nPrice: ₦${listing.pricePerUnit}/${listing.unit}\nAvailable: ${listing.quantity} ${listing.unit}\n\n1. Buy Now\n0. Cancel`,
       continueSession: true,
     };
   }
@@ -1393,7 +1393,7 @@ export class USSDService {
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();
-    return { text: `Order #${order.id} placed!\nTotal: KES ${order.totalAmount}\nYou will receive M-Pesa prompt.`, continueSession: false };
+    return { text: `Order #${order.id} placed!\nTotal: ₦${order.totalAmount}\nYou will receive M-Pesa prompt.`, continueSession: false };
   }
 
   private async handleMarketplaceSellCrop(
@@ -1409,7 +1409,7 @@ export class USSDService {
     const qty = parseInt(input);
     if (isNaN(qty) || qty <= 0) return { text: "Invalid quantity. Enter a number:", continueSession: true };
     await this.updateSession(sessionId, USSDMenuStep.MARKETPLACE_SELL_PRICE, { ...data, quantity: qty }, db);
-    return { text: `${data.crop} - ${qty}kg\nEnter price per kg (KES):`, continueSession: true };
+    return { text: `${data.crop} - ${qty}kg\nEnter price per kg (₦):`, continueSession: true };
   }
 
   private async handleMarketplaceSellPrice(
@@ -1420,7 +1420,7 @@ export class USSDService {
     await this.updateSession(sessionId, USSDMenuStep.MARKETPLACE_SELL_CONFIRM, { ...data, pricePerKg: price }, db);
     const total = price * (data.quantity as number);
     return {
-      text: `Confirm Listing:\n${data.crop} - ${data.quantity}kg\nKES ${price}/kg (Total: KES ${total})\n\n1. Confirm\n0. Cancel`,
+      text: `Confirm Listing:\n${data.crop} - ${data.quantity}kg\n₦${price}/kg (Total: ₦${total})\n\n1. Confirm\n0. Cancel`,
       continueSession: true,
     };
   }
@@ -1443,7 +1443,7 @@ export class USSDService {
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();
-    return { text: `Listed! ID: ${listing.id}\n${data.crop} ${data.quantity}kg @ KES ${data.pricePerKg}/kg\nBuyers will contact you.`, continueSession: false };
+    return { text: `Listed! ID: ${listing.id}\n${data.crop} ${data.quantity}kg @ ₦${data.pricePerKg}/kg\nBuyers will contact you.`, continueSession: false };
   }
 
   // ======================== PRICE ALERTS HANDLERS ========================
@@ -1463,7 +1463,7 @@ export class USSDService {
           .limit(5);
         if (alerts.length === 0) return { text: "No active alerts.", continueSession: false };
         const list = alerts.map((a: Record<string, unknown>) =>
-          `${a.crop}: ${a.alertType === "above" ? ">" : "<"} KES ${a.threshold}`
+          `${a.crop}: ${a.alertType === "above" ? ">" : "<"} ₦${a.threshold}`
         ).join("\n");
         return { text: `Your Alerts:\n${list}`, continueSession: false };
       }
@@ -1478,7 +1478,7 @@ export class USSDService {
     sessionId: string, input: string, data: Record<string, unknown>, db: any
   ): Promise<USSDResponse> {
     await this.updateSession(sessionId, USSDMenuStep.PRICE_ALERT_THRESHOLD, { ...data, crop: input.trim() }, db);
-    return { text: `Alert for ${input.trim()}\nEnter min price (KES/kg) to alert when above:`, continueSession: true };
+    return { text: `Alert for ${input.trim()}\nEnter min price (₦/kg) to alert when above:`, continueSession: true };
   }
 
   private async handlePriceAlertThreshold(
@@ -1493,14 +1493,14 @@ export class USSDService {
       crop: data.crop as string,
       alertType: "above",
       threshold,
-      currency: "KES",
+      currency: "NGN",
       notificationChannel: "sms",
       phoneNumber,
       region: "kenya",
       active: true,
       createdAt: new Date(),
     });
-    return { text: `Alert set! You'll get SMS when ${data.crop} price exceeds KES ${threshold}/kg.`, continueSession: false };
+    return { text: `Alert set! You'll get SMS when ${data.crop} price exceeds ₦${threshold}/kg.`, continueSession: false };
   }
 
   // ======================== PAYMENT HANDLERS ========================
@@ -1509,10 +1509,10 @@ export class USSDService {
     sessionId: string, input: string, data: Record<string, unknown>, phoneNumber: string, db: any
   ): Promise<USSDResponse> {
     const amount = parseInt(input);
-    if (isNaN(amount) || amount < 10) return { text: "Minimum KES 10. Enter amount:", continueSession: true };
+    if (isNaN(amount) || amount < 10) return { text: "Minimum ₦10. Enter amount:", continueSession: true };
     await this.updateSession(sessionId, USSDMenuStep.PAYMENT_CONFIRM, { ...data, amount }, db);
     return {
-      text: `M-Pesa Payment\nAmount: KES ${amount}\nPhone: ${phoneNumber}\n\n1. Confirm & Pay\n0. Cancel`,
+      text: `M-Pesa Payment\nAmount: ₦${amount}\nPhone: ${phoneNumber}\n\n1. Confirm & Pay\n0. Cancel`,
       continueSession: true,
     };
   }
@@ -1529,14 +1529,14 @@ export class USSDService {
       provider: "mpesa",
       type: "payment",
       amount: data.amount as number,
-      currency: "KES",
+      currency: "NGN",
       phoneNumber,
       reference: txRef,
       status: "pending",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    return { text: `Payment initiated!\nRef: ${txRef}\nKES ${data.amount}\nCheck your phone for M-Pesa prompt.`, continueSession: false };
+    return { text: `Payment initiated!\nRef: ${txRef}\n₦${data.amount}\nCheck your phone for M-Pesa prompt.`, continueSession: false };
   }
 
   // ======================== LANGUAGE HANDLER ========================

@@ -7,13 +7,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Store, Package, FileText, TrendingUp, Plus, ShoppingCart } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useLocalization } from "@/contexts/LocalizationContext";
 
 export default function RetailStoreDashboard() {
   const { toast } = useToast();
+  const { formatCurrency } = useLocalization();
   const [showRegister, setShowRegister] = useState(false);
   const [form, setForm] = useState({
     name: "", businessType: "grocery" as const, address: "", city: "",
-    state: "", country: "Kenya", contactPhone: "", contactEmail: "",
+    state: "", country: "Nigeria", contactPhone: "", contactEmail: "",
     paymentTerms: "cod" as const,
   });
 
@@ -126,7 +128,7 @@ export default function RetailStoreDashboard() {
                   </div>
                   <div className="mt-3 text-sm">
                     <p>Payment: <span className="font-medium uppercase">{store.paymentTerms}</span></p>
-                    <p>Credit: KES {((store.creditLimit || 0) - (store.creditUsed || 0)).toLocaleString()} available</p>
+                    <p>Credit: {formatCurrency((store.creditLimit || 0) - (store.creditUsed || 0))} available</p>
                   </div>
                 </CardContent>
               </Card>

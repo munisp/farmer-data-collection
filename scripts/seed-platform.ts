@@ -365,7 +365,7 @@ async function seedSupplyChain(userIds: number[], farmIds: number[]): Promise<vo
     try {
       await db.execute(sql`
         INSERT INTO delivery_zones (name, city, country, base_fee, per_km_fee, currency, active)
-        VALUES (${zone}, ${zone}, 'Kenya', ${randomInt(100, 500)}, ${randomInt(10, 50)}, 'KES', true)
+        VALUES (${zone}, ${zone}, 'Nigeria', ${randomInt(100, 500)}, ${randomInt(10, 50)}, 'NGN', true)
       `);
     } catch { /* Skip */ }
   }
@@ -395,7 +395,7 @@ async function seedSupplyChain(userIds: number[], farmIds: number[]): Promise<vo
     try {
       await db.execute(sql`
         INSERT INTO mobile_money_accounts (user_id, provider, phone_number, account_name, balance, currency, is_primary, is_verified)
-        VALUES (${userId}, ${randomChoice(['mpesa', 'airtel_money', 'equitel'])}, ${randomPhone()}, ${`${randomChoice(KENYAN_FIRST_NAMES)} ${randomChoice(KENYAN_LAST_NAMES)}`}, ${randomInt(0, 100000)}, 'KES', true, true)
+        VALUES (${userId}, ${randomChoice(['mpesa', 'airtel_money', 'equitel'])}, ${randomPhone()}, ${`${randomChoice(KENYAN_FIRST_NAMES)} ${randomChoice(KENYAN_LAST_NAMES)}`}, ${randomInt(0, 100000)}, 'NGN', true, true)
       `);
     } catch { /* Skip */ }
   }
@@ -432,7 +432,7 @@ async function seedSupplyChain(userIds: number[], farmIds: number[]): Promise<vo
     try {
       await db.execute(sql`
         INSERT INTO subscription_plans (name, description, price, currency, frequency, is_active)
-        VALUES (${plan.name}, ${`Fresh ${plan.name} delivered to your door`}, ${plan.price}, 'KES', ${plan.frequency}, true)
+        VALUES (${plan.name}, ${`Fresh ${plan.name} delivered to your door`}, ${plan.price}, 'NGN', ${plan.frequency}, true)
       `);
     } catch { /* Skip */ }
   }

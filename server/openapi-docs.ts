@@ -226,7 +226,7 @@ export function generateOpenAPISpec(): Record<string, unknown> {
           properties: {
             title: { type: "string" }, cropType: { type: "string" },
             quantity: { type: "number" }, unit: { type: "string" },
-            pricePerUnit: { type: "number" }, currency: { type: "string", default: "KES" },
+            pricePerUnit: { type: "number" }, currency: { type: "string", default: "NGN" },
             description: { type: "string" },
           },
           required: ["title", "cropType", "quantity", "unit", "pricePerUnit"],

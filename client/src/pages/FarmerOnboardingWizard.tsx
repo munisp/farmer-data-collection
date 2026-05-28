@@ -692,7 +692,7 @@ export default function FarmerOnboardingWizard() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="monthlyIncome">Average Monthly Income (KES) *</Label>
+              <Label htmlFor="monthlyIncome">Average Monthly Income *</Label>
               <Input
                 id="monthlyIncome"
                 type="number"
@@ -734,7 +734,7 @@ export default function FarmerOnboardingWizard() {
 
             {data.financial.hasExistingLoans && (
               <div className="space-y-2">
-                <Label htmlFor="existingLoanAmount">Total Existing Loan Amount (KES)</Label>
+                <Label htmlFor="existingLoanAmount">Total Existing Loan Amount</Label>
                 <Input
                   id="existingLoanAmount"
                   type="number"
@@ -939,7 +939,7 @@ export default function FarmerOnboardingWizard() {
                 <span className="text-muted-foreground">Mobile Number:</span>
                 <span>{data.financial.mobileMoneyNumber}</span>
                 <span className="text-muted-foreground">Monthly Income:</span>
-                <span>KES {data.financial.monthlyIncome.toLocaleString()}</span>
+                <span>{data.financial.monthlyIncome.toLocaleString()}</span>
               </div>
             </div>
 

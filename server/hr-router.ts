@@ -396,7 +396,7 @@ export const hrRouter = router({
       
       const grossPay = basicSalary + totalAllowances;
       
-      // Calculate NSSF (Kenya rates: 6% of pensionable pay, max 1080 KES)
+      // Calculate pension contribution (6% of pensionable pay, capped)
       const nssf = Math.min(Math.round(grossPay * 0.06), 1080);
       
       // Calculate taxable income

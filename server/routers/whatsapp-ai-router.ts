@@ -134,7 +134,7 @@ export const whatsappAiRouter = router({
       if (input.text && /price|bei|farashin|iye|ዋጋ|prix/i.test(input.text)) {
         return {
           responseType: "price_info",
-          reply: "Current prices (KES/kg): Maize 45, Beans 120, Tomatoes 80, Potatoes 35. Send ALERT <crop> <price> to set price alert.",
+          reply: "Current prices (₦/kg): Maize 45, Beans 120, Tomatoes 80, Potatoes 35. Send ALERT <crop> <price> to set price alert.",
         };
       }
 

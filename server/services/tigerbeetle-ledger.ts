@@ -154,7 +154,7 @@ export class TigerBeetleLedger {
       type: AccountType.CASH,
       ledger: LedgerCode.FARMER,
       entityId: farmerId,
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const loansPayable = await this.createAccount({
@@ -162,7 +162,7 @@ export class TigerBeetleLedger {
       type: AccountType.LOANS_PAYABLE,
       ledger: LedgerCode.FARMER,
       entityId: farmerId,
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const inventory = await this.createAccount({
@@ -170,7 +170,7 @@ export class TigerBeetleLedger {
       type: AccountType.INVENTORY,
       ledger: LedgerCode.FARMER,
       entityId: farmerId,
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     return { cash, loansPayable, inventory };
@@ -188,7 +188,7 @@ export class TigerBeetleLedger {
       type: AccountType.CASH,
       ledger: LedgerCode.PLATFORM,
       entityId: 'platform',
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const loansReceivable = await this.createAccount({
@@ -196,7 +196,7 @@ export class TigerBeetleLedger {
       type: AccountType.LOANS_RECEIVABLE,
       ledger: LedgerCode.PLATFORM,
       entityId: 'platform',
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const interestIncome = await this.createAccount({
@@ -204,7 +204,7 @@ export class TigerBeetleLedger {
       type: AccountType.INTEREST_INCOME,
       ledger: LedgerCode.PLATFORM,
       entityId: 'platform',
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const feeIncome = await this.createAccount({
@@ -212,7 +212,7 @@ export class TigerBeetleLedger {
       type: AccountType.FEE_INCOME,
       ledger: LedgerCode.PLATFORM,
       entityId: 'platform',
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     return { cash, loansReceivable, interestIncome, feeIncome };

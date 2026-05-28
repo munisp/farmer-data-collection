@@ -25,7 +25,7 @@ export const escrowRouter = router({
       orderId: z.number(),
       sellerId: z.number(),
       amount: z.number().positive(),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();

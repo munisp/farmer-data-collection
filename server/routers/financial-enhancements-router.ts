@@ -123,7 +123,7 @@ export const financialEnhancementsRouter = router({
           {
             loanId: "LN-SAMPLE",
             balance: 25000,
-            currency: "KES",
+            currency: "NGN",
             nextPaymentDate: new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
             nextPaymentAmount: 5000,
             status: "active",
@@ -236,7 +236,7 @@ export const financialEnhancementsRouter = router({
         unitPrice: z.number(),
       })),
       paymentTerms: z.enum(["immediate", "net_7", "net_30", "net_60"]).default("net_30"),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
     }))
     .mutation(async ({ ctx, input }) => {
       const subtotal = input.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
@@ -436,7 +436,7 @@ export const financialEnhancementsRouter = router({
         distance: input.distanceKm,
         coldChain: input.requiresColdChain,
         premium,
-        currency: "KES",
+        currency: "NGN",
         coverageAmount,
         coverageType: "transit_spoilage",
         coveredRisks: [

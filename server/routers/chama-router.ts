@@ -25,7 +25,7 @@ export const chamaRouter = router({
       description: z.string().optional(),
       contributionAmount: z.number().positive(),
       contributionFrequency: z.enum(["weekly", "biweekly", "monthly"]),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       maxMembers: z.number().min(5).max(50).default(30),
       loanInterestRate: z.number().min(0).max(50).default(10),
       maxLoanMultiplier: z.number().min(1).max(5).default(3),

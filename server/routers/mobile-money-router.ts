@@ -85,7 +85,7 @@ export const mobileMoneyRouter = router({
         provider: "mpesa",
         transactionType: "stk_push",
         amount: input.amount,
-        currency: "KES",
+        currency: "NGN",
         phoneNumber: input.phoneNumber,
         orderId: input.orderId ?? null,
         status: "pending",
@@ -177,7 +177,7 @@ export const mobileMoneyRouter = router({
       provider: z.enum(["mpesa", "mtn_momo", "airtel_money"]),
       phoneNumber: z.string().min(10),
       amount: z.number().positive(),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       reason: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {

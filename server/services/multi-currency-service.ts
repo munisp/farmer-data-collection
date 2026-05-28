@@ -8,6 +8,9 @@ import axios from 'axios';
 // Supported currencies
 export type CurrencyCode = 'KES' | 'UGX' | 'TZS' | 'GHS' | 'NGN' | 'ZAR' | 'USD' | 'EUR';
 
+/** Platform default currency — configurable via DEFAULT_CURRENCY env var */
+export const DEFAULT_CURRENCY: CurrencyCode = (process.env.DEFAULT_CURRENCY as CurrencyCode) || 'NGN';
+
 interface Currency {
   code: CurrencyCode;
   name: string;
@@ -477,7 +480,7 @@ export class MultiCurrencyService {
 // Factory function
 export function createMultiCurrencyService(config?: Partial<CurrencyConfig>): MultiCurrencyService {
   const defaultConfig: CurrencyConfig = {
-    defaultCurrency: (process.env.DEFAULT_CURRENCY as CurrencyCode) || 'KES',
+    defaultCurrency: DEFAULT_CURRENCY,
     exchangeRateApiKey: process.env.EXCHANGE_RATE_API_KEY,
     exchangeRateApiUrl: process.env.EXCHANGE_RATE_API_URL,
     cacheExpiryMinutes: 60,

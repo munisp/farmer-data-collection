@@ -130,7 +130,7 @@ export const marketplaceEnhancementsRouter = router({
     .input(z.object({
       name: z.string().min(1),
       targetAmount: z.number().min(100),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       autoDeductPct: z.string().default("0"),
       deadline: z.string().optional(),
     }))

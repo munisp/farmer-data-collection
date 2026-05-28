@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { Smartphone, CreditCard, ArrowUpRight, ArrowDownLeft, History, Shield } from "lucide-react";
+import { useLocalization } from "@/contexts/LocalizationContext";
 
 export default function MobileMoneyDashboard() {
+  const { getCurrencySymbol } = useLocalization();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
   const accounts = trpc.mobileMoney.getAccounts.useQuery();
@@ -91,7 +93,7 @@ export default function MobileMoneyDashboard() {
                   <Input placeholder="254712345678" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Amount (KES)</label>
+                  <label className="text-sm font-medium">Amount ({getCurrencySymbol()})</label>
                   <Input type="number" placeholder="1000" value={amount} onChange={e => setAmount(e.target.value)} />
                 </div>
                 <Button onClick={handleSTKPush} disabled={stkPush.isPending}>

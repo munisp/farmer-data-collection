@@ -513,9 +513,9 @@ export class IVRVoiceService {
   private handleMarketPrices(session: IVRSession): string {
     // TODO: Fetch real market prices
     const prices = {
-      maizePrice: '3,500 KES',
-      beansPrice: '8,000 KES',
-      ricePrice: '12,000 KES',
+      maizePrice: '₦3,500',
+      beansPrice: '₦8,000',
+      ricePrice: '₦12,000',
     };
 
     this.updateSession(session.sessionId, { state: IVRState.MAIN_MENU });

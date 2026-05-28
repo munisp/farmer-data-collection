@@ -48,7 +48,7 @@ export const priceAlertsRouter = router({
       crop: z.string(),
       alertType: z.enum(["above", "below", "change"]),
       threshold: z.number().positive(),
-      currency: z.string().default("KES"),
+      currency: z.string().default("NGN"),
       notificationChannel: z.enum(["sms", "push", "email", "whatsapp"]).default("sms"),
       phoneNumber: z.string().optional(),
       region: z.string().default("kenya"),

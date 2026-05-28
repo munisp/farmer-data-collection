@@ -49,28 +49,28 @@ export const TIER_LIMITS = {
     maxLoanAmount: 0,
   },
   basic: {
-    singleTransaction: 5000000, // 50,000 KES
-    dailyLimit: 10000000, // 100,000 KES
-    monthlyLimit: 50000000, // 500,000 KES
-    maxLoanAmount: 1000000, // 10,000 KES
+    singleTransaction: 5000000, 
+    dailyLimit: 10000000, 
+    monthlyLimit: 50000000, 
+    maxLoanAmount: 1000000, 
   },
   standard: {
-    singleTransaction: 20000000, // 200,000 KES
-    dailyLimit: 50000000, // 500,000 KES
-    monthlyLimit: 200000000, // 2,000,000 KES
-    maxLoanAmount: 10000000, // 100,000 KES
+    singleTransaction: 20000000, 
+    dailyLimit: 50000000, 
+    monthlyLimit: 200000000, 
+    maxLoanAmount: 10000000, 
   },
   enhanced: {
-    singleTransaction: 50000000, // 500,000 KES
-    dailyLimit: 100000000, // 1,000,000 KES
-    monthlyLimit: 500000000, // 5,000,000 KES
-    maxLoanAmount: 50000000, // 500,000 KES
+    singleTransaction: 50000000, 
+    dailyLimit: 100000000, 
+    monthlyLimit: 500000000, 
+    maxLoanAmount: 50000000, 
   },
   premium: {
-    singleTransaction: 200000000, // 2,000,000 KES
-    dailyLimit: 500000000, // 5,000,000 KES
-    monthlyLimit: 2000000000, // 20,000,000 KES
-    maxLoanAmount: 200000000, // 2,000,000 KES
+    singleTransaction: 200000000, 
+    dailyLimit: 500000000, 
+    monthlyLimit: 2000000000, 
+    maxLoanAmount: 200000000, 
   },
 };
 
@@ -219,7 +219,7 @@ export async function enforceKycRequirement(
     if (amount > limits.singleTransaction) {
       throw new TRPCError({
         code: 'FORBIDDEN',
-        message: `Transaction amount exceeds your tier limit. Maximum single transaction: ${(limits.singleTransaction / 100).toLocaleString()} KES. Please upgrade your KYC for higher limits.`,
+        message: `Transaction amount exceeds your tier limit. Maximum single transaction: ${(limits.singleTransaction / 100).toLocaleString()} platform currency. Please upgrade your KYC for higher limits.`,
       });
     }
 
@@ -227,7 +227,7 @@ export async function enforceKycRequirement(
     if (operation === 'loan' && amount > limits.maxLoanAmount) {
       throw new TRPCError({
         code: 'FORBIDDEN',
-        message: `Loan amount exceeds your tier limit. Maximum loan amount: ${(limits.maxLoanAmount / 100).toLocaleString()} KES. Please upgrade your KYC for higher limits.`,
+        message: `Loan amount exceeds your tier limit. Maximum loan amount: ${(limits.maxLoanAmount / 100).toLocaleString()} platform currency. Please upgrade your KYC for higher limits.`,
       });
     }
   }
@@ -319,7 +319,7 @@ export async function checkLoanRepaymentKyc(
     if (repaymentAmount > limits.singleTransaction) {
       return {
         allowed: false,
-        reason: `Repayment amount exceeds your tier limit. Maximum: ${(limits.singleTransaction / 100).toLocaleString()} KES.`,
+        reason: `Repayment amount exceeds your tier limit. Maximum: ${(limits.singleTransaction / 100).toLocaleString()} platform currency.`,
       };
     }
     

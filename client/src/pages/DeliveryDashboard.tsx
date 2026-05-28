@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { Truck, MapPin, Thermometer, Package, Users, Route, Star, Clock, Navigation, Wifi, WifiOff } from "lucide-react";
 import { MapView, maplibregl } from "@/components/Map";
+import { useLocalization } from "@/contexts/LocalizationContext";
 
 const GPS_STREAMING_WS_URL = import.meta.env.VITE_GPS_STREAMING_WS_URL || 'ws://localhost:8098';
 
@@ -154,6 +155,7 @@ function LiveTrackingMap({ deliveryId }: { deliveryId: number | null }) {
 }
 
 export default function DeliveryDashboard() {
+  const { formatCurrency } = useLocalization();
   const [activeTab, setActiveTab] = useState("zones");
   const [trackingDeliveryId, setTrackingDeliveryId] = useState<number | null>(null);
   const [deliveryIdInput, setDeliveryIdInput] = useState("");
@@ -245,7 +247,7 @@ export default function DeliveryDashboard() {
                           <Badge variant={zone.active ? "default" : "secondary"}>
                             {zone.active ? "Active" : "Inactive"}
                           </Badge>
-                          <p className="text-sm mt-1">Base: {zone.currency as string} {zone.baseFee as number}</p>
+                          <p className="text-sm mt-1">Base: {formatCurrency(zone.baseFee as number)}</p>
                         </div>
                       </div>
                     ))}
