@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,10 @@ import {
   Warehouse, Package, Scale, Camera, CheckCircle, AlertTriangle,
   FileText, Phone, Printer, TrendingUp, Thermometer, Droplets,
   ClipboardCheck, Truck, ArrowRight, BarChart3, Users,
+  Brain, Eye, ScanText, Loader2, Sparkles, Upload, Image as ImageIcon,
+  ShieldCheck, Zap,
 } from "lucide-react";
+import { type AIInspectionResult, runAIInspection, checkAIHealth, fileToBase64, type AIHealthStatus } from "@/lib/ai-inspection";
 
 type GradeType = "A" | "B" | "C" | "D" | "reject";
 type TabType = "intake" | "grading" | "receipts" | "reports";
@@ -91,6 +94,15 @@ export default function AggregationHub() {
   const [gradingBatch, setGradingBatch] = useState<IntakeBatch | null>(null);
   const [gradeForm, setGradeForm] = useState<{ grade: GradeType; moisture: string; foreign: string; notes: string }>({ grade: "B", moisture: "", foreign: "", notes: "" });
 
+  // AI Inspection state
+  const [aiResult, setAiResult] = useState<AIInspectionResult | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiHealth, setAiHealth] = useState<AIHealthStatus | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const pendingBatches = batches.filter(b => b.status === "pending");
   const gradedBatches = batches.filter(b => b.status === "graded");
   const receiptedBatches = batches.filter(b => b.status === "receipted");
@@ -100,9 +112,69 @@ export default function AggregationHub() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Check AI service health on mount
+  useEffect(() => {
+    checkAIHealth().then(h => setAiHealth(h));
+  }, []);
+
   function handleGrade(batch: IntakeBatch) {
     setGradingBatch(batch);
     setGradeForm({ grade: "B", moisture: "", foreign: "", notes: "" });
+    setAiResult(null);
+    setAiError(null);
+    setCapturedImage(null);
+    setImagePreview(null);
+  }
+
+  const handleImageCapture = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const b64 = await fileToBase64(file);
+      setCapturedImage(b64);
+      setImagePreview(URL.createObjectURL(file));
+    } catch {
+      setAiError("Failed to process image");
+    }
+  }, []);
+
+  async function runInspection() {
+    if (!gradingBatch) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiResult(null);
+    try {
+      const moisture = gradeForm.moisture ? parseFloat(gradeForm.moisture) : undefined;
+      const foreign = gradeForm.foreign ? parseFloat(gradeForm.foreign) : undefined;
+      const result = await runAIInspection({
+        batch_id: gradingBatch.id,
+        crop_type: gradingBatch.cropType,
+        quantity_kg: gradingBatch.quantityKg,
+        farmer_name: gradingBatch.farmerName,
+        image_base64: capturedImage || undefined,
+        moisture_reading: moisture,
+        foreign_matter_reading: foreign,
+      });
+      setAiResult(result);
+      // Auto-fill form from AI recommendation
+      if (result.recommended_grade) {
+        setGradeForm(prev => ({
+          ...prev,
+          grade: result.recommended_grade as GradeType,
+          notes: `AI Inspection ${result.inspection_id}: ${result.grade_reasoning}`,
+        }));
+      }
+      if (result.moisture_content != null && !gradeForm.moisture) {
+        setGradeForm(prev => ({ ...prev, moisture: String(result.moisture_content) }));
+      }
+      if (result.foreign_matter != null && !gradeForm.foreign) {
+        setGradeForm(prev => ({ ...prev, foreign: String(result.foreign_matter) }));
+      }
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "AI inspection failed");
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   function submitGrade() {
@@ -335,6 +407,29 @@ export default function AggregationHub() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* AI Inspection Banner */}
+                  <div className="p-3 rounded-lg bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-indigo-500/10 border border-purple-500/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-purple-600" />
+                        <div>
+                          <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">AI-Powered Inspection</span>
+                          <p className="text-xs text-muted-foreground">PaddleOCR + VLM + Docling + Ollama-Qwen</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {aiHealth ? (
+                          <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 text-xs">
+                            <Zap className="h-3 w-3 mr-1" /> AI Online
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">AI Offline — Fallback Mode</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sensor Readings + Photo Capture */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="moisture">Moisture Content (%)</Label>
@@ -365,15 +460,210 @@ export default function AggregationHub() {
                       </div>
                     </div>
                     <div>
-                      <Label>Take Photo</Label>
-                      <Button variant="outline" className="w-full mt-1">
-                        <Camera className="h-4 w-4 mr-2" /> Capture Photo
-                      </Button>
+                      <Label>Capture / Upload Photo</Label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={handleImageCapture}
+                      />
+                      <div className="flex gap-2 mt-1">
+                        <Button variant="outline" className="flex-1" onClick={() => fileInputRef.current?.click()}>
+                          <Camera className="h-4 w-4 mr-1" />
+                          {capturedImage ? "Retake" : "Photo"}
+                        </Button>
+                        {capturedImage && (
+                          <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 self-center">
+                            <ImageIcon className="h-3 w-3 mr-1" /> Captured
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="flex items-start gap-3">
+                      <img src={imagePreview} alt="Captured produce" className="w-32 h-24 object-cover rounded-lg border" />
+                      <div className="text-xs text-muted-foreground">
+                        <p>Image ready for AI analysis</p>
+                        <p>PaddleOCR will extract labels, VLM will assess visual quality</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Inspection Button */}
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={runInspection}
+                      disabled={aiLoading}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                    >
+                      {aiLoading ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing with AI...</>
+                      ) : (
+                        <><Brain className="h-4 w-4 mr-2" /> Run AI Inspection</>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* AI Error */}
+                  {aiError && (
+                    <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
+                      <AlertTriangle className="h-4 w-4 inline mr-2" />
+                      {aiError}
+                    </div>
+                  )}
+
+                  {/* AI Inspection Results */}
+                  {aiResult && (
+                    <div className="space-y-3 p-4 rounded-lg bg-gradient-to-br from-purple-50/50 via-blue-50/50 to-indigo-50/50 dark:from-purple-950/20 dark:via-blue-950/20 dark:to-indigo-950/20 border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-purple-600" />
+                          AI Analysis Results
+                          <Badge variant="outline" className="text-xs font-mono">{aiResult.inspection_id}</Badge>
+                        </h4>
+                        <span className="text-xs text-muted-foreground">{aiResult.processing_time_ms}ms</span>
+                      </div>
+
+                      {/* Models used */}
+                      <div className="flex flex-wrap gap-1">
+                        {aiResult.models_used.map((model, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">{model}</Badge>
+                        ))}
+                      </div>
+
+                      {/* Grade Recommendation */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Card className="dark:bg-gray-900/50">
+                          <CardContent className="pt-3 pb-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-muted-foreground">AI Recommended Grade</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge className={GRADE_SPECS[aiResult.recommended_grade as GradeType]?.color || "bg-gray-100"}>
+                                    {aiResult.recommended_grade}
+                                  </Badge>
+                                  <span className="text-sm font-medium">{(aiResult.grade_confidence * 100).toFixed(0)}% confidence</span>
+                                </div>
+                              </div>
+                              <ShieldCheck className="h-8 w-8 text-purple-500/30" />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">{aiResult.grade_reasoning}</p>
+                          </CardContent>
+                        </Card>
+
+                        {/* Visual Quality */}
+                        {aiResult.visual_quality.overall_score != null && (
+                          <Card className="dark:bg-gray-900/50">
+                            <CardContent className="pt-3 pb-3">
+                              <p className="text-xs text-muted-foreground mb-2">Visual Quality Score</p>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-xs">
+                                  <span>Overall</span>
+                                  <span className="font-medium">{aiResult.visual_quality.overall_score}/100</span>
+                                </div>
+                                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
+                                    style={{ width: `${aiResult.visual_quality.overall_score}%` }}
+                                  />
+                                </div>
+                                {aiResult.visual_quality.freshness != null && (
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>Freshness: {aiResult.visual_quality.freshness}</span>
+                                    <span>Cleanliness: {aiResult.visual_quality.cleanliness}</span>
+                                    <span>Uniformity: {aiResult.visual_quality.uniformity}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+
+                      {/* OCR Labels */}
+                      {aiResult.ocr_labels.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium flex items-center gap-1 mb-1">
+                            <ScanText className="h-3 w-3" /> PaddleOCR — Detected Labels
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {aiResult.ocr_labels.map((label, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {label.field}: {label.value}
+                                {label.confidence != null && (
+                                  <span className="ml-1 opacity-60">({(label.confidence * 100).toFixed(0)}%)</span>
+                                )}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Defects */}
+                      {aiResult.defects_detected.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium flex items-center gap-1 mb-1">
+                            <Eye className="h-3 w-3" /> VLM — Defects Detected
+                          </p>
+                          <div className="space-y-1">
+                            {aiResult.defects_detected.map((defect, i) => (
+                              <div key={i} className="flex items-center gap-2 text-xs">
+                                <Badge variant={defect.severity === "severe" ? "destructive" : defect.severity === "moderate" ? "default" : "outline"} className="text-xs">
+                                  {defect.severity}
+                                </Badge>
+                                <span>{defect.type}: {defect.description} ({defect.affected_percentage}%)</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Color Analysis */}
+                      {aiResult.color_analysis.dominant_color && (
+                        <div className="flex items-center gap-4 text-xs">
+                          <span className="text-muted-foreground">Color: <strong>{aiResult.color_analysis.dominant_color}</strong></span>
+                          <span className="text-muted-foreground">Match: {aiResult.color_analysis.expected_color_match}%</span>
+                          <span className="text-muted-foreground">Abnormal: {aiResult.color_analysis.abnormal_areas}</span>
+                        </div>
+                      )}
+
+                      {/* Grade Factors */}
+                      {aiResult.grade_factors.length > 0 && (
+                        <details className="text-xs">
+                          <summary className="cursor-pointer text-primary hover:underline">View grading factors ({aiResult.grade_factors.length})</summary>
+                          <div className="mt-2 space-y-1">
+                            {aiResult.grade_factors.map((factor, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${
+                                  factor.impact === "positive" ? "bg-green-500" :
+                                  factor.impact === "negative" ? "bg-red-500" : "bg-yellow-500"
+                                }`} />
+                                <span className="font-medium">{factor.factor}:</span>
+                                <span>{factor.value}</span>
+                                <span className="text-muted-foreground">(weight: {factor.weight})</span>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Manual Grade Selection */}
                   <div>
-                    <Label>Assign Grade</Label>
+                    <Label className="flex items-center gap-2">
+                      Assign Grade
+                      {aiResult && (
+                        <span className="text-xs text-purple-600 dark:text-purple-400 font-normal">
+                          (AI suggests: {aiResult.recommended_grade})
+                        </span>
+                      )}
+                    </Label>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
                       {(Object.entries(GRADE_SPECS) as [GradeType, typeof GRADE_SPECS["A"]][]).map(([key, spec]) => (
                         <button
@@ -381,10 +671,15 @@ export default function AggregationHub() {
                           onClick={() => setGradeForm(prev => ({ ...prev, grade: key }))}
                           className={`p-3 rounded-lg border-2 text-center transition-all ${
                             gradeForm.grade === key ? "border-primary ring-2 ring-primary/30" : "border-muted hover:border-muted-foreground/30"
-                          }`}
+                          } ${aiResult?.recommended_grade === key ? "ring-2 ring-purple-400/50" : ""}`}
                         >
                           <Badge className={spec.color}>{spec.label.split(" ")[0]} {spec.label.split(" ")[1]}</Badge>
                           <p className="text-[10px] text-muted-foreground mt-1">{spec.description}</p>
+                          {aiResult?.recommended_grade === key && (
+                            <p className="text-[9px] text-purple-600 dark:text-purple-400 mt-0.5 flex items-center justify-center gap-0.5">
+                              <Brain className="h-2.5 w-2.5" /> AI recommended
+                            </p>
+                          )}
                         </button>
                       ))}
                     </div>
