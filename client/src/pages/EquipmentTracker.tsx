@@ -1,345 +1,260 @@
 import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tractor, MapPin, Fuel, Wrench, Activity, AlertCircle } from "lucide-react";
+import { Plus, Loader2, Search, Pencil, Trash2, Wrench, DollarSign, TrendingUp, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "wouter";
 
 export default function EquipmentTracker() {
-  const [selectedEquipment, setSelectedEquipment] = useState("tractor-1");
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("list");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [formData, setFormData] = useState({
+    itemName: "", category: "", quantityOnHand: "1", unitCost: "", storageLocation: "",
+  });
 
-  const equipment = [
-    {
-      id: "tractor-1",
-      name: "John Deere 5075E",
-      type: "Tractor",
-      status: "active",
-      location: { lat: -1.2921, lng: 36.8219 },
-      fuelLevel: 75,
-      hoursUsed: 1245,
-      lastMaintenance: "2024-11-15",
-      nextMaintenance: "2024-12-15",
-    },
-    {
-      id: "harvester-1",
-      name: "Case IH Axial-Flow 250",
-      type: "Harvester",
-      status: "maintenance",
-      location: { lat: -1.2925, lng: 36.8225 },
-      fuelLevel: 45,
-      hoursUsed: 856,
-      lastMaintenance: "2024-11-28",
-      nextMaintenance: "2024-12-28",
-    },
-    {
-      id: "sprayer-1",
-      name: "Hardi Navigator 3000",
-      type: "Sprayer",
-      status: "active",
-      location: { lat: -1.2918, lng: 36.8212 },
-      fuelLevel: 90,
-      hoursUsed: 432,
-      lastMaintenance: "2024-11-10",
-      nextMaintenance: "2024-12-10",
-    },
-  ];
+  const listQuery = trpc.coreEquipment.list.useQuery({
+    search: searchQuery || undefined, limit: 100, offset: 0,
+  });
 
-  const fuelLogs = [
-    { date: "2024-12-01", equipment: "Tractor", quantity: 120, cost: 180 },
-    { date: "2024-11-28", equipment: "Harvester", quantity: 95, cost: 142.5 },
-    { date: "2024-11-25", equipment: "Sprayer", quantity: 45, cost: 67.5 },
-  ];
+  const analyticsQuery = trpc.coreEquipment.getAnalytics.useQuery(
+    undefined, { enabled: activeTab === "analytics" }
+  );
 
-  const maintenanceAlerts = [
-    {
-      equipment: "John Deere 5075E",
-      type: "Oil Change",
-      dueDate: "2024-12-15",
-      priority: "medium",
-    },
-    {
-      equipment: "Case IH Axial-Flow 250",
-      type: "Hydraulic Filter",
-      dueDate: "2024-12-10",
-      priority: "high",
-    },
-  ];
+  const createMutation = trpc.coreEquipment.create.useMutation({
+    onSuccess: () => { toast.success("Equipment added"); setOpen(false); resetForm(); listQuery.refetch(); },
+    onError: (err) => toast.error(err.message),
+  });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active": return "bg-green-500";
-      case "maintenance": return "bg-orange-500";
-      case "retired": return "bg-gray-500";
-      default: return "bg-gray-500";
-    }
+  const updateMutation = trpc.coreEquipment.update.useMutation({
+    onSuccess: () => { toast.success("Equipment updated"); setEditOpen(false); listQuery.refetch(); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteMutation = trpc.coreEquipment.delete.useMutation({
+    onSuccess: () => { toast.success("Equipment deleted"); listQuery.refetch(); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const [editingItem, setEditingItem] = useState<any>(null);
+
+  const resetForm = () => {
+    setFormData({ itemName: "", category: "", quantityOnHand: "1", unitCost: "", storageLocation: "" });
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "low": return "text-yellow-600";
-      case "medium": return "text-orange-600";
-      case "high": return "text-red-600";
-      default: return "text-gray-600";
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.itemName || !formData.unitCost) {
+      toast.error("Name and unit cost are required"); return;
     }
+    createMutation.mutate({
+      userId: Number(user?.id || 1),
+      itemName: formData.itemName,
+      category: formData.category || undefined,
+      quantityOnHand: parseInt(formData.quantityOnHand) || 1,
+      unitCost: parseFloat(formData.unitCost) || 0,
+      storageLocation: formData.storageLocation || undefined,
+    });
   };
 
-  const selectedEq = equipment.find(e => e.id === selectedEquipment);
+  const handleEdit = (item: any) => { setEditingItem(item); setEditOpen(true); };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    updateMutation.mutate({
+      id: editingItem.id,
+      itemName: editingItem.itemName,
+      quantityOnHand: editingItem.quantityOnHand,
+      unitCost: editingItem.unitCostFormatted || undefined,
+      storageLocation: editingItem.storageLocation || undefined,
+    });
+  };
+
+  const handleDelete = (item: any) => {
+    if (!confirm(`Delete "${item.itemName}"?`)) return;
+    deleteMutation.mutate({ id: item.id });
+  };
+
+  const items = listQuery.data?.items || [];
+  const total = listQuery.data?.total || 0;
+  const analytics = analyticsQuery.data;
+
+  const filteredItems = categoryFilter === "all" ? items : items.filter((i: any) => i.category === categoryFilter);
+  const categories = [...new Set(items.map((i: any) => i.category).filter(Boolean))] as string[];
+  const totalValue = items.reduce((s: number, i: any) => s + (i.unitCostFormatted * i.quantityOnHand), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-lime-50 to-emerald-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Equipment Tracker</h1>
-              <p className="text-sm text-gray-600">Monitor location, fuel, and maintenance</p>
-            </div>
-            <Link href="/precision-agriculture">
-              <a className="text-sm text-blue-600 hover:text-blue-800">← Back</a>
-            </Link>
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Equipment Tracker</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage farm equipment, maintenance, and utilization
+              <Link href="/equipment-fleet"><a className="ml-2 text-primary hover:underline text-xs">(Fleet Dashboard)</a></Link>
+            </p>
           </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Equipment</Button></DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>Add Equipment</DialogTitle><DialogDescription>Register new farm equipment</DialogDescription></DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2"><Label>Equipment Name *</Label><Input value={formData.itemName} onChange={(e) => setFormData({ ...formData, itemName: e.target.value })} placeholder="e.g., John Deere 5050D" required /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Category</Label>
+                    <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>{["Tractor", "Harvester", "Irrigation", "Sprayer", "Plough", "Seeder", "Trailer", "Generator", "Pump", "Drone", "GPS Unit", "Other"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2"><Label>Quantity</Label><Input type="number" min="1" value={formData.quantityOnHand} onChange={(e) => setFormData({ ...formData, quantityOnHand: e.target.value })} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Unit Cost *</Label><Input type="number" step="0.01" value={formData.unitCost} onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })} required /></div>
+                  <div className="space-y-2"><Label>Storage Location</Label><Input value={formData.storageLocation} onChange={(e) => setFormData({ ...formData, storageLocation: e.target.value })} placeholder="e.g., Shed A" /></div>
+                </div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : "Add Equipment"}</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Map & Equipment List */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* GPS Map */}
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-green-600" />
-                  Live Equipment Tracking
-                </CardTitle>
-                <CardDescription>Real-time GPS locations of all equipment</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Placeholder for map */}
-                <div className="aspect-video bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgb3BhY2l0eT0iMC4xIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30"></div>
-                  <div className="relative z-10 text-center">
-                    <MapPin className="h-16 w-16 mx-auto mb-4 text-green-600" />
-                    <p className="text-gray-700 font-semibold text-lg">GPS Tracking Map</p>
-                    <p className="text-gray-600 text-sm">
-                      {equipment.filter(e => e.status === "active").length} active equipment
-                    </p>
-                  </div>
-                  
-                  {/* Equipment markers */}
-                  <div className="absolute top-1/4 left-1/3 bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
-                    🚜 Tractor
-                  </div>
-                  <div className="absolute top-1/2 right-1/3 bg-orange-600 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
-                    🌾 Harvester
-                  </div>
-                  <div className="absolute bottom-1/4 left-1/2 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
-                    💧 Sprayer
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList><TabsTrigger value="list">Equipment List</TabsTrigger><TabsTrigger value="analytics">Analytics</TabsTrigger></TabsList>
 
-            {/* Equipment List */}
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle>Equipment Fleet</CardTitle>
-                <CardDescription>All registered equipment</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {equipment.map((eq) => (
-                    <div
-                      key={eq.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                        selectedEquipment === eq.id
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-green-300"
-                      }`}
-                      onClick={() => setSelectedEquipment(eq.id)}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <Tractor className="h-5 w-5 text-green-600" />
-                          <div>
-                            <p className="font-semibold">{eq.name}</p>
-                            <p className="text-xs text-gray-600">{eq.type}</p>
-                          </div>
-                        </div>
-                        <Badge className={getStatusColor(eq.status)}>
-                          {eq.status}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-4 mt-3 text-sm">
-                        <div>
-                          <p className="text-xs text-gray-600">Fuel</p>
-                          <p className="font-semibold">{eq.fuelLevel}%</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-600">Hours</p>
-                          <p className="font-semibold">{eq.hoursUsed}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-600">Next Service</p>
-                          <p className="font-semibold text-xs">
-                            {new Date(eq.nextMaintenance).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <TabsContent value="list" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card><CardContent className="p-4"><div className="flex items-center gap-1 text-sm text-muted-foreground"><Wrench className="w-3 h-3" />Total Equipment</div><div className="text-2xl font-bold">{total}</div></CardContent></Card>
+              <Card><CardContent className="p-4"><div className="flex items-center gap-1 text-sm text-muted-foreground"><DollarSign className="w-3 h-3" />Total Value</div><div className="text-2xl font-bold text-green-600">{totalValue.toLocaleString()}</div></CardContent></Card>
+              <Card><CardContent className="p-4"><div className="flex items-center gap-1 text-sm text-muted-foreground"><AlertTriangle className="w-3 h-3" />Low Stock</div><div className="text-2xl font-bold text-red-600">{items.filter((i: any) => i.quantityOnHand <= i.reorderLevel).length}</div></CardContent></Card>
+              <Card><CardContent className="p-4"><div className="text-sm text-muted-foreground">Categories</div><div className="text-2xl font-bold">{categories.length}</div></CardContent></Card>
+            </div>
 
-          {/* Sidebar - Details & Alerts */}
-          <div className="space-y-6">
-            {/* Selected Equipment Details */}
-            {selectedEq && (
-              <Card className="bg-white">
-                <CardHeader>
-                  <CardTitle className="text-lg">{selectedEq.name}</CardTitle>
-                  <CardDescription>{selectedEq.type}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Fuel Level */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium flex items-center gap-2">
-                        <Fuel className="h-4 w-4 text-blue-600" />
-                        Fuel Level
-                      </span>
-                      <span className="text-sm font-semibold">{selectedEq.fuelLevel}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all"
-                        style={{ width: `${selectedEq.fuelLevel}%` }}
-                      ></div>
-                    </div>
-                  </div>
+            <div className="flex gap-4 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input className="pl-10" placeholder="Search equipment..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Categories</SelectItem>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+            </div>
 
-                  {/* Usage Hours */}
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-green-600" />
-                        Usage Hours
-                      </span>
-                      <span className="text-sm font-semibold">{selectedEq.hoursUsed} hrs</span>
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      Next maintenance in {5000 - selectedEq.hoursUsed} hours
-                    </p>
-                  </div>
-
-                  {/* Maintenance */}
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium flex items-center gap-2">
-                        <Wrench className="h-4 w-4 text-orange-600" />
-                        Maintenance
-                      </span>
-                    </div>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Last Service:</span>
-                        <span className="font-medium">
-                          {new Date(selectedEq.lastMaintenance).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Next Service:</span>
-                        <span className="font-medium">
-                          {new Date(selectedEq.nextMaintenance).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="border-t pt-4 space-y-2">
-                    <Button className="w-full" size="sm">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      View Location History
-                    </Button>
-                    <Button variant="outline" className="w-full" size="sm">
-                      <Fuel className="h-4 w-4 mr-2" />
-                      Log Fuel
-                    </Button>
-                    <Button variant="outline" className="w-full" size="sm">
-                      <Wrench className="h-4 w-4 mr-2" />
-                      Schedule Maintenance
-                    </Button>
-                  </div>
+            {listQuery.isLoading ? <div className="flex items-center justify-center h-48"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div> : (
+              <Card>
+                <CardHeader><CardTitle>Equipment Registry ({filteredItems.length})</CardTitle><CardDescription>All farm equipment with real-time tracking</CardDescription></CardHeader>
+                <CardContent>
+                  {filteredItems.length === 0 ? <p className="text-center text-muted-foreground py-8">No equipment found. Add your first piece of equipment above.</p> : (
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Qty</TableHead><TableHead>Location</TableHead><TableHead>Unit Cost</TableHead><TableHead className="text-right">Actions</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {filteredItems.map((item: any) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.itemName}</TableCell>
+                            <TableCell><Badge variant="outline">{item.category || "-"}</Badge></TableCell>
+                            <TableCell>{item.quantityOnHand}</TableCell>
+                            <TableCell>{item.storageLocation || "-"}</TableCell>
+                            <TableCell>{item.unitCostFormatted.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}><Pencil className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(item)}><Trash2 className="w-4 h-4" /></Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
 
-            {/* Maintenance Alerts */}
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-orange-600" />
-                  Maintenance Alerts
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {maintenanceAlerts.map((alert, index) => (
-                    <div key={index} className="border-b pb-3 last:border-b-0 last:pb-0">
-                      <div className="flex items-start justify-between mb-1">
-                        <p className="text-sm font-medium">{alert.equipment}</p>
-                        <AlertCircle className={`h-4 w-4 ${getPriorityColor(alert.priority)}`} />
-                      </div>
-                      <p className="text-xs text-gray-600">{alert.type}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Due: {new Date(alert.dueDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))}
+          <TabsContent value="analytics" className="space-y-4">
+            {analyticsQuery.isLoading ? <div className="flex items-center justify-center h-48"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div> : analytics ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <Card><CardContent className="p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Wrench className="w-4 h-4" />Total Equipment</div><div className="text-2xl font-bold">{analytics.totalEquipment}</div></CardContent></Card>
+                  <Card><CardContent className="p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><DollarSign className="w-4 h-4" />Total Value</div><div className="text-2xl font-bold text-green-600">{analytics.totalValue.toLocaleString()}</div></CardContent></Card>
+                  <Card><CardContent className="p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp className="w-4 h-4" />Categories</div><div className="text-2xl font-bold">{analytics.categoryBreakdown.length}</div></CardContent></Card>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Fuel Summary */}
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg">Fuel Summary</CardTitle>
-                <CardDescription>Last 7 days</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Total Consumed</span>
-                    <span className="text-2xl font-bold">260 L</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Total Cost</span>
-                    <span className="text-2xl font-bold">$390</span>
-                  </div>
-                  <div className="border-t pt-4">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Recent Logs</p>
-                    <div className="space-y-2">
-                      {fuelLogs.slice(0, 3).map((log, index) => (
-                        <div key={index} className="flex justify-between text-xs">
-                          <span className="text-gray-600">{log.equipment}</span>
-                          <span className="font-medium">{log.quantity}L • ${log.cost}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                <Card>
+                  <CardHeader><CardTitle>Equipment by Category</CardTitle></CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Category</TableHead><TableHead>Count</TableHead><TableHead>Total Qty</TableHead><TableHead>Total Value</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {analytics.categoryBreakdown.map((c: any, i: number) => (
+                          <TableRow key={i}><TableCell className="font-medium"><Badge variant="outline">{c.category}</Badge></TableCell><TableCell>{c.count}</TableCell><TableCell>{c.totalQuantity}</TableCell><TableCell className="text-green-600">{c.totalValue.toLocaleString()}</TableCell></TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {analytics.maintenanceCosts.length > 0 && (
+                  <Card>
+                    <CardHeader><CardTitle>Maintenance Costs (Monthly)</CardTitle></CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader><TableRow><TableHead>Month</TableHead><TableHead>Total Cost</TableHead><TableHead>Transactions</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                          {analytics.maintenanceCosts.map((m: any, i: number) => (
+                            <TableRow key={i}><TableCell>{m.month}</TableCell><TableCell>{m.totalCost.toLocaleString()}</TableCell><TableCell>{m.transactionCount}</TableCell></TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            ) : <Card><CardContent className="p-8 text-center text-muted-foreground">No analytics available</CardContent></Card>}
+          </TabsContent>
+        </Tabs>
+
+        {/* Edit Dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Edit Equipment</DialogTitle></DialogHeader>
+            {editingItem && (
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div className="space-y-2"><Label>Name</Label><Input value={editingItem.itemName} onChange={(e) => setEditingItem({ ...editingItem, itemName: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Quantity</Label><Input type="number" min="1" value={editingItem.quantityOnHand} onChange={(e) => setEditingItem({ ...editingItem, quantityOnHand: parseInt(e.target.value) || 1 })} /></div>
+                  <div className="space-y-2"><Label>Unit Cost</Label><Input type="number" step="0.01" value={editingItem.unitCostFormatted || ""} onChange={(e) => setEditingItem({ ...editingItem, unitCostFormatted: parseFloat(e.target.value) || 0 })} /></div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
-    </div>
+                <div className="space-y-2"><Label>Storage Location</Label><Input value={editingItem.storageLocation || ""} onChange={(e) => setEditingItem({ ...editingItem, storageLocation: e.target.value })} /></div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={updateMutation.isPending}>{updateMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : "Save Changes"}</Button>
+                </div>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </DashboardLayout>
   );
 }

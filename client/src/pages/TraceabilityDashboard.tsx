@@ -55,6 +55,8 @@ import {
 import { useLocalization } from '@/contexts/LocalizationContext';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
+import { Scissors, Link2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function TraceabilityDashboard() {
   const { formatCurrency, formatWeight } = useLocalization();
@@ -63,6 +65,14 @@ export default function TraceabilityDashboard() {
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
   const [showCreateBatchDialog, setShowCreateBatchDialog] = useState(false);
   const [showBatchDetailDialog, setShowBatchDetailDialog] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
+  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
+  const [qrBatchCode, setQrBatchCode] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyResult, setVerifyResult] = useState<any>(null);
+  const [splitParts, setSplitParts] = useState('2');
+  const [splitQuantities, setSplitQuantities] = useState<string[]>([]);
 
   const { data: batchesData, isLoading: batchesLoading, refetch: refetchBatches } = trpc.traceability.listBatches.useQuery({});
 
@@ -71,6 +81,31 @@ export default function TraceabilityDashboard() {
   const { data: warehousesData, isLoading: warehousesLoading } = trpc.traceability.listWarehouses.useQuery({});
 
   const { data: statsData } = trpc.traceability.getStats.useQuery();
+
+  const generateQRMutation = trpc.traceabilityEnhancements.generateQRCode.useMutation({
+    onSuccess: (data) => {
+      setQrBatchCode(JSON.stringify(data, null, 2));
+      setShowQRDialog(true);
+    },
+    onError: (err) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+  });
+
+  const verifyBatchQuery = trpc.traceabilityEnhancements.verifyBatch.useQuery(
+    { batchCode: verifyCode },
+    {
+      enabled: false,
+      retry: false,
+    }
+  );
+
+  const splitBatchMutation = trpc.traceabilityEnhancements.splitBatch.useMutation({
+    onSuccess: (data) => {
+      toast({ title: `Batch split into ${data.newBatches.length} parts` });
+      setShowSplitDialog(false);
+      refetchBatches();
+    },
+    onError: (err: any) => toast({ title: 'Split failed', description: err.message, variant: 'destructive' }),
+  });
 
   const createBatchMutation = trpc.traceability.createBatch.useMutation({
     onSuccess: () => {
@@ -345,11 +380,11 @@ export default function TraceabilityDashboard() {
                                           <Button variant="ghost" size="sm" onClick={() => viewBatchDetails(batch)}>
                                             <Eye className="w-4 h-4" />
                                           </Button>
-                                          <Button variant="ghost" size="sm">
+                                          <Button variant="ghost" size="sm" onClick={() => generateQRMutation.mutate({ batchId: batch.id })}>
                                             <QrCode className="w-4 h-4" />
                                           </Button>
-                                          <Button variant="ghost" size="sm">
-                                            <Download className="w-4 h-4" />
+                                          <Button variant="ghost" size="sm" onClick={() => { setSelectedBatch(batch); setSplitParts('2'); setSplitQuantities([]); setShowSplitDialog(true); }}>
+                                            <Scissors className="w-4 h-4" />
                                           </Button>
                                         </div>
                                       </TableCell>
@@ -382,14 +417,50 @@ export default function TraceabilityDashboard() {
                   <QrCode className="w-4 h-4 mr-2" />
                   Start Scanning
                 </Button>
-                <p className="text-sm text-muted-foreground">Or enter batch code manually:</p>
+                <p className="text-sm text-muted-foreground">Enter batch code to verify:</p>
                 <div className="flex gap-2 w-full max-w-md">
-                  <Input placeholder="BATCH-2024-001" />
-                  <Button variant="outline">
-                    <Search className="w-4 h-4 mr-2" />
-                    Search
+                  <Input placeholder="BATCH-2024-001" value={verifyCode} onChange={(e) => setVerifyCode(e.target.value)} />
+                  <Button variant="outline" onClick={() => { if (verifyCode) verifyBatchQuery.refetch().then(r => { if (r.data) setVerifyResult(r.data); }); }} disabled={!verifyCode || verifyBatchQuery.isFetching}>
+                    {verifyBatchQuery.isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+                    Verify
                   </Button>
                 </div>
+
+                {/* Verification Result */}
+                {verifyResult && (
+                  <Card className="w-full max-w-md mt-4">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        Batch Verified
+                      </CardTitle>
+                      <CardDescription>{verifyResult.batch.batchCode}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-muted-foreground">Crop:</span> {verifyResult.batch.cropType}</div>
+                        <div><span className="text-muted-foreground">Grade:</span> {getGradeBadge(verifyResult.batch.qualityGrade)}</div>
+                        <div><span className="text-muted-foreground">Origin:</span> {verifyResult.batch.originRegion}</div>
+                        <div><span className="text-muted-foreground">Status:</span> {getStatusBadge(verifyResult.batch.status)}</div>
+                        <div><span className="text-muted-foreground">Organic:</span> {verifyResult.batch.isOrganic ? 'Yes' : 'No'}</div>
+                        <div><span className="text-muted-foreground">Events:</span> {verifyResult.totalEvents} recorded</div>
+                      </div>
+                      {verifyResult.journey && verifyResult.journey.length > 0 && (
+                        <div className="mt-4 border-t pt-4">
+                          <h5 className="text-sm font-semibold mb-2">Journey Timeline</h5>
+                          {verifyResult.journey.map((ev: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2 text-xs py-1">
+                              {getEventIcon(ev.eventType)}
+                              <span className="capitalize">{ev.eventType.replace('_', ' ')}</span>
+                              <span className="text-muted-foreground">{ev.location || ''}</span>
+                              {ev.isVerified && <CheckCircle className="w-3 h-3 text-green-500" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -571,17 +642,71 @@ export default function TraceabilityDashboard() {
               </div>
 
               <div className="flex justify-between">
-                <Button variant="outline">
-                  <QrCode className="w-4 h-4 mr-2" />
-                  View QR Code
+                <Button variant="outline" onClick={() => generateQRMutation.mutate({ batchId: selectedBatch.id })} disabled={generateQRMutation.isPending}>
+                  {generateQRMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
+                  Generate QR Code
                 </Button>
-                <Button variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Certificate
+                <Button variant="outline" onClick={() => { setSelectedBatch(selectedBatch); setSplitParts('2'); setShowSplitDialog(true); }}>
+                  <Scissors className="w-4 h-4 mr-2" />
+                  Split Batch
                 </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><QrCode className="w-5 h-5" /> QR Code Data</DialogTitle>
+            <DialogDescription>Scan this data with any QR code generator to produce a scannable label</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <pre className="text-xs whitespace-pre-wrap font-mono">{qrBatchCode}</pre>
+            </div>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => { navigator.clipboard.writeText(qrBatchCode); toast({ title: 'Copied to clipboard' }); }}>
+                <Link2 className="w-4 h-4 mr-2" />Copy Data
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Split Batch Dialog */}
+      <Dialog open={showSplitDialog} onOpenChange={setShowSplitDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Scissors className="w-5 h-5" /> Split Batch</DialogTitle>
+            <DialogDescription>Divide {selectedBatch?.batchCode} into sub-batches</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm">Original quantity: <strong>{selectedBatch?.quantity} kg</strong></div>
+            <div className="space-y-2">
+              <Label>Number of parts</Label>
+              <Select value={splitParts} onValueChange={(v) => { setSplitParts(v); setSplitQuantities(Array(parseInt(v)).fill('')); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{['2', '3', '4', '5'].map(n => <SelectItem key={n} value={n}>{n} parts</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            {splitQuantities.map((q, i) => (
+              <div key={i} className="space-y-1">
+                <Label>Part {i + 1} quantity (kg)</Label>
+                <Input type="number" value={q} onChange={(e) => { const nq = [...splitQuantities]; nq[i] = e.target.value; setSplitQuantities(nq); }} />
+              </div>
+            ))}
+            <Button className="w-full" disabled={splitBatchMutation.isPending || !selectedBatch} onClick={() => {
+              if (!selectedBatch) return;
+              const quantities = splitQuantities.map(Number).filter(n => n > 0);
+              if (quantities.length < 2) { toast({ title: 'Enter at least 2 valid quantities' }); return; }
+              splitBatchMutation.mutate({ batchId: selectedBatch.id, splits: quantities.map((q: number) => ({ quantity: q })) });
+            }}>
+              {splitBatchMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Splitting...</> : 'Split Batch'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

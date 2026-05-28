@@ -71,6 +71,7 @@ import { droneRouter } from "./routers/drone-router.js";
 import { equipmentFleetRouter } from "./routers/equipment-fleet-router.js";
 import { agriLlmRouter } from "./routers/agri-llm-router.js";
 import { iotGatewayRouter } from "./routers/iot-gateway-router.js";
+import { farmsRouter, livestockRouter, cropsRouter, harvestsRouter, expensesRouter, farmInputsRouter, equipmentRouter, inventoryEnhancementsRouter, traceabilityEnhancementsRouter } from "./routers/core-features-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -164,6 +165,16 @@ export const appRouter = router({
   equipmentFleet: equipmentFleetRouter,
   agriLlm: agriLlmRouter,
   iotGateway: iotGatewayRouter,
+  // === Core Feature Routers (Production-Grade CRUD + Analytics) ===
+  coreFarms: farmsRouter,
+  coreLivestock: livestockRouter,
+  coreCrops: cropsRouter,
+  coreHarvests: harvestsRouter,
+  coreExpenses: expensesRouter,
+  coreFarmInputs: farmInputsRouter,
+  coreEquipment: equipmentRouter,
+  inventoryEnhancements: inventoryEnhancementsRouter,
+  traceabilityEnhancements: traceabilityEnhancementsRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
