@@ -15,17 +15,22 @@ import { requireDb } from "../utils/require-db.js";
 import { priceAlerts, weatherStations } from "../../drizzle/schema.js";
 import { eq, and, desc } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
+import { resilientFetch } from "../services/resilient-http.js";
 
 const PRICE_SERVICE_URL = process.env.PRICE_PREDICTION_SERVICE_URL || "http://localhost:8093";
 
 async function callPriceService(method: string, path: string, body?: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {
-    const resp = await fetch(`${PRICE_SERVICE_URL}${path}`, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : {},
-      body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(10000),
-    });
+    const resp = await resilientFetch(
+      "price-prediction-service",
+      `${PRICE_SERVICE_URL}${path}`,
+      {
+        method,
+        headers: body ? { "Content-Type": "application/json" } : {},
+        body: body ? JSON.stringify(body) : undefined,
+      },
+      { maxRetries: 3, timeoutMs: 10_000 },
+    );
     return await resp.json() as Record<string, unknown>;
   } catch {
     return { error: "Price prediction service unavailable" };

@@ -15,21 +15,17 @@ import { mobileMoneyAccounts, mobileMoneyTransactions } from "../../drizzle/sche
 import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
+import { resilientPost } from "../services/resilient-http.js";
 
 const MOBILE_MONEY_SERVICE_URL = process.env.MOBILE_MONEY_SERVICE_URL || "http://localhost:8090";
 
 async function callMobileMoneyService(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
-  try {
-    const resp = await fetch(`${MOBILE_MONEY_SERVICE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30000),
-    });
-    return await resp.json() as Record<string, unknown>;
-  } catch (err) {
-    throw new Error(`Mobile money service unavailable: ${(err as Error).message}`);
-  }
+  return resilientPost<Record<string, unknown>>(
+    "mobile-money-service",
+    `${MOBILE_MONEY_SERVICE_URL}${path}`,
+    body,
+    { maxRetries: 2, timeoutMs: 30_000 },
+  );
 }
 
 export const mobileMoneyRouter = router({

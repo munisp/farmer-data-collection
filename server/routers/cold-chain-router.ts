@@ -14,18 +14,18 @@ import { requireDb } from "../utils/require-db.js";
 import { coldChainSensors, coldChainReadings } from "../../drizzle/schema.js";
 import { eq, and, desc, gte, sql } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
+import { resilientPost, resilientFetch } from "../services/resilient-http.js";
 
 const COLD_CHAIN_SERVICE_URL = process.env.COLD_CHAIN_SERVICE_URL || "http://localhost:8092";
 
 async function callColdChainService(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {
-    const resp = await fetch(`${COLD_CHAIN_SERVICE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10000),
-    });
-    return await resp.json() as Record<string, unknown>;
+    return await resilientPost<Record<string, unknown>>(
+      "cold-chain-service",
+      `${COLD_CHAIN_SERVICE_URL}${path}`,
+      body,
+      { maxRetries: 3, timeoutMs: 10_000 },
+    );
   } catch {
     return { error: "Cold chain service unavailable" };
   }
@@ -223,9 +223,7 @@ export const coldChainRouter = router({
     .query(async () => {
       const db = await requireDb();
       try {
-        const resp = await fetch(`${COLD_CHAIN_SERVICE_URL}/api/crops`, {
-          signal: AbortSignal.timeout(5000),
-        });
+        const resp = await resilientFetch("cold-chain-service", `${COLD_CHAIN_SERVICE_URL}/api/crops`, undefined, { timeoutMs: 5000 });
         return await resp.json();
       } catch {
         return { error: "Cold chain service unavailable" };

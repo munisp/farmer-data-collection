@@ -9,6 +9,7 @@ import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.
 import { requireDb } from "../utils/require-db.js";
 import { eq, desc, and } from "drizzle-orm";
 import { droneFlights, droneImagery, prescriptionMaps } from "../../drizzle/supply-chain-schema.js";
+import { resilientFetch, resilientPost } from "../services/resilient-http.js";
 
 const DRONE_SERVICE_URL = process.env.DRONE_SERVICE_URL || "http://localhost:8097";
 
@@ -27,7 +28,7 @@ export const droneRouter = router({
       overlapPct: z.number().min(30).max(90).default(70),
     }))
     .mutation(async ({ input }) => {
-      const res = await fetch(`${DRONE_SERVICE_URL}/api/v1/flights/plan`, {
+      const res = await resilientFetch("drone-service", `${DRONE_SERVICE_URL}/api/v1/flights/plan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -37,7 +38,7 @@ export const droneRouter = router({
           altitude_m: input.altitudeM,
           overlap_pct: input.overlapPct,
         }),
-      });
+      }, { maxRetries: 2 });
       if (!res.ok) throw new Error(`Drone service error: ${res.status}`);
       return res.json() as Promise<Record<string, unknown>>;
     }),
@@ -135,7 +136,7 @@ export const droneRouter = router({
     }))
     .query(async ({ input }) => {
       try {
-        const res = await fetch(`${DRONE_SERVICE_URL}/api/v1/spray/drift-risk`, {
+        const res = await resilientFetch("drone-service", `${DRONE_SERVICE_URL}/api/v1/spray/drift-risk`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -145,7 +146,7 @@ export const droneRouter = router({
             humidity_pct: input.humidityPct,
             droplet_size_um: input.dropletSizeUm,
           }),
-        });
+        }, { maxRetries: 2 });
         return res.json() as Promise<Record<string, unknown>>;
       } catch {
         // Calculate locally if service unavailable
@@ -230,7 +231,7 @@ export const droneRouter = router({
   getFleetStatus: protectedProcedure
     .query(async () => {
       try {
-        const res = await fetch(`${DRONE_SERVICE_URL}/api/v1/fleet/status`);
+        const res = await resilientFetch("drone-service", `${DRONE_SERVICE_URL}/api/v1/fleet/status`);
         return res.json() as Promise<Record<string, unknown>>;
       } catch {
         return { drones: [], status: "service_unavailable" };

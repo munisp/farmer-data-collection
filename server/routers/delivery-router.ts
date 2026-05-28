@@ -20,18 +20,18 @@ import {
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import crypto from "crypto";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
+import { resilientPost } from "../services/resilient-http.js";
 
 const DELIVERY_SERVICE_URL = process.env.DELIVERY_SERVICE_URL || "http://localhost:8091";
 
 async function callDeliveryService(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {
-    const resp = await fetch(`${DELIVERY_SERVICE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10000),
-    });
-    return await resp.json() as Record<string, unknown>;
+    return await resilientPost<Record<string, unknown>>(
+      "delivery-service",
+      `${DELIVERY_SERVICE_URL}${path}`,
+      body,
+      { maxRetries: 3, timeoutMs: 10_000 },
+    );
   } catch {
     return { error: "Delivery service unavailable" };
   }

@@ -13,6 +13,8 @@ import {
   equipmentListings, equipmentRentals, farmDigitalTwins,
 } from "../../drizzle/supply-chain-schema.js";
 
+import { resilientFetch, resilientPost } from "../services/resilient-http.js";
+
 const FLEET_SERVICE_URL = process.env.FLEET_SERVICE_URL || "http://localhost:8098";
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -61,10 +63,7 @@ export const equipmentFleetRouter = router({
       }).returning();
 
       try {
-        await fetch(`${FLEET_SERVICE_URL}/api/v1/telemetry`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        await resilientPost("fleet-service", `${FLEET_SERVICE_URL}/api/v1/telemetry`, {
             equipment_id: `EQ-${input.equipmentId}`,
             lat: input.latitude,
             lon: input.longitude,
@@ -75,8 +74,7 @@ export const equipmentFleetRouter = router({
             fuel_level_pct: input.fuelLevelPct,
             pto_rpm: input.ptoSpeedRpm,
             engine_hours: input.engineHours,
-          }),
-        });
+          }, { maxRetries: 2 });
       } catch { /* fleet service may not be running */ }
 
       return record;
@@ -107,7 +105,7 @@ export const equipmentFleetRouter = router({
     }))
     .mutation(async ({ input }) => {
       try {
-        const res = await fetch(`${FLEET_SERVICE_URL}/api/v1/guidance/ab-lines`, {
+        const res = await resilientFetch("fleet-service", `${FLEET_SERVICE_URL}/api/v1/guidance/ab-lines`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -121,7 +119,7 @@ export const equipmentFleetRouter = router({
             },
             num_lines: input.numLines,
           }),
-        });
+        }, { maxRetries: 2 });
         return res.json() as Promise<Record<string, unknown>>;
       } catch {
         // Local fallback
@@ -151,14 +149,14 @@ export const equipmentFleetRouter = router({
     }))
     .query(async ({ input }) => {
       try {
-        const res = await fetch(`${FLEET_SERVICE_URL}/api/v1/guidance/autosteer`, {
+        const res = await resilientFetch("fleet-service", `${FLEET_SERVICE_URL}/api/v1/guidance/autosteer`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             equipment_id: input.equipmentId,
             guide_line: input.guideLine,
           }),
-        });
+        }, { maxRetries: 2 });
         if (!res.ok) return { error: "Equipment not found or not connected" };
         return res.json() as Promise<Record<string, unknown>>;
       } catch {
@@ -171,7 +169,7 @@ export const equipmentFleetRouter = router({
     .query(async ({ input }) => {
       const db = await requireDb();
       try {
-        const res = await fetch(`${FLEET_SERVICE_URL}/api/v1/maintenance/predict?equipment_id=EQ-${input.equipmentId}`);
+        const res = await resilientFetch("fleet-service", `${FLEET_SERVICE_URL}/api/v1/maintenance/predict?equipment_id=EQ-${input.equipmentId}`);
         if (res.ok) {
           const predictions = await res.json() as Array<Record<string, unknown>>;
           for (const pred of predictions) {

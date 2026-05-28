@@ -4,7 +4,7 @@ import crypto from "crypto";
  * Track agricultural products from farm to buyer with QR codes
  */
 
-import { router, publicProcedure } from '../_core/trpc-base.js';
+import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
@@ -19,7 +19,7 @@ import {
 
 export const traceabilityRouter = router({
   // Get all batches
-  listBatches: publicProcedure
+  listBatches: protectedProcedure
     .input(z.object({
       farmerId: z.number().optional(),
       status: z.string().optional(),
@@ -50,7 +50,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get batch by ID or code
-  getBatch: publicProcedure
+  getBatch: protectedProcedure
     .input(z.object({
       id: z.number().optional(),
       batchCode: z.string().optional(),
@@ -87,7 +87,7 @@ export const traceabilityRouter = router({
     }),
 
   // Create batch
-  createBatch: publicProcedure
+  createBatch: protectedProcedure
     .input(z.object({
       cropType: z.string(),
       variety: z.string().optional(),
@@ -158,7 +158,7 @@ export const traceabilityRouter = router({
     }),
 
   // Update batch status
-  updateBatchStatus: publicProcedure
+  updateBatchStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(['created', 'at_farm', 'in_transit', 'at_collection_center', 'at_warehouse', 'processing', 'ready_for_sale', 'sold', 'delivered', 'rejected']),
@@ -188,7 +188,7 @@ export const traceabilityRouter = router({
     }),
 
   // Record traceability event
-  recordEvent: publicProcedure
+  recordEvent: protectedProcedure
     .input(z.object({
       batchId: z.number(),
       eventType: z.enum(['harvest', 'quality_check', 'collection', 'transport_start', 'transport_end', 'warehouse_receipt', 'processing_start', 'processing_end', 'packaging', 'sale', 'delivery', 'return', 'disposal']),
@@ -248,7 +248,7 @@ export const traceabilityRouter = router({
     }),
 
   // Verify event
-  verifyEvent: publicProcedure
+  verifyEvent: protectedProcedure
     .input(z.object({
       id: z.number(),
       verifiedBy: z.number(),
@@ -271,7 +271,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get collection centers
-  listCollectionCenters: publicProcedure
+  listCollectionCenters: protectedProcedure
     .input(z.object({
       region: z.string().optional(),
       activeOnly: z.boolean().default(true),
@@ -296,7 +296,7 @@ export const traceabilityRouter = router({
     }),
 
   // Create collection center
-  createCollectionCenter: publicProcedure
+  createCollectionCenter: protectedProcedure
     .input(z.object({
       name: z.string(),
       code: z.string().optional(),
@@ -337,7 +337,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get warehouses
-  listWarehouses: publicProcedure
+  listWarehouses: protectedProcedure
     .input(z.object({
       region: z.string().optional(),
       activeOnly: z.boolean().default(true),
@@ -362,7 +362,7 @@ export const traceabilityRouter = router({
     }),
 
   // Create warehouse
-  createWarehouse: publicProcedure
+  createWarehouse: protectedProcedure
     .input(z.object({
       name: z.string(),
       code: z.string().optional(),
@@ -399,7 +399,7 @@ export const traceabilityRouter = router({
     }),
 
   // Create warehouse receipt
-  createWarehouseReceipt: publicProcedure
+  createWarehouseReceipt: protectedProcedure
     .input(z.object({
       batchId: z.number(),
       warehouseId: z.number(),
@@ -454,7 +454,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get warehouse receipts
-  listWarehouseReceipts: publicProcedure
+  listWarehouseReceipts: protectedProcedure
     .input(z.object({
       depositorId: z.number().optional(),
       warehouseId: z.number().optional(),
@@ -481,7 +481,7 @@ export const traceabilityRouter = router({
     }),
 
   // Pledge receipt as collateral
-  pledgeReceipt: publicProcedure
+  pledgeReceipt: protectedProcedure
     .input(z.object({
       id: z.number(),
       loanId: z.number(),
@@ -505,7 +505,7 @@ export const traceabilityRouter = router({
     }),
 
   // Release receipt
-  releaseReceipt: publicProcedure
+  releaseReceipt: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -525,7 +525,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get traceability stats
-  getStats: publicProcedure
+  getStats: protectedProcedure
     .query(async () => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });

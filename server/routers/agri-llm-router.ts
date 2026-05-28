@@ -10,6 +10,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, desc, and } from "drizzle-orm";
 import { aiConversations } from "../../drizzle/supply-chain-schema.js";
 import crypto from "crypto";
+import { resilientFetch } from "../services/resilient-http.js";
 
 const AGRI_LLM_URL = process.env.AGRI_LLM_URL || "http://localhost:8103";
 
@@ -40,20 +41,25 @@ export const agriLlmRouter = router({
 
       let response: Record<string, unknown>;
       try {
-        const res = await fetch(`${AGRI_LLM_URL}/api/v1/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: input.query,
-            user_id: userId,
-            farm_id: input.farmId,
-            session_id: sessionId,
-            language: input.language,
-            crop: input.crop,
-            location: input.location,
-            soil_data: input.soilData,
-          }),
-        });
+        const res = await resilientFetch(
+          "agri-llm-service",
+          `${AGRI_LLM_URL}/api/v1/chat`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: input.query,
+              user_id: userId,
+              farm_id: input.farmId,
+              session_id: sessionId,
+              language: input.language,
+              crop: input.crop,
+              location: input.location,
+              soil_data: input.soilData,
+            }),
+          },
+          { maxRetries: 2, timeoutMs: 30_000 },
+        );
         response = await res.json() as Record<string, unknown>;
       } catch {
         response = {
@@ -107,17 +113,22 @@ export const agriLlmRouter = router({
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user?.id ?? 1;
       try {
-        const res = await fetch(`${AGRI_LLM_URL}/api/v1/diagnose`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: userId,
-            crop: input.crop,
-            symptoms: input.symptoms,
-            photo_analysis: input.photoAnalysis,
-            language: input.language,
-          }),
-        });
+        const res = await resilientFetch(
+          "agri-llm-service",
+          `${AGRI_LLM_URL}/api/v1/diagnose`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: userId,
+              crop: input.crop,
+              symptoms: input.symptoms,
+              photo_analysis: input.photoAnalysis,
+              language: input.language,
+            }),
+          },
+          { maxRetries: 2, timeoutMs: 30_000 },
+        );
         return res.json() as Promise<Record<string, unknown>>;
       } catch {
         return { error: "LLM service unavailable", crop: input.crop, symptoms: input.symptoms };
@@ -141,16 +152,21 @@ export const agriLlmRouter = router({
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user?.id ?? 1;
       try {
-        const res = await fetch(`${AGRI_LLM_URL}/api/v1/soil-interpret`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: userId,
-            soil_data: input.soilData,
-            crop: input.crop,
-            language: input.language,
-          }),
-        });
+        const res = await resilientFetch(
+          "agri-llm-service",
+          `${AGRI_LLM_URL}/api/v1/soil-interpret`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: userId,
+              soil_data: input.soilData,
+              crop: input.crop,
+              language: input.language,
+            }),
+          },
+          { maxRetries: 2, timeoutMs: 15_000 },
+        );
         return res.json() as Promise<Record<string, unknown>>;
       } catch {
         return { error: "LLM service unavailable" };
@@ -197,7 +213,7 @@ export const agriLlmRouter = router({
   getLanguages: publicProcedure
     .query(async () => {
       try {
-        const res = await fetch(`${AGRI_LLM_URL}/api/v1/languages`);
+        const res = await resilientFetch("agri-llm-service", `${AGRI_LLM_URL}/api/v1/languages`);
         return res.json() as Promise<Record<string, unknown>>;
       } catch {
         return { languages: ["en", "sw", "ha", "yo", "am", "fr", "hi", "bn", "ta", "th", "vi", "es", "pt", "tl"] };
@@ -207,7 +223,7 @@ export const agriLlmRouter = router({
   getCrops: publicProcedure
     .query(async () => {
       try {
-        const res = await fetch(`${AGRI_LLM_URL}/api/v1/crops`);
+        const res = await resilientFetch("agri-llm-service", `${AGRI_LLM_URL}/api/v1/crops`);
         return res.json() as Promise<Record<string, unknown>>;
       } catch {
         return { crops: ["maize", "rice", "wheat", "cassava", "tomato", "coffee", "beans", "sorghum", "tea", "potato"] };

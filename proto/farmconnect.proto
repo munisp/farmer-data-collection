@@ -1,0 +1,401 @@
+syntax = "proto3";
+
+package farmconnect;
+
+option go_package = "github.com/munisp/farmer-data-collection/proto";
+
+// ===== Delivery Service (Go :8091) =====
+
+service DeliveryService {
+  rpc CalculateRoute(RouteRequest) returns (RouteResponse);
+  rpc AssignDriver(DriverAssignment) returns (DriverAssignmentResponse);
+  rpc GetDriverLocation(DriverLocationRequest) returns (DriverLocation);
+  rpc UpdateDeliveryStatus(DeliveryStatusUpdate) returns (DeliveryStatusResponse);
+  rpc GetOptimalRoutes(OptimalRoutesRequest) returns (OptimalRoutesResponse);
+}
+
+message RouteRequest {
+  double origin_lat = 1;
+  double origin_lon = 2;
+  double dest_lat = 3;
+  double dest_lon = 4;
+  string vehicle_type = 5;
+  repeated Waypoint waypoints = 6;
+}
+
+message Waypoint {
+  double lat = 1;
+  double lon = 2;
+  string type = 3; // collection_point, hub, delivery
+}
+
+message RouteResponse {
+  double distance_km = 1;
+  int32 duration_minutes = 2;
+  repeated RouteStep steps = 3;
+  string polyline = 4;
+}
+
+message RouteStep {
+  double lat = 1;
+  double lon = 2;
+  string instruction = 3;
+  double distance_km = 4;
+}
+
+message DriverAssignment {
+  string order_id = 1;
+  string driver_id = 2;
+  string zone_id = 3;
+}
+
+message DriverAssignmentResponse {
+  bool success = 1;
+  string assignment_id = 2;
+  int32 estimated_pickup_minutes = 3;
+}
+
+message DriverLocationRequest {
+  string driver_id = 1;
+}
+
+message DriverLocation {
+  string driver_id = 1;
+  double lat = 2;
+  double lon = 3;
+  double speed_kmh = 4;
+  string status = 5;
+  int64 updated_at = 6;
+}
+
+message DeliveryStatusUpdate {
+  string delivery_id = 1;
+  string status = 2; // picked_up, in_transit, delivered, failed
+  string notes = 3;
+  double lat = 4;
+  double lon = 5;
+}
+
+message DeliveryStatusResponse {
+  bool success = 1;
+  string updated_status = 2;
+}
+
+message OptimalRoutesRequest {
+  string zone_id = 1;
+  int32 max_drivers = 2;
+  repeated DeliveryPoint deliveries = 3;
+}
+
+message DeliveryPoint {
+  string order_id = 1;
+  double lat = 2;
+  double lon = 3;
+  double weight_kg = 4;
+  bool requires_cold_chain = 5;
+}
+
+message OptimalRoutesResponse {
+  repeated DriverRoute routes = 1;
+}
+
+message DriverRoute {
+  string driver_id = 1;
+  repeated string order_ids = 2;
+  double total_distance_km = 3;
+  int32 estimated_duration_minutes = 4;
+}
+
+// ===== Mobile Money Service (Go :8090) =====
+
+service MobileMoneyService {
+  rpc InitiatePayment(PaymentRequest) returns (PaymentResponse);
+  rpc CheckPaymentStatus(PaymentStatusRequest) returns (PaymentStatusResponse);
+  rpc Disburse(DisbursementRequest) returns (DisbursementResponse);
+}
+
+message PaymentRequest {
+  string provider = 1; // mpesa, mtn_momo, airtel_money
+  string phone_number = 2;
+  double amount = 3;
+  string currency = 4;
+  string reference = 5;
+  string description = 6;
+}
+
+message PaymentResponse {
+  bool success = 1;
+  string transaction_id = 2;
+  string checkout_request_id = 3;
+  string status = 4;
+}
+
+message PaymentStatusRequest {
+  string transaction_id = 1;
+  string provider = 2;
+}
+
+message PaymentStatusResponse {
+  string status = 1; // pending, completed, failed
+  double amount = 2;
+  string receipt_number = 3;
+}
+
+message DisbursementRequest {
+  string provider = 1;
+  string phone_number = 2;
+  double amount = 3;
+  string currency = 4;
+  string reason = 5;
+}
+
+message DisbursementResponse {
+  bool success = 1;
+  string transaction_id = 2;
+  string status = 3;
+}
+
+// ===== Cold Chain Service (Python :8092) =====
+
+service ColdChainService {
+  rpc RecordReading(SensorReading) returns (SensorReadingResponse);
+  rpc GetAlerts(AlertRequest) returns (AlertList);
+  rpc GetCropRequirements(CropRequirementsRequest) returns (CropRequirements);
+}
+
+message SensorReading {
+  string sensor_id = 1;
+  double temperature_c = 2;
+  double humidity_pct = 3;
+  int64 timestamp = 4;
+  double lat = 5;
+  double lon = 6;
+}
+
+message SensorReadingResponse {
+  bool within_range = 1;
+  string alert_level = 2; // none, warning, critical
+  string crop = 3;
+}
+
+message AlertRequest {
+  string sensor_id = 1;
+  int32 limit = 2;
+}
+
+message AlertList {
+  repeated Alert alerts = 1;
+}
+
+message Alert {
+  string id = 1;
+  string sensor_id = 2;
+  string type = 3;
+  string severity = 4;
+  double value = 5;
+  double threshold = 6;
+  int64 timestamp = 7;
+}
+
+message CropRequirementsRequest {
+  string crop = 1;
+}
+
+message CropRequirements {
+  string crop = 1;
+  double min_temp = 2;
+  double max_temp = 3;
+  double min_humidity = 4;
+  double max_humidity = 5;
+  int32 max_shelf_life_hours = 6;
+}
+
+// ===== ML Inference Service (Python :8096) =====
+
+service MLInferenceService {
+  rpc PredictYield(YieldPredictionRequest) returns (YieldPredictionResponse);
+  rpc PredictPrice(PricePredictionRequest) returns (PricePredictionResponse);
+  rpc ScoreCredit(CreditScoreRequest) returns (CreditScoreResponse);
+  rpc DetectFraud(FraudDetectionRequest) returns (FraudDetectionResponse);
+  rpc AnalyzeSoil(SoilAnalysisRequest) returns (SoilAnalysisResponse);
+  rpc DiagnoseDisease(DiseaseDiagnosisRequest) returns (DiseaseDiagnosisResponse);
+}
+
+message YieldPredictionRequest {
+  string crop = 1;
+  double farm_size_ha = 2;
+  double soil_ph = 3;
+  double rainfall_mm = 4;
+  double temperature_c = 5;
+  double fertilizer_kg = 6;
+  int32 season = 7;
+}
+
+message YieldPredictionResponse {
+  double predicted_yield_kg_ha = 1;
+  double confidence = 2;
+  string model_version = 3;
+}
+
+message PricePredictionRequest {
+  string crop = 1;
+  repeated double price_history = 2;
+  int32 forecast_days = 3;
+}
+
+message PricePredictionResponse {
+  repeated double forecast = 1;
+  double confidence = 2;
+}
+
+message CreditScoreRequest {
+  double loan_amount = 1;
+  double annual_income = 2;
+  double farm_size_ha = 3;
+  int32 farming_years = 4;
+  int32 previous_loans = 5;
+  int32 on_time_payments = 6;
+  double savings_balance = 7;
+  int32 dependents = 8;
+}
+
+message CreditScoreResponse {
+  double repayment_probability = 1;
+  string risk_category = 2; // excellent, good, fair, poor
+  double confidence = 3;
+}
+
+message FraudDetectionRequest {
+  double amount = 1;
+  double sender_balance = 2;
+  int32 hour_of_day = 3;
+  int32 transaction_count_24h = 4;
+  double avg_transaction_amount = 5;
+  int32 is_new_recipient = 6;
+  double distance_from_usual_km = 7;
+  int32 device_changed = 8;
+}
+
+message FraudDetectionResponse {
+  double fraud_probability = 1;
+  bool is_suspicious = 2;
+  string risk_level = 3;
+}
+
+message SoilAnalysisRequest {
+  double ph = 1;
+  double nitrogen_ppm = 2;
+  double phosphorus_ppm = 3;
+  double potassium_ppm = 4;
+  double organic_matter_pct = 5;
+  double cec_meq_100g = 6;
+  double moisture_pct = 7;
+  optional double latitude = 8;
+  optional double longitude = 9;
+  optional double elevation_m = 10;
+  optional double annual_rainfall_mm = 11;
+  optional double avg_temperature_c = 12;
+  optional double ndvi = 13;
+}
+
+message SoilAnalysisResponse {
+  double health_score = 1;
+  string health_category = 2;
+  string fertility_class = 3;
+  double fertility_confidence = 4;
+  repeated SoilRecommendation recommendations = 5;
+  repeated CropSuitabilityEntry crop_suitability = 6;
+}
+
+message SoilRecommendation {
+  string action = 1;
+  string description = 2;
+  double confidence = 3;
+}
+
+message CropSuitabilityEntry {
+  string crop = 1;
+  string suitability = 2;
+  string note = 3;
+}
+
+message DiseaseDiagnosisRequest {
+  repeated float image_tensor = 1;
+  int32 width = 2;
+  int32 height = 3;
+}
+
+message DiseaseDiagnosisResponse {
+  string disease = 1;
+  double confidence = 2;
+  string treatment = 3;
+  repeated string preventive_measures = 4;
+}
+
+// ===== Tokenization Service (Rust :8094) =====
+
+service TokenizationService {
+  rpc MintCommodityToken(MintTokenRequest) returns (MintTokenResponse);
+  rpc PlaceOrder(OrderRequest) returns (OrderResponse);
+  rpc GetOrderBook(OrderBookRequest) returns (OrderBookResponse);
+  rpc SettleTrade(TradeSettlement) returns (TradeSettlementResponse);
+}
+
+message MintTokenRequest {
+  string commodity = 1;
+  double quantity_kg = 2;
+  string farmer_id = 3;
+  string quality_grade = 4;
+  int64 harvest_date = 5;
+}
+
+message MintTokenResponse {
+  string token_id = 1;
+  string commodity = 2;
+  double quantity_kg = 3;
+  string status = 4;
+}
+
+message OrderRequest {
+  string token_id = 1;
+  string side = 2; // buy, sell
+  double price = 3;
+  double quantity = 4;
+  string trader_id = 5;
+}
+
+message OrderResponse {
+  string order_id = 1;
+  string status = 2;
+  double filled_quantity = 3;
+}
+
+message OrderBookRequest {
+  string commodity = 1;
+  int32 depth = 2;
+}
+
+message OrderBookResponse {
+  repeated OrderBookEntry bids = 1;
+  repeated OrderBookEntry asks = 2;
+}
+
+message OrderBookEntry {
+  double price = 1;
+  double quantity = 2;
+  int32 order_count = 3;
+}
+
+message TradeSettlement {
+  string trade_id = 1;
+  string buyer_id = 2;
+  string seller_id = 3;
+  double amount = 4;
+  string currency = 5;
+}
+
+message TradeSettlementResponse {
+  bool success = 1;
+  string settlement_id = 2;
+  string status = 3;
+}

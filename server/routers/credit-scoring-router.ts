@@ -3,7 +3,7 @@
  * Transparent, explainable credit scoring for smallholder farmers
  */
 
-import { router, publicProcedure } from '../_core/trpc-base.js';
+import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { eq, and, desc } from 'drizzle-orm';
@@ -92,7 +92,7 @@ function calculateInterestRate(band: string): number {
 
 export const creditScoringRouter = router({
   // Get user's current credit score
-  getScore: publicProcedure
+  getScore: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -126,7 +126,7 @@ export const creditScoringRouter = router({
     }),
 
   // Calculate credit score for user
-  calculateScore: publicProcedure
+  calculateScore: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -244,7 +244,7 @@ export const creditScoringRouter = router({
     }),
 
   // Get score history
-  getHistory: publicProcedure
+  getHistory: protectedProcedure
     .input(z.object({
       userId: z.number(),
       limit: z.number().default(12),
@@ -264,7 +264,7 @@ export const creditScoringRouter = router({
     }),
 
   // Record repayment
-  recordRepayment: publicProcedure
+  recordRepayment: protectedProcedure
     .input(z.object({
       userId: z.number(),
       loanId: z.number().optional(),
@@ -293,7 +293,7 @@ export const creditScoringRouter = router({
     }),
 
   // Record income
-  recordIncome: publicProcedure
+  recordIncome: protectedProcedure
     .input(z.object({
       userId: z.number(),
       incomeType: z.string(),
@@ -321,7 +321,7 @@ export const creditScoringRouter = router({
     }),
 
   // Get repayment records
-  getRepaymentRecords: publicProcedure
+  getRepaymentRecords: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -337,7 +337,7 @@ export const creditScoringRouter = router({
     }),
 
   // Get income records
-  getIncomeRecords: publicProcedure
+  getIncomeRecords: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -353,7 +353,7 @@ export const creditScoringRouter = router({
     }),
 
   // Get credit score models
-  getModels: publicProcedure
+  getModels: protectedProcedure
     .query(async () => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
@@ -367,7 +367,7 @@ export const creditScoringRouter = router({
     }),
 
   // Get band thresholds and limits
-  getBandInfo: publicProcedure
+  getBandInfo: protectedProcedure
     .query(async () => {
       return {
         bands: [

@@ -8,6 +8,7 @@ import { router, protectedProcedure, publicProcedure } from '../trpc.js';
 import { TRPCError } from '@trpc/server';
 import { createKycService, type KycTier, type KycStatus, type DocumentType } from '../services/kyc-service.js';
 import { getDb } from '../db.js';
+import { resilientFetch } from '../services/resilient-http.js';
 import { userKycProfiles, kycDocuments, kycVerificationHistory } from '../../drizzle/kyc-schema.js';
 import { eq, desc, and } from 'drizzle-orm';
 
@@ -1005,15 +1006,14 @@ export const kycRouter = router({
       const kycServiceUrl = process.env.KYC_SERVICE_URL || 'http://localhost:8104';
 
       try {
-        const response = await fetch(`${kycServiceUrl}/liveness/verify`, {
+        const response = await resilientFetch('kyc-service', `${kycServiceUrl}/liveness/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             frames: input.frames,
             challenge_type: input.challengeType,
           }),
-          signal: AbortSignal.timeout(15000),
-        });
+        }, { maxRetries: 2, timeoutMs: 15_000 });
 
         if (response.ok) {
           const data = await response.json();
@@ -1064,7 +1064,7 @@ export const kycRouter = router({
       const kycServiceUrl = process.env.KYC_SERVICE_URL || 'http://localhost:8104';
 
       try {
-        const response = await fetch(`${kycServiceUrl}/kyb/verify`, {
+        const response = await resilientFetch('kyc-service', `${kycServiceUrl}/kyb/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1074,8 +1074,7 @@ export const kycRouter = router({
             document_base64: input.documentBase64 || null,
             directors: input.directors,
           }),
-          signal: AbortSignal.timeout(15000),
-        });
+        }, { maxRetries: 2, timeoutMs: 15_000 });
 
         if (response.ok) {
           const data = await response.json();
@@ -1121,7 +1120,7 @@ export const kycRouter = router({
       const kycServiceUrl = process.env.KYC_SERVICE_URL || 'http://localhost:8104';
 
       try {
-        const response = await fetch(`${kycServiceUrl}/translate`, {
+        const response = await resilientFetch('kyc-service', `${kycServiceUrl}/translate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1129,8 +1128,7 @@ export const kycRouter = router({
             source_lang: input.sourceLang,
             target_lang: input.targetLang,
           }),
-          signal: AbortSignal.timeout(5000),
-        });
+        }, { maxRetries: 2, timeoutMs: 5_000 });
 
         if (response.ok) {
           const data = await response.json();

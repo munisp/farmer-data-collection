@@ -3,6 +3,7 @@ import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.
 import { requireDb } from "../utils/require-db.js";
 import { farmers, users, weatherStations } from "../../drizzle/schema.js";
 import { eq, sql, and } from "drizzle-orm";
+import { resilientFetch } from "../services/resilient-http.js";
 
 const AFRICASTALKING_API_KEY = process.env.AFRICASTALKING_API_KEY || "";
 const AFRICASTALKING_USERNAME = process.env.AFRICASTALKING_USERNAME || "sandbox";
@@ -105,7 +106,7 @@ export const weatherAlertsRouter = router({
         for (let i = 0; i < phoneNumbers.length; i += batchSize) {
           const batch = phoneNumbers.slice(i, i + batchSize);
           try {
-            await fetch(AFRICASTALKING_URL, {
+            await resilientFetch("africastalking", AFRICASTALKING_URL, {
               method: "POST",
               headers: {
                 apiKey: AFRICASTALKING_API_KEY,
@@ -117,7 +118,7 @@ export const weatherAlertsRouter = router({
                 to: batch.join(","),
                 message: `[FarmConnect ${input.severity.toUpperCase()}] ${message}`,
               }),
-            });
+            }, { maxRetries: 2, timeoutMs: 15_000 });
             smsDelivered += batch.length;
           } catch {
             // SMS delivery failure is non-fatal

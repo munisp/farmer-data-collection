@@ -17,22 +17,18 @@ import { requireDb } from "../utils/require-db.js";
 import { soilTests, soilHistory } from "../../drizzle/supply-chain-schema.js";
 import { eq, and, desc, gte, lte, sql, asc } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
+import { resilientPost } from "../services/resilient-http.js";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8096";
 
 async function callMLService(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {
-    const resp = await fetch(`${ML_SERVICE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!resp.ok) {
-      const text = await resp.text();
-      return { error: `ML service error: ${text}` };
-    }
-    return await resp.json() as Record<string, unknown>;
+    return await resilientPost<Record<string, unknown>>(
+      "ml-inference-service",
+      `${ML_SERVICE_URL}${path}`,
+      body,
+      { maxRetries: 2, timeoutMs: 15_000 },
+    );
   } catch {
     return { error: "ML inference service unavailable" };
   }

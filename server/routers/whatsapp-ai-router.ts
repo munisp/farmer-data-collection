@@ -3,6 +3,7 @@ import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.
 import { requireDb } from "../utils/require-db.js";
 import { users } from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
+import { resilientFetch } from "../services/resilient-http.js";
 
 const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL || "https://graph.facebook.com/v18.0";
 const WHATSAPP_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || "";
@@ -79,7 +80,7 @@ export const whatsappAiRouter = router({
 
       if (WHATSAPP_TOKEN && WHATSAPP_PHONE_ID) {
         try {
-          await fetch(`${WHATSAPP_API_URL}/${WHATSAPP_PHONE_ID}/messages`, {
+          await resilientFetch("whatsapp-api", `${WHATSAPP_API_URL}/${WHATSAPP_PHONE_ID}/messages`, {
             method: "POST",
             headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -88,7 +89,7 @@ export const whatsappAiRouter = router({
               type: "text",
               text: { body: message },
             }),
-          });
+          }, { maxRetries: 2, timeoutMs: 15_000 });
         } catch {
           // WhatsApp delivery failure is non-fatal
         }
