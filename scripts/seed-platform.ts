@@ -263,8 +263,8 @@ async function seedFarmInputs(farmIds: number[], cropIds: number[], userIds: num
 
     try {
       await db.execute(sql`
-        INSERT INTO farm_inputs (farm_id, crop_id, user_id, input_type, input_name, quantity, unit, cost_per_unit, total_cost, application_date, notes)
-        VALUES (${randomChoice(farmIds)}, ${randomChoice(cropIds)}, ${randomChoice(userIds)}, ${inputType}, ${inputName}, ${randomFloat(1, 100)}, ${randomChoice(['kg', 'litres', 'bags', 'packets'])}, ${randomInt(100, 5000)}, ${randomInt(500, 50000)}, ${randomDate(new Date('2024-01-01'), new Date('2025-06-01')).toISOString()}, ${randomChoice(['Applied during planting', 'Top dressing', 'Pest control application', 'Pre-emergence', ''])})
+        INSERT INTO farm_inputs (farm_id, crop_id, user_id, input_type, input_name, quantity, unit, cost_per_unit, total_cost, purchase_date, application_date, supplier, notes)
+        VALUES (${randomChoice(farmIds)}, ${randomChoice(cropIds)}, ${randomChoice(userIds)}, ${inputType}, ${inputName}, ${randomFloat(1, 100)}, ${randomChoice(['kg', 'litres', 'bags', 'packets'])}, ${randomInt(100, 5000)}, ${randomInt(500, 50000)}, ${randomDate(new Date('2024-01-01'), new Date('2025-06-01')).toISOString()}, ${randomDate(new Date('2024-01-01'), new Date('2025-06-01')).toISOString()}, ${randomChoice(['Kenya Seed Co', 'Twiga Chemicals', 'Syngenta EA', 'KARI', 'Agri-Input Supplies', 'Local Agro-vet'])}, ${randomChoice(['Applied during planting', 'Top dressing', 'Pest control application', 'Pre-emergence', ''])})
       `);
       created++;
     } catch {
@@ -301,7 +301,7 @@ async function seedExpenses(farmIds: number[], userIds: number[]): Promise<void>
   for (let i = 0; i < count; i++) {
     try {
       await db.execute(sql`
-        INSERT INTO expenses (farm_id, user_id, category, description, amount, expense_date, payment_method, receipt_number)
+        INSERT INTO expenses (farm_id, user_id, category, description, amount, expense_date, payment_method, receipt)
         VALUES (${randomChoice(farmIds)}, ${randomChoice(userIds)}, ${randomChoice(EXPENSE_CATEGORIES)}, ${randomChoice(['Casual labor for weeding', 'Transport to market', 'Storage rental', 'Packaging materials', 'Vet visit', 'Equipment hire', 'Marketing fees', 'Insurance premium'])}, ${randomInt(500, 50000)}, ${randomDate(new Date('2024-01-01'), new Date('2025-06-01')).toISOString()}, ${randomChoice(['Cash', 'M-Pesa', 'Bank Transfer', 'Cheque'])}, ${`RCP-${randomInt(10000, 99999)}`})
       `);
       created++;
@@ -323,8 +323,8 @@ async function seedMarketplace(userIds: number[]): Promise<void> {
 
     try {
       await db.execute(sql`
-        INSERT INTO produce_listings (user_id, title, description, category, produce_type, variety, quantity, unit, price_per_unit, currency, quality_grade, location, latitude, longitude, is_organic, harvest_date, expiry_date, status, views_count, inquiries_count)
-        VALUES (${randomChoice(userIds)}, ${`Fresh ${crop.name} - ${randomChoice(crop.variety)}`}, ${`High quality ${crop.name} from ${randomChoice(REGIONS)} Kenya. ${randomChoice(['Freshly harvested', 'Well sorted', 'Grade A quality', 'Organically grown', 'Direct from farm'])}.`}, 'produce', ${crop.name.toLowerCase()}, ${randomChoice(crop.variety)}, ${quantity}, ${randomChoice(['kg', 'tonnes', 'bags', 'crates'])}, ${pricePerUnit}, 'KES', ${randomChoice(['A', 'B', 'C', 'Premium'])}, ${randomChoice(VILLAGES)}, ${randomFloat(-1.5, 1.5, 6)}, ${randomFloat(34, 41, 6)}, ${Math.random() > 0.7}, ${randomDate(new Date('2025-01-01'), new Date('2025-06-01')).toISOString()}, ${randomDate(new Date('2025-07-01'), new Date('2025-12-01')).toISOString()}, ${randomChoice(['active', 'active', 'active', 'sold', 'expired'])}, ${randomInt(0, 500)}, ${randomInt(0, 50)})
+        INSERT INTO produce_listings (user_id, title, description, category, quantity, unit, price_per_unit, total_price, organic, location, available_from, available_until, status, views)
+        VALUES (${randomChoice(userIds)}, ${`Fresh ${crop.name} - ${randomChoice(crop.variety)}`}, ${`High quality ${crop.name} from ${randomChoice(REGIONS)} Kenya. ${randomChoice(['Freshly harvested', 'Well sorted', 'Grade A quality', 'Organically grown', 'Direct from farm'])}.`}, 'produce', ${quantity}, ${randomChoice(['kg', 'tonnes', 'bags', 'crates'])}, ${pricePerUnit}, ${pricePerUnit * quantity}, ${Math.random() > 0.7}, ${randomChoice(VILLAGES)}, ${randomDate(new Date('2025-01-01'), new Date('2025-06-01')).toISOString()}, ${randomDate(new Date('2025-07-01'), new Date('2025-12-01')).toISOString()}, ${randomChoice(['active', 'active', 'active', 'sold', 'expired'])}, ${randomInt(0, 500)})
       `);
       created++;
     } catch {
@@ -364,8 +364,8 @@ async function seedSupplyChain(userIds: number[], farmIds: number[]): Promise<vo
   for (const zone of zones) {
     try {
       await db.execute(sql`
-        INSERT INTO delivery_zones (name, description, base_delivery_fee, estimated_delivery_time)
-        VALUES (${zone}, ${`Delivery zone covering ${zone} and surroundings`}, ${randomInt(100, 500)}, ${`${randomInt(1, 5)} days`})
+        INSERT INTO delivery_zones (name, city, country, base_fee, per_km_fee, currency, active)
+        VALUES (${zone}, ${zone}, 'Kenya', ${randomInt(100, 500)}, ${randomInt(10, 50)}, 'KES', true)
       `);
     } catch { /* Skip */ }
   }
@@ -374,8 +374,8 @@ async function seedSupplyChain(userIds: number[], farmIds: number[]): Promise<vo
   for (let i = 0; i < 15; i++) {
     try {
       await db.execute(sql`
-        INSERT INTO collection_points (name, location, latitude, longitude, capacity, operating_hours, contact_phone, is_active)
-        VALUES (${`${randomChoice(VILLAGES)} Collection Center ${i + 1}`}, ${randomChoice(VILLAGES)}, ${randomFloat(-1.5, 1.5, 6)}, ${randomFloat(34, 41, 6)}, ${randomInt(500, 10000)}, ${'Mon-Sat 6AM-6PM'}, ${randomPhone()}, true)
+        INSERT INTO collection_points (name, address, latitude, longitude, capacity_tons, operating_hours, contact_phone, active)
+        VALUES (${`${randomChoice(VILLAGES)} Collection Center ${i + 1}`}, ${randomChoice(VILLAGES)}, ${randomFloat(-1.5, 1.5, 6)}, ${randomFloat(34, 41, 6)}, ${randomFloat(5, 100)}, ${'Mon-Sat 6AM-6PM'}, ${randomPhone()}, true)
       `);
     } catch { /* Skip */ }
   }
@@ -472,8 +472,8 @@ async function seedAuditLogs(userIds: number[]): Promise<void> {
   for (let i = 0; i < 100; i++) {
     try {
       await db.execute(sql`
-        INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details, ip_address)
-        VALUES (${randomChoice(userIds)}, ${randomChoice(actions)}, ${randomChoice(['farmer', 'farm', 'crop', 'listing', 'order', 'loan'])}, ${randomInt(1, 100)}, ${JSON.stringify({ source: 'web', browser: 'Chrome' })}, ${`192.168.${randomInt(1, 254)}.${randomInt(1, 254)}`})
+        INSERT INTO audit_logs (event_id, event_type, entity_type, entity_id, user_id, timestamp, data, metadata)
+        VALUES (${randomUUID()}, ${randomChoice(actions)}, ${randomChoice(['farmer', 'farm', 'crop', 'listing', 'order', 'loan'])}, ${String(randomInt(1, 100))}, ${randomChoice(userIds)}, ${randomDate(new Date('2024-01-01'), new Date('2025-06-01')).toISOString()}, ${JSON.stringify({ source: 'web', browser: 'Chrome' })}, ${JSON.stringify({ ip: `192.168.${randomInt(1, 254)}.${randomInt(1, 254)}` })})
       `);
       created++;
     } catch {

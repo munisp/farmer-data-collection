@@ -13,7 +13,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { getSyncManager, SyncStatus, TableSyncResult } from '@/lib/syncManager';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '@/lib/trpc';
 
 // ============================================================================
 // Types
@@ -70,7 +70,6 @@ const PYTHON_ANALYTICS_URL = import.meta.env.VITE_PYTHON_ANALYTICS_URL || 'http:
 
 export function useSyncWithWebSocket() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const socketRef = useRef<Socket | null>(null);
   const syncManager = useRef(getSyncManager());
   const lastSyncTrigger = useRef<number>(0);
