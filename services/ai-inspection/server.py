@@ -27,14 +27,15 @@ from modules.ocr_engine import OCREngine
 from modules.vlm_analyzer import VLMAnalyzer
 from modules.document_parser import DocumentParser
 from modules.llm_grader import LLMGrader
+from modules.produce_detector import ProduceInspectionPipeline
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("ai-inspection")
 
 app = FastAPI(
     title="FarmConnect AI Inspection Service",
-    description="AI-powered produce inspection using PaddleOCR, VLM, Docling, and Ollama-Qwen",
-    version="1.0.0",
+    description="AI-powered produce inspection using PaddleOCR, VLM, Docling, Ollama-Qwen, YOLOv8, SAM2, DINOv2",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -72,6 +73,12 @@ class InspectionResult(BaseModel):
     defects_detected: list[dict] = Field(default_factory=list)
     color_analysis: dict = Field(default_factory=dict)
     ripeness_score: Optional[float] = None
+
+    # CV pipeline results (YOLOv8 + SAM2 + DINOv2)
+    cv_detections: list[dict] = Field(default_factory=list)
+    cv_segmentation: dict = Field(default_factory=dict)
+    cv_grade_classification: dict = Field(default_factory=dict)
+    cv_summary: dict = Field(default_factory=dict)
 
     # Sensor readings
     moisture_content: Optional[float] = None
@@ -118,6 +125,7 @@ ocr_engine = OCREngine()
 vlm_analyzer = VLMAnalyzer(ollama_url=OLLAMA_URL, model=VLM_MODEL)
 doc_parser = DocumentParser()
 llm_grader = LLMGrader(ollama_url=OLLAMA_URL, model=OLLAMA_MODEL)
+cv_pipeline = ProduceInspectionPipeline()
 
 # ─── Endpoints ─────────────────────────────────────────────────────────────
 
@@ -126,12 +134,13 @@ async def health():
     return HealthResponse(
         status="healthy",
         service="ai-inspection",
-        version="1.0.0",
+        version="2.0.0",
         models={
             "paddleocr": ocr_engine.get_status(),
             "vlm": vlm_analyzer.get_status(),
             "docling": doc_parser.get_status(),
             "ollama_qwen": llm_grader.get_status(),
+            **{f"cv_{k}": v for k, v in cv_pipeline.get_status().items()},
         },
         uptime_seconds=round(time.time() - start_time, 1),
     )
@@ -142,8 +151,11 @@ async def inspect_produce(req: InspectionRequest):
     """
     Full AI inspection pipeline:
     1. PaddleOCR — extract text from produce labels/certificates in the image
-    2. VLM — analyze produce quality (color, defects, ripeness) from the photo
-    3. Ollama-Qwen — reason about grade based on all evidence (visual + sensor)
+    2. YOLOv8 — detect and classify produce items and defects
+    3. SAM2 — segment detections for precise area measurement
+    4. DINOv2 — classify produce grade from visual features
+    5. VLM — analyze produce quality (color, defects, ripeness) from the photo
+    6. Ollama-Qwen — reason about grade based on all evidence (visual + sensor + CV)
     """
     t0 = time.time()
     inspection_id = f"INS-{uuid.uuid4().hex[:8].upper()}"
@@ -165,7 +177,14 @@ async def inspect_produce(req: InspectionRequest):
         ocr_certificates = ocr_result.get("certificates", [])
         models_used.append("PaddleOCR")
 
-    # 2. VLM — visual quality analysis
+    # 2-4. YOLOv8 + SAM2 + DINOv2 — detection, segmentation, classification
+    cv_result: dict = {"detection": {}, "segmentation": {}, "grade_classification": {}, "summary": {}}
+    if image_bytes:
+        cv_result = await asyncio.to_thread(cv_pipeline.inspect, image_bytes, req.crop_type)
+        for m in cv_result.get("summary", {}).get("models_used", []):
+            models_used.append(m)
+
+    # 5. VLM — visual quality analysis
     visual_quality: dict = {}
     defects_detected: list[dict] = []
     color_analysis: dict = {}
@@ -182,7 +201,18 @@ async def inspect_produce(req: InspectionRequest):
         ripeness_score = vlm_result.get("ripeness_score")
         models_used.append(f"VLM ({VLM_MODEL})")
 
-    # 3. Ollama-Qwen — grade reasoning
+    # Merge CV defect detections with VLM defects
+    cv_detections_list = cv_result.get("detection", {}).get("detections", [])
+    for det in cv_detections_list:
+        if any(w in det.get("class", "").lower() for w in ["rot", "mold", "damage", "defect", "pest"]):
+            defects_detected.append({
+                "type": det["class"],
+                "severity": "moderate" if det.get("confidence", 0) > 0.5 else "minor",
+                "affected_percentage": round(det.get("confidence", 0) * 10, 1),
+                "description": f"Detected by YOLOv8 ({det.get('confidence', 0):.0%} confidence)",
+            })
+
+    # 6. Ollama-Qwen — grade reasoning (with CV results)
     grade_result = await llm_grader.recommend_grade(
         crop_type=req.crop_type,
         quantity_kg=req.quantity_kg,
@@ -195,6 +225,21 @@ async def inspect_produce(req: InspectionRequest):
         ocr_labels=ocr_labels,
     )
     models_used.append(f"Ollama-Qwen ({OLLAMA_MODEL})")
+
+    # Reconcile grade: DINOv2 classifier + LLM ensemble
+    cv_grade = cv_result.get("grade_classification", {}).get("predicted_grade", "")
+    llm_grade = grade_result["grade"]
+    final_grade = llm_grade
+    final_confidence = grade_result["confidence"]
+
+    if cv_grade and cv_grade != llm_grade:
+        cv_conf = cv_result.get("grade_classification", {}).get("confidence", 0)
+        if cv_conf > grade_result["confidence"]:
+            final_grade = cv_grade
+            final_confidence = (cv_conf + grade_result["confidence"]) / 2
+            grade_result["reasoning"] += f" (DINOv2 suggested {cv_grade} at {cv_conf:.0%}; weighted ensemble)"
+        else:
+            grade_result["reasoning"] += f" (DINOv2 also analyzed: {cv_grade} at {cv_conf:.0%})"
 
     elapsed = (time.time() - t0) * 1000
 
@@ -210,10 +255,14 @@ async def inspect_produce(req: InspectionRequest):
         defects_detected=defects_detected,
         color_analysis=color_analysis,
         ripeness_score=ripeness_score,
+        cv_detections=cv_detections_list,
+        cv_segmentation=cv_result.get("segmentation", {}),
+        cv_grade_classification=cv_result.get("grade_classification", {}),
+        cv_summary=cv_result.get("summary", {}),
         moisture_content=req.moisture_reading,
         foreign_matter=req.foreign_matter_reading,
-        recommended_grade=grade_result["grade"],
-        grade_confidence=grade_result["confidence"],
+        recommended_grade=final_grade,
+        grade_confidence=final_confidence,
         grade_reasoning=grade_result["reasoning"],
         grade_factors=grade_result["factors"],
         processing_time_ms=round(elapsed, 1),

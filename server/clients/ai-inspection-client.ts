@@ -2,8 +2,8 @@
  * AI Inspection Service Client
  *
  * TypeScript client for communicating with the Python AI Inspection service.
- * Combines PaddleOCR, VLM (Vision-Language Model), Docling, and Ollama-Qwen
- * for AI-powered produce inspection and grading at aggregation hubs.
+ * Combines PaddleOCR, VLM, Docling, Ollama-Qwen, YOLOv8, SAM2, and DINOv2
+ * for AI-powered produce inspection, detection, segmentation, and grading.
  *
  * Service runs on port 8110 (configured via AI_INSPECTION_SERVICE_URL)
  */
@@ -71,6 +71,34 @@ export interface InspectionResult {
   };
   ripeness_score: number | null;
 
+  // CV pipeline results (YOLOv8 + SAM2 + DINOv2)
+  cv_detections: Array<{
+    class: string;
+    confidence: number;
+    bbox: number[];
+    bbox_normalized: number[];
+  }>;
+  cv_segmentation: {
+    segments?: Array<{ bbox: number[]; mask_area_pixels: number; mask_percentage: number; score: number }>;
+    total_mask_area?: number;
+    model?: string;
+  };
+  cv_grade_classification: {
+    predicted_grade?: string;
+    confidence?: number;
+    grade_probabilities?: Record<string, number>;
+    feature_vector_dim?: number;
+    model?: string;
+  };
+  cv_summary: {
+    items_detected?: number;
+    defects_found?: number;
+    defect_area_percentage?: number;
+    predicted_grade?: string;
+    grade_confidence?: number;
+    models_used?: string[];
+  };
+
   moisture_content: number | null;
   foreign_matter: number | null;
 
@@ -102,7 +130,7 @@ export interface AIInspectionHealth {
   status: string;
   service: string;
   version: string;
-  models: {
+  models: Record<string, string> & {
     paddleocr: string;
     vlm: string;
     docling: string;

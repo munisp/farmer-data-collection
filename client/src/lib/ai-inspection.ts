@@ -1,8 +1,8 @@
 /**
  * Client-side AI Inspection API utilities.
  *
- * Calls the Python AI Inspection service (PaddleOCR + VLM + Docling + Ollama-Qwen)
- * for produce quality analysis and grade recommendation.
+ * Calls the Python AI Inspection service (PaddleOCR + VLM + Docling + Ollama-Qwen + YOLOv8 + SAM2 + DINOv2)
+ * for produce quality analysis, detection, segmentation, and grade recommendation.
  */
 
 const AI_INSPECTION_URL = import.meta.env.VITE_AI_INSPECTION_URL || "http://localhost:8110";
@@ -64,6 +64,39 @@ export interface AIInspectionResult {
   };
   ripeness_score: number | null;
 
+  // CV pipeline results (YOLOv8 + SAM2 + DINOv2)
+  cv_detections: Array<{
+    class: string;
+    confidence: number;
+    bbox: number[];
+    bbox_normalized: number[];
+  }>;
+  cv_segmentation: {
+    segments?: Array<{
+      bbox: number[];
+      mask_area_pixels: number;
+      mask_percentage: number;
+      score: number;
+    }>;
+    total_mask_area?: number;
+    model?: string;
+  };
+  cv_grade_classification: {
+    predicted_grade?: string;
+    confidence?: number;
+    grade_probabilities?: Record<string, number>;
+    feature_vector_dim?: number;
+    model?: string;
+  };
+  cv_summary: {
+    items_detected?: number;
+    defects_found?: number;
+    defect_area_percentage?: number;
+    predicted_grade?: string;
+    grade_confidence?: number;
+    models_used?: string[];
+  };
+
   moisture_content: number | null;
   foreign_matter: number | null;
 
@@ -80,12 +113,7 @@ export interface AIHealthStatus {
   status: string;
   service: string;
   version: string;
-  models: {
-    paddleocr: string;
-    vlm: string;
-    docling: string;
-    ollama_qwen: string;
-  };
+  models: Record<string, string>;
   uptime_seconds: number;
 }
 

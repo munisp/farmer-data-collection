@@ -632,6 +632,101 @@ export default function AggregationHub() {
                         </div>
                       )}
 
+                      {/* CV Pipeline Results (YOLOv8 + SAM2 + DINOv2) */}
+                      {(aiResult.cv_detections?.length > 0 || aiResult.cv_grade_classification?.predicted_grade) && (
+                        <Card className="dark:bg-gray-900/50 border-blue-200 dark:border-blue-800">
+                          <CardContent className="pt-3 pb-3 space-y-2">
+                            <p className="text-xs font-medium flex items-center gap-1">
+                              <Zap className="h-3 w-3 text-blue-500" /> Computer Vision Pipeline
+                            </p>
+
+                            {/* CV Detection summary */}
+                            {aiResult.cv_summary && (
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div className="text-center p-1 bg-blue-50 dark:bg-blue-900/20 rounded">
+                                  <div className="font-bold text-blue-600">{aiResult.cv_summary.items_detected ?? 0}</div>
+                                  <div className="text-muted-foreground">Items Detected</div>
+                                </div>
+                                <div className="text-center p-1 bg-orange-50 dark:bg-orange-900/20 rounded">
+                                  <div className="font-bold text-orange-600">{aiResult.cv_summary.defects_found ?? 0}</div>
+                                  <div className="text-muted-foreground">Defects Found</div>
+                                </div>
+                                <div className="text-center p-1 bg-red-50 dark:bg-red-900/20 rounded">
+                                  <div className="font-bold text-red-600">{aiResult.cv_summary.defect_area_percentage ?? 0}%</div>
+                                  <div className="text-muted-foreground">Defect Area</div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* DINOv2 Grade Classification */}
+                            {aiResult.cv_grade_classification?.predicted_grade && (
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="text-muted-foreground">DINOv2 Grade:</span>
+                                <Badge variant="outline" className="text-xs font-mono">
+                                  {aiResult.cv_grade_classification.predicted_grade}
+                                </Badge>
+                                <span className="text-muted-foreground">
+                                  ({((aiResult.cv_grade_classification.confidence ?? 0) * 100).toFixed(0)}% conf)
+                                </span>
+                                {aiResult.cv_grade_classification.model && (
+                                  <span className="text-muted-foreground opacity-60">via {aiResult.cv_grade_classification.model}</span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* YOLOv8 Detections */}
+                            {aiResult.cv_detections?.length > 0 && (
+                              <details className="text-xs">
+                                <summary className="cursor-pointer text-blue-600 hover:underline">
+                                  YOLOv8 Detections ({aiResult.cv_detections.length})
+                                </summary>
+                                <div className="mt-1 space-y-1">
+                                  {aiResult.cv_detections.map((det, i) => (
+                                    <div key={i} className="flex items-center gap-2 text-xs">
+                                      <Badge variant="outline" className="text-xs">{det.class}</Badge>
+                                      <span>{(det.confidence * 100).toFixed(0)}%</span>
+                                      <span className="text-muted-foreground font-mono">
+                                        [{det.bbox.map(v => Math.round(v)).join(", ")}]
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            )}
+
+                            {/* SAM2 Segmentation */}
+                            {aiResult.cv_segmentation?.segments && aiResult.cv_segmentation.segments.length > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                SAM2: {aiResult.cv_segmentation.segments.length} segments,{" "}
+                                total area {aiResult.cv_segmentation.total_mask_area?.toFixed(1)}%
+                                <span className="ml-2 opacity-60">({aiResult.cv_segmentation.model})</span>
+                              </div>
+                            )}
+
+                            {/* Grade Probabilities */}
+                            {aiResult.cv_grade_classification?.grade_probabilities && (
+                              <details className="text-xs">
+                                <summary className="cursor-pointer text-blue-600 hover:underline">Grade probability distribution</summary>
+                                <div className="mt-1 space-y-1">
+                                  {Object.entries(aiResult.cv_grade_classification.grade_probabilities).map(([grade, prob]) => (
+                                    <div key={grade} className="flex items-center gap-2">
+                                      <span className="w-16 font-medium">{grade}</span>
+                                      <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div
+                                          className="h-full bg-blue-500 rounded-full"
+                                          style={{ width: `${(prob as number) * 100}%` }}
+                                        />
+                                      </div>
+                                      <span className="w-12 text-right">{((prob as number) * 100).toFixed(1)}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+
                       {/* Grade Factors */}
                       {aiResult.grade_factors.length > 0 && (
                         <details className="text-xs">
