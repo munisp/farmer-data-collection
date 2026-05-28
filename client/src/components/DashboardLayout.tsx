@@ -60,7 +60,11 @@ import {
   Home,
   Zap,
   BookOpen,
-  Activity
+  Activity,
+  RotateCcw,
+  Store,
+  FileCheck,
+  Snowflake
 } from "lucide-react";
 
 // Navigation sections organized by domain
@@ -105,6 +109,18 @@ const navSections = [
       { href: "/messages", label: "Messages", icon: MessageSquare },
       { href: "/seller-analytics", label: "Seller Analytics", icon: LineChart },
       { href: "/transactions", label: "Transaction History", icon: Receipt },
+      { href: "/returns", label: "Returns & Refunds", icon: RotateCcw },
+      { href: "/freshness", label: "Freshness Tracking", icon: Snowflake },
+    ]
+  },
+  {
+    title: "Retail & B2B",
+    items: [
+      { href: "/retail/store", label: "My Retail Store", icon: Store },
+      { href: "/retail/demand", label: "Retail Demand", icon: TrendingUp },
+      { href: "/retail/standing-orders", label: "Standing Orders", icon: FileCheck },
+      { href: "/retail/invoices", label: "Invoices", icon: Receipt },
+      { href: "/retail/bulk-order", label: "Bulk Ordering", icon: Package },
     ]
   },
   {
@@ -119,6 +135,7 @@ const navSections = [
     title: "Supply Chain & Delivery",
     items: [
       { href: "/delivery", label: "Delivery Dashboard", icon: Truck },
+      { href: "/delivery/tracking", label: "Live Tracking", icon: MapPin },
       { href: "/cold-chain", label: "Cold Chain Monitoring", icon: Thermometer },
       { href: "/price-alerts", label: "Price Alerts", icon: Bell },
       { href: "/subscriptions", label: "Subscription Boxes", icon: Package },

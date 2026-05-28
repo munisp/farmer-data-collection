@@ -72,6 +72,8 @@ import { equipmentFleetRouter } from "./routers/equipment-fleet-router.js";
 import { agriLlmRouter } from "./routers/agri-llm-router.js";
 import { iotGatewayRouter } from "./routers/iot-gateway-router.js";
 import { farmsRouter, livestockRouter, cropsRouter, harvestsRouter, expensesRouter, farmInputsRouter, equipmentRouter, inventoryEnhancementsRouter, traceabilityEnhancementsRouter } from "./routers/core-features-router.js";
+import { orderFulfillmentRouter } from "./routers/order-fulfillment-router.js";
+import { retailStoreRouter } from "./routers/retail-store-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -165,6 +167,9 @@ export const appRouter = router({
   equipmentFleet: equipmentFleetRouter,
   agriLlm: agriLlmRouter,
   iotGateway: iotGatewayRouter,
+  // === Farm-to-Home Pipeline ===
+  orderFulfillment: orderFulfillmentRouter,
+  retailStore: retailStoreRouter,
   // === Core Feature Routers (Production-Grade CRUD + Analytics) ===
   coreFarms: farmsRouter,
   coreLivestock: livestockRouter,

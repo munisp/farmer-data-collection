@@ -16,6 +16,7 @@ import {
   crops
 } from "../drizzle/schema.js";
 import { eq, and, desc, sql, gte, lte, like, or, inArray } from "drizzle-orm";
+import { createEscrowForOrder, notifyOrderStatusChange, requestDeliveryForOrder } from "./services/order-orchestration.js";
 
 // ============================================================================
 // Validation Schemas
@@ -698,6 +699,12 @@ export const marketplaceRouter = router({
           eq(shoppingCartItems.userId, buyerId),
           inArray(shoppingCartItems.listingId, listingIds)
         ));
+
+      // Auto-create escrow to protect buyer payment
+      setImmediate(() => {
+        createEscrowForOrder(order.id, buyerId, sellerId, totalAmount).catch(() => {});
+        notifyOrderStatusChange(order.id, "placed").catch(() => {});
+      });
       
       return order;
     }),
@@ -876,6 +883,26 @@ export const marketplaceRouter = router({
         .set(updates)
         .where(eq(marketplaceOrders.id, input.orderId))
         .returning();
+
+      // Fire-and-forget: notifications + auto-delivery handoff
+      setImmediate(() => {
+        notifyOrderStatusChange(input.orderId, input.status).catch(() => {});
+
+        // Auto-request delivery when order is marked ready or shipped
+        if (input.status === "ready" || input.status === "shipped") {
+          const deliveryAddr = order.deliveryAddress
+            ? (typeof order.deliveryAddress === "string" ? JSON.parse(order.deliveryAddress as string) : order.deliveryAddress)
+            : null;
+          if (deliveryAddr && order.deliveryMethod !== "pickup") {
+            requestDeliveryForOrder(
+              input.orderId,
+              { latitude: -1.2921, longitude: 36.8219 }, // seller location (would come from farm GPS)
+              deliveryAddr,
+              { priority: "normal" },
+            ).catch(() => {});
+          }
+        }
+      });
       
       return updated;
     }),

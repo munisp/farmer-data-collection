@@ -140,6 +140,9 @@ const AIAdvisorDashboard = lazy(() => import("./pages/AIAdvisorDashboard"));
 const KycVerification = lazy(() => import("./pages/KycVerification"));
 const KycAdminDashboard = lazy(() => import("./pages/KycAdminDashboard"));
 const SoilAnalysis = lazy(() => import("./pages/SoilAnalysis"));
+const RetailStoreDashboard = lazy(() => import("./pages/RetailStoreDashboard"));
+const OrderReturns = lazy(() => import("./pages/OrderReturns"));
+const FreshnessTracking = lazy(() => import("./pages/FreshnessTracking"));
 
 function Router() {
   return (
@@ -275,6 +278,13 @@ function Router() {
         <Route path="/admin/kyc" component={KycAdminDashboard} />
         {/* === Soil Analysis === */}
         <Route path="/soil-analysis" component={SoilAnalysis} />
+        <Route path="/retail/store" component={RetailStoreDashboard} />
+        <Route path="/retail/demand" component={RetailStoreDashboard} />
+        <Route path="/retail/standing-orders" component={RetailStoreDashboard} />
+        <Route path="/retail/invoices" component={RetailStoreDashboard} />
+        <Route path="/retail/bulk-order" component={RetailStoreDashboard} />
+        <Route path="/returns" component={OrderReturns} />
+        <Route path="/freshness" component={FreshnessTracking} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

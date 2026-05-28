@@ -944,6 +944,173 @@ export const farmDigitalTwins = pgTable("farm_digital_twins", {
   index("idx_digital_twin_farm").on(table.farmId),
 ]);
 
+// ============================================================================
+// ORDER RETURNS & REFUNDS
+// ============================================================================
+
+export const orderReturns = pgTable("order_returns", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull(),
+  buyerId: integer("buyer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sellerId: integer("seller_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reason: varchar("reason", { length: 50 }).notNull(), // damaged, wrong_item, quality, not_as_described, spoiled, other
+  description: text("description"),
+  photoUrls: text("photo_urls"), // JSON array
+  returnMethod: varchar("return_method", { length: 30 }).default("collection_point"), // collection_point, driver_pickup, drop_off
+  collectionPointId: integer("collection_point_id"),
+  refundAmount: integer("refund_amount"),
+  refundMethod: varchar("refund_method", { length: 20 }), // mobile_money, stripe, wallet
+  status: varchar("status", { length: 20 }).default("requested").notNull(), // requested, approved, rejected, pickup_scheduled, received, refunded
+  sellerResponse: text("seller_response"),
+  adminNotes: text("admin_notes"),
+  approvedAt: timestamp("approved_at"),
+  receivedAt: timestamp("received_at"),
+  refundedAt: timestamp("refunded_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_order_returns_order").on(table.orderId),
+  index("idx_order_returns_buyer").on(table.buyerId),
+  index("idx_order_returns_status").on(table.status),
+]);
+
+// ============================================================================
+// FRESHNESS TRACKING (Cold Chain ↔ Order linkage)
+// ============================================================================
+
+export const orderFreshnessLogs = pgTable("order_freshness_logs", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull(),
+  assignmentId: integer("assignment_id"),
+  sensorId: varchar("sensor_id", { length: 100 }),
+  avgTemperature: decimal("avg_temperature", { precision: 5, scale: 2 }),
+  maxTemperature: decimal("max_temperature", { precision: 5, scale: 2 }),
+  minTemperature: decimal("min_temperature", { precision: 5, scale: 2 }),
+  avgHumidity: decimal("avg_humidity", { precision: 5, scale: 2 }),
+  totalTransitMinutes: integer("total_transit_minutes"),
+  coldChainBreaches: integer("cold_chain_breaches").default(0),
+  estimatedShelfLifeHours: integer("estimated_shelf_life_hours"),
+  freshnessScore: decimal("freshness_score", { precision: 5, scale: 1 }), // 0-100
+  freshnessGrade: varchar("freshness_grade", { length: 5 }), // A+, A, B, C, F
+  harvestDate: timestamp("harvest_date"),
+  packDate: timestamp("pack_date"),
+  deliveryDate: timestamp("delivery_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_freshness_order").on(table.orderId),
+  index("idx_freshness_assignment").on(table.assignmentId),
+]);
+
+// ============================================================================
+// ORDER STATUS NOTIFICATIONS
+// ============================================================================
+
+export const orderNotifications = pgTable("order_notifications", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  channel: varchar("channel", { length: 20 }).notNull(), // push, sms, email, whatsapp, in_app
+  eventType: varchar("event_type", { length: 50 }).notNull(), // order_confirmed, shipped, delivered, return_approved, etc.
+  title: varchar("title", { length: 200 }).notNull(),
+  body: text("body").notNull(),
+  metadata: text("metadata"), // JSON
+  sentAt: timestamp("sent_at"),
+  readAt: timestamp("read_at"),
+  deliveryStatus: varchar("delivery_status", { length: 20 }).default("pending"), // pending, sent, delivered, failed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_order_notif_order").on(table.orderId),
+  index("idx_order_notif_user").on(table.userId),
+]);
+
+// ============================================================================
+// RETAIL STORES (B2B)
+// ============================================================================
+
+export const retailStores = pgTable("retail_stores", {
+  id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 200 }).notNull(),
+  businessType: varchar("business_type", { length: 50 }).notNull(), // supermarket, grocery, restaurant, hotel, school, hospital, wholesaler
+  registrationNumber: varchar("registration_number", { length: 100 }),
+  taxId: varchar("tax_id", { length: 100 }),
+  address: text("address"),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 100 }),
+  country: varchar("country", { length: 100 }).default("Kenya"),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  contactPhone: varchar("contact_phone", { length: 20 }),
+  contactEmail: varchar("contact_email", { length: 200 }),
+  operatingHours: text("operating_hours"), // JSON: { mon: { open: "08:00", close: "20:00" }, ... }
+  deliveryInstructions: text("delivery_instructions"),
+  preferredDeliveryDays: text("preferred_delivery_days"), // JSON: ["monday", "wednesday", "friday"]
+  paymentTerms: varchar("payment_terms", { length: 30 }).default("cod"), // cod, net_7, net_14, net_30, prepaid
+  creditLimit: integer("credit_limit").default(0),
+  creditUsed: integer("credit_used").default(0),
+  currency: varchar("currency", { length: 10 }).default("KES"),
+  verified: boolean("verified").default(false),
+  verifiedAt: timestamp("verified_at"),
+  tier: varchar("tier", { length: 20 }).default("standard"), // standard, premium, enterprise
+  avgMonthlyVolume: integer("avg_monthly_volume"), // in KES
+  preferredCategories: text("preferred_categories"), // JSON: ["vegetables", "fruits", "dairy"]
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_retail_store_owner").on(table.ownerId),
+  index("idx_retail_store_city").on(table.city),
+  index("idx_retail_store_type").on(table.businessType),
+]);
+
+export const retailStandingOrders = pgTable("retail_standing_orders", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").notNull().references(() => retailStores.id, { onDelete: "cascade" }),
+  sellerId: integer("seller_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  category: varchar("category", { length: 50 }).notNull(),
+  productName: varchar("product_name", { length: 200 }),
+  weeklyQuantity: integer("weekly_quantity").notNull(),
+  unit: varchar("unit", { length: 20 }).notNull(),
+  maxPricePerUnit: integer("max_price_per_unit"),
+  qualityGrade: varchar("quality_grade", { length: 5 }).default("A"), // A+, A, B
+  deliveryDay: varchar("delivery_day", { length: 15 }).notNull(), // monday, tuesday, etc.
+  deliveryTimeSlot: varchar("delivery_time_slot", { length: 20 }).default("morning"), // morning, afternoon, evening
+  requiresColdChain: boolean("requires_cold_chain").default(false),
+  autoRenew: boolean("auto_renew").default(true),
+  status: varchar("status", { length: 20 }).default("active"), // active, paused, cancelled
+  lastFulfilledAt: timestamp("last_fulfilled_at"),
+  fulfillmentRate: decimal("fulfillment_rate", { precision: 5, scale: 2 }), // % of orders successfully filled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_retail_standing_store").on(table.storeId),
+  index("idx_retail_standing_seller").on(table.sellerId),
+]);
+
+export const retailInvoices = pgTable("retail_invoices", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").notNull().references(() => retailStores.id, { onDelete: "cascade" }),
+  invoiceNumber: varchar("invoice_number", { length: 50 }).notNull(),
+  orderId: integer("order_id"),
+  subtotal: integer("subtotal").notNull(),
+  taxAmount: integer("tax_amount").default(0),
+  deliveryFee: integer("delivery_fee").default(0),
+  totalAmount: integer("total_amount").notNull(),
+  currency: varchar("currency", { length: 10 }).default("KES"),
+  status: varchar("status", { length: 20 }).default("unpaid"), // unpaid, partial, paid, overdue, cancelled
+  dueDate: timestamp("due_date"),
+  paidAt: timestamp("paid_at"),
+  paymentMethod: varchar("payment_method", { length: 20 }),
+  paymentReference: varchar("payment_reference", { length: 100 }),
+  notes: text("notes"),
+  lineItems: text("line_items"), // JSON: [{product, qty, unit, price, total}]
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_retail_invoice_store").on(table.storeId),
+  index("idx_retail_invoice_status").on(table.status),
+]);
+
 export type Vehicle = typeof vehicles.$inferSelect;
 export type EquipmentBooking = typeof equipmentBookings.$inferSelect;
 export type SavingsGoal = typeof savingsGoals.$inferSelect;
@@ -962,3 +1129,9 @@ export type IotReading = typeof iotReadings.$inferSelect;
 export type EquipmentListing = typeof equipmentListings.$inferSelect;
 export type EquipmentRental = typeof equipmentRentals.$inferSelect;
 export type FarmDigitalTwin = typeof farmDigitalTwins.$inferSelect;
+export type OrderReturn = typeof orderReturns.$inferSelect;
+export type OrderFreshnessLog = typeof orderFreshnessLogs.$inferSelect;
+export type OrderNotification = typeof orderNotifications.$inferSelect;
+export type RetailStore = typeof retailStores.$inferSelect;
+export type RetailStandingOrder = typeof retailStandingOrders.$inferSelect;
+export type RetailInvoice = typeof retailInvoices.$inferSelect;
