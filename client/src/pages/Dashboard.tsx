@@ -8,6 +8,7 @@ import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { tutorialSteps } from "@/config/tutorialSteps";
 import { Loader2 } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
+import { WeatherAlertsWidget } from "@/components/WeatherAlertsWidget";
 import MLInsightsWidget from "@/components/MLInsightsWidget";
 import { NearbyFarmsWidget } from "@/components/NearbyFarmsWidget";
 import { WebSocketStatusWidget, RecentEventsWidget, ActiveAlertsWidget } from "@/components/RealtimeWidgets";
@@ -286,10 +287,11 @@ export default function Dashboard() {
           {/* Weather & AI Insights - Modern Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <WeatherCard 
-              latitude={40.7128} 
-              longitude={-74.0060} 
-              locationName="Default Location" 
+              latitude={7.3775} 
+              longitude={3.9470} 
+              locationName="Ibadan, Oyo State" 
             />
+            <WeatherAlertsWidget />
             <MLInsightsWidget />
             
             {/* AI/ML Models Quick Access - Modern Card */}

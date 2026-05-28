@@ -64,7 +64,10 @@ import {
   RotateCcw,
   Store,
   FileCheck,
-  Snowflake
+  Snowflake,
+  Mic,
+  AlertTriangle,
+  ArrowRightLeft
 } from "lucide-react";
 
 // Navigation sections organized by domain
@@ -171,6 +174,7 @@ const navSections = [
       { href: "/field-overview", label: "Field Overview (EOS)", icon: Satellite },
       { href: "/spatial-analytics", label: "Spatial Analytics", icon: Globe },
       { href: "/weather", label: "Weather Dashboard", icon: Cloud },
+      { href: "/weather-alerts", label: "Weather Alerts", icon: AlertTriangle },
       { href: "/precision-agriculture", label: "Precision Agriculture", icon: Target },
     ]
   },
@@ -215,6 +219,7 @@ const navSections = [
     title: "Cooperatives & Agents",
     items: [
       { href: "/cooperatives", label: "Cooperatives", icon: Users },
+      { href: "/cooperative-dashboard", label: "Cooperative Dashboard", icon: BarChart3 },
       { href: "/field-agent", label: "Field Agent Dashboard", icon: Briefcase },
       { href: "/agent-tasks", label: "Agent Tasks", icon: ClipboardList },
       { href: "/farmer-verification", label: "Farmer Verification", icon: UserCheck },
@@ -230,6 +235,13 @@ const navSections = [
       { href: "/journeys", label: "User Journeys", icon: Activity },
       { href: "/event-analytics", label: "Event Analytics", icon: BarChart3 },
       { href: "/settings", label: "Settings", icon: Settings },
+      { href: "/voice-navigation", label: "Voice Navigation", icon: Mic },
+    ]
+  },
+  {
+    title: "Payments & Reconciliation",
+    items: [
+      { href: "/payment-reconciliation", label: "Payment Reconciliation", icon: ArrowRightLeft },
     ]
   },
 ];
