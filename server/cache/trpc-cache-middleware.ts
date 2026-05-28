@@ -6,7 +6,7 @@
  * TTL is determined from ROUTE_TTL_MAP or falls back to a default.
  */
 
-import { middleware } from '../_core/trpc-base.js';
+import { middleware } from '../_core/trpc-init.js';
 import { ROUTE_TTL_MAP, buildCacheKey, cacheGetOrSet } from './cache-layer.js';
 import { logger } from '../logger.js';
 

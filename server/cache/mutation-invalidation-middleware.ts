@@ -5,7 +5,7 @@
  * Uses the procedure path to determine which entity caches to clear.
  */
 
-import { middleware } from '../_core/trpc-base.js';
+import { middleware } from '../_core/trpc-init.js';
 import { cacheInvalidateByPrefix, ENTITY_CACHE_PREFIXES } from './cache-layer.js';
 import { publishEvent, createEvent, TOPICS } from '../kafka.js';
 import { logger } from '../logger.js';
