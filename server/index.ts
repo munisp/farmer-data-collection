@@ -25,6 +25,8 @@ import smsRouter from "./routes/sms.routes.js";
 import whatsappRouter from "./routes/whatsapp.routes.js";
 import { initializeLakehouse, shutdownLakehouse, getLakehouseStatus } from "./services/lakehouse/index.js";
 import { rateLimiters } from "./middleware/rate-limiter.js";
+import { tracingMiddleware } from './services/tracing.js';
+import { startPoolMonitor, getPoolMetrics, getPrometheusMetrics as getPoolPrometheusMetrics } from './services/db-pool-monitor.js';
 import { logger } from './logger.js';
 
 // Load environment variables from .env.local (override system env vars)
@@ -105,6 +107,9 @@ async function startServer() {
   
   // Metrics middleware
   app.use(metricsMiddleware());
+
+  // Distributed tracing (OpenTelemetry → Jaeger)
+  app.use(tracingMiddleware() as express.RequestHandler);
   
   // HTTP cache headers (Cache-Control, ETag, 304 Not Modified)
   app.use(httpCacheHeaders());
@@ -246,9 +251,20 @@ async function startServer() {
     try {
       res.set('Content-Type', 'text/plain');
       const metrics = await getMetrics();
-      res.send(metrics);
+      const poolMetrics = getPoolPrometheusMetrics();
+      res.send(metrics + '\n' + poolMetrics);
     } catch (error) {
       res.status(500).send('Error collecting metrics');
+    }
+  });
+
+  // DB pool metrics endpoint
+  app.get('/api/pool-metrics', (_req, res) => {
+    const metrics = getPoolMetrics();
+    if (metrics) {
+      res.json(metrics);
+    } else {
+      res.json({ status: 'monitor_not_started', message: 'Pool monitor starts after DB connection' });
     }
   });
   
@@ -400,23 +416,23 @@ async function startServer() {
         ]);
 
         // Close Redis
-        await closeRedis().catch(() => {});
+        await closeRedis().catch((e) => logger.debug('[Shutdown] Redis close error (non-fatal)', { err: e }));
 
         // Close Kafka
         const { disconnectKafka } = await import('./kafka.js');
-        await disconnectKafka().catch(() => {});
+        await disconnectKafka().catch((e) => logger.debug('[Shutdown] Kafka disconnect error (non-fatal)', { err: e }));
 
         // Close database pool
         const { closeDb } = await import('./db.js');
-        await closeDb().catch(() => {});
+        await closeDb().catch((e) => logger.debug('[Shutdown] DB close error (non-fatal)', { err: e }));
 
         // Close TigerBeetle
         const { closeTigerBeetle } = await import('./tigerbeetle-client.js');
-        if (typeof closeTigerBeetle === 'function') await closeTigerBeetle().catch(() => {});
+        if (typeof closeTigerBeetle === 'function') await closeTigerBeetle().catch((e) => logger.debug('[Shutdown] TigerBeetle close error (non-fatal)', { err: e }));
 
         // Close Dapr
         const { stopDaprServer } = await import('./dapr-client.js');
-        await stopDaprServer().catch(() => {});
+        await stopDaprServer().catch((e) => logger.debug('[Shutdown] Dapr stop error (non-fatal)', { err: e }));
 
         server.close(() => {
           clearTimeout(timeout);

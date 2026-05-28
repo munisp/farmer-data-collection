@@ -1,27 +1,31 @@
 {
-  "timestamp": "2026-05-27 19:44:12 UTC",
+  "timestamp": "2026-05-27 21:39:59 UTC",
   "device": "cpu",
-  "total_time_seconds": 45.8,
+  "total_time_seconds": 82.6,
   "models": {
+    "disease": {
+      "metric": 0.1879032258064516,
+      "time_seconds": 68.3
+    },
     "yield": {
-      "metric": 1419.7134044498137,
-      "time_seconds": 7.9
-    },
-    "price": {
-      "metric": 0.0824704859405756,
-      "time_seconds": 29.1
-    },
-    "credit": {
-      "metric": 0.9896160077212092,
+      "metric": 1501.205639574923,
       "time_seconds": 3.1
     },
+    "price": {
+      "metric": 0.09949680883437395,
+      "time_seconds": 8.0
+    },
+    "credit": {
+      "metric": 0.9774135549536619,
+      "time_seconds": 1.1
+    },
     "fraud": {
-      "metric": 0.9782608644612477,
-      "time_seconds": 5.5
+      "metric": 0.9452736267498331,
+      "time_seconds": 2.1
     },
     "gnn": {
-      "metric": 0.04879390075802803,
-      "time_seconds": 0.3
+      "metric": 0.04729948937892914,
+      "time_seconds": 0.1
     }
   },
   "weights_dir": "/home/ubuntu/repos/farmer-data-collection/services/python/ml-models/weights"

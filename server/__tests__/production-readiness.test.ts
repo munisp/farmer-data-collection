@@ -19,7 +19,7 @@ describe('Input Sanitization', () => {
       /on\w+\s*=\s*[^\s>]+/gi,
     ];
     const SQL_INJECTION_PATTERNS = [
-      /(\b)(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|EXEC)\b/gi,
+      /(\b)(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|EXEC)\b/i,
     ];
 
     function sanitizeString(input: string): string {

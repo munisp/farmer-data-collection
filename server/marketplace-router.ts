@@ -238,7 +238,7 @@ export const marketplaceRouter = router({
         ))
         .orderBy(desc(produceListings.createdAt));
       
-      return listings.map((listing: any) => ({
+      return listings.map((listing) => ({
         ...listing,
         deliveryOptions: typeof listing.deliveryOptions === 'string' 
           ? JSON.parse(listing.deliveryOptions) 
@@ -391,7 +391,7 @@ export const marketplaceRouter = router({
         .limit(input.limit)
         .offset(input.offset);
       
-      return listings.map((listing: any) => ({
+      return listings.map((listing) => ({
         ...listing,
         deliveryOptions: typeof listing.deliveryOptions === 'string' 
           ? JSON.parse(listing.deliveryOptions) 
@@ -624,7 +624,7 @@ export const marketplaceRouter = router({
       const sellerId = listings[0].userId;
       
       for (const item of input.items) {
-        const listing = listings.find((l: any) => l.id === item.listingId);
+        const listing = listings.find((l) => l.id === item.listingId);
         if (!listing) throw new Error("Listing not found");
         if (listing.userId === buyerId) {
           throw new Error("You cannot purchase your own listing");
@@ -673,7 +673,7 @@ export const marketplaceRouter = router({
       
       // Create order items
       for (const item of input.items) {
-        const listing = listings.find((l: any) => l.id === item.listingId)!;
+        const listing = listings.find((l) => l.id === item.listingId)!;
         await db.insert(orderItems).values({
           orderId: order.id,
           listingId: item.listingId,
@@ -703,8 +703,8 @@ export const marketplaceRouter = router({
 
       // Auto-create escrow to protect buyer payment
       setImmediate(() => {
-        createEscrowForOrder(order.id, buyerId, sellerId, totalAmount).catch(() => {});
-        notifyOrderStatusChange(order.id, "placed").catch(() => {});
+        createEscrowForOrder(order.id, buyerId, sellerId, totalAmount).catch((e) => logger.warn('[Marketplace] Escrow creation failed (non-blocking)', { err: e }));
+        notifyOrderStatusChange(order.id, "placed").catch((e) => logger.warn('[Marketplace] Order notification failed (non-blocking)', { err: e }));
       });
       
       return order;
@@ -746,7 +746,7 @@ export const marketplaceRouter = router({
       
       // Fetch order items for each order
       const ordersWithItems = await Promise.all(
-        orders.map(async (order: any) => {
+        orders.map(async (order) => {
           const items = await db
             .select()
             .from(orderItems)
@@ -801,7 +801,7 @@ export const marketplaceRouter = router({
       
       // Fetch order items for each order
       const ordersWithItems = await Promise.all(
-        orders.map(async (order: any) => {
+        orders.map(async (order) => {
           const items = await db
             .select()
             .from(orderItems)
@@ -887,7 +887,7 @@ export const marketplaceRouter = router({
 
       // Fire-and-forget: notifications + auto-delivery handoff
       setImmediate(() => {
-        notifyOrderStatusChange(input.orderId, input.status).catch(() => {});
+        notifyOrderStatusChange(input.orderId, input.status).catch((e) => logger.warn('[Marketplace] Status notification failed (non-blocking)', { err: e }));
 
         // Auto-request delivery when order is marked ready or shipped
         if (input.status === "ready" || input.status === "shipped") {
@@ -900,7 +900,7 @@ export const marketplaceRouter = router({
               { latitude: -1.2921, longitude: 36.8219 }, // seller location (would come from farm GPS)
               deliveryAddr,
               { priority: "normal" },
-            ).catch(() => {});
+            ).catch((e) => logger.warn('[Marketplace] Delivery request failed (non-blocking)', { err: e }));
           }
         }
       });
@@ -1260,7 +1260,7 @@ export const marketplaceRouter = router({
         .where(eq(produceListings.status, "active"))
         .orderBy(desc(produceListings.createdAt));
       
-      return listings.map((listing: any) => ({
+      return listings.map((listing) => ({
         id: listing.id,
         name: listing.title,
         description: listing.description,
@@ -1300,7 +1300,7 @@ export const marketplaceRouter = router({
 
       const totalReviews = reviews.length;
       const averageRating = totalReviews > 0 
-        ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / totalReviews
+        ? reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / totalReviews
         : 0;
       
       return {
@@ -1408,7 +1408,7 @@ export const marketplaceRouter = router({
         .where(and(...conditions))
         .orderBy(desc(produceListings.createdAt));
       
-      return listings.map((listing: any) => ({
+      return listings.map((listing) => ({
         id: listing.id,
         name: listing.title,
         description: listing.description,
@@ -1466,7 +1466,7 @@ export const marketplaceRouter = router({
       const sellerId = listings[0].userId;
       
       for (const item of input.items) {
-        const listing = listings.find((l: any) => l.id === item.productId);
+        const listing = listings.find((l) => l.id === item.productId);
         if (!listing) throw new Error("Product not found");
         if (listing.userId !== sellerId) {
           throw new Error("All items must be from the same seller");
@@ -1492,7 +1492,7 @@ export const marketplaceRouter = router({
       
       // Create order items
       for (const item of input.items) {
-        const listing = listings.find((l: any) => l.id === item.productId)!;
+        const listing = listings.find((l) => l.id === item.productId)!;
         const priceInCents = Math.round(item.price * 100);
         await db.insert(orderItems).values({
           orderId: order.id,
@@ -1538,7 +1538,7 @@ export const marketplaceRouter = router({
         .where(eq(marketplaceOrders.buyerId, userId))
         .orderBy(desc(marketplaceOrders.createdAt));
       
-      return orders.map((order: any) => ({
+      return orders.map((order) => ({
         id: order.id,
         buyerId: order.buyerId,
         sellerId: order.sellerId,
@@ -1904,7 +1904,7 @@ export const marketplaceRouter = router({
         ));
       
       const totalOrders = orders.length;
-      const totalRevenue = orders.reduce((sum: number, order: any) => sum + order.totalAmount, 0);
+      const totalRevenue = orders.reduce((sum: number, order: { totalAmount: number }) => sum + order.totalAmount, 0);
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       
       return {
@@ -2128,7 +2128,7 @@ export const marketplaceRouter = router({
         ))
         .orderBy(produceListings.quantity);
       
-      return products.map((listing: any) => ({
+      return products.map((listing) => ({
         id: listing.id,
         name: listing.title,
         quantityAvailable: listing.quantity,

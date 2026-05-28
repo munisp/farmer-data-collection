@@ -28,10 +28,10 @@ const DANGEROUS_PATTERNS = [
 ];
 
 const SQL_INJECTION_PATTERNS = [
-  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE)\b\s)/gi,
-  /(--|;|\/\*|\*\/|xp_|UNION\s+SELECT)/gi,
-  /(\bOR\b\s+\d+\s*=\s*\d+)/gi,
-  /('\s*(OR|AND)\s+'[^']*'\s*=\s*'[^']*')/gi,
+  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE)\b\s)/i,
+  /(--|;|\/\*|\*\/|xp_|UNION\s+SELECT)/i,
+  /(\bOR\b\s+\d+\s*=\s*\d+)/i,
+  /('\s*(OR|AND)\s+'[^']*'\s*=\s*'[^']*')/i,
 ];
 
 function escapeHtml(str: string): string {
@@ -47,13 +47,7 @@ function stripDangerousPatterns(str: string): string {
 }
 
 function detectSqlInjection(str: string): boolean {
-  for (const pattern of SQL_INJECTION_PATTERNS) {
-    if (pattern.test(str)) {
-      pattern.lastIndex = 0;
-      return true;
-    }
-  }
-  return false;
+  return SQL_INJECTION_PATTERNS.some(pattern => pattern.test(str));
 }
 
 export function sanitizeString(input: string): string {

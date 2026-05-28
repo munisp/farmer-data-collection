@@ -293,7 +293,7 @@ export class BankingService {
     }
 
     // Parse quote response for ILP packet, condition, and payee FSP
-    const quoteResult = await quoteResponse.json().catch(() => ({})) as {
+    const quoteResult = await quoteResponse.json().catch((e: unknown) => { logger.debug('[Banking] Quote response parse failed', { err: e }); return {}; }) as {
       ilpPacket?: string;
       condition?: string;
       payee?: { partyIdInfo?: { fspId?: string } };

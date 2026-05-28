@@ -7,7 +7,9 @@ import { logger } from "./logger.js";
 
 const fullSchema = { ...schema, ...financialSchema };
 
-let _db: ReturnType<typeof drizzle> | null = null;
+export type AppDatabase = ReturnType<typeof drizzle<typeof fullSchema>>;
+
+let _db: AppDatabase | null = null;
 let _pool: pkg.Pool | null = null;
 let _healthy = false;
 let _lastHealthCheck = 0;

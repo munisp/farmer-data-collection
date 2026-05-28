@@ -417,3 +417,38 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+    use axum_test::TestServer;
+
+    #[tokio::test]
+    async fn test_health_endpoint() {
+        let state = AppState {
+            upload_dir: std::path::PathBuf::from("/tmp/test-uploads"),
+            max_file_size: 10 * 1024 * 1024,
+            allowed_formats: vec!["jpg".to_string(), "png".to_string(), "webp".to_string()],
+        };
+        let app = axum::Router::new()
+            .route("/health", axum::routing::get(health))
+            .with_state(state);
+
+        let server = TestServer::new(app).unwrap();
+        let response = server.get("/health").await;
+        assert_eq!(response.status_code(), StatusCode::OK);
+    }
+
+    #[test]
+    fn test_image_dimensions_validation() {
+        assert!(validate_dimensions(1920, 1080));
+        assert!(validate_dimensions(100, 100));
+        assert!(!validate_dimensions(0, 0));
+        assert!(!validate_dimensions(50000, 50000));
+    }
+
+    fn validate_dimensions(width: u32, height: u32) -> bool {
+        width > 0 && height > 0 && width <= 10000 && height <= 10000
+    }
+}

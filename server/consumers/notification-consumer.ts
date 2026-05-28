@@ -180,7 +180,7 @@ async function sendPushNotification(event: NotificationEvent): Promise<void> {
             const { sql: sql2 } = await import('drizzle-orm');
             await db.execute(
               sql2`UPDATE user_device_tokens SET active = false WHERE device_token = ${deviceToken}`
-            ).catch(() => {});
+            ).catch((e) => logger.debug('[FCM] Failed to deactivate stale device token', { err: e }));
           }
         } else {
           logger.info(`[FCM] Push sent to user ${event.userId}: ${event.title}`);

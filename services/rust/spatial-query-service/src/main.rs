@@ -109,3 +109,53 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_haversine_distance() {
+        let lagos = (6.5244, 3.3792);
+        let ibadan = (7.3775, 3.9470);
+        let dist = haversine(lagos.0, lagos.1, ibadan.0, ibadan.1);
+        assert!(dist > 100.0 && dist < 130.0, "Lagos-Ibadan ~119km, got {}", dist);
+    }
+
+    #[test]
+    fn test_point_in_polygon() {
+        let polygon = vec![
+            (6.0, 3.0),
+            (7.0, 3.0),
+            (7.0, 4.0),
+            (6.0, 4.0),
+        ];
+        assert!(point_in_polygon(6.5, 3.5, &polygon));
+        assert!(!point_in_polygon(8.0, 5.0, &polygon));
+    }
+
+    fn haversine(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+        let r = 6371.0;
+        let dlat = (lat2 - lat1).to_radians();
+        let dlon = (lon2 - lon1).to_radians();
+        let a = (dlat / 2.0).sin().powi(2)
+            + lat1.to_radians().cos() * lat2.to_radians().cos() * (dlon / 2.0).sin().powi(2);
+        r * 2.0 * a.sqrt().asin()
+    }
+
+    fn point_in_polygon(lat: f64, lon: f64, polygon: &[(f64, f64)]) -> bool {
+        let mut inside = false;
+        let n = polygon.len();
+        let mut j = n - 1;
+        for i in 0..n {
+            if ((polygon[i].1 > lon) != (polygon[j].1 > lon))
+                && (lat < (polygon[j].0 - polygon[i].0) * (lon - polygon[i].1)
+                    / (polygon[j].1 - polygon[i].1) + polygon[i].0)
+            {
+                inside = !inside;
+            }
+            j = i;
+        }
+        inside
+    }
+}

@@ -21,7 +21,7 @@ export interface RealtimeEvent {
         'crop_planted' | 'livestock_added' | 'harvest_recorded' | 'expense_logged' |
         'dashboard_update' | 'notification';
   userId: number;
-  data: any;
+  data: object;
   timestamp: string;
 }
 
@@ -182,7 +182,7 @@ export class WebSocketServer {
   /**
    * Emit notification to user
    */
-  public emitNotification(userId: number, notification: any): void {
+  public emitNotification(userId: number, notification: object): void {
     const event: RealtimeEvent = {
       type: 'notification',
       userId,
@@ -195,7 +195,7 @@ export class WebSocketServer {
   /**
    * Emit farmer created event
    */
-  public emitFarmerCreated(userId: number, farmer: any): void {
+  public emitFarmerCreated(userId: number, farmer: object): void {
     const event: RealtimeEvent = {
       type: 'farmer_created',
       userId,
@@ -208,7 +208,7 @@ export class WebSocketServer {
   /**
    * Emit harvest recorded event
    */
-  public emitHarvestRecorded(userId: number, harvest: any): void {
+  public emitHarvestRecorded(userId: number, harvest: object): void {
     const event: RealtimeEvent = {
       type: 'harvest_recorded',
       userId,
@@ -221,7 +221,7 @@ export class WebSocketServer {
   /**
    * Emit expense logged event
    */
-  public emitExpenseLogged(userId: number, expense: any): void {
+  public emitExpenseLogged(userId: number, expense: object): void {
     const event: RealtimeEvent = {
       type: 'expense_logged',
       userId,

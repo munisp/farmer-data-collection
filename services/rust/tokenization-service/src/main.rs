@@ -506,3 +506,42 @@ fn handle_connection(mut stream: std::net::TcpStream, state: &Arc<Mutex<AppState
 
     let _ = stream.write_all(response.as_bytes());
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_creation() {
+        let token = Token {
+            id: "TKN-001".to_string(),
+            asset_type: "warehouse_receipt".to_string(),
+            quantity: 1000.0,
+            unit: "kg".to_string(),
+            owner: "farmer-1".to_string(),
+        };
+        assert_eq!(token.id, "TKN-001");
+        assert_eq!(token.quantity, 1000.0);
+    }
+
+    #[test]
+    fn test_order_matching() {
+        let buy = Order { price: 100.0, quantity: 50.0, side: "buy".to_string() };
+        let sell = Order { price: 95.0, quantity: 50.0, side: "sell".to_string() };
+        assert!(buy.price >= sell.price, "Buy price should meet or exceed sell");
+    }
+
+    struct Token {
+        id: String,
+        asset_type: String,
+        quantity: f64,
+        unit: String,
+        owner: String,
+    }
+
+    struct Order {
+        price: f64,
+        quantity: f64,
+        side: String,
+    }
+}

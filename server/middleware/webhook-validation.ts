@@ -23,7 +23,7 @@ export function rawBodyParser(req: Request, res: Response, next: NextFunction) {
     req.on('data', (chunk) => { data += chunk; });
     req.on('end', () => {
       (req as any).rawBody = data;
-      try { req.body = JSON.parse(data); } catch (err) { req.body = {}; }
+      try { req.body = JSON.parse(data); } catch (err) { logger.debug('[Webhook] Body parse failed, using empty object', { err }); req.body = {}; }
       next();
     });
   } else {

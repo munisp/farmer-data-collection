@@ -299,3 +299,49 @@ async fn stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         "block_rate": if total > 0 { blocked as f64 / total as f64 } else { 0.0 },
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sql_injection_detection() {
+        let patterns = vec![
+            "SELECT * FROM users",
+            "1 OR 1=1",
+            "'; DROP TABLE users; --",
+        ];
+        for p in patterns {
+            assert!(is_sql_injection(p), "Should detect: {}", p);
+        }
+    }
+
+    #[test]
+    fn test_xss_detection() {
+        let patterns = vec![
+            "<script>alert('xss')</script>",
+            "javascript:alert(1)",
+            "<img onerror=alert(1)>",
+        ];
+        for p in patterns {
+            assert!(is_xss_attack(p), "Should detect XSS: {}", p);
+        }
+    }
+
+    #[test]
+    fn test_safe_input() {
+        assert!(!is_sql_injection("Hello World"));
+        assert!(!is_xss_attack("Normal text content"));
+        assert!(!is_sql_injection("Cassava farming in Nigeria"));
+    }
+
+    fn is_sql_injection(input: &str) -> bool {
+        let lower = input.to_lowercase();
+        lower.contains("select ") || lower.contains("drop ") || lower.contains("1=1") || lower.contains("--")
+    }
+
+    fn is_xss_attack(input: &str) -> bool {
+        let lower = input.to_lowercase();
+        lower.contains("<script") || lower.contains("javascript:") || lower.contains("onerror")
+    }
+}

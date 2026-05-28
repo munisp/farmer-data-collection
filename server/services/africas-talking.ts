@@ -345,7 +345,7 @@ export async function handleUSSDSession(session: USSDSession): Promise<USSDRespo
         await sendSMS({
           to: [phoneNumber],
           message: `Welcome to Farmer Data Collection! Your registration is complete.\nName: ${name}\nLocation: ${location}\nFarm Size: ${farmSize} acres`
-        }).catch(() => {}); // Don't fail if SMS fails
+        }).catch((e) => logger.debug('[SMS] Welcome message failed (non-blocking)', { err: e })); // Don't fail if SMS fails
       } catch (error) {
         logger.error('Error saving farmer registration:', error);
       }
