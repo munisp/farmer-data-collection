@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Tractor, Sprout, Beef, TrendingUp, Receipt, DollarSign, TrendingDown, Brain, Target, ArrowRight, Activity, Zap, Satellite, Droplets, Leaf } from "lucide-react";
+import { Users, Tractor, Sprout, Beef, TrendingUp, Receipt, DollarSign, TrendingDown, Brain, Target, ArrowRight, Activity, Zap, Satellite, Droplets, Leaf, ShoppingCart, Truck, ArrowRightLeft, CreditCard, Snowflake, Building2, Store, Mic, Warehouse, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTutorial } from "@/contexts/TutorialContext";
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
@@ -12,6 +12,7 @@ import { WeatherAlertsWidget } from "@/components/WeatherAlertsWidget";
 import MLInsightsWidget from "@/components/MLInsightsWidget";
 import { NearbyFarmsWidget } from "@/components/NearbyFarmsWidget";
 import { WebSocketStatusWidget, RecentEventsWidget, ActiveAlertsWidget } from "@/components/RealtimeWidgets";
+
 import { PageHeader, PageSection } from "@/components/ui/page-header";
 import { StatsCard, StatsGrid } from "@/components/ui/stats-card";
 import { ModernCard, CardHeader as ModernCardHeader } from "@/components/ui/modern-card";
@@ -416,6 +417,218 @@ export default function Dashboard() {
 
                         {/* Nearby Farms Widget */}
                         <NearbyFarmsWidget />
+
+          {/* Marketplace & Commerce */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5">
+            <ModernCardHeader
+              title="Marketplace & Commerce"
+              description="Buy, sell, and trade agricultural produce across Nigeria"
+              icon={<ShoppingCart className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/marketplace" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 hover:from-green-500/20 hover:to-emerald-500/20 transition-colors group border border-green-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/20 text-green-600"><ShoppingCart className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-green-700 dark:text-green-400">Browse Marketplace</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-green-600 group-hover:text-green-500 transition-colors" />
+                </a>
+                <a href="/marketplace/create" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600"><Sprout className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Create Listing</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/group-buying" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600"><Users className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Group Buying</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/price-discovery" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600"><BarChart3 className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Price Discovery</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Delivery & Supply Chain */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5">
+            <ModernCardHeader
+              title="Delivery & Supply Chain"
+              description="Manage deliveries, logistics, cold chain, and traceability"
+              icon={<Truck className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/delivery" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-amber-500/10 hover:from-orange-500/20 hover:to-amber-500/20 transition-colors group border border-orange-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/20 text-orange-600"><Truck className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400">Delivery Dashboard</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-orange-600 group-hover:text-orange-500 transition-colors" />
+                </a>
+                <a href="/delivery/tracking" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600"><Activity className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Live Tracking</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/cold-chain" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-600"><Snowflake className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Cold Chain Monitoring</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/freshness" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10 text-green-600"><Leaf className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Freshness Tracking</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/traceability" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600"><Target className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Produce Traceability</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Financial Services */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5">
+            <ModernCardHeader
+              title="Financial Services"
+              description="Payments, credit scoring, loans, and reconciliation"
+              icon={<DollarSign className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/payment-reconciliation" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-indigo-500/10 hover:from-purple-500/20 hover:to-indigo-500/20 transition-colors group border border-purple-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-500/20 text-purple-600"><ArrowRightLeft className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-purple-700 dark:text-purple-400">Payment Reconciliation</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-purple-600 group-hover:text-purple-500 transition-colors" />
+                </a>
+                <a href="/credit-score" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600"><CreditCard className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Credit Scoring</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/mobile-money" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10 text-green-600"><DollarSign className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Mobile Money</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/chama" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600"><Users className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Chama Groups & Lending</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Retail & B2B / Cooperatives */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-rose-500/5 via-transparent to-pink-500/5">
+            <ModernCardHeader
+              title="Retail, B2B & Cooperatives"
+              description="Retail store integration, bulk ordering, and cooperative management"
+              icon={<Store className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/retail/store" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-rose-500/10 to-pink-500/10 hover:from-rose-500/20 hover:to-pink-500/20 transition-colors group border border-rose-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-rose-500/20 text-rose-600"><Store className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-rose-700 dark:text-rose-400">Retail Store Dashboard</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-rose-600 group-hover:text-rose-500 transition-colors" />
+                </a>
+                <a href="/cooperative-dashboard" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600"><Building2 className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Cooperative Dashboard</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/exchange" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600"><BarChart3 className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Commodity Exchange</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/aggregation-hub" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/10 text-orange-600"><Warehouse className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Aggregation Hub</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/retail/bulk-ordering" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600"><Receipt className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Bulk Ordering & Invoices</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Voice & Accessibility */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-violet-500/5 via-transparent to-fuchsia-500/5">
+            <ModernCardHeader
+              title="Voice & Accessibility"
+              description="Voice navigation, multilingual support, and accessible farming tools"
+              icon={<Mic className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/voice-navigation" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 hover:from-violet-500/20 hover:to-fuchsia-500/20 transition-colors group border border-violet-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-violet-500/20 text-violet-600"><Mic className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-violet-700 dark:text-violet-400">Voice Navigation</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-violet-600 group-hover:text-violet-500 transition-colors" />
+                </a>
+                <a href="/weather-alerts" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-600"><Droplets className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Weather Alerts</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/returns" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-red-500/10 text-red-600"><ArrowRightLeft className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Returns & Refunds</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
 
             {/* Get Started Card - Modern Empty State */}
             {stats.totalFarmers === 0 && (

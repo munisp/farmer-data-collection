@@ -146,6 +146,7 @@ const FreshnessTracking = lazy(() => import("./pages/FreshnessTracking"));
 const WeatherAlerts = lazy(() => import("./pages/WeatherAlerts"));
 const PaymentReconciliation = lazy(() => import("./pages/PaymentReconciliation"));
 const VoiceNavigation = lazy(() => import("./pages/VoiceNavigation"));
+const AggregationHub = lazy(() => import("./pages/AggregationHub"));
 
 function Router() {
   return (
@@ -295,6 +296,7 @@ function Router() {
         <Route path="/payment-reconciliation" component={PaymentReconciliation} />
         <Route path="/voice-navigation" component={VoiceNavigation} />
         <Route path="/cooperative-dashboard" component={CooperativeDashboard} />
+        <Route path="/aggregation-hub" component={AggregationHub} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

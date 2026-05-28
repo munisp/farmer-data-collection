@@ -67,7 +67,8 @@ import {
   Snowflake,
   Mic,
   AlertTriangle,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Warehouse
 } from "lucide-react";
 
 // Navigation sections organized by domain
@@ -139,7 +140,10 @@ const navSections = [
     items: [
       { href: "/delivery", label: "Delivery Dashboard", icon: Truck },
       { href: "/delivery/tracking", label: "Live Tracking", icon: MapPin },
+      { href: "/aggregation-hub", label: "Aggregation Hub", icon: Warehouse },
       { href: "/cold-chain", label: "Cold Chain Monitoring", icon: Thermometer },
+      { href: "/freshness", label: "Freshness Tracking", icon: Leaf },
+      { href: "/traceability", label: "Produce Traceability", icon: Target },
       { href: "/price-alerts", label: "Price Alerts", icon: Bell },
       { href: "/subscriptions", label: "Subscription Boxes", icon: Package },
     ]
