@@ -4,6 +4,7 @@
  */
 
 import { Request, Response } from 'express';
+import { eq, and, desc } from 'drizzle-orm';
 
 // Voice menu states
 export enum IVRState {
@@ -269,7 +270,7 @@ export class IVRVoiceService {
   }
 
   // Main menu handler
-  private handleMainMenu(session: IVRSession, input: string): string {
+  private async handleMainMenu(session: IVRSession, input: string): Promise<string> {
     switch (input) {
       case '1':
         this.updateSession(session.sessionId, { state: IVRState.REG_NAME });
@@ -358,13 +359,41 @@ export class IVRVoiceService {
     if (input === '1') {
       // Create farmer record
       const farmerId = `F${Date.now().toString().slice(-8)}`;
-      
-      // TODO: Save to database
-      // await this.farmerService.create({
-      //   phone: session.phoneNumber,
-      //   name: session.data.name,
-      //   region: session.data.region,
-      // });
+
+      // Save farmer to database
+      try {
+        const { getDb } = await import('../db.js');
+        const { farmers } = await import('../../drizzle/schema.js');
+        const { users } = await import('../../drizzle/schema.js');
+        const db = await getDb();
+        if (db) {
+          // Create a system user for IVR-registered farmers
+          const nameParts = (session.data.name || 'Unknown').split(' ');
+          const firstName = nameParts[0] || 'Unknown';
+          const lastName = nameParts.slice(1).join(' ') || 'Farmer';
+
+          const [newUser] = await db.insert(users).values({
+            email: `ivr-${farmerId}@farmconnect.local`,
+            password: `ivr-temp-${Date.now()}`,
+            firstName: firstName,
+            lastName: lastName,
+            phoneNumber: session.phoneNumber || '',
+            role: 'farmer',
+          }).returning();
+
+          await db.insert(farmers).values({
+            userId: newUser.id,
+            firstName,
+            lastName,
+            phoneNumber: session.phoneNumber || '',
+            region: session.data.region || '',
+            verificationStatus: 'pending',
+          });
+          console.log(`[IVR] Farmer registered: ${farmerId} (${session.data.name}) via phone ${session.phoneNumber}`);
+        }
+      } catch (err) {
+        console.error('[IVR] Failed to save farmer to database:', err);
+      }
 
       this.deleteSession(session.sessionId);
       
@@ -401,10 +430,27 @@ export class IVRVoiceService {
       });
     }
 
-    // TODO: Fetch loan from database
-    // const loan = await this.loanService.getActiveLoan(farmerId);
-
-    const loan = null; // Placeholder
+    // Fetch loan from database
+    let loan: { status: string; principalAmount: number; outstandingBalance: number | null; nextPaymentDue: Date | null } | null = null;
+    try {
+      const { getDb } = await import('../db.js');
+      const { loans } = await import('../../drizzle/financial-schema.js');
+      const db = await getDb();
+      if (db) {
+        const results = await db.select()
+          .from(loans)
+          .where(and(
+            eq(loans.status, 'active'),
+            eq(loans.loanNumber, farmerId),
+          ))
+          .limit(1);
+        if (results.length > 0) {
+          loan = results[0];
+        }
+      }
+    } catch (err) {
+      console.error('[IVR] Failed to fetch loan:', err);
+    }
 
     if (!loan) {
       this.updateSession(session.sessionId, { state: IVRState.LOAN_APPLY });
@@ -414,11 +460,14 @@ export class IVRVoiceService {
       });
     }
 
+    const amount = loan ? (loan.principalAmount / 100).toLocaleString() : '0';
+    const balance = loan ? ((loan.outstandingBalance || 0) / 100).toLocaleString() : '0';
+    const dueDate = loan?.nextPaymentDue ? loan.nextPaymentDue.toLocaleDateString('en-NG', { month: 'long', day: 'numeric' }) : 'N/A';
     return this.generateVoiceResponse({
       say: this.getPrompt('loan_status_result', session.language, {
-        amount: '50,000',
-        balance: '25,000',
-        dueDate: 'January 15th',
+        amount: `₦${amount}`,
+        balance: `₦${balance}`,
+        dueDate,
       }),
       hangup: true,
     });
@@ -483,12 +532,33 @@ export class IVRVoiceService {
     if (input === '1') {
       const reference = `LA${Date.now().toString().slice(-8)}`;
       
-      // TODO: Create loan application
-      // await this.loanService.createApplication({
-      //   farmerId: session.data.farmerId,
-      //   amount: session.data.loanAmount,
-      //   purpose: session.data.loanPurpose,
-      // });
+      // Create loan application in database
+      try {
+        const { getDb } = await import('../db.js');
+        const { loans, lenders } = await import('../../drizzle/financial-schema.js');
+        const db = await getDb();
+        if (db) {
+          // Find a default lender or use the first available
+          const availableLenders = await db.select().from(lenders).limit(1);
+          const lenderId = availableLenders.length > 0 ? availableLenders[0].id : 1;
+
+          await db.insert(loans).values({
+            userId: 1, // System user for IVR applications
+            loanNumber: reference,
+            lenderId,
+            loanType: 'working_capital',
+            principalAmount: (session.data.loanAmount || 0) * 100, // Convert to cents
+            interestRate: 1500, // 15% default
+            term: 12,
+            status: 'pending',
+            purpose: session.data.loanPurpose || 'IVR application',
+            applicationDate: new Date(),
+          });
+          console.log(`[IVR] Loan application created: ${reference} for ₦${session.data.loanAmount}`);
+        }
+      } catch (err) {
+        console.error('[IVR] Failed to create loan application:', err);
+      }
 
       this.deleteSession(session.sessionId);
       
@@ -510,13 +580,48 @@ export class IVRVoiceService {
   }
 
   // Market prices handler
-  private handleMarketPrices(session: IVRSession): string {
-    // TODO: Fetch real market prices
-    const prices = {
+  private async handleMarketPrices(session: IVRSession): Promise<string> {
+    // Fetch real market prices from database
+    let prices = {
       maizePrice: '₦3,500',
       beansPrice: '₦8,000',
       ricePrice: '₦12,000',
     };
+    try {
+      const { getDb } = await import('../db.js');
+      const db = await getDb();
+      if (db) {
+        // Query recent listings for price data
+        const { produceListings } = await import('../../drizzle/schema.js');
+        const recentListings = await db.select()
+          .from(produceListings)
+          .where(eq(produceListings.status, 'active'))
+          .orderBy(desc(produceListings.createdAt))
+          .limit(50);
+
+        // Aggregate prices by crop
+        const cropPrices: Record<string, number[]> = {};
+        for (const listing of recentListings) {
+          const crop = (listing.category || listing.title || '').toLowerCase();
+          const price = typeof listing.pricePerUnit === 'string' ? parseFloat(listing.pricePerUnit) : (listing.pricePerUnit || 0);
+          if (price > 0) {
+            if (!cropPrices[crop]) cropPrices[crop] = [];
+            cropPrices[crop].push(price);
+          }
+        }
+
+        const avg = (arr: number[]) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+        const maize = cropPrices['maize'] || cropPrices['corn'];
+        const beans = cropPrices['beans'] || cropPrices['cowpea'];
+        const rice = cropPrices['rice'];
+
+        if (maize) prices.maizePrice = `₦${avg(maize).toLocaleString()}`;
+        if (beans) prices.beansPrice = `₦${avg(beans).toLocaleString()}`;
+        if (rice) prices.ricePrice = `₦${avg(rice).toLocaleString()}`;
+      }
+    } catch (err) {
+      console.error('[IVR] Failed to fetch market prices:', err);
+    }
 
     this.updateSession(session.sessionId, { state: IVRState.MAIN_MENU });
     
@@ -528,13 +633,38 @@ export class IVRVoiceService {
   }
 
   // Weather handler
-  private handleWeather(session: IVRSession): string {
-    // TODO: Fetch real weather data
-    const weather = {
+  private async handleWeather(session: IVRSession): Promise<string> {
+    // Fetch real weather data from database or weather service
+    let weather = {
       region: session.data.region || 'your area',
       forecast: 'Partly cloudy with temperatures around 25 degrees',
       rainfall: '60 percent chance',
     };
+    try {
+      const { getDb } = await import('../db.js');
+      const db = await getDb();
+      if (db) {
+        const { weatherAlerts } = await import('../../drizzle/notification-schema.js');
+        // Get recent weather alerts for the region
+        const alerts = await db.select()
+          .from(weatherAlerts)
+          .where(eq(weatherAlerts.isActive, true))
+          .orderBy(desc(weatherAlerts.createdAt))
+          .limit(3);
+
+        if (alerts.length > 0) {
+          const latest = alerts[0];
+          weather = {
+            region: session.data.region || latest.region || 'your area',
+            forecast: (latest.description as string) || weather.forecast,
+            rainfall: latest.severity === 'critical' ? '90 percent chance of heavy rain' :
+                     latest.severity === 'warning' ? '70 percent chance' : '40 percent chance',
+          };
+        }
+      }
+    } catch (err) {
+      console.error('[IVR] Failed to fetch weather data:', err);
+    }
 
     this.updateSession(session.sessionId, { state: IVRState.MAIN_MENU });
     
@@ -546,7 +676,7 @@ export class IVRVoiceService {
   }
 
   // Help handler
-  private handleHelp(session: IVRSession, input: string): string {
+  private async handleHelp(session: IVRSession, input: string): Promise<string> {
     if (input === '1') {
       // Transfer to agent
       return this.generateVoiceResponse({

@@ -303,10 +303,10 @@ export const erpnextRouter = router({
               result = await syncService.pullItems();
               break;
             case 'invoice':
-              // result = await syncService.pullInvoices(); // Disabled - orders table not implemented
+              result = await syncService.pullInvoices();
               break;
             case 'payment':
-              // result = await syncService.pullPayments(); // Disabled - payments table not implemented
+              result = await syncService.pullPayments();
               break;
             case 'journal':
               result = await syncService.pullJournalEntries();

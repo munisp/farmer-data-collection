@@ -1798,10 +1798,9 @@ export class ERPNextSyncService {
   }
 
   /**
-   * Pull sales invoices from ERPNext and create orders
-   * NOTE: Disabled - orders table not implemented yet
+   * Pull sales invoices from ERPNext and create marketplace orders
    */
-  /* async pullInvoices(lastSyncTime?: Date): Promise<SyncResult> {
+  async pullInvoices(lastSyncTime?: Date): Promise<SyncResult> {
     const result: SyncResult = {
       success: false,
       recordsProcessed: 0,
@@ -1845,25 +1844,23 @@ export class ERPNextSyncService {
             continue;
           }
 
+          const { marketplaceOrders } = await import('../../drizzle/schema.js');
           if (mapping) {
-            // Update existing order
-            await db.update(orders)
+            await db.update(marketplaceOrders)
               .set({
-                totalAmount: parseFloat(invoice.grand_total),
+                totalAmount: Math.round(parseFloat(invoice.grand_total) * 100),
                 status: invoice.status === 'Paid' ? 'completed' : 'pending',
                 updatedAt: new Date()
               })
-              .where(eq(orders.id, mapping.platformId));
+              .where(eq(marketplaceOrders.id, mapping.platformId));
             result.recordsUpdated++;
           } else {
-            // Create new order
-            const [newOrder] = await db.insert(orders).values({
-              customerId: customerMapping.platformId,
-              orderDate: new Date(invoice.posting_date),
-              totalAmount: parseFloat(invoice.grand_total),
+            const [newOrder] = await db.insert(marketplaceOrders).values({
+              buyerId: customerMapping.platformId,
+              sellerId: customerMapping.platformId,
+              orderNumber: `ERP-${invoice.name}`,
+              totalAmount: Math.round(parseFloat(invoice.grand_total) * 100),
               status: invoice.status === 'Paid' ? 'completed' : 'pending',
-              createdAt: new Date(),
-              updatedAt: new Date()
             }).returning();
 
             await this.saveMapping('order', newOrder.id, 'Sales Invoice', invoice.name);
@@ -1886,13 +1883,12 @@ export class ERPNextSyncService {
     }
 
     return result;
-  } */
+  }
 
   /**
-   * Pull payment entries from ERPNext
-   * NOTE: Disabled - payments table not implemented yet
+   * Pull payment entries from ERPNext and create bank transactions
    */
-  /* async pullPayments(lastSyncTime?: Date): Promise<SyncResult> {
+  async pullPayments(lastSyncTime?: Date): Promise<SyncResult> {
     const result: SyncResult = {
       success: false,
       recordsProcessed: 0,
@@ -1931,19 +1927,22 @@ export class ERPNextSyncService {
           // Note: This is simplified - in production you'd need to link to the correct order
           // by parsing the payment references
           
+          const { bankTransactions } = await import('../../drizzle/financial-schema.js');
           if (!mapping) {
-            // Create new payment (simplified - would need order linkage)
-            const [newPayment] = await db.insert(payments).values({
-              orderId: '', // Would need to resolve from payment references
-              paymentDate: new Date(payment.posting_date),
-              amount: parseFloat(payment.paid_amount),
-              paymentMethod: payment.mode_of_payment || 'cash',
+            const [newTx] = await db.insert(bankTransactions).values({
+              userId: 1,
+              accountId: 1,
+              transactionType: 'credit',
+              amount: Math.round(parseFloat(payment.paid_amount) * 100),
+              currency: 'NGN',
+              description: `ERPNext Payment: ${payment.name}`,
+              reference: payment.name,
               status: 'completed',
-              createdAt: new Date(),
-              updatedAt: new Date()
+              transactionDate: new Date(payment.posting_date),
+              completedAt: new Date(payment.posting_date),
             }).returning();
 
-            await this.saveMapping('payment', newPayment.id, 'Payment Entry', payment.name);
+            await this.saveMapping('payment', newTx.id, 'Payment Entry', payment.name);
             result.recordsCreated++;
           }
 
@@ -1963,7 +1962,7 @@ export class ERPNextSyncService {
     }
 
     return result;
-  } */
+  }
 
   /**
    * Pull journal entries from ERPNext
@@ -2045,8 +2044,8 @@ export class ERPNextSyncService {
     results.pull.customers = await this.pullCustomers();
     results.pull.suppliers = await this.pullSuppliers();
     results.pull.items = await this.pullItems();
-    // results.pull.invoices = await this.pullInvoices(); // Disabled - orders table not implemented
-    // results.pull.payments = await this.pullPayments(); // Disabled - payments table not implemented
+    results.pull.invoices = await this.pullInvoices();
+    results.pull.payments = await this.pullPayments();
     results.pull.journalEntries = await this.pullJournalEntries();
 
     return results;

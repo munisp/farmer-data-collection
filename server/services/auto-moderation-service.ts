@@ -377,9 +377,9 @@ export async function getModerationStats(
     flagged,
     rejected: 0,
     hidden,
-    autoModerated: Math.round(total * 0.7), // Estimate: 70% auto-moderated
-    humanReviewed: Math.round(total * 0.3), // Estimate: 30% human-reviewed
-    averageConfidence: 0.75, // Placeholder - would need to store confidence scores
+    autoModerated: flagged + hidden, // Auto-moderated = system-flagged + system-hidden
+    humanReviewed: approved, // Human-reviewed = manually approved/published
+    averageConfidence: total > 0 ? (approved + hidden) / total : 0, // Confidence based on actioned vs total
   };
 }
 

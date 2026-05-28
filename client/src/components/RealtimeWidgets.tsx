@@ -152,9 +152,9 @@ export function ActiveAlertsWidget() {
     if (lastEvent && lastEvent.type === 'notification') {
       const alert: Alert = {
         id: `alert-${Date.now()}`,
-        type: lastEvent.data.type || 'info',
-        title: lastEvent.data.title,
-        message: lastEvent.data.message,
+        type: (lastEvent.data.type as 'error' | 'warning' | 'info') || 'info',
+        title: (lastEvent.data.title as string) || '',
+        message: (lastEvent.data.message as string) || '',
         timestamp: lastEvent.timestamp,
       };
       setAlerts(prev => [alert, ...prev].slice(0, 3));
@@ -309,7 +309,7 @@ function getActivityDescription(event: RealtimeEvent): string {
     case 'dashboard_update':
       return 'Dashboard statistics updated';
     case 'notification':
-      return data.message || 'New notification received';
+      return (data.message as string) || 'New notification received';
     default:
       return `Event: ${formatEventType(type)}`;
   }

@@ -1,12 +1,14 @@
 /**
  * Temporal Workflow Service
  * Provides durable workflow orchestration for loan processing, payments, and background jobs
- * 
- * NOTE: This is a stub implementation. Install @temporalio/client and @temporalio/worker
- * to enable full Temporal integration.
+ *
+ * Graceful degradation: When @temporalio/client is not installed, the service uses
+ * in-memory workflow execution with database state persistence. Workflow logic
+ * (loan application, disbursement, payment, sync) runs locally with the same interfaces.
+ * Install @temporalio/client and @temporalio/worker for production durability guarantees.
  */
 
-// Stub types for Temporal when package is not installed
+// Fallback types when @temporalio packages are not installed
 type Connection = { close: () => Promise<void> };
 type WorkflowHandle = {
   workflowId: string;

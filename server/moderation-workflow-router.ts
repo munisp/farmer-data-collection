@@ -333,20 +333,71 @@ export const moderationWorkflowRouter = router({
         throw new Error("Only admins can view moderation history");
       }
 
-      // In production, this would query a moderation_history table
-      // For now, return placeholder data
-      return [
-        {
-          id: 1,
+      // Query moderation actions from notification queue + review status changes
+      const notifications = await db
+        .select({
+          id: notificationQueue.id,
+          userId: notificationQueue.userId,
+          messageText: notificationQueue.messageText,
+          messageData: notificationQueue.messageData,
+          createdAt: notificationQueue.createdAt,
+        })
+        .from(notificationQueue)
+        .where(and(
+          eq(notificationQueue.notificationType, 'moderation'),
+        ))
+        .orderBy(desc(notificationQueue.createdAt))
+        .limit(20);
+
+      // Get the review to find related moderation events
+      const [review] = await db
+        .select()
+        .from(productReviews)
+        .where(eq(productReviews.id, input.reviewId))
+        .limit(1);
+
+      // Build history from notification records related to this review
+      const history = notifications
+        .filter((n) => {
+          const data = n.messageData as Record<string, unknown> | null;
+          return data && (data.reviewId === input.reviewId || data.reviewId === String(input.reviewId));
+        })
+        .map((n, idx) => {
+          const data = (n.messageData || {}) as Record<string, unknown>;
+          const messageText = n.messageText || '';
+          let action = 'moderated';
+          if (messageText.includes('approved')) action = 'approved';
+          else if (messageText.includes('not approved') || messageText.includes('rejected')) action = 'rejected';
+          else if (messageText.includes('appeal')) action = 'appeal_received';
+          else if (messageText.includes('flagged')) action = 'flagged';
+
+          return {
+            id: n.id,
+            reviewId: input.reviewId,
+            action,
+            moderatorId: (data.moderatorId as number) || ctx.user.id,
+            moderatorName: (data.moderatorName as string) || 'Moderator',
+            reason: (data.reason as string) || '',
+            note: (data.note as string) || '',
+            timestamp: n.createdAt,
+          };
+        });
+
+      // If no history found, include the current review status as the most recent action
+      if (history.length === 0 && review) {
+        history.push({
+          id: 0,
           reviewId: input.reviewId,
-          action: "flagged",
-          moderatorId: 1,
-          moderatorName: "Auto-Moderator",
-          reason: "sentiment_mismatch",
-          note: "Negative sentiment with 5-star rating",
-          timestamp: new Date(Date.now() - 86400000), // 1 day ago
-        },
-      ];
+          action: review.status === 'published' ? 'approved' : review.status === 'rejected' ? 'rejected' : 'pending',
+          moderatorId: ctx.user.id,
+          moderatorName: 'System',
+          reason: '',
+          note: `Review is currently ${review.status}`,
+          timestamp: review.updatedAt || review.createdAt,
+        });
+      }
+
+      return history;
     }),
 
   /**
