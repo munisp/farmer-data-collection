@@ -1512,4 +1512,115 @@ export const microfinanceRouter = router({
           : 0,
       };
     }),
+
+  // Multi-currency loan conversion
+  convertLoanCurrency: protectedProcedure
+    .input(z.object({
+      loanId: z.number(),
+      targetCurrency: z.enum(['KES', 'NGN', 'UGX', 'TZS', 'USD']),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [loan] = await db.select().from(loans).where(
+        and(eq(loans.id, input.loanId), eq(loans.userId, ctx.user.id))
+      );
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+
+      // Exchange rates (would be fetched from market data service in production)
+      const exchangeRates: Record<string, Record<string, number>> = {
+        KES: { NGN: 3.45, UGX: 28.5, TZS: 19.2, USD: 0.0065 },
+        NGN: { KES: 0.29, UGX: 8.26, TZS: 5.57, USD: 0.0019 },
+        UGX: { KES: 0.035, NGN: 0.121, TZS: 0.674, USD: 0.00023 },
+        TZS: { KES: 0.052, NGN: 0.180, UGX: 1.484, USD: 0.00034 },
+        USD: { KES: 153.5, NGN: 530.0, UGX: 4380.0, TZS: 2950.0 },
+      };
+
+      const sourceCurrency = 'KES'; // Default currency
+      const rate = exchangeRates[sourceCurrency]?.[input.targetCurrency] || 1;
+      const convertedPrincipal = Math.round((loan.principalAmount || 0) * rate);
+      const convertedBalance = Math.round((loan.outstandingBalance || 0) * rate);
+      const convertedMonthly = Math.round((loan.monthlyPayment || 0) * rate);
+
+      return {
+        loanId: input.loanId,
+        sourceCurrency,
+        targetCurrency: input.targetCurrency,
+        exchangeRate: rate,
+        originalPrincipal: loan.principalAmount,
+        convertedPrincipal,
+        originalBalance: loan.outstandingBalance,
+        convertedBalance,
+        originalMonthly: loan.monthlyPayment,
+        convertedMonthly,
+        rateTimestamp: new Date().toISOString(),
+        disclaimer: "Exchange rates are indicative. Final conversion at disbursement rate.",
+      };
+    }),
+
+  // Credit score refresh/decay mechanism
+  refreshCreditScoreWithDecay: protectedProcedure
+    .input(z.object({ userId: z.number().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const targetUserId = input.userId || ctx.user.id;
+      const [currentScore] = await db.select().from(creditScores)
+        .where(eq(creditScores.userId, targetUserId))
+        .orderBy(desc(creditScores.calculatedAt))
+        .limit(1);
+
+      if (!currentScore) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No credit score found for user" });
+      }
+
+      // Decay rules: score decays if not refreshed within 90 days
+      const lastCalculated = new Date(currentScore.calculatedAt || Date.now());
+      const daysSinceRefresh = Math.floor((Date.now() - lastCalculated.getTime()) / (86400 * 1000));
+      const DECAY_THRESHOLD_DAYS = 90;
+      const DECAY_RATE_PER_DAY = 0.5; // 0.5 points per day after threshold
+      const MAX_DECAY = 50; // Maximum 50 point decay
+
+      let decayAmount = 0;
+      let isStale = false;
+
+      if (daysSinceRefresh > DECAY_THRESHOLD_DAYS) {
+        const daysOverThreshold = daysSinceRefresh - DECAY_THRESHOLD_DAYS;
+        decayAmount = Math.min(Math.round(daysOverThreshold * DECAY_RATE_PER_DAY), MAX_DECAY);
+        isStale = true;
+      }
+
+      const originalScore = currentScore.score || 500;
+      const adjustedScore = Math.max(300, originalScore - decayAmount); // Floor at 300
+
+      // Determine new band
+      const getBand = (score: number) => {
+        if (score >= 750) return 'A';
+        if (score >= 650) return 'B';
+        if (score >= 550) return 'C';
+        if (score >= 450) return 'D';
+        return 'E';
+      };
+
+      return {
+        userId: targetUserId,
+        originalScore,
+        adjustedScore,
+        decayAmount,
+        daysSinceRefresh,
+        isStale,
+        originalBand: getBand(originalScore),
+        currentBand: getBand(adjustedScore),
+        bandChanged: getBand(originalScore) !== getBand(adjustedScore),
+        nextRefreshRecommended: isStale ? 'immediately' : `in ${DECAY_THRESHOLD_DAYS - daysSinceRefresh} days`,
+        decayPolicy: {
+          thresholdDays: DECAY_THRESHOLD_DAYS,
+          ratePerDay: DECAY_RATE_PER_DAY,
+          maxDecay: MAX_DECAY,
+          minimumScore: 300,
+        },
+      };
+    }),
 });

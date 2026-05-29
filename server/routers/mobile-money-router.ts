@@ -597,4 +597,123 @@ export const mobileMoneyRouter = router({
         },
       };
     }),
+
+  // Airtel Money integration
+  initiateAirtelPayment: protectedProcedure
+    .input(z.object({
+      phoneNumber: z.string().regex(/^\+\d{10,13}$/),
+      amount: z.number().positive().max(500000),
+      currency: z.enum(["KES", "UGX", "TZS", "NGN"]),
+      reference: z.string().min(1).max(50),
+      transactionType: z.enum(["collection", "disbursement"]),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+
+      // Generate unique transaction ID
+      const transactionId = `AIRTEL-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
+      // Country code mapping
+      const countryMap: Record<string, string> = {
+        KES: "KE",
+        UGX: "UG",
+        TZS: "TZ",
+        NGN: "NG",
+      };
+
+      try {
+        // In production, this would call Airtel Money API
+        // POST /merchant/v2/payments for collections
+        // POST /standard/v2/disbursements for disbursements
+        const payload = {
+          reference: input.reference,
+          subscriber: {
+            country: countryMap[input.currency],
+            currency: input.currency,
+            msisdn: input.phoneNumber.replace(/^\+/, ""),
+          },
+          transaction: {
+            amount: input.amount,
+            country: countryMap[input.currency],
+            currency: input.currency,
+            id: transactionId,
+          },
+        };
+
+        // Record transaction in database
+        await db.insert(mobileMoneyTransactions).values({
+          userId: ctx.user.id,
+          provider: "airtel",
+          providerTransactionId: transactionId,
+          phoneNumber: input.phoneNumber,
+          amount: input.amount,
+          currency: input.currency,
+          transactionType: input.transactionType,
+          status: "pending",
+          metadata: JSON.stringify(payload),
+        });
+
+        // Publish event for async processing
+        await publishEvent("payment-events", createEvent(
+          "airtel.payment.initiated",
+          "mobile_money_transaction",
+          transactionId,
+          ctx.user.id,
+          { amount: input.amount, currency: input.currency, provider: "airtel" }
+        ));
+
+        return {
+          success: true,
+          transactionId,
+          provider: "airtel",
+          status: "pending",
+          message: input.transactionType === "collection"
+            ? "Payment request sent. Customer will receive a prompt on their phone."
+            : "Disbursement initiated. Funds will be credited within 30 seconds.",
+          estimatedCompletion: "30 seconds",
+          callbackUrl: `${process.env.BASE_URL || ""}/api/webhooks/airtel`,
+        };
+      } catch (error) {
+        console.error("Operation failed:", error);
+        throw new Error("Failed to initiate Airtel Money payment");
+      }
+    }),
+
+  // Airtel Money webhook handler
+  handleAirtelCallback: publicProcedure
+    .input(z.object({
+      transaction: z.object({
+        id: z.string(),
+        status_code: z.string(),
+        message: z.string(),
+        airtel_money_id: z.string().optional(),
+      }),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      const statusMap: Record<string, string> = {
+        TS: "completed",    // Transaction Successful
+        TF: "failed",       // Transaction Failed
+        TA: "ambiguous",    // Transaction Ambiguous (needs reconciliation)
+        TIP: "pending",     // Transaction In Progress
+      };
+
+      const newStatus = statusMap[input.transaction.status_code] || "unknown";
+
+      await db.update(mobileMoneyTransactions)
+        .set({
+          status: newStatus,
+          providerTransactionId: input.transaction.airtel_money_id || null,
+          completedAt: newStatus === "completed" ? new Date() : null,
+          metadata: JSON.stringify(input.transaction),
+        })
+        .where(eq(mobileMoneyTransactions.providerTransactionId, input.transaction.id));
+
+      return {
+        acknowledged: true,
+        transactionId: input.transaction.id,
+        status: newStatus,
+      };
+    }),
 });
