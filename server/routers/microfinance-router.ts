@@ -1250,4 +1250,266 @@ export const microfinanceRouter = router({
         lastPayment: loan.lastPayment,
       }));
     }),
+
+  // ============================================================================
+  // Gap #1: Late Payment Penalties & Loan Restructuring
+  // ============================================================================
+
+  /**
+   * Calculate late payment penalty for an overdue loan.
+   * Penalty tiers:
+   *   1-7 days:   1% of outstanding balance (grace period warning)
+   *   8-30 days:  2% of outstanding balance
+   *   31-60 days: 5% of outstanding balance + credit score impact
+   *   61-90 days: 8% of outstanding balance + collections flag
+   *   90+ days:   10% of outstanding + default classification
+   */
+  calculateLatePenalty: protectedProcedure
+    .input(z.object({ loanId: z.number() }))
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [loan] = await db.select().from(loans)
+        .where(eq(loans.id, ctx.user.id ? ctx.user.id : 0));
+
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+      if (!loan.nextPaymentDue) return { penalty: 0, daysOverdue: 0, tier: "current" };
+
+      const now = new Date();
+      const dueDate = new Date(loan.nextPaymentDue);
+      const daysOverdue = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / 86400000));
+      const outstanding = loan.outstandingBalance || loan.principalAmount;
+
+      let penaltyRate = 0;
+      let tier: "current" | "grace" | "late" | "delinquent" | "collections" | "default" = "current";
+      let creditScoreImpact = 0;
+
+      if (daysOverdue <= 0) {
+        tier = "current";
+      } else if (daysOverdue <= 7) {
+        penaltyRate = 0.01;
+        tier = "grace";
+      } else if (daysOverdue <= 30) {
+        penaltyRate = 0.02;
+        tier = "late";
+        creditScoreImpact = -25;
+      } else if (daysOverdue <= 60) {
+        penaltyRate = 0.05;
+        tier = "delinquent";
+        creditScoreImpact = -75;
+      } else if (daysOverdue <= 90) {
+        penaltyRate = 0.08;
+        tier = "collections";
+        creditScoreImpact = -150;
+      } else {
+        penaltyRate = 0.10;
+        tier = "default";
+        creditScoreImpact = -300;
+      }
+
+      const penalty = Math.round(outstanding * penaltyRate);
+
+      return {
+        loanId: loan.id,
+        daysOverdue,
+        tier,
+        penaltyRate: penaltyRate * 100,
+        penalty,
+        outstanding,
+        totalDue: outstanding + penalty,
+        creditScoreImpact,
+        nextAction: tier === "grace"
+          ? "Pay within 7 days to avoid penalties"
+          : tier === "late"
+          ? "Pay immediately to prevent credit score damage"
+          : tier === "delinquent"
+          ? "Contact loan officer for restructuring options"
+          : tier === "collections"
+          ? "Loan sent to collections. Call +234-800-FARM-HELP"
+          : tier === "default"
+          ? "Loan classified as default. Legal action may follow"
+          : "No action needed",
+      };
+    }),
+
+  /**
+   * Restructure an overdue loan with new terms.
+   * Options: extend term, reduce rate, capitalize arrears, payment holiday.
+   */
+  restructureLoan: protectedProcedure
+    .input(z.object({
+      loanId: z.number(),
+      restructureType: z.enum([
+        "term_extension",    // Extend loan term, reduce monthly payment
+        "rate_reduction",    // Temporarily reduce interest rate
+        "arrears_capitalize", // Roll overdue amount into principal
+        "payment_holiday",   // Pause payments for N months
+      ]),
+      newTermMonths: z.number().int().positive().optional(),
+      newInterestRate: z.number().min(0).max(100).optional(),
+      holidayMonths: z.number().int().min(1).max(6).optional(),
+      reason: z.string().min(10),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [loan] = await db.select().from(loans).where(eq(loans.id, input.loanId));
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+      if (loan.userId !== ctx.user.id && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not authorized" });
+      }
+
+      const outstanding = loan.outstandingBalance || loan.principalAmount;
+      const currentRate = loan.interestRate || 1500; // basis points
+      const currentTerm = loan.termMonths || 12;
+
+      let updates: Record<string, unknown> = {};
+      let newMonthlyPayment = loan.monthlyPayment || 0;
+      let summary = "";
+
+      switch (input.restructureType) {
+        case "term_extension": {
+          const newTerm = input.newTermMonths || currentTerm + 6;
+          const monthlyRate = currentRate / 10000 / 12;
+          newMonthlyPayment = monthlyRate > 0
+            ? Math.round((outstanding * monthlyRate * Math.pow(1 + monthlyRate, newTerm)) / (Math.pow(1 + monthlyRate, newTerm) - 1))
+            : Math.round(outstanding / newTerm);
+          updates = { termMonths: newTerm, monthlyPayment: newMonthlyPayment };
+          summary = `Term extended to ${newTerm} months. New payment: ${newMonthlyPayment}`;
+          break;
+        }
+        case "rate_reduction": {
+          const newRate = input.newInterestRate
+            ? Math.round(input.newInterestRate * 100) // convert % to basis points
+            : Math.round(currentRate * 0.7); // 30% reduction default
+          const monthlyRate = newRate / 10000 / 12;
+          newMonthlyPayment = monthlyRate > 0
+            ? Math.round((outstanding * monthlyRate * Math.pow(1 + monthlyRate, currentTerm)) / (Math.pow(1 + monthlyRate, currentTerm) - 1))
+            : Math.round(outstanding / currentTerm);
+          updates = { interestRate: newRate, monthlyPayment: newMonthlyPayment };
+          summary = `Rate reduced to ${newRate / 100}%. New payment: ${newMonthlyPayment}`;
+          break;
+        }
+        case "arrears_capitalize": {
+          // Calculate total overdue amount and add to principal
+          const overdueRepayments = await db.select().from(loanRepayments)
+            .where(and(eq(loanRepayments.loanId, input.loanId), eq(loanRepayments.status, "overdue")));
+          const arrearsAmount = overdueRepayments.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+          const newPrincipal = outstanding + arrearsAmount;
+          const monthlyRate = currentRate / 10000 / 12;
+          newMonthlyPayment = monthlyRate > 0
+            ? Math.round((newPrincipal * monthlyRate * Math.pow(1 + monthlyRate, currentTerm)) / (Math.pow(1 + monthlyRate, currentTerm) - 1))
+            : Math.round(newPrincipal / currentTerm);
+          updates = { outstandingBalance: newPrincipal, monthlyPayment: newMonthlyPayment };
+          // Mark overdue repayments as restructured
+          for (const rep of overdueRepayments) {
+            await db.update(loanRepayments)
+              .set({ status: "restructured" })
+              .where(eq(loanRepayments.id, rep.id));
+          }
+          summary = `Arrears of ${arrearsAmount} capitalized. New balance: ${newPrincipal}`;
+          break;
+        }
+        case "payment_holiday": {
+          const months = input.holidayMonths || 3;
+          const resumeDate = new Date();
+          resumeDate.setMonth(resumeDate.getMonth() + months);
+          updates = { nextPaymentDue: resumeDate };
+          summary = `Payment holiday of ${months} months. Payments resume ${resumeDate.toISOString().split("T")[0]}`;
+          break;
+        }
+      }
+
+      await db.update(loans)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(loans.id, input.loanId));
+
+      return {
+        loanId: input.loanId,
+        restructureType: input.restructureType,
+        previousMonthlyPayment: loan.monthlyPayment,
+        newMonthlyPayment,
+        summary,
+        reason: input.reason,
+        effectiveDate: new Date().toISOString(),
+      };
+    }),
+
+  /**
+   * Pre-payment: pay off loan early (full or partial).
+   * No prepayment penalty — encourages early repayment.
+   */
+  prepayLoan: protectedProcedure
+    .input(z.object({
+      loanId: z.number(),
+      amount: z.number().positive(),
+      paymentMethod: z.enum(["mpesa", "mtn_momo", "bank_transfer", "cash"]).default("mpesa"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [loan] = await db.select().from(loans).where(eq(loans.id, input.loanId));
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+      if (loan.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not your loan" });
+      }
+
+      const outstanding = loan.outstandingBalance || loan.principalAmount;
+      const paymentAmount = Math.min(input.amount, outstanding);
+      const newBalance = outstanding - paymentAmount;
+      const isFullPayoff = newBalance <= 0;
+
+      // Record the prepayment
+      await db.insert(loanRepayments).values({
+        loanId: input.loanId,
+        paymentNumber: 0,
+        totalAmount: paymentAmount,
+        principalAmount: paymentAmount,
+        interestAmount: 0,
+        paidAmount: paymentAmount,
+        status: "paid",
+        paidDate: new Date(),
+        dueDate: new Date(),
+        paymentMethod: "prepayment",
+      });
+
+      // Update loan
+      await db.update(loans)
+        .set({
+          outstandingBalance: Math.max(0, newBalance),
+          status: isFullPayoff ? "completed" : loan.status,
+          updatedAt: new Date(),
+        })
+        .where(eq(loans.id, input.loanId));
+
+      // Recalculate remaining schedule if partial prepay
+      let newMonthlyPayment = loan.monthlyPayment;
+      if (!isFullPayoff && loan.termMonths) {
+        const remainingMonths = Math.max(1, loan.termMonths - Math.floor(
+          (Date.now() - new Date(loan.disbursedAt || loan.createdAt).getTime()) / (30 * 86400000)
+        ));
+        const monthlyRate = (loan.interestRate || 0) / 10000 / 12;
+        newMonthlyPayment = monthlyRate > 0
+          ? Math.round((newBalance * monthlyRate * Math.pow(1 + monthlyRate, remainingMonths)) / (Math.pow(1 + monthlyRate, remainingMonths) - 1))
+          : Math.round(newBalance / remainingMonths);
+        await db.update(loans)
+          .set({ monthlyPayment: newMonthlyPayment })
+          .where(eq(loans.id, input.loanId));
+      }
+
+      return {
+        loanId: input.loanId,
+        amountPaid: paymentAmount,
+        previousBalance: outstanding,
+        newBalance: Math.max(0, newBalance),
+        isFullPayoff,
+        newMonthlyPayment: isFullPayoff ? 0 : newMonthlyPayment,
+        interestSaved: isFullPayoff
+          ? Math.round(outstanding * (loan.interestRate || 0) / 10000 / 12 * (loan.termMonths || 0) * 0.3)
+          : 0,
+      };
+    }),
 });

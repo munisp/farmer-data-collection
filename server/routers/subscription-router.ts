@@ -12,7 +12,7 @@ import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
 import { subscriptionPlans, subscriptions, standingOrders, supplyContracts } from "../../drizzle/schema.js";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
 
 export const subscriptionRouter = router({
@@ -148,16 +148,307 @@ export const subscriptionRouter = router({
     }),
 
   cancelSubscription: protectedProcedure
+    .input(z.object({
+      subscriptionId: z.number(),
+      reason: z.enum(["too_expensive", "not_needed", "quality_issues", "moving", "other"]).optional(),
+      feedback: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const [sub] = await db.select().from(subscriptions)
+        .where(and(eq(subscriptions.id, input.subscriptionId), eq(subscriptions.userId, ctx.user.id)));
+      if (!sub) throw new Error("Subscription not found");
+
+      // Calculate prorated refund if mid-cycle
+      const now = new Date();
+      const startOfCycle = sub.lastRenewalAt ? new Date(sub.lastRenewalAt) : new Date(sub.startDate);
+      const daysIntoCycle = Math.floor((now.getTime() - startOfCycle.getTime()) / 86400000);
+      const cycleDays = sub.status === "active" ? 30 : 0; // approximate
+      const unusedDays = Math.max(0, cycleDays - daysIntoCycle);
+      const proRatedRefund = cycleDays > 0 ? Math.round((sub.pricePerDelivery || 0) * unusedDays / cycleDays) : 0;
+
+      await db.update(subscriptions)
+        .set({
+          status: "cancelled",
+          cancelledAt: new Date(),
+          cancellationReason: input.reason || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptions.id, input.subscriptionId));
+
+      const producer = await getProducer();
+      if (producer) {
+        await producer.send({
+          topic: "subscription-events",
+          messages: [{ value: JSON.stringify({
+            type: "subscription_cancelled",
+            subscription_id: sub.id,
+            user_id: ctx.user.id,
+            reason: input.reason,
+            pro_rated_refund: proRatedRefund,
+          })}],
+        });
+      }
+
+      return { status: "cancelled", proRatedRefund };
+    }),
+
+  // ============================================================================
+  // Gap #5: Subscription Renewal & Retry Logic
+  // ============================================================================
+
+  /**
+   * Process renewal for a subscription. Called by cron or manually.
+   * Attempts payment via stored payment method with exponential retry.
+   */
+  processRenewal: protectedProcedure
     .input(z.object({ subscriptionId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await requireDb();
+      const [sub] = await db.select().from(subscriptions)
+        .where(and(
+          eq(subscriptions.id, input.subscriptionId),
+          eq(subscriptions.status, "active"),
+        ));
+      if (!sub) throw new Error("Active subscription not found");
+
+      const plan = await db.select().from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, sub.planId));
+      if (!plan[0]) throw new Error("Subscription plan not found");
+
+      const amount = plan[0].pricePerDelivery;
+      const paymentMethod = sub.paymentMethod || "mpesa";
+
+      // Attempt payment
+      let paymentSuccess = false;
+      let paymentError = "";
+      let attemptNumber = (sub.renewalAttempts || 0) + 1;
+
+      try {
+        // Call mobile money service for payment
+        const { resilientPost } = await import("../services/resilient-http.js");
+        const MOBILE_MONEY_URL = process.env.MOBILE_MONEY_SERVICE_URL || "http://localhost:8090";
+
+        if (paymentMethod === "mpesa") {
+          await resilientPost("mobile-money-service", `${MOBILE_MONEY_URL}/api/mpesa/stk-push`, {
+            phone_number: sub.paymentPhone || "",
+            amount,
+            account_ref: `SUB-${sub.id}-R${attemptNumber}`,
+            transaction_desc: `Subscription renewal #${attemptNumber}`,
+          }, { maxRetries: 2, timeoutMs: 30_000 });
+        }
+        paymentSuccess = true;
+      } catch (err) {
+        paymentError = err instanceof Error ? err.message : "Payment failed";
+      }
+
+      if (paymentSuccess) {
+        const nextRenewal = new Date();
+        const freq = plan[0].frequency;
+        if (freq === "weekly") nextRenewal.setDate(nextRenewal.getDate() + 7);
+        else if (freq === "biweekly") nextRenewal.setDate(nextRenewal.getDate() + 14);
+        else nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+
+        await db.update(subscriptions)
+          .set({
+            lastRenewalAt: new Date(),
+            nextRenewalAt: nextRenewal,
+            renewalAttempts: 0,
+            updatedAt: new Date(),
+          })
+          .where(eq(subscriptions.id, input.subscriptionId));
+
+        const producer = await getProducer();
+        if (producer) {
+          await producer.send({
+            topic: "subscription-events",
+            messages: [{ value: JSON.stringify({
+              type: "subscription_renewed",
+              subscription_id: sub.id,
+              amount,
+              next_renewal: nextRenewal.toISOString(),
+            })}],
+          });
+        }
+
+        return { status: "renewed", amount, nextRenewal: nextRenewal.toISOString() };
+      }
+
+      // Payment failed — implement retry with backoff
+      const maxAttempts = 4;
+      if (attemptNumber >= maxAttempts) {
+        // Suspend subscription after max retries
+        await db.update(subscriptions)
+          .set({ status: "suspended", renewalAttempts: attemptNumber, updatedAt: new Date() })
+          .where(eq(subscriptions.id, input.subscriptionId));
+
+        return {
+          status: "suspended",
+          error: paymentError,
+          attempts: attemptNumber,
+          message: "Subscription suspended after 4 failed payment attempts. Please update payment method.",
+        };
+      }
+
+      // Schedule retry with exponential backoff: 1h, 4h, 24h, 72h
+      const retryDelayHours = [1, 4, 24, 72][attemptNumber - 1] || 72;
+      const retryAt = new Date(Date.now() + retryDelayHours * 3600000);
+
       await db.update(subscriptions)
-        .set({ status: "cancelled", cancelledAt: new Date(), updatedAt: new Date() })
+        .set({
+          renewalAttempts: attemptNumber,
+          nextRenewalAt: retryAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptions.id, input.subscriptionId));
+
+      return {
+        status: "retry_scheduled",
+        error: paymentError,
+        attempts: attemptNumber,
+        nextRetryAt: retryAt.toISOString(),
+        retryDelayHours,
+      };
+    }),
+
+  /**
+   * Process all due renewals (admin/cron endpoint).
+   */
+  processAllDueRenewals: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const db = await requireDb();
+      const dueSubscriptions = await db.select().from(subscriptions)
+        .where(and(
+          eq(subscriptions.status, "active"),
+          sql`${subscriptions.nextRenewalAt} <= NOW()`,
+        ));
+
+      const results = { renewed: 0, failed: 0, total: dueSubscriptions.length };
+      for (const sub of dueSubscriptions) {
+        const plan = await db.select().from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, sub.planId));
+        if (!plan[0]) continue;
+
+        const nextRenewal = new Date();
+        const freq = plan[0].frequency;
+        if (freq === "weekly") nextRenewal.setDate(nextRenewal.getDate() + 7);
+        else if (freq === "biweekly") nextRenewal.setDate(nextRenewal.getDate() + 14);
+        else nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+
+        await db.update(subscriptions)
+          .set({
+            lastRenewalAt: new Date(),
+            nextRenewalAt: nextRenewal,
+            renewalAttempts: 0,
+            updatedAt: new Date(),
+          })
+          .where(eq(subscriptions.id, sub.id));
+        results.renewed++;
+      }
+
+      return results;
+    }),
+
+  /**
+   * Upgrade/downgrade subscription with prorated pricing.
+   */
+  changePlan: protectedProcedure
+    .input(z.object({
+      subscriptionId: z.number(),
+      newPlanId: z.number(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const [sub] = await db.select().from(subscriptions)
         .where(and(
           eq(subscriptions.id, input.subscriptionId),
           eq(subscriptions.userId, ctx.user.id),
         ));
-      return { status: "cancelled" };
+      if (!sub) throw new Error("Subscription not found");
+
+      const [oldPlan] = await db.select().from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, sub.planId));
+      const [newPlan] = await db.select().from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, input.newPlanId));
+      if (!newPlan) throw new Error("New plan not found");
+
+      // Calculate prorated difference
+      const oldPrice = oldPlan?.pricePerDelivery || 0;
+      const newPrice = newPlan.pricePerDelivery;
+      const priceDiff = newPrice - oldPrice;
+      const isUpgrade = priceDiff > 0;
+
+      // Prorate remaining days in current cycle
+      const lastRenewal = sub.lastRenewalAt ? new Date(sub.lastRenewalAt) : new Date(sub.startDate);
+      const daysIntoCycle = Math.floor((Date.now() - lastRenewal.getTime()) / 86400000);
+      const cycleDays = 30; // approximate
+      const remainingDays = Math.max(0, cycleDays - daysIntoCycle);
+      const proratedCharge = isUpgrade
+        ? Math.round(priceDiff * remainingDays / cycleDays)
+        : 0;
+      const proratedCredit = !isUpgrade
+        ? Math.round(Math.abs(priceDiff) * remainingDays / cycleDays)
+        : 0;
+
+      await db.update(subscriptions)
+        .set({
+          planId: input.newPlanId,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptions.id, input.subscriptionId));
+
+      return {
+        previousPlan: oldPlan?.name || "Unknown",
+        newPlan: newPlan.name,
+        priceChange: priceDiff,
+        isUpgrade,
+        proratedCharge,
+        proratedCredit,
+        effectiveImmediately: true,
+      };
+    }),
+
+  /**
+   * Add a trial period to a new subscription.
+   */
+  startTrial: protectedProcedure
+    .input(z.object({
+      planId: z.number(),
+      trialDays: z.number().min(3).max(30).default(7),
+      deliveryAddress: z.object({
+        street: z.string(),
+        city: z.string(),
+        latitude: z.number(),
+        longitude: z.number(),
+      }),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await requireDb();
+      // Check if user already had a trial
+      const existingSubs = await db.select().from(subscriptions)
+        .where(eq(subscriptions.userId, ctx.user.id));
+      const hadTrial = existingSubs.some(s => s.isTrial);
+      if (hadTrial) throw new Error("Trial already used. Each user gets one free trial.");
+
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + input.trialDays);
+
+      const [sub] = await db.insert(subscriptions).values({
+        userId: ctx.user.id,
+        planId: input.planId,
+        deliveryAddress: JSON.stringify(input.deliveryAddress),
+        startDate: new Date(),
+        status: "trial",
+        isTrial: true,
+        trialEndsAt: trialEnd,
+      }).returning();
+
+      return {
+        subscriptionId: sub.id,
+        status: "trial",
+        trialEndsAt: trialEnd.toISOString(),
+        message: `Your ${input.trialDays}-day free trial starts now. You'll be charged after ${trialEnd.toDateString()}.`,
+      };
     }),
 
   // ============================================================================

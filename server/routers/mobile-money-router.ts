@@ -9,10 +9,10 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc-base.js";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
 import { mobileMoneyAccounts, mobileMoneyTransactions } from "../../drizzle/schema.js";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { resilientPost } from "../services/resilient-http.js";
@@ -241,5 +241,360 @@ export const mobileMoneyRouter = router({
           eq(mobileMoneyTransactions.userId, ctx.user.id),
         ));
       return tx || null;
+    }),
+
+  // ============================================================================
+  // Gap #10: Webhook/Callback Handling for Async Payment Confirmation
+  // ============================================================================
+
+  /**
+   * M-Pesa callback handler. Called by Safaricom after STK push completes.
+   * Validates callback, updates transaction status, triggers downstream events.
+   */
+  mpesaCallback: publicProcedure
+    .input(z.object({
+      Body: z.object({
+        stkCallback: z.object({
+          MerchantRequestID: z.string(),
+          CheckoutRequestID: z.string(),
+          ResultCode: z.number(),
+          ResultDesc: z.string(),
+          CallbackMetadata: z.object({
+            Item: z.array(z.object({
+              Name: z.string(),
+              Value: z.union([z.string(), z.number()]).optional(),
+            })),
+          }).optional(),
+        }),
+      }),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+      const callback = input.Body.stkCallback;
+      const checkoutId = callback.CheckoutRequestID;
+
+      // Find the transaction by provider transaction ID
+      const [tx] = await db.select().from(mobileMoneyTransactions)
+        .where(eq(mobileMoneyTransactions.providerTransactionId, checkoutId));
+
+      if (!tx) {
+        return { ResultCode: 1, ResultDesc: "Transaction not found" };
+      }
+
+      const isSuccess = callback.ResultCode === 0;
+
+      // Extract metadata from callback
+      let mpesaReceiptNumber = "";
+      let transactionDate = "";
+      let phoneNumber = "";
+      if (callback.CallbackMetadata?.Item) {
+        for (const item of callback.CallbackMetadata.Item) {
+          if (item.Name === "MpesaReceiptNumber") mpesaReceiptNumber = String(item.Value || "");
+          if (item.Name === "TransactionDate") transactionDate = String(item.Value || "");
+          if (item.Name === "PhoneNumber") phoneNumber = String(item.Value || "");
+        }
+      }
+
+      // Update transaction status
+      await db.update(mobileMoneyTransactions)
+        .set({
+          status: isSuccess ? "completed" : "failed",
+          providerTransactionId: mpesaReceiptNumber || checkoutId,
+          completedAt: isSuccess ? new Date() : null,
+          failureReason: isSuccess ? null : callback.ResultDesc,
+          metadata: JSON.stringify({
+            mpesaReceiptNumber,
+            transactionDate,
+            phoneNumber,
+            resultCode: callback.ResultCode,
+            resultDesc: callback.ResultDesc,
+          }),
+          updatedAt: new Date(),
+        })
+        .where(eq(mobileMoneyTransactions.id, tx.id));
+
+      // Publish event for downstream processing
+      const producer = await getProducer();
+      if (producer) {
+        await producer.send({
+          topic: "mobile-money-events",
+          messages: [{ value: JSON.stringify({
+            type: isSuccess ? "payment_confirmed" : "payment_failed",
+            transaction_id: tx.id,
+            user_id: tx.userId,
+            amount: tx.amount,
+            provider: "mpesa",
+            receipt_number: mpesaReceiptNumber,
+            order_id: tx.orderId,
+          })}],
+        });
+      }
+
+      return { ResultCode: 0, ResultDesc: "Callback processed" };
+    }),
+
+  /**
+   * MTN MoMo callback handler.
+   */
+  mtnCallback: publicProcedure
+    .input(z.object({
+      referenceId: z.string(),
+      status: z.enum(["SUCCESSFUL", "FAILED", "PENDING"]),
+      reason: z.string().optional(),
+      financialTransactionId: z.string().optional(),
+      externalId: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await requireDb();
+
+      // Find transaction by external ID or provider ref
+      const txQuery = input.externalId
+        ? eq(mobileMoneyTransactions.providerTransactionId, input.externalId)
+        : eq(mobileMoneyTransactions.providerTransactionId, input.referenceId);
+
+      const [tx] = await db.select().from(mobileMoneyTransactions).where(txQuery);
+      if (!tx) return { status: "not_found" };
+
+      const isSuccess = input.status === "SUCCESSFUL";
+
+      await db.update(mobileMoneyTransactions)
+        .set({
+          status: isSuccess ? "completed" : input.status === "PENDING" ? "processing" : "failed",
+          providerTransactionId: input.financialTransactionId || tx.providerTransactionId,
+          completedAt: isSuccess ? new Date() : null,
+          failureReason: isSuccess ? null : input.reason,
+          updatedAt: new Date(),
+        })
+        .where(eq(mobileMoneyTransactions.id, tx.id));
+
+      const producer = await getProducer();
+      if (producer) {
+        await producer.send({
+          topic: "mobile-money-events",
+          messages: [{ value: JSON.stringify({
+            type: isSuccess ? "payment_confirmed" : "payment_failed",
+            transaction_id: tx.id,
+            user_id: tx.userId,
+            amount: tx.amount,
+            provider: "mtn_momo",
+            financial_transaction_id: input.financialTransactionId,
+          })}],
+        });
+      }
+
+      return { status: "processed" };
+    }),
+
+  // ============================================================================
+  // Gap #2: Payment Reconciliation
+  // ============================================================================
+
+  /**
+   * Reconcile local transactions against provider records.
+   * Identifies mismatches between local DB status and actual payment status.
+   */
+  reconcileTransactions: protectedProcedure
+    .input(z.object({
+      provider: z.enum(["mpesa", "mtn_momo", "airtel_money"]).optional(),
+      dateFrom: z.string(),
+      dateTo: z.string(),
+      autoFix: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") throw new Error("Only admins can run reconciliation");
+      const db = await requireDb();
+
+      const fromDate = new Date(input.dateFrom);
+      const toDate = new Date(input.dateTo);
+
+      // Get all transactions in date range
+      const conditions = [
+        sql`${mobileMoneyTransactions.createdAt} >= ${fromDate}`,
+        sql`${mobileMoneyTransactions.createdAt} <= ${toDate}`,
+      ];
+      if (input.provider) {
+        conditions.push(eq(mobileMoneyTransactions.provider, input.provider));
+      }
+
+      const transactions = await db.select().from(mobileMoneyTransactions)
+        .where(and(...conditions));
+
+      const reconciliation = {
+        total: transactions.length,
+        matched: 0,
+        mismatched: 0,
+        pending: 0,
+        stale: 0,
+        fixed: 0,
+        totalAmount: 0,
+        matchedAmount: 0,
+        details: [] as Array<{
+          id: number;
+          localStatus: string;
+          providerStatus: string;
+          amount: number;
+          issue: string;
+        }>,
+      };
+
+      for (const tx of transactions) {
+        reconciliation.totalAmount += tx.amount;
+
+        if (tx.status === "completed") {
+          reconciliation.matched++;
+          reconciliation.matchedAmount += tx.amount;
+          continue;
+        }
+
+        if (tx.status === "pending" || tx.status === "processing") {
+          // Check if transaction is stale (>1 hour old and still pending)
+          const ageMs = Date.now() - new Date(tx.createdAt).getTime();
+          if (ageMs > 3600000) {
+            reconciliation.stale++;
+            reconciliation.details.push({
+              id: tx.id,
+              localStatus: tx.status,
+              providerStatus: "unknown",
+              amount: tx.amount,
+              issue: `Stale ${tx.status} transaction (${Math.round(ageMs / 3600000)}h old)`,
+            });
+
+            // Auto-fix stale transactions by querying provider
+            if (input.autoFix && tx.providerTransactionId) {
+              try {
+                const providerPath = tx.provider === "mpesa"
+                  ? `/api/mpesa/query/${tx.providerTransactionId}`
+                  : `/api/mtn/status/${tx.providerTransactionId}`;
+                const result = await callMobileMoneyService(providerPath, {});
+                const providerStatus = result.status as string;
+                if (providerStatus === "completed" || providerStatus === "SUCCESSFUL") {
+                  await db.update(mobileMoneyTransactions)
+                    .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
+                    .where(eq(mobileMoneyTransactions.id, tx.id));
+                  reconciliation.fixed++;
+                } else if (providerStatus === "failed" || providerStatus === "FAILED") {
+                  await db.update(mobileMoneyTransactions)
+                    .set({ status: "failed", failureReason: "Reconciliation: provider confirmed failure", updatedAt: new Date() })
+                    .where(eq(mobileMoneyTransactions.id, tx.id));
+                  reconciliation.fixed++;
+                }
+              } catch {
+                // Provider query failed — skip
+              }
+            }
+          } else {
+            reconciliation.pending++;
+          }
+          continue;
+        }
+
+        if (tx.status === "failed") {
+          reconciliation.mismatched++;
+          reconciliation.details.push({
+            id: tx.id,
+            localStatus: tx.status,
+            providerStatus: "failed",
+            amount: tx.amount,
+            issue: tx.failureReason || "Failed transaction",
+          });
+        }
+      }
+
+      return {
+        ...reconciliation,
+        reconciliationRate: reconciliation.total > 0
+          ? Math.round((reconciliation.matched / reconciliation.total) * 100)
+          : 100,
+        runAt: new Date().toISOString(),
+        dateRange: { from: input.dateFrom, to: input.dateTo },
+      };
+    }),
+
+  /**
+   * Get balance inquiry from provider.
+   */
+  getBalance: protectedProcedure
+    .input(z.object({
+      provider: z.enum(["mpesa", "mtn_momo", "airtel_money"]),
+    }))
+    .query(async ({ input }) => {
+      try {
+        const path = input.provider === "mpesa"
+          ? "/api/mpesa/balance"
+          : `/api/${input.provider.replace("_", "/")}/balance`;
+        const result = await callMobileMoneyService(path, {});
+        return {
+          provider: input.provider,
+          balance: result.balance as number || 0,
+          currency: result.currency as string || "NGN",
+          lastUpdated: new Date().toISOString(),
+        };
+      } catch {
+        return {
+          provider: input.provider,
+          balance: 0,
+          currency: "NGN",
+          error: "Balance inquiry unavailable",
+        };
+      }
+    }),
+
+  /**
+   * Commission/fee calculation with dynamic rates.
+   */
+  calculateFees: publicProcedure
+    .input(z.object({
+      amount: z.number().positive(),
+      provider: z.enum(["mpesa", "mtn_momo", "airtel_money"]),
+      transactionType: z.enum(["collection", "disbursement", "transfer"]),
+    }))
+    .query(({ input }) => {
+      // Fee schedule by provider and tier
+      const feeSchedule: Record<string, Array<{ maxAmount: number; rate: number; flatFee: number }>> = {
+        mpesa: [
+          { maxAmount: 500, rate: 0, flatFee: 0 },
+          { maxAmount: 2500, rate: 0.011, flatFee: 15 },
+          { maxAmount: 10000, rate: 0.011, flatFee: 33 },
+          { maxAmount: 50000, rate: 0.011, flatFee: 56 },
+          { maxAmount: 150000, rate: 0.011, flatFee: 77 },
+          { maxAmount: Infinity, rate: 0.011, flatFee: 105 },
+        ],
+        mtn_momo: [
+          { maxAmount: 500, rate: 0, flatFee: 0 },
+          { maxAmount: 5000, rate: 0.015, flatFee: 10 },
+          { maxAmount: 25000, rate: 0.015, flatFee: 25 },
+          { maxAmount: Infinity, rate: 0.015, flatFee: 50 },
+        ],
+        airtel_money: [
+          { maxAmount: 1000, rate: 0, flatFee: 0 },
+          { maxAmount: 10000, rate: 0.012, flatFee: 20 },
+          { maxAmount: Infinity, rate: 0.012, flatFee: 40 },
+        ],
+      };
+
+      const schedule = feeSchedule[input.provider] || feeSchedule["mpesa"];
+      const tier = schedule.find(t => input.amount <= t.maxAmount) || schedule[schedule.length - 1];
+
+      const percentageFee = Math.round(input.amount * tier.rate);
+      const totalFee = percentageFee + tier.flatFee;
+
+      // Platform commission on top of provider fees
+      const platformCommission = input.transactionType === "collection"
+        ? Math.round(input.amount * 0.015)  // 1.5% on collections
+        : Math.round(input.amount * 0.01);   // 1.0% on disbursements
+
+      return {
+        amount: input.amount,
+        provider: input.provider,
+        providerFee: totalFee,
+        platformCommission,
+        totalFees: totalFee + platformCommission,
+        netAmount: input.amount - totalFee - platformCommission,
+        feeBreakdown: {
+          percentageFee,
+          flatFee: tier.flatFee,
+          platformRate: input.transactionType === "collection" ? "1.5%" : "1.0%",
+        },
+      };
     }),
 });

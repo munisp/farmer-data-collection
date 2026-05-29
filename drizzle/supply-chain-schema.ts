@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, varchar, text, decimal, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, varchar, text, decimal, timestamp, boolean, index, jsonb } from "drizzle-orm/pg-core";
 import { users } from "./schema";
 
 // ============================================================================
@@ -233,8 +233,18 @@ export const subscriptions = pgTable("subscriptions", {
   deliveryAddress: text("delivery_address"),
   preferences: text("preferences"),
   paymentMethod: varchar("payment_method", { length: 50 }),
+  paymentPhone: varchar("payment_phone", { length: 20 }),
+  pricePerDelivery: integer("price_per_delivery"),
   status: varchar("status", { length: 20 }).default("active").notNull(),
+  // Renewal tracking
+  lastRenewalAt: timestamp("last_renewal_at"),
+  nextRenewalAt: timestamp("next_renewal_at"),
+  renewalAttempts: integer("renewal_attempts").default(0),
+  cancellationReason: text("cancellation_reason"),
   cancelledAt: timestamp("cancelled_at"),
+  // Trial tracking
+  isTrial: boolean("is_trial").default(false),
+  trialEndsAt: timestamp("trial_ends_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -274,6 +284,7 @@ export const mobileMoneyTransactions = pgTable("mobile_money_transactions", {
   failureReason: text("failure_reason"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_mm_transactions_user").on(table.userId),
   index("idx_mm_transactions_status").on(table.status),
@@ -324,6 +335,12 @@ export const chamaGroups = pgTable("chama_groups", {
   meetingDay: varchar("meeting_day", { length: 20 }),
   location: text("location"),
   status: varchar("status", { length: 20 }).default("active").notNull(),
+  // Merry-go-round fields
+  merryGoRoundEnabled: boolean("merry_go_round_enabled").default(false),
+  rotationOrder: jsonb("rotation_order"),
+  currentRotationIndex: integer("current_rotation_index").default(0),
+  cycleFrequency: varchar("cycle_frequency", { length: 20 }),
+  currentCycleStart: timestamp("current_cycle_start"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -347,9 +364,11 @@ export const chamaContributions = pgTable("chama_contributions", {
   memberId: integer("member_id").notNull().references(() => chamaMembers.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(),
   currency: varchar("currency", { length: 10 }).default("KES"),
-  period: varchar("period", { length: 20 }).notNull(),
+  type: varchar("type", { length: 30 }).default("regular"),
+  period: varchar("period", { length: 20 }).default("monthly"),
   paymentMethod: varchar("payment_method", { length: 50 }),
   transactionId: varchar("transaction_id", { length: 100 }),
+  notes: text("notes"),
   status: varchar("status", { length: 20 }).default("pending").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [

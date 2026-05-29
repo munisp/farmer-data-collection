@@ -717,3 +717,6 @@ export * from './sms-responses-schema';
 
 // Export supply chain & delivery schema
 export * from './supply-chain-schema';
+
+// Export subsidy & extension worker schema
+export * from './schema-subsidy';

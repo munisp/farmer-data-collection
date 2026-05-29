@@ -50,18 +50,128 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
 };
 
 export const whatsappAiRouter = router({
+  /**
+   * Diagnose crop disease from photo using real AI model.
+   * Pipeline: image → AI diagnostics service → crop disease model → treatment recommendation.
+   * Falls back to curated knowledge base if AI service unavailable.
+   */
   diagnoseFromPhoto: protectedProcedure
     .input(z.object({
       phoneNumber: z.string(),
       cropType: z.string(),
       imageUrl: z.string().optional(),
+      imageBase64: z.string().optional(),
       symptomDescription: z.string().optional(),
       language: z.string().default("en"),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       const cropLower = input.cropType.toLowerCase();
-      const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
-      const diagnosis = diseases[0];
+      let diagnosis: DiagnosisResult;
+      let source: "ai_model" | "knowledge_base" = "knowledge_base";
+      let modelConfidence = 0;
+
+      // Attempt real AI diagnosis via ML service
+      if (input.imageUrl || input.imageBase64) {
+        try {
+          const aiPayload: Record<string, unknown> = {
+            crop_type: cropLower,
+            language: input.language,
+          };
+          if (input.imageUrl) aiPayload.image_url = input.imageUrl;
+          if (input.imageBase64) aiPayload.image_base64 = input.imageBase64;
+          if (input.symptomDescription) aiPayload.symptoms = input.symptomDescription;
+          if (input.latitude) aiPayload.latitude = input.latitude;
+          if (input.longitude) aiPayload.longitude = input.longitude;
+
+          const aiResponse = await resilientFetch(
+            "ai-diagnostics",
+            `${AI_DIAGNOSTICS_URL}/api/v1/diagnose`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(aiPayload),
+            },
+            { maxRetries: 2, timeoutMs: 30_000 },
+          );
+          const aiResult = await aiResponse.json() as {
+            disease?: string;
+            confidence?: number;
+            treatment?: string;
+            preventive_measures?: string[];
+            severity?: string;
+            model_version?: string;
+          };
+
+          if (aiResult.disease && aiResult.confidence && aiResult.confidence > 0.5) {
+            diagnosis = {
+              disease: aiResult.disease,
+              confidence: aiResult.confidence,
+              treatment: aiResult.treatment || "Consult local agricultural extension officer.",
+              preventiveMeasures: aiResult.preventive_measures || [],
+              severity: (aiResult.severity as DiagnosisResult["severity"]) || "medium",
+            };
+            source = "ai_model";
+            modelConfidence = aiResult.confidence;
+          } else {
+            // AI confidence too low, fall back to knowledge base
+            const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
+            diagnosis = diseases[0];
+          }
+        } catch {
+          // AI service unavailable, fall back to knowledge base
+          const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
+          diagnosis = diseases[0];
+        }
+      } else if (input.symptomDescription) {
+        // Text-only diagnosis via symptom matching
+        try {
+          const aiResponse = await resilientFetch(
+            "ai-diagnostics",
+            `${AI_DIAGNOSTICS_URL}/api/v1/diagnose-text`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                crop_type: cropLower,
+                symptoms: input.symptomDescription,
+                language: input.language,
+              }),
+            },
+            { maxRetries: 2, timeoutMs: 15_000 },
+          );
+          const textResult = await aiResponse.json() as {
+            disease?: string;
+            confidence?: number;
+            treatment?: string;
+            preventive_measures?: string[];
+            severity?: string;
+          };
+
+          if (textResult.disease && textResult.confidence && textResult.confidence > 0.4) {
+            diagnosis = {
+              disease: textResult.disease,
+              confidence: textResult.confidence,
+              treatment: textResult.treatment || "Consult local extension officer.",
+              preventiveMeasures: textResult.preventive_measures || [],
+              severity: (textResult.severity as DiagnosisResult["severity"]) || "medium",
+            };
+            source = "ai_model";
+            modelConfidence = textResult.confidence;
+          } else {
+            const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
+            diagnosis = diseases[0];
+          }
+        } catch {
+          const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
+          diagnosis = diseases[0];
+        }
+      } else {
+        // No image or symptoms, return most common disease for the crop
+        const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
+        diagnosis = diseases[0];
+      }
 
       const lang = input.language.substring(0, 2);
       const t = TRANSLATIONS[lang];
@@ -69,9 +179,10 @@ export const whatsappAiRouter = router({
         ? { disease: t.disease, treatment: t.treatment, severity: t.severity }
         : { disease: "Disease", treatment: "Treatment", severity: "Severity" };
 
+      const sourceLabel = source === "ai_model" ? " (AI)" : " (Knowledge Base)";
       const message = [
-        `🌾 *${labels.disease}*: ${diagnosis.disease}`,
-        `📊 ${diagnosis.confidence * 100}% confidence`,
+        `🌾 *${labels.disease}*: ${diagnosis.disease}${sourceLabel}`,
+        `📊 ${Math.round(diagnosis.confidence * 100)}% confidence`,
         `⚠️ *${labels.severity}*: ${diagnosis.severity.toUpperCase()}`,
         `💊 *${labels.treatment}*: ${diagnosis.treatment}`,
         `\n🛡️ Prevention:`,
@@ -90,7 +201,7 @@ export const whatsappAiRouter = router({
               text: { body: message },
             }),
           }, { maxRetries: 2, timeoutMs: 15_000 });
-        } catch (err) {
+        } catch {
           // WhatsApp delivery failure is non-fatal
         }
       }
@@ -98,6 +209,8 @@ export const whatsappAiRouter = router({
       return {
         diagnosis,
         message,
+        source,
+        modelConfidence,
         deliveredViaWhatsApp: Boolean(WHATSAPP_TOKEN),
       };
     }),
