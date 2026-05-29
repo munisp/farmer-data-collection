@@ -254,7 +254,7 @@ export const mlModelsRouter = router({
    */
   downloadModel: protectedProcedure
     .input(z.object({ modelId: z.number(), deviceInfo: z.record(z.string(), z.any()).optional() }))
-    .mutation(async ({ input, ctx }: { input: { modelId: number; deviceInfo?: Record<string, unknown> }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { modelId: number; deviceInfo?: Record<string, unknown> }; ctx: { user: { id: number } } }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -315,7 +315,7 @@ export const mlModelsRouter = router({
   /**
    * Get user's downloaded models
    */
-  getUserDownloads: protectedProcedure.query(async ({ ctx }: { ctx: any }) => {
+  getUserDownloads: protectedProcedure.query(async ({ ctx }: { ctx: { user: { id: number } } }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
@@ -341,7 +341,7 @@ export const mlModelsRouter = router({
    */
   runInference: protectedProcedure
     .input(inferenceRequestSchema)
-    .mutation(async ({ input, ctx }: { input: z.infer<typeof inferenceRequestSchema>; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof inferenceRequestSchema>; ctx: { user: { id: number } } }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -598,7 +598,7 @@ export const mlModelsRouter = router({
    */
   benchmarkModel: protectedProcedure
     .input(benchmarkRequestSchema)
-    .mutation(async ({ input, ctx }: { input: z.infer<typeof benchmarkRequestSchema>; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof benchmarkRequestSchema>; ctx: { user: { id: number } } }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -684,7 +684,7 @@ export const mlModelsRouter = router({
    */
   rateModel: protectedProcedure
     .input(ratingSchema)
-    .mutation(async ({ input, ctx }: { input: z.infer<typeof ratingSchema>; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof ratingSchema>; ctx: { user: { id: number } } }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 

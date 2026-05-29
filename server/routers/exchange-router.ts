@@ -65,7 +65,7 @@ export const exchangeRouter = router({
       
       let query = db.select().from(exchangeCommodities);
       
-      const conditions: any[] = [];
+      const conditions: Array<import('drizzle-orm').SQL | undefined> = [];
       if (filters.active !== undefined) {
         conditions.push(eq(exchangeCommodities.active, filters.active));
       }

@@ -59,6 +59,7 @@ export async function getDb() {
       _db = drizzle(_pool, { schema: fullSchema });
       _healthy = true;
       _lastHealthCheck = Date.now();
+      startPoolMonitor();
       logger.info("[Database] Connected to PostgreSQL", {
         maxPool: poolConfig.max,
         host: databaseUrl.replace(/:[^:@]+@/, ":***@").split("?")[0],
@@ -116,7 +117,40 @@ export function isDbHealthy(): boolean {
   return _healthy;
 }
 
+export function getPool(): pkg.Pool | null {
+  return _pool;
+}
+
+let _monitorInterval: ReturnType<typeof setInterval> | null = null;
+
+export function startPoolMonitor(intervalMs = 60_000): void {
+  if (_monitorInterval) return;
+  _monitorInterval = setInterval(async () => {
+    if (!_pool) return;
+    const stats = {
+      total: _pool.totalCount,
+      idle: _pool.idleCount,
+      waiting: _pool.waitingCount,
+    };
+    logger.info("[Database] Pool stats", stats);
+    if (stats.waiting > 5) {
+      logger.warn("[Database] High pool wait queue", stats);
+    }
+    if (stats.idle === 0 && stats.total >= parseInt(process.env.DB_POOL_MAX || "20", 10)) {
+      logger.warn("[Database] Pool exhausted", stats);
+    }
+  }, intervalMs);
+}
+
+export function stopPoolMonitor(): void {
+  if (_monitorInterval) {
+    clearInterval(_monitorInterval);
+    _monitorInterval = null;
+  }
+}
+
 export async function closeDb() {
+  stopPoolMonitor();
   if (_pool) {
     logger.info("[Database] Closing connection pool...");
     await _pool.end();

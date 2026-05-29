@@ -142,7 +142,7 @@ export const expensesRecorded = new Counter({
  * Middleware to track HTTP request metrics
  */
 export function metricsMiddleware() {
-  return (req: any, res: any, next: any) => {
+  return (req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
     const start = Date.now();
     
     // Track active connections

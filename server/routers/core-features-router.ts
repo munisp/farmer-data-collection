@@ -8,7 +8,7 @@ import { getDb } from "../db";
 import { farms, farmers, crops, livestock, harvests, expenses, farmInputs } from "../../drizzle/schema";
 import { inventoryItems, suppliers, inventoryTransactions } from "../../drizzle/financial-schema";
 import { productBatches, traceabilityEvents, collectionCenters, warehouses, warehouseReceipts } from "../../drizzle/traceability-schema";
-import { eq, desc, asc, sql, and, gte, lte, like, or, count, sum, avg, max, min, inArray } from "drizzle-orm";
+import { eq, desc, asc, sql, and, gte, lte, like, or, count, sum, avg, max, min, inArray, type SQL } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 async function requireDb() {
@@ -32,7 +32,7 @@ export const farmsRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: (SQL | undefined)[] = [];
       if (input.search) {
         conditions.push(
           or(
@@ -228,7 +228,7 @@ export const livestockRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: (SQL | undefined)[] = [];
       if (input.farmId) conditions.push(eq(livestock.farmId, input.farmId));
       if (input.animalType) conditions.push(eq(livestock.animalType, input.animalType));
       if (input.healthStatus) conditions.push(eq(livestock.healthStatus, input.healthStatus));
@@ -403,7 +403,7 @@ export const cropsRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: (SQL | undefined)[] = [];
       if (input.farmId) conditions.push(eq(crops.farmId, input.farmId));
       if (input.status) conditions.push(eq(crops.status, input.status));
       if (input.season) conditions.push(eq(crops.season, input.season));
@@ -585,7 +585,7 @@ export const harvestsRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: (SQL | undefined)[] = [];
       if (input.cropId) conditions.push(eq(harvests.cropId, input.cropId));
       if (input.quality) conditions.push(eq(harvests.quality, input.quality));
       if (input.startDate) conditions.push(gte(harvests.harvestDate, new Date(input.startDate)));
@@ -740,7 +740,7 @@ export const harvestsRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: (SQL | undefined)[] = [];
       if (input.startDate) conditions.push(gte(harvests.harvestDate, new Date(input.startDate)));
       if (input.endDate) conditions.push(lte(harvests.harvestDate, new Date(input.endDate)));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -834,7 +834,7 @@ export const expensesRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: (SQL | undefined)[] = [];
       if (input.farmId) conditions.push(eq(expenses.farmId, input.farmId));
       if (input.category) conditions.push(eq(expenses.category, input.category));
       if (input.startDate) conditions.push(gte(expenses.expenseDate, new Date(input.startDate)));
@@ -952,7 +952,7 @@ export const expensesRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: (SQL | undefined)[] = [];
       if (input.farmId) conditions.push(eq(expenses.farmId, input.farmId));
       if (input.startDate) conditions.push(gte(expenses.expenseDate, new Date(input.startDate)));
       if (input.endDate) conditions.push(lte(expenses.expenseDate, new Date(input.endDate)));
@@ -1056,7 +1056,7 @@ export const farmInputsRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [];
+      const conditions: (SQL | undefined)[] = [];
       if (input.farmId) conditions.push(eq(farmInputs.farmId, input.farmId));
       if (input.cropId) conditions.push(eq(farmInputs.cropId, input.cropId));
       if (input.inputType) conditions.push(eq(farmInputs.inputType, input.inputType));
@@ -1261,7 +1261,7 @@ export const equipmentRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await requireDb();
-      const conditions: any[] = [eq(inventoryItems.itemType, "equipment")];
+      const conditions: (SQL | undefined)[] = [eq(inventoryItems.itemType, "equipment")];
       if (input.search) {
         conditions.push(or(
           like(inventoryItems.itemName, `%${input.search}%`),

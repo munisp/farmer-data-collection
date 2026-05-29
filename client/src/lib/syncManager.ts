@@ -504,15 +504,15 @@ export class SyncManager {
         // Re-pull to get latest server state for conflicted records
         for (const conflict of conflicts) {
           try {
-            const serverRecord = conflict.record;
+            const serverRecord = conflict.record as Record<string, unknown> | undefined;
             if (serverRecord) {
               await db
                 .update(tableSchema)
                 .set({
                   ...serverRecord,
-                  updatedAt: new Date(serverRecord.updatedAt),
+                  updatedAt: new Date(serverRecord.updatedAt as string),
                 })
-                .where(eq(tableSchema.id, serverRecord.id));
+                .where(eq(tableSchema.id, serverRecord.id as number));
             }
           } catch (conflictError) {
             console.error(`Error resolving conflict for record ${conflict.id}:`, conflictError);

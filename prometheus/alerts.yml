@@ -1,0 +1,134 @@
+groups:
+  - name: application
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.instance }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 latency on {{ $labels.instance }}"
+          description: "p95 latency is {{ $value }}s (threshold: 2s)"
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 > 512
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}MB (threshold: 512MB)"
+
+  - name: database
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: db_pool_waiting_count > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "{{ $value }} queries waiting for a connection"
+
+      - alert: DatabaseConnectionPoolLow
+        expr: db_pool_idle_count == 0 and db_pool_total_count >= 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No idle database connections"
+          description: "All {{ $value }} pool connections are in use"
+
+      - alert: DatabaseDown
+        expr: up{job="farmconnect-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Application is down"
+          description: "{{ $labels.instance }} is unreachable"
+
+  - name: microservices
+    rules:
+      - alert: MicroserviceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Microservice {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been unreachable for 2 minutes"
+
+      - alert: MicroserviceHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "{{ $labels.instance }} error rate: {{ $value | humanizePercentage }}"
+
+  - name: infrastructure
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_group_lag > 10000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer group {{ $labels.group }} has {{ $value }} messages lag"
+
+      - alert: DiskSpaceRunningLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space running low"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+  - name: business
+    rules:
+      - alert: NoTransactionsIn30Min
+        expr: rate(marketplace_orders_total[30m]) == 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No marketplace transactions in 30 minutes"
+
+      - alert: HighPaymentFailureRate
+        expr: rate(payment_failures_total[15m]) / rate(payment_attempts_total[15m]) > 0.1
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High payment failure rate"
+          description: "Payment failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: CreditScoringServiceSlow
+        expr: histogram_quantile(0.95, rate(credit_scoring_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Credit scoring service is slow"
+          description: "p95 scoring time: {{ $value }}s"

@@ -105,6 +105,11 @@ services:
       - FLUVIO_NODE_BIND_ADDR=0.0.0.0:9003
     volumes:
       - fluvio-data:/var/lib/fluvio
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9003/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # ============================================================================
@@ -148,6 +153,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3476/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # ============================================================================
@@ -185,6 +195,12 @@ services:
     depends_on:
       opensearch:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   # ============================================================================
@@ -220,6 +236,11 @@ services:
     environment:
       LEARNING_MODE: "true"
       LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ============================================================================
@@ -234,6 +255,11 @@ services:
     command: start --addresses=0.0.0.0:3000 /data/0_0.tigerbeetle
     volumes:
       - tigerbeetle-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'tigerbeetle health check' && nc -z localhost 3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # ============================================================================
@@ -255,6 +281,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "tctl --address temporal:7233 cluster health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   temporal-ui:
@@ -266,6 +298,11 @@ services:
       TEMPORAL_ADDRESS: temporal:7233
     depends_on:
       - temporal
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ============================================================================
@@ -279,6 +316,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -302,6 +340,11 @@ services:
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ============================================================================
@@ -317,6 +360,11 @@ services:
       FEATURE_FLAGS_PORT: "8101"
     depends_on:
       - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8101/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   whatsapp-service:
@@ -332,6 +380,11 @@ services:
       KAFKA_BROKERS: kafka:9092
     depends_on:
       - kafka
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8102/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   qr-traceability:
@@ -341,6 +394,11 @@ services:
       - "8103:8103"
     environment:
       QR_SERVICE_PORT: "8103"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8103/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   tile-cache:
@@ -353,6 +411,11 @@ services:
       REDIS_ADDR: redis:6379
     depends_on:
       - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8097/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   gps-streaming:
@@ -365,6 +428,11 @@ services:
       REDIS_ADDR: redis:6379
     depends_on:
       - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8098/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ============================================================================
@@ -382,6 +450,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8099/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   search-proxy:
@@ -395,6 +468,11 @@ services:
     depends_on:
       opensearch:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8104/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   waf-security:
@@ -407,6 +485,11 @@ services:
       OPENAPPSEC_URL: http://openappsec:8080
     depends_on:
       - openappsec
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8105/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   fluvio-streaming:
@@ -419,6 +502,11 @@ services:
       FLUVIO_URL: fluvio:9003
     depends_on:
       - fluvio
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8106/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ============================================================================
@@ -432,6 +520,11 @@ services:
       - "8100:8100"
     environment:
       GEOCODING_PORT: "8100"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8100/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   weather-alerts:
@@ -446,6 +539,11 @@ services:
       WHATSAPP_SERVICE_URL: http://whatsapp-service:8102
     depends_on:
       - kafka
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8107/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   credit-scoring:
@@ -455,6 +553,11 @@ services:
       - "8108:8108"
     environment:
       CREDIT_SCORING_PORT: "8108"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8108/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   voice-navigation:
@@ -464,6 +567,11 @@ services:
       - "8109:8109"
     environment:
       VOICE_SERVICE_PORT: "8109"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8109/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   ml-service:
@@ -479,6 +587,11 @@ services:
       - redis
     volumes:
       - ml-models:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ============================================================================
@@ -492,6 +605,11 @@ services:
       - "8444:8444"
     environment:
       PARTIES_ENDPOINT: http://localhost:8444
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8444/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ============================================================================
@@ -504,6 +622,11 @@ services:
     command: ["./placement", "--port", "50005"]
     ports:
       - "50005:50005"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 50005 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ============================================================================
@@ -549,6 +672,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
 
   # Distributed Tracing

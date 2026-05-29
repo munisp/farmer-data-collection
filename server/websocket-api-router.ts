@@ -5,7 +5,7 @@
  * Used by Python event consumers to push real-time updates
  */
 
-import { Router } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
 import { getWebSocketServer, type RealtimeEvent } from './websocket-server';
 import { logger } from './logger.js';
 
@@ -18,7 +18,7 @@ const router = Router();
 /**
  * Verify WebSocket server is available
  */
-function requireWebSocket(req: any, res: any, next: any) {
+function requireWebSocket(_req: Request, res: Response, next: NextFunction) {
   const wsServer = getWebSocketServer();
   if (!wsServer) {
     return res.status(503).json({
@@ -26,7 +26,6 @@ function requireWebSocket(req: any, res: any, next: any) {
       error: 'WebSocket server not initialized',
     });
   }
-  req.wsServer = wsServer;
   next();
 }
 
@@ -40,8 +39,8 @@ router.use(requireWebSocket);
  * GET /api/websocket/status
  * Get WebSocket server status
  */
-router.get('/status', (req: any, res) => {
-  const wsServer = req.wsServer;
+router.get('/status', (_req: Request, res: Response) => {
+  const wsServer = getWebSocketServer()!;
   
   res.json({
     success: true,
@@ -57,8 +56,8 @@ router.get('/status', (req: any, res) => {
  * POST /api/websocket/broadcast
  * Broadcast event to all connected clients
  */
-router.post('/broadcast', (req: any, res) => {
-  const wsServer = req.wsServer;
+router.post('/broadcast', (req: Request, res: Response) => {
+  const wsServer = getWebSocketServer()!;
   const event: RealtimeEvent = req.body;
   
   if (!event || !event.type) {
@@ -88,8 +87,8 @@ router.post('/broadcast', (req: any, res) => {
  * POST /api/websocket/emit-to-user
  * Emit event to specific user
  */
-router.post('/emit-to-user', (req: any, res) => {
-  const wsServer = req.wsServer;
+router.post('/emit-to-user', (req: Request, res: Response) => {
+  const wsServer = getWebSocketServer()!;
   const { userId, event } = req.body;
   
   if (!userId || !event || !event.type) {
@@ -120,8 +119,8 @@ router.post('/emit-to-user', (req: any, res) => {
  * POST /api/websocket/dashboard-update
  * Send dashboard update to user
  */
-router.post('/dashboard-update', (req: any, res) => {
-  const wsServer = req.wsServer;
+router.post('/dashboard-update', (req: Request, res: Response) => {
+  const wsServer = getWebSocketServer()!;
   const { userId, update } = req.body;
   
   if (!userId || !update) {
@@ -151,8 +150,8 @@ router.post('/dashboard-update', (req: any, res) => {
  * POST /api/websocket/notification
  * Send notification to user
  */
-router.post('/notification', (req: any, res) => {
-  const wsServer = req.wsServer;
+router.post('/notification', (req: Request, res: Response) => {
+  const wsServer = getWebSocketServer()!;
   const { userId, notification } = req.body;
   
   if (!userId || !notification) {
@@ -182,8 +181,8 @@ router.post('/notification', (req: any, res) => {
  * GET /api/websocket/user/:userId/connected
  * Check if user is connected
  */
-router.get('/user/:userId/connected', (req: any, res) => {
-  const wsServer = req.wsServer;
+router.get('/user/:userId/connected', (req: Request, res: Response) => {
+  const wsServer = getWebSocketServer()!;
   const userId = parseInt(req.params.userId);
   
   if (isNaN(userId)) {

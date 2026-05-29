@@ -22,7 +22,7 @@ export type MessageType =
 export interface WebSocketMessage {
   type: MessageType;
   timestamp: number;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export interface WebSocketStats {
@@ -164,7 +164,7 @@ export class GoWebSocketClient {
   /**
    * Send a message to the server
    */
-  private sendMessage(message: any): void {
+  private sendMessage(message: Record<string, unknown>): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     } else {
@@ -349,7 +349,7 @@ export class WebSocketBroadcaster {
    */
   async broadcast(
     type: MessageType,
-    data: any,
+    data: Record<string, unknown>,
     channel?: string
   ): Promise<{ success: boolean; message: string }> {
     try {

@@ -33,7 +33,7 @@ import {
 // ============================================================================
 
 // In-memory idempotency store (in production, use Redis)
-const idempotencyStore = new Map<string, { result: any; expiresAt: Date }>();
+const idempotencyStore = new Map<string, { result: unknown; expiresAt: Date }>();
 
 // Clean up expired idempotency keys every 5 minutes
 setInterval(() => {
@@ -52,7 +52,7 @@ function generateIdempotencyKey(clientId: string, table: string, recordId: strin
 }
 
 // Check if operation was already processed
-function checkIdempotency(key: string): { exists: boolean; result?: any } {
+function checkIdempotency(key: string): { exists: boolean; result?: unknown } {
   const record = idempotencyStore.get(key);
   if (!record) {
     return { exists: false };
@@ -65,7 +65,7 @@ function checkIdempotency(key: string): { exists: boolean; result?: any } {
 }
 
 // Record idempotency key after successful operation
-function recordIdempotency(key: string, result: any, ttlHours: number = 24): void {
+function recordIdempotency(key: string, result: unknown, ttlHours: number = 24): void {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + ttlHours);
   idempotencyStore.set(key, { result, expiresAt });
@@ -85,7 +85,7 @@ interface LedgerEntry {
   clientId: string;
   version: number;
   checksum: string;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: Date;
   status: string;
 }
@@ -149,11 +149,11 @@ const pullChangesSchema = z.object({
 export interface SyncRouter {
   pushChanges: (input: z.infer<typeof syncRequestSchema>) => Promise<{
     success: boolean;
-    conflicts: any[];
+    conflicts: Array<Record<string, unknown>>;
     synced: number;
   }>;
   pullChanges: (input: z.infer<typeof pullChangesSchema>) => Promise<{
-    records: any[];
+    records: Array<Record<string, unknown>>;
     serverTime: Date;
   }>;
 }
@@ -164,7 +164,7 @@ export async function pushChanges(input: z.infer<typeof syncRequestSchema>, user
     throw new Error("Database not available");
   }
 
-  const conflicts: any[] = [];
+  const conflicts: Array<Record<string, unknown>> = [];
   let synced = 0;
   const skippedDueToIdempotency: string[] = [];
 
@@ -337,7 +337,7 @@ export async function pullChanges(input: z.infer<typeof pullChangesSchema>, user
 }
 
 // Helper function to emit WebSocket events for real-time sync
-function emitWebSocketSyncEvent(userId: number, entityType: string, entityId: number, action: string, data: any, clientId: string) {
+function emitWebSocketSyncEvent(userId: number, entityType: string, entityId: number, action: string, data: Record<string, unknown>, clientId: string) {
   try {
     const wsServer = getWebSocketServer();
     if (wsServer) {
