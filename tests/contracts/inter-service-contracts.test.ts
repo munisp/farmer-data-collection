@@ -95,15 +95,21 @@ describe('Inter-Service Contract Validation', () => {
       for (const svc of pythonServices) {
         const mainPy = path.join(pyDir, svc, 'main.py');
         const appPy = path.join(pyDir, svc, 'app.py');
-        expect(fs.existsSync(mainPy) || fs.existsSync(appPy)).toBe(true);
+        const appMainPy = path.join(pyDir, svc, 'app', 'main.py');
+        expect(fs.existsSync(mainPy) || fs.existsSync(appPy) || fs.existsSync(appMainPy)).toBe(true);
       }
     });
 
     it('Python services use Pydantic or dict for JSON serialization', () => {
       const pyDir = path.join(__dirname, '../../services/python');
       for (const svc of pythonServices) {
-        const mainPy = path.join(pyDir, svc, 'main.py');
-        if (fs.existsSync(mainPy)) {
+        const candidates = [
+          path.join(pyDir, svc, 'main.py'),
+          path.join(pyDir, svc, 'app.py'),
+          path.join(pyDir, svc, 'app', 'main.py'),
+        ];
+        const mainPy = candidates.find(f => fs.existsSync(f));
+        if (mainPy) {
           const content = fs.readFileSync(mainPy, 'utf-8');
           const hasSerialization = content.includes('BaseModel') || content.includes('jsonify') || content.includes('JSONResponse') || content.includes('json');
           expect(hasSerialization).toBe(true);
