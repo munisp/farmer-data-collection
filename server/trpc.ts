@@ -74,6 +74,11 @@ import { iotGatewayRouter } from "./routers/iot-gateway-router.js";
 import { farmsRouter, livestockRouter, cropsRouter, harvestsRouter, expensesRouter, farmInputsRouter, equipmentRouter, inventoryEnhancementsRouter, traceabilityEnhancementsRouter } from "./routers/core-features-router.js";
 import { orderFulfillmentRouter } from "./routers/order-fulfillment-router.js";
 import { retailStoreRouter } from "./routers/retail-store-router.js";
+import { loanDecisioningRouter } from "./routers/loan-decisioning-router.js";
+import { predictiveAnalyticsRouter } from "./routers/predictive-analytics-router.js";
+import { iotRulesEngineRouter } from "./routers/iot-rules-engine-router.js";
+import { paymentOrchestratorRouter } from "./routers/payment-orchestrator-router.js";
+import { complianceRouter } from "./routers/compliance-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -180,6 +185,12 @@ export const appRouter = router({
   coreEquipment: equipmentRouter,
   inventoryEnhancements: inventoryEnhancementsRouter,
   traceabilityEnhancements: traceabilityEnhancementsRouter,
+  // === Business Logic V3: Decision Engine, Analytics, IoT Rules, Payments, Compliance ===
+  loanDecisioning: loanDecisioningRouter,
+  predictiveAnalytics: predictiveAnalyticsRouter,
+  iotRulesEngine: iotRulesEngineRouter,
+  paymentOrchestrator: paymentOrchestratorRouter,
+  compliance: complianceRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
