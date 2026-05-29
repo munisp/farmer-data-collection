@@ -161,7 +161,7 @@ export default function HRDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">HR & Payroll Management</h1>
           <p className="text-muted-foreground">Manage employees, track time, and process payroll</p>
@@ -233,7 +233,7 @@ export default function HRDashboard() {
                       {selectedEmployee ? "Update employee information" : "Enter employee details"}
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleEmployeeSubmit} className="space-y-4">
+                  <form aria-label="Submit form" onSubmit={handleEmployeeSubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="employeeNumber">Employee Number</Label>
                       <Input
@@ -399,7 +399,7 @@ export default function HRDashboard() {
                     <DialogTitle>Add Time Entry</DialogTitle>
                     <DialogDescription>Record employee work hours</DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleTimeEntrySubmit} className="space-y-4">
+                  <form aria-label="Submit form" onSubmit={handleTimeEntrySubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="employeeId">Employee</Label>
                       <Select name="employeeId" required>
@@ -533,7 +533,7 @@ export default function HRDashboard() {
                       Calculate payroll for an employee based on time entries
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handlePayrollCalculate} className="space-y-4">
+                  <form aria-label="Submit form" onSubmit={handlePayrollCalculate} className="space-y-4">
                     <div>
                       <Label htmlFor="employeeId">Employee</Label>
                       <Select name="employeeId" required>

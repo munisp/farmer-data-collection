@@ -64,7 +64,7 @@ interface KycDocument {
   fileSize: number | null;
   mimeType: string | null;
   status: KycStatus;
-  verificationResult: any;
+  verificationResult: Record<string, unknown>;
   manualReviewRequired: boolean;
   notes: string | null;
   rejectionReason: string | null;
@@ -184,13 +184,13 @@ const otpStore = new Map<string, OtpRecord>();
 
 export class KycService {
   private db: PostgresJsDatabase<any> | null = null;
-  private smsProvider: any = null;
-  private emailProvider: any = null;
+  private smsProvider: { sendSms: (opts: Record<string, string>) => Promise<unknown> } | null = null;
+  private emailProvider: { sendEmail: (opts: Record<string, string>) => Promise<unknown> } | null = null;
 
   constructor(options?: {
     db?: PostgresJsDatabase<any>;
-    smsProvider?: any;
-    emailProvider?: any;
+    smsProvider?: { sendSms: (opts: Record<string, string>) => Promise<unknown> };
+    emailProvider?: { sendEmail: (opts: Record<string, string>) => Promise<unknown> };
   }) {
     this.db = options?.db || null;
     this.smsProvider = options?.smsProvider || null;
@@ -941,8 +941,8 @@ export class KycService {
 // Factory function
 export function createKycService(options?: {
   db?: PostgresJsDatabase<any>;
-  smsProvider?: any;
-  emailProvider?: any;
+  smsProvider?: { sendSms: (opts: Record<string, string>) => Promise<unknown> };
+  emailProvider?: { sendEmail: (opts: Record<string, string>) => Promise<unknown> };
 }): KycService {
   return new KycService(options);
 }

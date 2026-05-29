@@ -152,7 +152,7 @@ export default function BorrowerDashboard() {
 
   if (loansQuery.isLoading) {
     return (
-      <div className="container py-8 space-y-8">
+      <div role="main" aria-label="Page content" className="container py-8 space-y-8">
         <div>
           <h1 className="text-3xl font-bold">Borrower Dashboard</h1>
           <p className="text-muted-foreground mt-2">Loading your live loans and repayment data.</p>

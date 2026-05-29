@@ -32,7 +32,7 @@ export default function AccountingDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       <div className="container py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -54,7 +54,7 @@ export default function AccountingDashboard() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
                 <div className="text-2xl font-bold">
-                  ₦{((balanceSheet?.totalAssets || 0) / 100).toLocaleString()}
+                  ₦{(Number(balanceSheet?.totalAssets || 0) / 100).toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -70,7 +70,7 @@ export default function AccountingDashboard() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
                 <div className="text-2xl font-bold">
-                  ₦{((balanceSheet?.totalLiabilities || 0) / 100).toLocaleString()}
+                  ₦{(Number(balanceSheet?.totalLiabilities || 0) / 100).toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -86,7 +86,7 @@ export default function AccountingDashboard() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
                 <div className="text-2xl font-bold text-green-600">
-                  ₦{((profitLoss?.totalRevenue || 0) / 100).toLocaleString()}
+                  ₦{(Number(profitLoss?.totalRevenue || 0) / 100).toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -101,8 +101,8 @@ export default function AccountingDashboard() {
               {plLoading ? (
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
-                <div className={`text-2xl font-bold ${(profitLoss?.netIncome || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  ₦{((profitLoss?.netIncome || 0) / 100).toLocaleString()}
+                <div className={`text-2xl font-bold ${Number(profitLoss?.netIncome || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  ₦{(Number(profitLoss?.netIncome || 0) / 100).toLocaleString()}
                 </div>
               )}
             </CardContent>

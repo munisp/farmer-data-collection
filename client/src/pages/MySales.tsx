@@ -120,7 +120,7 @@ export default function MySales() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading your sales...</p>
       </div>
     );

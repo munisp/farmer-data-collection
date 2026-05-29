@@ -306,7 +306,7 @@ export default function Dashboard() {
                 <div className="flex flex-col gap-3">
                   <a href="/yield-prediction" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 hover:from-green-500/20 hover:to-emerald-500/20 transition-colors group border border-green-500/20">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-500/20 text-green-600">
+                      <div role="main" aria-label="Page content" className="p-2 rounded-lg bg-green-500/20 text-green-600">
                         <TrendingUp className="h-4 w-4" />
                       </div>
                       <span className="text-sm font-medium text-green-700 dark:text-green-400">Yield Prediction & Analytics</span>

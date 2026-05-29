@@ -26,8 +26,8 @@ const jwksClientInstance = jwksClient({
 /**
  * Get signing key from Keycloak JWKS
  */
-function getKey(header: any, callback: (err: Error | null, key?: string) => void) {
-  jwksClientInstance.getSigningKey(header.kid, (err: Error | null, key: any) => {
+function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
+  jwksClientInstance.getSigningKey(header.kid, (err, key) => {
     if (err) {
       callback(err);
       return;
@@ -62,7 +62,7 @@ export async function verifyKeycloakToken(token: string): Promise<KeycloakUser |
         issuer: `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`,
         audience: KEYCLOAK_CLIENT_ID,
       },
-      (err, decoded: any) => {
+      (err, decoded) => {
         if (err) {
           logger.warn('[Keycloak] Token verification failed', { error: err.message });
           resolve(null);
@@ -74,14 +74,15 @@ export async function verifyKeycloakToken(token: string): Promise<KeycloakUser |
           return;
         }
 
-        // Extract user information from token
+        const payload = decoded as Record<string, unknown>;
+        const realmAccess = payload.realm_access as { roles?: string[] } | undefined;
         const user: KeycloakUser = {
-          id: decoded.sub,
-          email: decoded.email || decoded.preferred_username,
-          firstName: decoded.given_name,
-          lastName: decoded.family_name,
-          username: decoded.preferred_username || decoded.email,
-          roles: decoded.realm_access?.roles || [],
+          id: String(payload.sub || ''),
+          email: String(payload.email || payload.preferred_username || ''),
+          firstName: String(payload.given_name || ''),
+          lastName: String(payload.family_name || ''),
+          username: String(payload.preferred_username || payload.email || ''),
+          roles: realmAccess?.roles || [],
         };
 
         resolve(user);

@@ -33,7 +33,9 @@ const AT_API_KEY = process.env.AFRICASTALKING_API_KEY || "";
 const AT_USERNAME = process.env.AFRICASTALKING_USERNAME || "sandbox";
 
 // Only initialize AfricasTalking if API key is provided
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let africastalking: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let sms: any = null;
 
 if (AT_API_KEY) {

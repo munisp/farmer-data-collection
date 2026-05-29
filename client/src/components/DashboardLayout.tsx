@@ -453,7 +453,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
 
-        <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-200px)]">
+        <nav role="navigation" aria-label="Navigation" className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-200px)]">
           {/* Main Navigation Sections — collapsible */}
           {navSections.map((section, sectionIndex) => {
             const isCollapsed = collapsedSections.has(section.title);

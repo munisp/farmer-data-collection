@@ -191,7 +191,7 @@ export default function InventoryDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">Track stock levels, manage suppliers, and monitor inventory value</p>
@@ -304,7 +304,7 @@ export default function InventoryDashboard() {
                       <DialogTitle>Record Inventory Transaction</DialogTitle>
                       <DialogDescription>Add purchase, usage, or adjustment</DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleTransactionSubmit} className="space-y-4">
+                    <form aria-label="Submit form" onSubmit={handleTransactionSubmit} className="space-y-4">
                       <div>
                         <Label htmlFor="itemId">Item</Label>
                         <Select name="itemId" required>
@@ -404,7 +404,7 @@ export default function InventoryDashboard() {
                         {selectedItem ? "Update item information" : "Enter item details"}
                       </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleItemSubmit} className="space-y-4">
+                    <form aria-label="Submit form" onSubmit={handleItemSubmit} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="itemType">Item Type</Label>
@@ -643,7 +643,7 @@ export default function InventoryDashboard() {
                       {selectedSupplier ? "Update supplier information" : "Enter supplier details"}
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleSupplierSubmit} className="space-y-4">
+                  <form aria-label="Submit form" onSubmit={handleSupplierSubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="name">Supplier Name</Label>
                       <Input

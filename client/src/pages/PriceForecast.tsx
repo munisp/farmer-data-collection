@@ -76,7 +76,7 @@ export default function PriceForecast() {
   const minPrice = Math.min(...(forecast?.forecast?.map((item: any) => item.price) || [Infinity]));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">

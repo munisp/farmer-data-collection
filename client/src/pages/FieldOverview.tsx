@@ -225,7 +225,7 @@ export default function FieldOverview() {
 
   if (fieldsLoading) {
     return (
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Field Overview</h1>
           <p className="text-slate-600">Loading live field data from the production backend.</p>

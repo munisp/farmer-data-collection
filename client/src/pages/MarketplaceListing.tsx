@@ -229,7 +229,7 @@ export default function MarketplaceListing() {
 
   if (isEdit && loadingListing) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -248,7 +248,7 @@ export default function MarketplaceListing() {
             <CardTitle>{isEdit ? "Edit Listing" : "Create New Listing"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Info */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Basic Information</h3>

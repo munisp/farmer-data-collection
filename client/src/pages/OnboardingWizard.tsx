@@ -402,7 +402,7 @@ export default function OnboardingWizard() {
   // Persona Selection Screen
   if (!selectedPersona) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4">
         <div className="container mx-auto max-w-4xl py-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2">Welcome to Farmer Platform</h1>

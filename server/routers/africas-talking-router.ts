@@ -43,7 +43,7 @@ const ALLOWED_IP_RANGES = [
  * Verify webhook request authenticity
  * Checks shared secret in header or query parameter
  */
-function verifyWebhookRequest(ctx: any): void {
+function verifyWebhookRequest(ctx: { req?: { headers?: Record<string, string>; query?: Record<string, string> }; [key: string]: unknown }): void {
   if (!WEBHOOK_VERIFICATION_ENABLED) {
     logger.info('[Webhook] Verification disabled via AFRICAS_TALKING_WEBHOOK_VERIFY=false');
     return;
@@ -97,7 +97,7 @@ export const africasTalkingRouter = router({
       phoneNumber: z.string(),
       text: z.string()
     }))
-    .mutation(async ({ input, ctx }: { input: { sessionId: string; serviceCode: string; phoneNumber: string; text: string }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { sessionId: string; serviceCode: string; phoneNumber: string; text: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
       verifyWebhookRequest(ctx);
       
@@ -132,7 +132,7 @@ export const africasTalkingRouter = router({
       id: z.string().optional(),
       linkId: z.string().optional()
     }))
-    .mutation(async ({ input, ctx }: { input: { from: string; text: string; date: string; id?: string; linkId?: string }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { from: string; text: string; date: string; id?: string; linkId?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
       verifyWebhookRequest(ctx);
       
@@ -172,7 +172,7 @@ export const africasTalkingRouter = router({
       timestamp: z.string(),
       id: z.string().optional()
     }))
-    .mutation(async ({ input, ctx }: { input: { from: string; text: string; timestamp: string; id?: string }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { from: string; text: string; timestamp: string; id?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
       verifyWebhookRequest(ctx);
       
@@ -214,7 +214,7 @@ export const africasTalkingRouter = router({
       retryCount: z.number().optional(),
       failureReason: z.string().optional()
     }))
-    .mutation(async ({ input, ctx }: { input: { id: string; status: string; phoneNumber: string; networkCode?: string; retryCount?: number; failureReason?: string }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { id: string; status: string; phoneNumber: string; networkCode?: string; retryCount?: number; failureReason?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
       verifyWebhookRequest(ctx);
       

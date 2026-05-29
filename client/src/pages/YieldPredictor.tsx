@@ -70,7 +70,7 @@ export default function YieldPredictor() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -93,7 +93,7 @@ export default function YieldPredictor() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-4">
                 {/* Crop Type */}
                 <div className="space-y-2">
                   <Label htmlFor="crop">Crop Type</Label>

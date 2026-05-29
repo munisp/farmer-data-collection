@@ -34,7 +34,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div role="main" aria-label="Page content" className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">{APP_TITLE}</CardTitle>
@@ -42,7 +42,7 @@ export default function Login() {
             Sign in to your account to continue
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form aria-label="Submit form" onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {error && (
               <Alert variant="destructive">

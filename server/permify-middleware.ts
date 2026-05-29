@@ -2,6 +2,13 @@ import { TRPCError } from '@trpc/server';
 import { checkPermission, setOwner, createRelationship } from './permify';
 import { logger } from './logger.js';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MiddlewareOpts = {
+  ctx: { userId?: string | number; [key: string]: any };
+  input?: unknown;
+  next: (opts: { ctx: Record<string, unknown> }) => any;
+};
+
 /**
  * Permify authorization middleware for tRPC procedures
  * 
@@ -19,9 +26,9 @@ import { logger } from './logger.js';
 export function requirePermission(
   resource: string,
   action: string,
-  getResourceId: (input: any) => string | number
+  getResourceId: (input: unknown) => string | number
 ) {
-  return async (opts: any) => {
+  return async (opts: MiddlewareOpts) => {
     const { ctx, input, next } = opts;
 
     // Check if user is authenticated
@@ -61,9 +68,9 @@ export function requirePermission(
  */
 export function setOwnershipOnCreate(
   resource: string,
-  getResourceId: (result: any) => string | number
+  getResourceId: (result: unknown) => string | number
 ) {
-  return async (opts: any) => {
+  return async (opts: MiddlewareOpts) => {
     const { ctx, next } = opts;
 
     // Execute the procedure first
@@ -107,7 +114,7 @@ export async function isAdmin(userId: string | number): Promise<boolean> {
  * Require admin role middleware
  */
 export function requireAdmin() {
-  return async (opts: any) => {
+  return async (opts: MiddlewareOpts) => {
     const { ctx, next } = opts;
 
     if (!ctx.userId) {
@@ -137,10 +144,10 @@ export function requireAnyPermission(
   permissions: Array<{
     resource: string;
     action: string;
-    getResourceId: (input: any) => string | number;
+    getResourceId: (input: unknown) => string | number;
   }>
 ) {
-  return async (opts: any) => {
+  return async (opts: MiddlewareOpts) => {
     const { ctx, input, next } = opts;
 
     if (!ctx.userId) {
@@ -154,7 +161,7 @@ export function requireAnyPermission(
     const checks = await Promise.all(
       permissions.map(async (perm) => {
         const resourceId = perm.getResourceId(input);
-        return checkPermission(ctx.userId, perm.resource, resourceId, perm.action);
+        return checkPermission(ctx.userId!, perm.resource, resourceId, perm.action);
       })
     );
 
@@ -179,10 +186,10 @@ export function requireAllPermissions(
   permissions: Array<{
     resource: string;
     action: string;
-    getResourceId: (input: any) => string | number;
+    getResourceId: (input: unknown) => string | number;
   }>
 ) {
-  return async (opts: any) => {
+  return async (opts: MiddlewareOpts) => {
     const { ctx, input, next } = opts;
 
     if (!ctx.userId) {
@@ -196,7 +203,7 @@ export function requireAllPermissions(
     const checks = await Promise.all(
       permissions.map(async (perm) => {
         const resourceId = perm.getResourceId(input);
-        return checkPermission(ctx.userId, perm.resource, resourceId, perm.action);
+        return checkPermission(ctx.userId!, perm.resource, resourceId, perm.action);
       })
     );
 

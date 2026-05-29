@@ -37,7 +37,7 @@ export default function FreshnessTracking() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div role="main" aria-label="Page content" className="p-6 max-w-4xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Snowflake className="h-6 w-6" /> Freshness Tracking
         </h1>

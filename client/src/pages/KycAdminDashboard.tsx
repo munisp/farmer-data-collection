@@ -200,7 +200,7 @@ export default function KycAdminDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">KYC Administration</h1>
@@ -232,7 +232,7 @@ export default function KycAdminDashboard() {
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input className="pl-10" placeholder="Search by user name, tier, or user ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                    <Input className="pl-10" aria-label="Search" placeholder="Search by user name, tier, or user ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                   </div>
                   <div className="w-full md:w-56">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>

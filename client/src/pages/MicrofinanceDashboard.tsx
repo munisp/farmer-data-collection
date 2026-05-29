@@ -119,7 +119,7 @@ export default function MicrofinanceDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-8">
+      <div role="main" aria-label="Page content" className="container mx-auto py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Microfinance & Loans</h1>
           <p className="text-muted-foreground">
@@ -214,7 +214,7 @@ export default function MicrofinanceDashboard() {
                 <CardDescription>Submit a new loan application</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleApplyForLoan} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleApplyForLoan} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="lender">Lender *</Label>
                     <Select 
@@ -376,7 +376,7 @@ export default function MicrofinanceDashboard() {
                 <CardDescription>Record a payment towards your loan</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleMakeRepayment} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleMakeRepayment} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="loanId">Select Loan *</Label>
                     <Select 

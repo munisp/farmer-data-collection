@@ -107,8 +107,8 @@ export default function CooperativeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full" role="table" aria-label="Production breakdown by crop">
-                  <thead>
+                <table role="table" aria-label="Production breakdown by crop" className="w-full">
+                  <thead role="rowgroup">
                     <tr className="border-b dark:border-slate-600">
                       <th className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Crop</th>
                       <th className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Farmers</th>
@@ -117,7 +117,7 @@ export default function CooperativeDashboard() {
                       <th className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Revenue</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {memberBreakdown.map((item) => (
                       <tr key={item.crop} className="border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
                         <td className="p-3 font-medium dark:text-white">{item.crop}</td>

@@ -149,7 +149,7 @@ export default function ExchangeTrade() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Modern Header */}
       <div className="gradient-hero text-white py-8">
         <div className="container">

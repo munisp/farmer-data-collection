@@ -120,7 +120,7 @@ export default function ModelLibrary() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container py-8">
@@ -157,7 +157,7 @@ export default function ModelLibrary() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search models or crops (e.g., maize, cassava)..."
+                  aria-label="Search" placeholder="Search models or crops (e.g., maize, cassava)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"

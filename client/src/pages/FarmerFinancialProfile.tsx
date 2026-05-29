@@ -140,7 +140,7 @@ export default function FarmerFinancialProfile() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4">
+      <div role="main" aria-label="Page content" className="container mx-auto p-4">
         <div className="flex items-center justify-center py-12 gap-3 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading financial profile...

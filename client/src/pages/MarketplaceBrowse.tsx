@@ -80,7 +80,7 @@ export default function MarketplaceBrowse() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Modern Hero Header */}
       <div className="gradient-hero text-white py-12 md:py-16">
         <div className="container">
@@ -110,7 +110,7 @@ export default function MarketplaceBrowse() {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search products..."
+                    aria-label="Search" placeholder="Search products..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"

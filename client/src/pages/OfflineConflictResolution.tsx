@@ -443,7 +443,7 @@ export default function OfflineConflictResolution() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

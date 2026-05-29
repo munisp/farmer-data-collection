@@ -12,7 +12,7 @@ export default function ChamaGroupLending() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Chama / VSLA Groups</h1>
           <p className="text-muted-foreground">Village Savings & Loan Associations — pool savings, take loans with social collateral</p>

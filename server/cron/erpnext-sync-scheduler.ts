@@ -70,22 +70,22 @@ async function processSyncQueue() {
           // Push sync (Platform → ERPNext)
           switch (item.entityType) {
             case 'customer':
-              result = await syncService.pushCustomer(item.userId, item.entityId!);
+              result = await syncService.pushCustomer(item.userId, { id: item.entityId! } as Record<string, unknown>);
               break;
             case 'supplier':
-              result = await syncService.pushSupplier(item.userId, item.entityId!);
+              result = await syncService.pushSupplier(item.userId, { id: item.entityId! } as Record<string, unknown>);
               break;
             case 'item':
-              result = await syncService.pushItem(item.userId, item.entityId!);
+              result = await syncService.pushItem(item.userId, { id: item.entityId! } as Record<string, unknown>);
               break;
             case 'invoice':
-              result = await syncService.pushInvoice(item.userId, item.entityId!);
+              result = await syncService.pushInvoice(item.userId, { id: item.entityId! } as Record<string, unknown>);
               break;
             case 'payment':
-              result = await syncService.pushPayment(item.userId, item.entityId!);
+              result = await syncService.pushPayment(item.userId, { id: item.entityId! } as Record<string, unknown>);
               break;
             case 'journal':
-              result = await syncService.pushJournalEntry(item.userId, item.entityId!);
+              result = await syncService.pushJournalEntry(item.userId, { id: item.entityId! } as Record<string, unknown>);
               break;
           }
         } else if (item.syncDirection === 'pull') {

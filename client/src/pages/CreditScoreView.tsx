@@ -98,7 +98,7 @@ export default function CreditScoreView() {
 
   if (scoreLoading) {
     return (
-      <div className="container mx-auto p-6 flex items-center justify-center min-h-[400px]">
+      <div role="main" aria-label="Page content" className="container mx-auto p-6 flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );

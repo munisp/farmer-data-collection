@@ -105,7 +105,7 @@ export default function EquipmentTracker() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Equipment Tracker</h1>
@@ -118,7 +118,7 @@ export default function EquipmentTracker() {
             <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Equipment</Button></DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>Add Equipment</DialogTitle><DialogDescription>Register new farm equipment</DialogDescription></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2"><Label>Equipment Name *</Label><Input value={formData.itemName} onChange={(e) => setFormData({ ...formData, itemName: e.target.value })} placeholder="e.g., John Deere 5050D" required /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Category</Label>
@@ -154,7 +154,7 @@ export default function EquipmentTracker() {
             </div>
 
             <div className="flex gap-4 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input className="pl-10" placeholder="Search equipment..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+              <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input className="pl-10" aria-label="Search" placeholder="Search equipment..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Categories</SelectItem>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
             </div>
 
@@ -239,7 +239,7 @@ export default function EquipmentTracker() {
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Edit Equipment</DialogTitle></DialogHeader>
             {editingItem && (
-              <form onSubmit={handleUpdate} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleUpdate} className="space-y-4">
                 <div className="space-y-2"><Label>Name</Label><Input value={editingItem.itemName} onChange={(e) => setEditingItem({ ...editingItem, itemName: e.target.value })} /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Quantity</Label><Input type="number" min="1" value={editingItem.quantityOnHand} onChange={(e) => setEditingItem({ ...editingItem, quantityOnHand: parseInt(e.target.value) || 1 })} /></div>

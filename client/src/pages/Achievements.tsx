@@ -89,7 +89,7 @@ export default function Achievements() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Achievements & Onboarding</h1>

@@ -134,7 +134,7 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground mt-1">
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search users..."
+                      aria-label="Search" placeholder="Search users..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
@@ -214,8 +214,8 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
+                  <table role="table" aria-label="Data table" className="w-full">
+                    <thead role="rowgroup">
                       <tr className="border-b">
                         <th className="text-left py-3 px-2">User</th>
                         <th className="text-left py-3 px-2">Role</th>
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
                         <th className="text-right py-3 px-2">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                       {recentUsers.map((user: any) => {
                         const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
                         const status = user.isActive === false ? "inactive" : "active";

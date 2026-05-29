@@ -352,7 +352,7 @@ export default function QuickFarmerRegistration() {
 
   return (
     <DashboardLayout>
-      <div className="container max-w-2xl py-6">
+      <div role="main" aria-label="Page content" className="container max-w-2xl py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold">Quick Farmer Registration</h1>

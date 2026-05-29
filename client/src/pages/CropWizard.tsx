@@ -21,7 +21,7 @@ export default function CropWizard() {
   const [selectedCrop, setSelectedCrop] = useState<string | null>(null);
 
   return (
-    <div className="container mx-auto py-8">
+    <div role="main" aria-label="Page content" className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-2">Select Your Crop</h1>
       <p className="text-muted-foreground mb-8">
         Choose the crop you want to manage and we'll guide you through the best practices

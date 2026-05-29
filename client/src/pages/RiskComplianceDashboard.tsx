@@ -236,7 +236,7 @@ export default function RiskComplianceDashboard() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4 flex min-h-[50vh] items-center justify-center">
+      <div role="main" aria-label="Page content" className="container mx-auto p-4 flex min-h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -468,7 +468,7 @@ export default function RiskComplianceDashboard() {
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search logs..."
+                    aria-label="Search" placeholder="Search logs..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"

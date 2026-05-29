@@ -100,7 +100,7 @@ export default function PriceAlertsDashboard() {
                     <Input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
                   </div>
                   {prediction.data && !("error" in prediction.data) && (
-                    <div className="p-4 border rounded-lg bg-blue-50">
+                    <div role="main" aria-label="Page content" className="p-4 border rounded-lg bg-blue-50">
                       <h4 className="font-bold text-lg">
                         {(prediction.data as Record<string, unknown>).currency as string}{" "}
                         {(prediction.data as Record<string, unknown>).predicted_price as number}

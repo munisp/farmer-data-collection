@@ -229,7 +229,7 @@ export default function Farms() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Farms</h1>
@@ -247,7 +247,7 @@ export default function Farms() {
                 <DialogTitle>Add New Farm</DialogTitle>
                 <DialogDescription>Enter the farm information to create a new farm profile</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="farmerId">Farmer *</Label>
                   <Select value={formData.farmerId} onValueChange={(value) => setFormData({ ...formData, farmerId: value })}>
@@ -368,7 +368,7 @@ export default function Farms() {
             <div className="flex gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-10" placeholder="Search farms by name, location, or soil type..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
+                <Input className="pl-10" aria-label="Search" placeholder="Search farms by name, location, or soil type..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
               </div>
             </div>
 
@@ -640,7 +640,7 @@ export default function Farms() {
               <DialogDescription>Update farm information</DialogDescription>
             </DialogHeader>
             {editingFarm && (
-              <form onSubmit={handleUpdate} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleUpdate} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Farm Name *</Label>
                   <Input value={editingFarm.farmName} onChange={(e) => setEditingFarm({ ...editingFarm, farmName: e.target.value })} required />

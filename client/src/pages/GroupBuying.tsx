@@ -206,7 +206,7 @@ export default function GroupBuying() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Hero Header */}
       <div className="gradient-hero text-white py-12 md:py-16">
         <div className="container">

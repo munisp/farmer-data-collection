@@ -180,7 +180,7 @@ export default function SatelliteImagery() {
 
   if (fieldsQuery.isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-emerald-50">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-emerald-50">
         <main className="container mx-auto px-4 py-8">
           <p className="text-slate-600">Loading live field geometry for satellite analysis.</p>
         </main>

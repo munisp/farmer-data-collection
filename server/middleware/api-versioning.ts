@@ -141,7 +141,7 @@ export function versionedRoute(handlers: Partial<Record<ApiVersion, (req: Reques
 }
 
 // Response transformer for version compatibility
-export function transformResponse(version: ApiVersion, data: any, resourceType: string): any {
+export function transformResponse(version: ApiVersion, data: Record<string, unknown>, resourceType: string): Record<string, unknown> {
   switch (resourceType) {
     case 'farmer':
       return transformFarmerResponse(version, data);
@@ -155,7 +155,7 @@ export function transformResponse(version: ApiVersion, data: any, resourceType: 
 }
 
 // Farmer response transformations
-function transformFarmerResponse(version: ApiVersion, data: Record<string, any>): any {
+function transformFarmerResponse(version: ApiVersion, data: Record<string, unknown>): Record<string, unknown> {
   if (version === 'v1') {
     // V1: Flat structure, snake_case
     return {
@@ -199,7 +199,7 @@ function transformFarmerResponse(version: ApiVersion, data: Record<string, any>)
 }
 
 // Loan response transformations
-function transformLoanResponse(version: ApiVersion, data: Record<string, any>): any {
+function transformLoanResponse(version: ApiVersion, data: Record<string, unknown>): Record<string, unknown> {
   if (version === 'v1') {
     return {
       id: data.id,
@@ -242,7 +242,7 @@ function transformLoanResponse(version: ApiVersion, data: Record<string, any>): 
 }
 
 // Harvest response transformations
-function transformHarvestResponse(version: ApiVersion, data: Record<string, any>): any {
+function transformHarvestResponse(version: ApiVersion, data: Record<string, unknown>): Record<string, unknown> {
   if (version === 'v1') {
     return {
       id: data.id,
@@ -277,7 +277,7 @@ function transformHarvestResponse(version: ApiVersion, data: Record<string, any>
 }
 
 // Request transformer for version compatibility
-export function transformRequest(version: ApiVersion, data: any, resourceType: string): any {
+export function transformRequest(version: ApiVersion, data: Record<string, unknown>, resourceType: string): Record<string, unknown> {
   switch (resourceType) {
     case 'farmer':
       return transformFarmerRequest(version, data);
@@ -288,7 +288,7 @@ export function transformRequest(version: ApiVersion, data: any, resourceType: s
   }
 }
 
-function transformFarmerRequest(version: ApiVersion, data: Record<string, any>): any {
+function transformFarmerRequest(version: ApiVersion, data: Record<string, unknown>): Record<string, unknown> {
   if (version === 'v1') {
     // V1 uses snake_case, transform to internal format
     return {
@@ -304,20 +304,22 @@ function transformFarmerRequest(version: ApiVersion, data: Record<string, any>):
   }
 
   // V2+ uses nested structure
+  const personalInfo = data.personalInfo as Record<string, unknown> | undefined;
+  const location = data.location as Record<string, unknown> | undefined;
   return {
-    firstName: data.personalInfo?.firstName,
-    lastName: data.personalInfo?.lastName,
-    phone: data.personalInfo?.phone,
-    email: data.personalInfo?.email,
-    nationalId: data.personalInfo?.nationalId,
-    region: data.location?.region,
-    district: data.location?.district,
-    village: data.location?.village,
-    coordinates: data.location?.coordinates,
+    firstName: personalInfo?.firstName,
+    lastName: personalInfo?.lastName,
+    phone: personalInfo?.phone,
+    email: personalInfo?.email,
+    nationalId: personalInfo?.nationalId,
+    region: location?.region,
+    district: location?.district,
+    village: location?.village,
+    coordinates: location?.coordinates,
   };
 }
 
-function transformLoanRequest(version: ApiVersion, data: Record<string, any>): any {
+function transformLoanRequest(version: ApiVersion, data: Record<string, unknown>): Record<string, unknown> {
   if (version === 'v1') {
     return {
       farmerId: data.farmer_id,
@@ -328,11 +330,12 @@ function transformLoanRequest(version: ApiVersion, data: Record<string, any>): a
     };
   }
 
+  const terms = data.terms as Record<string, unknown> | undefined;
   return {
     farmerId: data.farmerId,
-    amount: data.terms?.amount,
-    interestRate: data.terms?.interestRate,
-    termMonths: data.terms?.termMonths,
+    amount: terms?.amount,
+    interestRate: terms?.interestRate,
+    termMonths: terms?.termMonths,
     purpose: data.purpose,
   };
 }

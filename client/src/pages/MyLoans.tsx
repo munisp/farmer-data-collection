@@ -145,7 +145,7 @@ export default function MyLoans() {
 
   if (loansLoading) {
     return (
-      <div className="container mx-auto py-8">
+      <div role="main" aria-label="Page content" className="container mx-auto py-8">
         <div className="flex items-center justify-center h-64">
           <Clock className="animate-spin h-8 w-8 text-muted-foreground" />
         </div>

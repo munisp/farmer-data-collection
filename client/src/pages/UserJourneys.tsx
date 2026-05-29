@@ -554,7 +554,7 @@ export default function UserJourneys() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       <div className="border-b bg-card">
         <div className="container py-6">
           <h1 className="text-3xl font-bold">User Journeys</h1>

@@ -183,7 +183,7 @@ export default function Livestock() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Livestock</h1>
@@ -198,7 +198,7 @@ export default function Livestock() {
                 <DialogTitle>Add Livestock</DialogTitle>
                 <DialogDescription>Record new livestock on your farm</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Farm *</Label>
                   <Select value={formData.farmId} onValueChange={(v) => setFormData({ ...formData, farmId: v })}>
@@ -319,7 +319,7 @@ export default function Livestock() {
             <div className="flex gap-4 flex-wrap">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-10" placeholder="Search by animal type or breed..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                <Input className="pl-10" aria-label="Search" placeholder="Search by animal type or breed..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
               </div>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
@@ -499,7 +499,7 @@ export default function Livestock() {
               <DialogDescription>Update livestock record</DialogDescription>
             </DialogHeader>
             {editingItem && (
-              <form onSubmit={handleUpdate} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleUpdate} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Animal Type</Label>

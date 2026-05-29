@@ -195,7 +195,7 @@ export default function GPSTracking() {
                 <DialogTitle>Register GPS Device</DialogTitle>
                 <DialogDescription>Add a new GPS tracking device to your account</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleRegisterDevice} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleRegisterDevice} className="space-y-4">
                 <div>
                   <Label htmlFor="deviceId">Device ID</Label>
                   <Input id="deviceId" name="deviceId" placeholder="e.g., GPS-001 or device IMEI" required />
@@ -413,7 +413,7 @@ export default function GPSTracking() {
                   <TabsContent value="statistics" className="space-y-4">
                     {statistics ? (
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 border rounded-lg">
+                        <div role="main" aria-label="Page content" className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Total Points</p>
                           <p className="text-2xl font-bold">{(statistics as any).total_points || 0}</p>
                         </div>

@@ -85,7 +85,7 @@ export default function BottomNavBar({ activeCategory, onCategoryChange }: Botto
   const [location] = useLocation();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-bottom">
+    <nav role="navigation" aria-label="Navigation" className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-bottom">
       <div className="flex items-stretch justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;

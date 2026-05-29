@@ -94,7 +94,7 @@ export default function TransactionHistory() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Transaction History</h1>
@@ -153,7 +153,7 @@ export default function TransactionHistory() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by order ID or seller..."
+                  aria-label="Search" placeholder="Search by order ID or seller..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -205,8 +205,8 @@ export default function TransactionHistory() {
           <CardContent>
             {filteredOrders.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
+                <table role="table" aria-label="Data table" className="w-full">
+                  <thead role="rowgroup">
                     <tr className="border-b">
                       <th className="text-left py-3 px-2">Order ID</th>
                       <th className="text-left py-3 px-2">Date</th>
@@ -216,7 +216,7 @@ export default function TransactionHistory() {
                       <th className="text-right py-3 px-2">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {filteredOrders.map((order: any) => (
                       <tr key={order.id} className="border-b hover:bg-muted/50">
                         <td className="py-3 px-2">

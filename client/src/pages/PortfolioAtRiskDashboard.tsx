@@ -115,7 +115,7 @@ export default function PortfolioAtRiskDashboard() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Portfolio at Risk</h1>

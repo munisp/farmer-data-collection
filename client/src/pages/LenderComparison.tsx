@@ -47,7 +47,7 @@ export default function LenderComparison() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Lender Performance Comparison</h1>
           <p className="text-muted-foreground">Compare lenders side-by-side to find the best fit for your needs</p>
@@ -205,8 +205,8 @@ export default function LenderComparison() {
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
+                      <table role="table" aria-label="Data table" className="w-full">
+                        <thead role="rowgroup">
                           <tr className="border-b">
                             <th className="pb-3 text-left font-medium">Metric</th>
                             {comparisonData.map((lender) => (
@@ -216,7 +216,7 @@ export default function LenderComparison() {
                             ))}
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody role="rowgroup">
                           {/* Lender Type */}
                           <tr className="border-b">
                             <td className="py-3 font-medium">Type</td>

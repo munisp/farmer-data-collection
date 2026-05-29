@@ -190,7 +190,7 @@ export default function AgentTasksDashboard() {
     const completionRate = performance.tasksAssigned > 0 ? (performance.tasksCompleted / performance.tasksAssigned) * 100 : 0;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Field Agent Dashboard</h1>

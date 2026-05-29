@@ -144,7 +144,7 @@ export default function Reports() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div role="main" aria-label="Page content" className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
@@ -253,15 +253,15 @@ export default function Reports() {
           <CardContent>
             {expenseData.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
+                <table role="table" aria-label="Data table" className="w-full">
+                  <thead role="rowgroup">
                     <tr className="border-b">
                       <th className="text-left p-2">Category</th>
                       <th className="text-right p-2">Total Amount</th>
                       <th className="text-right p-2">Percentage</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {expenseData.map((item) => (
                       <tr key={item.category} className="border-b">
                         <td className="p-2">{item.category}</td>

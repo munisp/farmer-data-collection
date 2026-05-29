@@ -301,8 +301,8 @@ export default function AggregationHub() {
               <Badge variant="outline">{batches.length} batches</Badge>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" aria-label="Produce intake batches">
-                <thead>
+              <table role="table" aria-label="Produce intake batches" className="w-full text-sm">
+                <thead role="rowgroup">
                   <tr className="border-b">
                     <th className="text-left py-3 px-2 font-medium">Batch ID</th>
                     <th className="text-left py-3 px-2 font-medium">Farmer</th>
@@ -314,7 +314,7 @@ export default function AggregationHub() {
                     <th className="text-right py-3 px-2 font-medium">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                   {batches.map(batch => (
                     <tr key={batch.id} className="border-b hover:bg-muted/50">
                       <td className="py-3 px-2 font-mono text-xs">{batch.id}</td>

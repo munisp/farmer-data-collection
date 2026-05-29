@@ -228,7 +228,7 @@ export default function ExportScheduler() {
 
   return (
     <DashboardLayout>
-      <div className="container py-6">
+      <div role="main" aria-label="Page content" className="container py-6">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Export Scheduler</h1>

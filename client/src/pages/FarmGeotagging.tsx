@@ -787,7 +787,7 @@ export default function FarmGeotagging() {
             </div>
 
             {selectedFarm && (
-              <div className="p-4 bg-muted rounded-lg">
+              <div role="main" aria-label="Page content" className="p-4 bg-muted rounded-lg">
                 <p className="font-medium">{selectedFarm.farmName}</p>
                 <p className="text-sm text-muted-foreground">
                   Location: {selectedFarm.location || "Not set"}

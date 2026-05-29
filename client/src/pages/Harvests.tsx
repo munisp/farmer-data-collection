@@ -219,7 +219,7 @@ export default function Harvests() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Harvests</h1>
@@ -237,7 +237,7 @@ export default function Harvests() {
                   <DialogTitle>Record Harvest</DialogTitle>
                   <DialogDescription>Add a new harvest record</DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label>Crop *</Label>
                     <Select value={formData.cropId} onValueChange={(v) => setFormData({ ...formData, cropId: v })}>
@@ -301,7 +301,7 @@ export default function Harvests() {
             <div className="flex gap-4 flex-wrap">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-10" placeholder="Search by crop or storage..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                <Input className="pl-10" aria-label="Search" placeholder="Search by crop or storage..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
               </div>
               <Select value={cropFilter} onValueChange={setCropFilter}>
                 <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
@@ -437,7 +437,7 @@ export default function Harvests() {
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Edit Harvest</DialogTitle><DialogDescription>Update harvest record</DialogDescription></DialogHeader>
             {editingItem && (
-              <form onSubmit={handleUpdate} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleUpdate} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Quantity</Label><Input value={editingItem.quantity} onChange={(e) => setEditingItem({ ...editingItem, quantity: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Unit</Label><Input value={editingItem.unit} onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value })} /></div>

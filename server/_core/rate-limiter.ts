@@ -136,7 +136,6 @@ export const rateLimiters = {
 };
 
 // Helper to get identifier from context
-export function getIdentifier(ctx: any): string {
-  // Use userId if authenticated, otherwise use IP address
-  return ctx.user?.id || ctx.req?.ip || 'anonymous';
+export function getIdentifier(ctx: { user?: { id?: string | number }; req?: { ip?: string }; [key: string]: unknown }): string {
+  return String(ctx.user?.id || ctx.req?.ip || 'anonymous');
 }

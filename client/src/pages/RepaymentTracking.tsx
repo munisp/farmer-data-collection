@@ -59,7 +59,7 @@ export default function RepaymentTracking() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Loan Repayment Tracking</h1>
           <p className="text-muted-foreground">Manage your loan payments and view payment schedules</p>

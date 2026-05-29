@@ -140,7 +140,7 @@ export default function BankingDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-8">
+      <div role="main" aria-label="Page content" className="container mx-auto py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Banking & Payments</h1>
           <p className="text-muted-foreground">
@@ -180,7 +180,7 @@ export default function BankingDashboard() {
                 <CardDescription>Link a new bank account or mobile money account</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleCreateAccount} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleCreateAccount} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="accountName">Account Name *</Label>
@@ -298,7 +298,7 @@ export default function BankingDashboard() {
                 <CardDescription>Transfer money to any Mojaloop participant</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleInitiateTransfer} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleInitiateTransfer} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="fromAccount">From Account *</Label>
                     <Select 
@@ -387,7 +387,7 @@ export default function BankingDashboard() {
                 <CardDescription>Generate a payment request with QR code</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleCreatePaymentRequest} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleCreatePaymentRequest} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="paymentAccount">Receiving Account *</Label>
                     <Select 

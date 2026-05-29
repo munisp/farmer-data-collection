@@ -43,7 +43,7 @@ export default function RetailStoreDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div role="main" aria-label="Page content" className="p-6 max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">

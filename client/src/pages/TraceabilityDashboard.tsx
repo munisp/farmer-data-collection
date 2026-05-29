@@ -182,7 +182,7 @@ export default function TraceabilityDashboard() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Supply Chain Traceability</h1>
@@ -329,7 +329,7 @@ export default function TraceabilityDashboard() {
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by batch code..."
+                    aria-label="Search" placeholder="Search by batch code..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"

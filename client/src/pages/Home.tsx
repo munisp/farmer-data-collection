@@ -107,7 +107,7 @@ export default function Home() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex items-center justify-center">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin text-emerald-600 mx-auto" />
           <p className="mt-3 text-sm text-muted-foreground">Authenticating...</p>
@@ -298,7 +298,7 @@ export default function Home() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-inset-bottom">
+      <nav role="navigation" aria-label="Navigation" className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-inset-bottom">
         <div className="flex items-center justify-around max-w-md mx-auto">
           <button className="flex flex-col items-center gap-1 py-2 px-4 text-emerald-600" onClick={() => setLocation("/")}>
             <BarChart3 className="h-5 w-5" />

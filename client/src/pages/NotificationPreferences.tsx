@@ -157,7 +157,7 @@ export default function NotificationPreferences() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-6 space-y-6 max-w-4xl">
+      <div role="main" aria-label="Page content" className="container mx-auto py-6 space-y-6 max-w-4xl">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Notification Preferences</h1>

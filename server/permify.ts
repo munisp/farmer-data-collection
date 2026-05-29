@@ -251,9 +251,9 @@ export async function unshareResource(
 export function requirePermission(
   resource: string,
   action: string,
-  getResourceId: (input: any) => string | number
+  getResourceId: (input: unknown) => string | number
 ) {
-  return async (opts: any) => {
+  return async (opts: { ctx: { userId?: string | number }; input?: unknown; next: (opts: { ctx: Record<string, unknown> }) => Promise<unknown> }) => {
     const { ctx, input, next } = opts;
 
     if (!ctx.userId) {
@@ -272,7 +272,7 @@ export function requirePermission(
       throw new Error(`Forbidden: User ${ctx.userId} cannot ${action} ${resource}:${resourceId}`);
     }
 
-    return next();
+    return next({ ctx: ctx as Record<string, unknown> });
   };
 }
 

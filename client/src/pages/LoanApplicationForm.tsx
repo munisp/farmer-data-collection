@@ -209,7 +209,7 @@ export default function LoanApplicationForm() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Modern Header */}
       <div className="gradient-hero text-white py-10">
         <div className="container">

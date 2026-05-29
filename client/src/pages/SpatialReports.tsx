@@ -22,7 +22,7 @@ export default function SpatialReports() {
 
   return (
     <DashboardLayout>
-      <div className="p-8 space-y-6">
+      <div role="main" aria-label="Page content" className="p-8 space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Spatial Reports</h1>

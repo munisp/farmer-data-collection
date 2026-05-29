@@ -37,7 +37,7 @@ export default function ModerationAnalytics() {
 
   if (overviewLoading) {
     return (
-      <div className="container py-8">
+      <div role="main" aria-label="Page content" className="container py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-muted-foreground">Loading analytics...</div>
         </div>

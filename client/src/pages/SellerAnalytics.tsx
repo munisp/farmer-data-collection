@@ -83,7 +83,7 @@ export default function SellerAnalytics() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -276,8 +276,8 @@ export default function SellerAnalytics() {
           <CardContent>
             {listings && listings.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
+                <table role="table" aria-label="Data table" className="w-full">
+                  <thead role="rowgroup">
                     <tr className="border-b">
                       <th className="text-left py-3 px-2">Product</th>
                       <th className="text-left py-3 px-2">Status</th>
@@ -288,7 +288,7 @@ export default function SellerAnalytics() {
                       <th className="text-right py-3 px-2">Conv. Rate</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {listings.map((listing: any) => {
                       const listingSales = sales?.filter((s: any) => s.listingId === listing.id) || [];
                       const listingRevenue = listingSales.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);

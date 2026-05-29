@@ -975,7 +975,7 @@ export default function FarmerOnboardingWizard() {
   // Completion screen
   if (isComplete) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div role="main" aria-label="Page content" className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">

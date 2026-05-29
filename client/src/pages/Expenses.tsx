@@ -174,7 +174,7 @@ export default function Expenses() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Expenses</h1>
@@ -186,7 +186,7 @@ export default function Expenses() {
               <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Expense</Button></DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Add Expense</DialogTitle><DialogDescription>Record a new farm expense</DialogDescription></DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2"><Label>Farm *</Label>
                     <Select value={formData.farmId} onValueChange={(v) => setFormData({ ...formData, farmId: v })}>
                       <SelectTrigger><SelectValue placeholder="Select farm" /></SelectTrigger>
@@ -241,7 +241,7 @@ export default function Expenses() {
             </div>
 
             <div className="flex gap-4 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input className="pl-10" placeholder="Search expenses..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+              <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input className="pl-10" aria-label="Search" placeholder="Search expenses..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Categories</SelectItem>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
               <Input type="date" className="w-[140px]" value={dateRangeStart} onChange={(e) => setDateRangeStart(e.target.value)} />
               <Input type="date" className="w-[140px]" value={dateRangeEnd} onChange={(e) => setDateRangeEnd(e.target.value)} />
@@ -358,7 +358,7 @@ export default function Expenses() {
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Edit Expense</DialogTitle></DialogHeader>
             {editingItem && (
-              <form onSubmit={handleUpdate} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleUpdate} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Category</Label>
                     <Select value={editingItem.category} onValueChange={(v) => setEditingItem({ ...editingItem, category: v })}>

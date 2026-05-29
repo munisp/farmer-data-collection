@@ -263,7 +263,7 @@ export default function MultiFarmDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="container py-6">
+      <div role="main" aria-label="Page content" className="container py-6">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Multi-Farm Dashboard</h1>
@@ -522,8 +522,8 @@ export default function MultiFarmDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
+                  <table role="table" aria-label="Data table" className="w-full">
+                    <thead role="rowgroup">
                       <tr className="border-b">
                         <th className="text-left p-2">Rank</th>
                         <th className="text-left p-2">Farm Name</th>
@@ -534,7 +534,7 @@ export default function MultiFarmDashboard() {
                         <th className="text-right p-2">Margin %</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                       {farmStats
                         .sort((a, b) => b.netProfit - a.netProfit)
                         .map((farm, index) => (

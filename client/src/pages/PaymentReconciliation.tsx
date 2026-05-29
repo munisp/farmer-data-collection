@@ -132,8 +132,8 @@ export default function PaymentReconciliation() {
           <Card className="dark:bg-slate-800 dark:border-slate-700">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full" role="table" aria-label="Recent transactions">
-                  <thead>
+                <table role="table" aria-label="Recent transactions" className="w-full">
+                  <thead role="rowgroup">
                     <tr className="border-b dark:border-slate-600">
                       <th className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">ID</th>
                       <th className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Order</th>
@@ -143,7 +143,7 @@ export default function PaymentReconciliation() {
                       <th className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Date</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {recentTransactions.map((txn) => (
                       <tr key={txn.id} className="border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
                         <td className="p-3 font-mono text-sm dark:text-gray-300">{txn.id}</td>
@@ -165,8 +165,8 @@ export default function PaymentReconciliation() {
           <Card className="dark:bg-slate-800 dark:border-slate-700">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full" role="table" aria-label="Seller payouts">
-                  <thead>
+                <table role="table" aria-label="Seller payouts" className="w-full">
+                  <thead role="rowgroup">
                     <tr className="border-b dark:border-slate-600">
                       <th className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Seller</th>
                       <th className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Amount</th>
@@ -175,7 +175,7 @@ export default function PaymentReconciliation() {
                       <th className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Date</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {payouts.map((p, i) => (
                       <tr key={i} className="border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
                         <td className="p-3 font-medium dark:text-white">{p.seller}</td>

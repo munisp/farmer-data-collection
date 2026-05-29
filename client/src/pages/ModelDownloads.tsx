@@ -69,7 +69,7 @@ export default function ModelDownloads() {
   const installedCount = downloadsData?.downloads.filter((d) => d.download.installed).length || 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container py-8">

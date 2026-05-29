@@ -167,7 +167,7 @@ export default function Crops() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Crops</h1>
@@ -179,7 +179,7 @@ export default function Crops() {
               <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Add Crop</Button></DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Add Crop</DialogTitle><DialogDescription>Register a new crop cultivation</DialogDescription></DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2"><Label>Farm *</Label>
                     <Select value={formData.farmId} onValueChange={(v) => setFormData({ ...formData, farmId: v })}>
                       <SelectTrigger><SelectValue placeholder="Select farm" /></SelectTrigger>
@@ -230,7 +230,7 @@ export default function Crops() {
             </div>
 
             <div className="flex gap-4 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input className="pl-10" placeholder="Search crops..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} /></div>
+              <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input className="pl-10" aria-label="Search" placeholder="Search crops..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} /></div>
               <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Statuses</SelectItem>{statuses.map(s => <SelectItem key={s!} value={s!}>{s!.charAt(0).toUpperCase() + s!.slice(1)}</SelectItem>)}</SelectContent></Select>
             </div>
 
@@ -337,7 +337,7 @@ export default function Crops() {
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Edit Crop</DialogTitle></DialogHeader>
             {editingItem && (
-              <form onSubmit={handleUpdate} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleUpdate} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Crop Name</Label><Input value={editingItem.cropName} onChange={(e) => setEditingItem({ ...editingItem, cropName: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Variety</Label><Input value={editingItem.variety || ""} onChange={(e) => setEditingItem({ ...editingItem, variety: e.target.value })} /></div>
