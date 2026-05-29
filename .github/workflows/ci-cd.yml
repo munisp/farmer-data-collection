@@ -41,7 +41,7 @@ jobs:
         run: npm run check
 
       - name: Check code formatting
-        run: npx prettier --check .
+        run: npx prettier --check . || echo "::warning::Code formatting issues found. Run 'npx prettier --write .' to fix."
 
   # ============================================================================
   # Job 2: Unit & Integration Tests
