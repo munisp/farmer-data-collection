@@ -144,8 +144,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
           const message: WebSocketMessage = JSON.parse(event.data);
           if (message.type === "pong") return;
           handleMessage(message);
-        } catch {
-          // Non-JSON message
+        } catch (err) {
+          console.debug('[WebSocket] Non-JSON message received:', String(err));
         }
       };
 
@@ -174,8 +174,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       };
 
       wsRef.current = websocket;
-    } catch {
-      // WebSocket not available, rely on resilient connection manager
+    } catch (err) {
+      console.warn('[WebSocket] Connection failed, using resilient fallback:', String(err));
     }
   }, [subscribedChannels]);
 

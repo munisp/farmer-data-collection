@@ -54,8 +54,8 @@ export function CreditScoreWidget() {
         if (resp.ok) {
           setScoreData(await resp.json());
         }
-      } catch {
-        // Service unavailable
+      } catch (err) {
+        console.warn('[CreditScore] Service unavailable:', String(err));
       } finally {
         setLoading(false);
       }

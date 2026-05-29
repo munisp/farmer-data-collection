@@ -32,8 +32,8 @@ export function WeatherAlertsWidget() {
           setWeather(data.weather);
           setAlerts(data.alerts || []);
         }
-      } catch {
-        // Service unavailable — show fallback
+      } catch (err) {
+        console.warn('[Weather] Service unavailable:', String(err));
       } finally {
         setLoading(false);
       }

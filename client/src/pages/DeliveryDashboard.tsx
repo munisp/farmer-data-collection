@@ -85,8 +85,8 @@ function LiveTrackingMap({ deliveryId }: { deliveryId: number | null }) {
         if (update.type === 'history' && (update as any).positions) {
           setPositions((update as any).positions);
         }
-      } catch {
-        // ignore parse errors
+      } catch (err) {
+        console.debug('[Delivery] WebSocket parse error:', String(err));
       }
     };
 

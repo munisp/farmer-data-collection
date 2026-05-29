@@ -131,7 +131,8 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
             parsed.currency = defaultSettings.currency;
           }
           return { ...defaultSettings, ...parsed };
-        } catch {
+        } catch (err) {
+          console.warn('[i18n] Failed to parse localization settings:', String(err));
           return defaultSettings;
         }
       }
@@ -163,8 +164,8 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
         minimumFractionDigits: config.decimals,
         maximumFractionDigits: config.decimals,
       }).format(amount);
-    } catch {
-      // Fallback formatting
+    } catch (err) {
+      console.warn('[i18n] Intl.NumberFormat failed:', String(err));
       return `${config.symbol}${amount.toFixed(config.decimals)}`;
     }
   };

@@ -133,7 +133,8 @@ export default function AggregationHub() {
       const b64 = await fileToBase64(file);
       setCapturedImage(b64);
       setImagePreview(URL.createObjectURL(file));
-    } catch {
+    } catch (err) {
+      console.warn('[Inspection] Image processing failed:', String(err));
       setAiError("Failed to process image");
     }
   }, []);

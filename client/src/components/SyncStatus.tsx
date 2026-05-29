@@ -58,7 +58,8 @@ const getOfflineQueue = (): OfflineChange[] => {
   try {
     const queue = localStorage.getItem(OFFLINE_QUEUE_KEY);
     return queue ? JSON.parse(queue) : [];
-  } catch {
+  } catch (err) {
+    console.warn('[Sync] Failed to parse offline queue:', String(err));
     return [];
   }
 };

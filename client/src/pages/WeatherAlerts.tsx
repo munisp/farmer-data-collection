@@ -50,8 +50,8 @@ export default function WeatherAlerts() {
         setWeather(data.weather);
         setAlerts(data.alerts || []);
       }
-    } catch {
-      // Use simulated data
+    } catch (err) {
+      console.warn('[Weather] Service unavailable, using simulated data:', String(err));
       setWeather({
         main: { temp: 28.5, humidity: 72, pressure: 1013 },
         wind: { speed: 12.3, deg: 180 },

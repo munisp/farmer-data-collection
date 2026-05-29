@@ -67,7 +67,8 @@ async function fetchFromK8s(key: string): Promise<string | null> {
     const secretFile = `${config.k8sSecretPath}/${key}`;
     const value = await fs.readFile(secretFile, 'utf-8');
     return value.trim();
-  } catch {
+  } catch (err) {
+    logger.debug('[Secrets] K8s secret read failed, falling back', { key, error: String(err) });
     return null;
   }
 }
@@ -154,7 +155,8 @@ export async function checkSecretsHealth(): Promise<{ provider: string; healthy:
           signal: AbortSignal.timeout(3000),
         });
         result.healthy = response.ok;
-      } catch {
+      } catch (err) {
+        logger.debug('[Secrets] Vault health check failed', { error: String(err) });
         result.healthy = false;
       }
       break;
@@ -164,7 +166,8 @@ export async function checkSecretsHealth(): Promise<{ provider: string; healthy:
         const fs = await import('fs/promises');
         await fs.access(config.k8sSecretPath);
         result.healthy = true;
-      } catch {
+      } catch (err) {
+        logger.debug('[Secrets] K8s secret path not accessible', { error: String(err) });
         result.healthy = false;
       }
       break;

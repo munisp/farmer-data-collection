@@ -126,8 +126,8 @@ async function exportToJaeger(traceData: Record<string, unknown>): Promise<void>
     if (!response.ok) {
       throw new Error(`Jaeger responded ${response.status}`);
     }
-  } catch {
-    // Silent fallback — traces go to structured logs
+  } catch (err) {
+    logger.debug('Jaeger export failed, trace in structured logs only', { traceId: String(traceData.traceId), error: String(err) });
   }
 }
 
