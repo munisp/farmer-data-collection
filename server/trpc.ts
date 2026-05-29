@@ -79,6 +79,11 @@ import { predictiveAnalyticsRouter } from "./routers/predictive-analytics-router
 import { iotRulesEngineRouter } from "./routers/iot-rules-engine-router.js";
 import { paymentOrchestratorRouter } from "./routers/payment-orchestrator-router.js";
 import { complianceRouter } from "./routers/compliance-router.js";
+import { collectionsWorkflowRouter } from "./routers/collections-workflow-router.js";
+import { stressTestingRouter } from "./routers/stress-testing-router.js";
+import { marketDataRouter } from "./routers/market-data-router.js";
+import { regulatoryReportingRouter } from "./routers/regulatory-reporting-router.js";
+import { communicationAIRouter } from "./routers/communication-ai-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -191,6 +196,11 @@ export const appRouter = router({
   iotRulesEngine: iotRulesEngineRouter,
   paymentOrchestrator: paymentOrchestratorRouter,
   compliance: complianceRouter,
+  collectionsWorkflow: collectionsWorkflowRouter,
+  stressTesting: stressTestingRouter,
+  marketData: marketDataRouter,
+  regulatoryReporting: regulatoryReportingRouter,
+  communicationAI: communicationAIRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
