@@ -81,7 +81,7 @@ export const governmentSubsidyRouter = router({
           .orderBy(desc(subsidyPrograms.applicationDeadline));
 
         if (programs.length > 0) return programs;
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         // Table may not exist yet; fall through to seed data
       }
 
@@ -161,7 +161,7 @@ export const governmentSubsidyRouter = router({
         const [p] = await db.select().from(subsidyPrograms)
           .where(eq(subsidyPrograms.id, input.programId));
         program = p;
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         // Table may not exist
       }
 
@@ -220,7 +220,7 @@ export const governmentSubsidyRouter = router({
           eligibilityScore: kycVerified ? 85 : 50,
           estimatedProcessingDays: 14,
         };
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         // Fallback if table doesn't exist
         return {
           applicationId: Date.now(),
@@ -285,7 +285,7 @@ export const governmentSubsidyRouter = router({
             eligibilityScore: app.eligibilityScore,
           };
         }
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         // Table may not exist
       }
 
@@ -381,7 +381,7 @@ export const governmentSubsidyRouter = router({
       return db.select().from(subsidyDisbursements)
         .where(eq(subsidyDisbursements.userId, ctx.user.id))
         .orderBy(desc(subsidyDisbursements.createdAt));
-    } catch {
+    } catch (error) { console.error("Operation failed:", error);
       return [];
     }
   }),
@@ -421,7 +421,7 @@ export const governmentSubsidyRouter = router({
           maxBeneficiaries: program.maxBeneficiaries,
           applicationsByStatus: statusCounts,
         };
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         return {
           program: "Unknown",
           totalBudget: 0, allocatedBudget: 0, remainingBudget: 0,
@@ -462,7 +462,7 @@ export const governmentSubsidyRouter = router({
           photosUrls: input.photosUrls ? JSON.stringify(input.photosUrls) : null,
         }).returning();
         return { visitId: visit.id, status: "recorded" };
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         return {
           visitId: Date.now(),
           extensionWorkerId: ctx.user.id,
@@ -513,7 +513,7 @@ export const governmentSubsidyRouter = router({
             date: v.createdAt?.toISOString() || "",
           })),
         };
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         return {
           workerId: ctx.user.id, totalVisits: 0, farmersReached: 0,
           seedsDistributedKg: 0, trainingsCompleted: 0, pendingFollowUps: 0,
@@ -555,7 +555,7 @@ export const governmentSubsidyRouter = router({
           pendingReview: statusMap["submitted"] || 0,
           rejected: statusMap["rejected"] || 0,
         };
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         return {
           totalApplications: 0, approved: 0, disbursed: 0,
           totalDisbursedAmount: 0, pendingReview: 0, rejected: 0,

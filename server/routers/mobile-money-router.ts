@@ -478,7 +478,7 @@ export const mobileMoneyRouter = router({
                     .where(eq(mobileMoneyTransactions.id, tx.id));
                   reconciliation.fixed++;
                 }
-              } catch {
+              } catch (error) { console.error("Operation failed:", error);
                 // Provider query failed — skip
               }
             }
@@ -529,7 +529,7 @@ export const mobileMoneyRouter = router({
           currency: result.currency as string || "NGN",
           lastUpdated: new Date().toISOString(),
         };
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         return {
           provider: input.provider,
           balance: 0,

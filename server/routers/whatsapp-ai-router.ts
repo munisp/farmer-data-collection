@@ -119,7 +119,7 @@ export const whatsappAiRouter = router({
             const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
             diagnosis = diseases[0];
           }
-        } catch {
+        } catch (error) { console.error("Operation failed:", error);
           // AI service unavailable, fall back to knowledge base
           const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
           diagnosis = diseases[0];
@@ -163,7 +163,7 @@ export const whatsappAiRouter = router({
             const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
             diagnosis = diseases[0];
           }
-        } catch {
+        } catch (error) { console.error("Operation failed:", error);
           const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
           diagnosis = diseases[0];
         }
@@ -201,7 +201,7 @@ export const whatsappAiRouter = router({
               text: { body: message },
             }),
           }, { maxRetries: 2, timeoutMs: 15_000 });
-        } catch {
+        } catch (error) { console.error("Operation failed:", error);
           // WhatsApp delivery failure is non-fatal
         }
       }

@@ -948,7 +948,7 @@ export class KycService {
             },
           };
         }
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         // IPRS unavailable, fall through to local verification
       }
     }

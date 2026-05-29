@@ -406,7 +406,7 @@ export const communicationAIRouter = router({
           intent = ruleResult.intent;
           confidence = ruleResult.confidence;
         }
-      } catch {
+      } catch (error) { console.error("Operation failed:", error);
         // ML service unavailable, use rule-based
         const ruleResult = classifyIntent(input.message, entities);
         intent = ruleResult.intent;

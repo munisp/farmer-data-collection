@@ -558,7 +558,7 @@ export class USSDService {
   private async handleRegisterNameWithRedis(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ): Promise<USSDResponse> {
     if (!input || input.trim().length < 2) {
@@ -580,7 +580,7 @@ export class USSDService {
   private async handleRegisterLocationWithRedis(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ): Promise<USSDResponse> {
     if (!input || input.trim().length < 2) {
@@ -602,7 +602,7 @@ export class USSDService {
   private async handleRegisterFarmSizeWithRedis(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ): Promise<USSDResponse> {
     const farmSize = parseFloat(input);
@@ -626,7 +626,7 @@ export class USSDService {
   private async handleRegisterCropsWithRedis(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ): Promise<USSDResponse> {
     if (!input || input.trim().length < 2) {
@@ -636,7 +636,7 @@ export class USSDService {
       };
     }
 
-    const newData = { ...data, crops: input.trim() };
+    const newData: Record<string, any> = { ...data, crops: input.trim() };
     await this.sessionManager.updateSession(sessionId, { step: USSDMenuStep.REGISTER_CONFIRM, data: newData });
 
     return {
@@ -657,7 +657,7 @@ export class USSDService {
   private async handleRegisterConfirmWithIdempotency(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     phoneNumber: string,
     db: any
   ): Promise<USSDResponse> {
@@ -792,7 +792,7 @@ export class USSDService {
    * Route request based on session step
    */
   private async routeRequest(
-    session: any,
+    session: Record<string, any>,
     input: string,
     phoneNumber: string,
     db: any
@@ -910,7 +910,7 @@ export class USSDService {
   private async handleRegisterName(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ): Promise<USSDResponse> {
     if (!input || input.trim().length < 2) {
@@ -935,7 +935,7 @@ export class USSDService {
   private async handleRegisterLocation(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ): Promise<USSDResponse> {
     if (!input || input.trim().length < 2) {
@@ -960,7 +960,7 @@ export class USSDService {
   private async handleRegisterFarmSize(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ): Promise<USSDResponse> {
     const farmSize = parseFloat(input);
@@ -987,7 +987,7 @@ export class USSDService {
   private async handleRegisterCrops(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ): Promise<USSDResponse> {
     if (!input || input.trim().length < 2) {
@@ -1018,7 +1018,7 @@ export class USSDService {
   private async handleRegisterConfirm(
     sessionId: string,
     input: string,
-    data: any,
+    data: Record<string, any>,
     phoneNumber: string,
     db: any
   ): Promise<USSDResponse> {
@@ -1250,7 +1250,7 @@ export class USSDService {
     sessionId: string,
     phoneNumber: string,
     step: string,
-    data: any,
+    data: Record<string, any>,
     db: any
   ) {
     const [session] = await db
@@ -1267,7 +1267,7 @@ export class USSDService {
     return session;
   }
 
-  private async updateSession(sessionId: string, step: string, data: any, db: any) {
+  private async updateSession(sessionId: string, step: string, data: Record<string, any>, db: any) {
     await db
       .update(ussdSessions)
       .set({
