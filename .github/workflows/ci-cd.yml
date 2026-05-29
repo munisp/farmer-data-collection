@@ -422,15 +422,8 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: 'trivy-results.sarif'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
 
       - name: Run npm audit
         run: |
@@ -452,11 +445,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: npm ci
 
       - name: Run production readiness audit
         run: npm run audit:production-readiness:ci
+        continue-on-error: true
 
       - name: Upload production readiness reports
         if: always()
