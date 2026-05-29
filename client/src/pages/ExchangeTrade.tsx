@@ -81,7 +81,7 @@ export default function ExchangeTrade() {
       refetchOrderBook();
       refetchTrades();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to place order");
     },
   });

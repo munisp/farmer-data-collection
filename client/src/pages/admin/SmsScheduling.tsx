@@ -45,7 +45,7 @@ export default function SmsScheduling() {
       resetForm();
       refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to schedule message");
     },
   });
@@ -55,7 +55,7 @@ export default function SmsScheduling() {
       toast.success("Scheduled message cancelled");
       refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to cancel message");
     },
   });
@@ -73,7 +73,7 @@ export default function SmsScheduling() {
   };
 
   const handleTemplateSelect = (templateId: string) => {
-    const template = templates.find((t: any) => t.id === parseInt(templateId));
+    const template = templates.find((t) => t.id === parseInt(templateId));
     if (template) {
       setFormData({
         ...formData,
@@ -96,7 +96,7 @@ export default function SmsScheduling() {
       message: formData.message,
       scheduledFor: formData.scheduledFor,
       metadata: formData.metadata,
-    } as any);
+    } as Parameters<typeof scheduleMutation.mutate>[0]);
   };
 
   const handleCancel = (id: number) => {
@@ -169,7 +169,7 @@ export default function SmsScheduling() {
                     <SelectValue placeholder="Select a template..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {templates.map((template: any) => (
+                    {templates.map((template) => (
                       <SelectItem key={template.id} value={template.id.toString()}>
                         {template.name}
                       </SelectItem>
@@ -237,7 +237,7 @@ export default function SmsScheduling() {
       </div>
 
       {/* Filters */}
-      <Tabs value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as any)}>
+      <Tabs value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as 'all' | 'pending' | 'sent' | 'failed')}>
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -273,7 +273,7 @@ export default function SmsScheduling() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {scheduledMessages.map((message: any) => (
+                    {scheduledMessages.map((message) => (
                       <TableRow key={message.id}>
                         <TableCell>
                           <div>

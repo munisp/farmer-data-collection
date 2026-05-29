@@ -122,7 +122,8 @@ export async function checkAIHealth(): Promise<AIHealthStatus | null> {
     const resp = await fetch(`${AI_INSPECTION_URL}/health`, { signal: AbortSignal.timeout(5000) });
     if (resp.ok) return resp.json();
     return null;
-  } catch {
+  } catch (err) {
+    console.warn('[AIInspection] Health check failed:', String(err));
     return null;
   }
 }

@@ -80,7 +80,7 @@ export default function MyOrders() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {orders.map((order: any) => (
+            {orders.map((order) => (
               <Card key={order.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -114,7 +114,7 @@ export default function MyOrders() {
                   <div>
                     <p className="text-sm font-medium mb-2">Items</p>
                     <div className="space-y-2">
-                      {order.items.map((item: any) => (
+                      {order.items.map((item) => (
                         <div key={item.id} className="flex justify-between text-sm">
                           <span>
                             {item.productTitle} × {item.quantity} {item.productUnit}

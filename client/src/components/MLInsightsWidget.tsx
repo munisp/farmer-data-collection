@@ -23,13 +23,13 @@ export default function MLInsightsWidget() {
   const successfulPredictions = predictionsData?.successful || 0;
 
   // Calculate total predicted yield
-  const totalPredictedYield = (predictions || []).reduce((sum: number, pred: any) => 
+  const totalPredictedYield = (predictions || []).reduce((sum: number, pred) => 
     sum + (pred.prediction?.predictedYield || 0), 0
   );
 
   // Get average confidence
   const avgConfidence = (predictions || []).length > 0
-    ? (predictions || []).reduce((sum: number, pred: any) => 
+    ? (predictions || []).reduce((sum: number, pred) => 
         sum + ((pred.prediction?.confidence || 0) * 100), 0) / (predictions || []).length
     : 0;
 
@@ -133,7 +133,7 @@ export default function MLInsightsWidget() {
         {/* Top Predictions */}
         <div className="space-y-2">
           <div className="text-sm font-semibold text-gray-700">Top Predictions:</div>
-          {(predictions || []).slice(0, 3).map((pred: any, index: number) => (
+          {(predictions || []).slice(0, 3).map((pred, index: number) => (
             <div 
               key={index}
               className="bg-white/80 backdrop-blur rounded-lg p-3 flex items-center justify-between"

@@ -81,7 +81,7 @@ export default function MyListings() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {listings.map((listing: any) => (
+            {listings.map((listing) => (
               <Card key={listing.id}>
                 <CardHeader>
                   {listing.photos && listing.photos.length > 0 ? (

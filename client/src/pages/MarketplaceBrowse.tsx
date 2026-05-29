@@ -279,7 +279,7 @@ export default function MarketplaceBrowse() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {listings.map((listing: any, index: number) => (
+              {listings.map((listing, index: number) => (
                 <ModernCard 
                   key={listing.id} 
                   className={`flex flex-col overflow-hidden group stagger-${(index % 6) + 1} animate-slide-up`}

@@ -703,6 +703,39 @@ services:
       timeout: 5s
       retries: 3
 
+  # Log Aggregation
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: farmer-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: farmer-promtail
+    volumes:
+      - ./config/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # Secrets Management
   vault:
     image: hashicorp/vault:1.15
@@ -729,4 +762,5 @@ volumes:
   tigerbeetle-data:
   prometheus-data:
   grafana-data:
+  loki-data:
   ml-models:

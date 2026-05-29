@@ -35,7 +35,7 @@ export function useToast() {
     if (variant === 'destructive') {
       console.error(`[Toast] ${title}: ${description}`);
     } else {
-      console.log(`[Toast] ${title}: ${description}`);
+      console.warn(`[Toast] ${title}: ${description}`);
     }
 
     return { id, dismiss: () => dismiss(id) };

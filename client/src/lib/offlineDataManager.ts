@@ -129,8 +129,8 @@ class OfflineDataManager {
       try {
         const reg = await navigator.serviceWorker.ready;
         await (reg as any).sync.register("sync-queue");
-      } catch {
-        // Background sync not available, rely on manual sync
+      } catch (err) {
+        console.warn('[OfflineData] Background sync registration failed:', String(err));
       }
     }
 
@@ -202,8 +202,8 @@ class OfflineDataManager {
             await this.incrementRetry(entry);
             failed++;
           }
-        } catch {
-          // Network error
+        } catch (err) {
+          console.warn('[OfflineData] Sync request failed:', String(err));
           await this.incrementRetry(entry);
           failed++;
         }

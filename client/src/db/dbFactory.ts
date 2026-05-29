@@ -52,7 +52,8 @@ function getMigrationStatus(): MigrationStatus {
   
   try {
     return JSON.parse(stored);
-  } catch {
+  } catch (err) {
+    console.warn('[DbFactory] Failed to parse migration status:', String(err));
     return { completed: false, startedAt: null, completedAt: null, tablesProcessed: [], totalRows: 0, errors: [] };
   }
 }
@@ -71,7 +72,7 @@ export async function getDatabase(config?: Partial<DbFactoryConfig>): Promise<Lo
     return dbInstance;
   }
   
-  console.log(`[DbFactory] Creating SQLite WASM database`);
+  console.warn(`[DbFactory] Creating SQLite WASM database`);
   
   // Create SQLite WASM database
   dbInstance = await createSqliteWasmDb(currentConfig.sqliteDbName);

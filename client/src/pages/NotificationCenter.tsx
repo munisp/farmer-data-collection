@@ -195,7 +195,7 @@ export default function NotificationCenter() {
 
     const deleteNotification = (id: number) => {
       // Note: Delete functionality would need a separate mutation
-      console.log('Delete notification:', id);
+      console.warn('Delete notification:', id);
     };
 
   const formatTime = (dateString: string) => {

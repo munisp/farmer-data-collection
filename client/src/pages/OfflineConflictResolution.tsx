@@ -33,8 +33,8 @@ import {
 // Types
 interface ConflictField {
   fieldName: string;
-  localValue: any;
-  serverValue: any;
+  localValue: unknown;
+  serverValue: unknown;
   localTimestamp: string;
   serverTimestamp: string;
 }
@@ -167,7 +167,7 @@ const mockConflicts: SyncConflict[] = [
 ];
 
 // Field value display component
-function FieldValue({ value, type }: { value: any; type: 'local' | 'server' }) {
+function FieldValue({ value, type }: { value: unknown; type: 'local' | 'server' }) {
   const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
   const bgColor = type === 'local' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
   const textColor = type === 'local' ? 'text-blue-700' : 'text-green-700';

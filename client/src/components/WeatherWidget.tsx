@@ -158,7 +158,7 @@ export function WeatherWidget({ latitude, longitude, farmName }: WeatherWidgetPr
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              {forecast.map((day: any, idx: number) => (
+              {forecast.map((day, idx: number) => (
                 <div key={idx} className="text-center p-3 border rounded-lg">
                   <div className="text-sm font-medium mb-2">
                     {new Date(day.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
@@ -191,7 +191,7 @@ export function WeatherWidget({ latitude, longitude, farmName }: WeatherWidgetPr
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {weatherStations.map((station: any) => (
+              {weatherStations.map((station) => (
                 <div key={station.id} className="flex justify-between items-center p-3 border rounded-lg">
                   <div>
                     <div className="font-medium">{station.name}</div>

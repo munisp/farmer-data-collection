@@ -27,7 +27,7 @@ interface ExportType {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   endpoint: string;
 }
 
@@ -113,7 +113,7 @@ export default function BulkExport() {
 
       // Call the appropriate tRPC endpoint
       const endpoint = exportType.endpoint as keyof typeof trpc.export;
-      const queryFn = (trpc.export[endpoint] as any).useQuery;
+      const queryFn = ((trpc.export as Record<string, { useQuery: unknown }>)[endpoint]).useQuery;
       
       // For now, we'll use a workaround since we can't dynamically call hooks
       // In production, you'd want to implement this differently

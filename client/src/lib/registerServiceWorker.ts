@@ -11,7 +11,7 @@ export function registerServiceWorker() {
     navigator.serviceWorker
       .register(swUrl, isDev ? { type: 'module' } : undefined)
       .then((registration) => {
-        console.log(`Service Worker registered (${isDev ? 'dev' : 'prod'}):`, registration.scope);
+        console.warn(`Service Worker registered (${isDev ? 'dev' : 'prod'}):`, registration.scope);
 
         setInterval(() => {
           registration.update();

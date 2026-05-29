@@ -186,7 +186,7 @@ export default function AgentTasksDashboard() {
     return <Badge className={c.color}>{c.label}</Badge>;
   };
 
-    const completedToday = todaysTasks.filter((t: any) => t.status === 'completed').length;
+    const completedToday = todaysTasks.filter((t) => t.status === 'completed').length;
     const completionRate = performance.tasksAssigned > 0 ? (performance.tasksCompleted / performance.tasksAssigned) * 100 : 0;
 
   return (

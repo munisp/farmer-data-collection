@@ -90,7 +90,7 @@ export const queueOfflineChange = (
   };
   queue.push(change);
   saveOfflineQueue(queue);
-  console.log('[OfflineSync] Queued change:', change);
+  console.warn('[OfflineSync] Queued change:', change);
 };
 
 export function SyncStatus() {
@@ -131,7 +131,7 @@ export function SyncStatus() {
       return { pushed: 0, conflicts: [] };
     }
 
-    console.log(`[PushSync] Pushing ${queue.length} offline changes...`);
+    console.warn(`[PushSync] Pushing ${queue.length} offline changes...`);
     setStatus(prev => ({ ...prev, isPushing: true }));
 
     const conflicts: ConflictRecord[] = [];
@@ -180,7 +180,7 @@ export function SyncStatus() {
         }
 
         const result = await response.json();
-        console.log(`[PushSync] ${table} response:`, result);
+        console.warn(`[PushSync] ${table} response:`, result);
 
         const { success, conflicts: serverConflicts, synced } = result.result?.data?.json || {};
 
@@ -233,7 +233,7 @@ export function SyncStatus() {
       toast.warning(`${conflicts.length} conflict(s) detected. Please resolve them.`);
     }
 
-    console.log(`[PushSync] Pushed ${successfulIds.length} changes, ${conflicts.length} conflicts`);
+    console.warn(`[PushSync] Pushed ${successfulIds.length} changes, ${conflicts.length} conflicts`);
     return { pushed: successfulIds.length, conflicts };
   }, []);
 
@@ -242,7 +242,7 @@ export function SyncStatus() {
     conflict: ConflictRecord,
     resolution: 'local' | 'server'
   ): Promise<void> => {
-    console.log(`[ConflictResolution] Resolving conflict for ${conflict.table}#${conflict.id} with ${resolution}`);
+    console.warn(`[ConflictResolution] Resolving conflict for ${conflict.table}#${conflict.id} with ${resolution}`);
 
     if (resolution === 'server') {
       // Accept server version - just remove from conflicts, pull will update local
@@ -310,7 +310,7 @@ export function SyncStatus() {
       setIsOnline(true);
       // Auto-sync when coming back online (with cooldown check)
       if (!isSyncingRef.current && canSync()) {
-        console.log('[AutoSync] Coming back online, triggering sync...');
+        console.warn('[AutoSync] Coming back online, triggering sync...');
         setTimeout(() => {
           if (!isSyncingRef.current) {
             triggerAutoSync('reconnect');
@@ -326,7 +326,7 @@ export function SyncStatus() {
     // Auto-sync on app startup (if online)
     if (navigator.onLine && !hasInitialSyncRef.current) {
       hasInitialSyncRef.current = true;
-      console.log('[AutoSync] App startup, triggering initial sync...');
+      console.warn('[AutoSync] App startup, triggering initial sync...');
       setTimeout(() => {
         if (!isSyncingRef.current) {
           triggerAutoSync('startup');
@@ -337,10 +337,10 @@ export function SyncStatus() {
     // Set up periodic background sync with jitter to spread load across 1000+ farmers
     const scheduleNextSync = () => {
       const interval = getSyncIntervalWithJitter();
-      console.log(`[AutoSync] Next sync scheduled in ${Math.round(interval / 1000 / 60)} minutes`);
+      console.warn(`[AutoSync] Next sync scheduled in ${Math.round(interval / 1000 / 60)} minutes`);
       syncIntervalRef.current = setTimeout(() => {
         if (navigator.onLine && !isSyncingRef.current && canSync()) {
-          console.log('[AutoSync] Periodic sync triggered...');
+          console.warn('[AutoSync] Periodic sync triggered...');
           triggerAutoSync('periodic');
         }
         scheduleNextSync(); // Schedule next sync with new jitter
@@ -361,7 +361,7 @@ export function SyncStatus() {
   const triggerAutoSync = async (reason: 'startup' | 'reconnect' | 'periodic') => {
     if (!navigator.onLine || isSyncingRef.current) return;
     
-    console.log(`[AutoSync] Starting ${reason} sync...`);
+    console.warn(`[AutoSync] Starting ${reason} sync...`);
     isSyncingRef.current = true;
     setStatus(prev => ({ ...prev, isSyncing: true, error: null }));
 
@@ -369,10 +369,10 @@ export function SyncStatus() {
       // Step 1: Push any pending offline changes first
       const { pushed, conflicts } = await pushOfflineChanges();
       if (pushed > 0) {
-        console.log(`[AutoSync] Pushed ${pushed} offline changes`);
+        console.warn(`[AutoSync] Pushed ${pushed} offline changes`);
       }
       if (conflicts.length > 0) {
-        console.log(`[AutoSync] ${conflicts.length} conflicts need resolution`);
+        console.warn(`[AutoSync] ${conflicts.length} conflicts need resolution`);
       }
 
       // Step 2: Pull latest from server
@@ -454,16 +454,16 @@ export function SyncStatus() {
         }
 
         const result = await response.json();
-        console.log(`[Sync] ${table} response:`, result);
+        console.warn(`[Sync] ${table} response:`, result);
         const { records, serverTime } = result.result.data.json;
-        console.log(`[Sync] ${table} records count:`, records?.length || 0);
+        console.warn(`[Sync] ${table} records count:`, records?.length || 0);
 
         // Get the local table name
         const localTable = tableMapping[table] || table;
 
         // Insert records into local database
         if (records && records.length > 0) {
-          console.log(`[Sync] Inserting ${records.length} records into ${localTable}`);
+          console.warn(`[Sync] Inserting ${records.length} records into ${localTable}`);
           for (const record of records) {
             // Convert camelCase keys to snake_case for local DB
             const snakeCaseRecord: Record<string, any> = {};
@@ -501,7 +501,7 @@ export function SyncStatus() {
       }
     }
 
-    console.log(`Sync completed: ${totalRecords} records synced`);
+    console.warn(`Sync completed: ${totalRecords} records synced`);
     
     const now = new Date();
     setStatus(prev => ({

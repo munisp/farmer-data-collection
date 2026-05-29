@@ -18,7 +18,7 @@ interface OnboardingStep {
   id: number;
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   videoUrl?: string;
   tips: string[];
   action: {
@@ -250,7 +250,7 @@ export function OnboardingWizard({ open, onClose, onComplete }: OnboardingWizard
 interface AchievementBadgeProps {
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   unlocked: boolean;
   progress?: number;
 }

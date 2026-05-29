@@ -127,7 +127,7 @@ export default function NotificationPreferences() {
     }
   };
 
-  const updatePreference = (key: keyof NotificationPreferences, value: any) => {
+  const updatePreference = (key: keyof NotificationPreferences, value: boolean | string) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
   };
 

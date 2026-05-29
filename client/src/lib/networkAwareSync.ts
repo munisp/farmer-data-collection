@@ -279,7 +279,7 @@ class BatteryMonitor {
         this.battery.addEventListener('dischargingtimechange', () => this.updateState());
       }
     } catch (error) {
-      console.log('[BatteryMonitor] Battery API not available');
+      console.warn('[BatteryMonitor] Battery API not available');
     }
   }
 

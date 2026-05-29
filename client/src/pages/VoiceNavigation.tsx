@@ -51,7 +51,8 @@ export default function VoiceNavigation() {
           }, 1500);
         }
       }
-    } catch {
+    } catch (err) {
+      console.warn('[VoiceNav] Voice service error:', String(err));
       setResult({
         matched: false,
         command: null,

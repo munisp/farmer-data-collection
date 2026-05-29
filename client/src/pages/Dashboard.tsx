@@ -259,7 +259,7 @@ export default function Dashboard() {
                 <CardContent>
                   {(activityQuery.data && activityQuery.data.length > 0) ? (
                     <div className="space-y-3">
-                      {activityQuery.data.map((activity: any, index: number) => (
+                      {activityQuery.data.map((activity, index: number) => (
                         <div key={index} className="flex items-start gap-3">
                           <div className={`p-1.5 rounded-full bg-muted ${activity.type === 'harvest' ? 'text-green-500' : 'text-orange-500'}`}>
                             {activity.type === 'harvest' ? <TrendingUp className="w-3 h-3" /> : <Receipt className="w-3 h-3" />}

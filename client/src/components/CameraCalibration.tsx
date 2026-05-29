@@ -161,7 +161,7 @@ function analyzeFocus(imageData: ImageData): number {
 }
 
 function getNetworkQuality(): { quality: string; compressionMultiplier: number } {
-  const connection = (navigator as any).connection;
+  const connection = (navigator as { connection?: { effectiveType?: string } }).connection;
   if (!connection) return { quality: "unknown", compressionMultiplier: 1.0 };
 
   const effectiveType = connection.effectiveType || "4g";
@@ -531,9 +531,9 @@ export default function CameraCalibration({
                 setFlashEnabled(!flashEnabled);
                 if (streamRef.current) {
                   const track = streamRef.current.getVideoTracks()[0];
-                  const capabilities = track.getCapabilities?.() as any;
+                  const capabilities = track.getCapabilities?.() as Record<string, unknown>;
                   if (capabilities?.torch) {
-                    track.applyConstraints({ advanced: [{ torch: !flashEnabled } as any] });
+                    track.applyConstraints({ advanced: [{ torch: !flashEnabled } as MediaTrackConstraintSet] });
                   }
                 }
               }}

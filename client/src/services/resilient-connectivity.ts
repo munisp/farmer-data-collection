@@ -339,8 +339,8 @@ export class ResilientConnectionManager {
       try {
         this.ws.send(message);
         return;
-      } catch {
-        // Fall through to queue
+      } catch (err) {
+        console.warn('[Resilient] WebSocket send failed, queuing:', String(err));
       }
     }
 
@@ -443,8 +443,8 @@ export class ResilientConnectionManager {
             return;
           }
           this.dispatchMessage(data.channel || data.type || "default", data);
-        } catch {
-          // Non-JSON message
+        } catch (err) {
+          console.warn('[Resilient] WS JSON parse failed, dispatching raw:', String(err));
           this.dispatchMessage("raw", event.data);
         }
       };
@@ -491,7 +491,8 @@ export class ResilientConnectionManager {
         try {
           const data = JSON.parse(event.data);
           this.dispatchMessage(data.channel || data.type || "default", data);
-        } catch {
+        } catch (err) {
+          console.warn('[Resilient] SSE JSON parse failed, dispatching raw:', String(err));
           this.dispatchMessage("raw", event.data);
         }
       };
@@ -501,7 +502,8 @@ export class ResilientConnectionManager {
         this.currentTransport = "none";
         this.tryFallbackTransport("sse");
       };
-    } catch {
+    } catch (err) {
+      console.warn('[Resilient] SSE connection failed, falling back:', String(err));
       this.tryFallbackTransport("sse");
     }
   }
@@ -533,8 +535,8 @@ export class ResilientConnectionManager {
             this.connectTransport(this.selectTransport(network));
           }
         }
-      } catch {
-        // Polling failed — will retry next interval
+      } catch (err) {
+        console.warn('[Resilient] Poll failed, will retry:', String(err));
       }
     };
 
@@ -598,7 +600,7 @@ export class ResilientConnectionManager {
       return;
     }
 
-    console.log(`[Resilient] Reconnecting in ${delay}ms (attempt ${this.reconnection.attempts})`);
+    console.warn(`[Resilient] Reconnecting in ${delay}ms (attempt ${this.reconnection.attempts})`);
     this.reconnectTimer = setTimeout(() => {
       const network = detectNetworkQuality();
       if (!network.online) {
@@ -616,7 +618,7 @@ export class ResilientConnectionManager {
     const next = fallbackOrder[failedIdx + 1];
 
     if (next) {
-      console.log(`[Resilient] Falling back from ${failed} to ${next}`);
+      console.warn(`[Resilient] Falling back from ${failed} to ${next}`);
       this.connectTransport(next);
     } else {
       this.handleDisconnect(`All transports failed (last: ${failed})`);
@@ -646,7 +648,8 @@ export class ResilientConnectionManager {
         await this.send(msg.channel, msg.payload, msg.priority);
         await this.messageQueue.remove(msg.id);
         drained++;
-      } catch {
+      } catch (err) {
+        console.warn('[Resilient] Queue drain send failed:', String(err));
         await this.messageQueue.incrementRetry(msg.id);
         if (msg.retries >= 5) {
           await this.messageQueue.remove(msg.id);
@@ -656,7 +659,7 @@ export class ResilientConnectionManager {
     }
 
     if (drained > 0) {
-      console.log(`[Resilient] Drained ${drained} queued messages`);
+      console.warn(`[Resilient] Drained ${drained} queued messages`);
       this.notifyStatusChange();
     }
   }
@@ -665,7 +668,7 @@ export class ResilientConnectionManager {
 
   private startNetworkMonitor(): void {
     const handleOnline = () => {
-      console.log("[Resilient] Network came online");
+      console.warn("[Resilient] Network came online");
       if (this.state === "offline") {
         const network = detectNetworkQuality();
         const transport = this.selectTransport(network);
@@ -674,7 +677,7 @@ export class ResilientConnectionManager {
     };
 
     const handleOffline = () => {
-      console.log("[Resilient] Network went offline");
+      console.warn("[Resilient] Network went offline");
       this.disconnectAll();
       this.setState("offline");
     };
@@ -684,7 +687,7 @@ export class ResilientConnectionManager {
       if (this.config.bandwidthAdaptive && this.state === "connected") {
         const ideal = this.selectTransport(network);
         if (ideal !== this.currentTransport) {
-          console.log(`[Resilient] Bandwidth changed: ${this.currentTransport} → ${ideal}`);
+          console.warn(`[Resilient] Bandwidth changed: ${this.currentTransport} → ${ideal}`);
           this.disconnectAll();
           this.connectTransport(ideal);
         }
@@ -739,8 +742,8 @@ export class ResilientConnectionManager {
     for (const handler of this.statusHandlers) {
       try {
         handler(status);
-      } catch {
-        // Don't let handler errors break the connection manager
+      } catch (err) {
+        console.warn('[Resilient] Status handler error:', String(err));
       }
     }
   }
@@ -762,8 +765,8 @@ export class ResilientConnectionManager {
       for (const handler of wildcardHandlers) {
         try {
           handler(data);
-        } catch {
-          // ignore
+        } catch (err) {
+          console.warn('[Resilient] Wildcard handler error:', String(err));
         }
       }
     }

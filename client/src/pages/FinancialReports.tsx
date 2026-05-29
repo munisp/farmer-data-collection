@@ -82,7 +82,7 @@ export default function FinancialReports() {
   };
 
   // Export to CSV
-  const exportToCSV = (data: any[], filename: string) => {
+  const exportToCSV = (data: Record<string, unknown>[], filename: string) => {
     if (!data || data.length === 0) {
       alert("No data to export");
       return;

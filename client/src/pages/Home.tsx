@@ -85,7 +85,7 @@ export default function Home() {
   }, [statsQuery.data]);
 
   const recentActivity = useMemo(() => {
-    return (activityQuery.data || []).map((activity: any, index: number) => ({
+    return (activityQuery.data || []).map((activity, index: number) => ({
       id: index + 1,
       name: user?.firstName || user?.email || "Current user",
       action: activity.description,
@@ -272,7 +272,7 @@ export default function Home() {
             </Button>
           </div>
           <div className="space-y-2">
-            {recentActivity.map((activity: any) => (
+            {recentActivity.map((activity) => (
               <Card key={activity.id} className="border-gray-100 shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">

@@ -25,7 +25,7 @@ export interface SyncEvent {
   entityId: string;
   userId: number;
   clientId: string;
-  data: any;
+  data: unknown;
   timestamp: string;
 }
 
@@ -99,12 +99,12 @@ export function useSyncWithWebSocket() {
   const triggerSync = useCallback(async (reason: string, entityTypes?: string[]) => {
     const now = Date.now();
     if (now - lastSyncTrigger.current < SYNC_DEBOUNCE_MS) {
-      console.log('[Sync] Debounced sync trigger:', reason);
+      console.warn('[Sync] Debounced sync trigger:', reason);
       return;
     }
     lastSyncTrigger.current = now;
 
-    console.log('[Sync] Triggering sync:', reason);
+    console.warn('[Sync] Triggering sync:', reason);
     const startTime = Date.now();
 
     try {
@@ -172,7 +172,7 @@ export function useSyncWithWebSocket() {
 
     // Connection handlers
     socket.on('connect', () => {
-      console.log('[WebSocket] Connected:', socket.id);
+      console.warn('[WebSocket] Connected:', socket.id);
       setStatus(prev => ({ ...prev, websocketConnected: true }));
       
       // Authenticate
@@ -185,7 +185,7 @@ export function useSyncWithWebSocket() {
     });
 
     socket.on('disconnect', () => {
-      console.log('[WebSocket] Disconnected');
+      console.warn('[WebSocket] Disconnected');
       setStatus(prev => ({ ...prev, websocketConnected: false }));
     });
 
@@ -196,19 +196,19 @@ export function useSyncWithWebSocket() {
 
     // Handle real-time sync events
     socket.on('realtime_event', (event: SyncEvent) => {
-      console.log('[WebSocket] Received sync event:', event);
+      console.warn('[WebSocket] Received sync event:', event);
       handleSyncEvent(event);
     });
 
     // Handle sync-specific events from Go service
     socket.on('sync_event', (event: SyncEvent) => {
-      console.log('[WebSocket] Received sync_event:', event);
+      console.warn('[WebSocket] Received sync_event:', event);
       handleSyncEvent(event);
     });
 
     // Handle conflict notifications
     socket.on('sync_conflict', (conflict: SyncConflict) => {
-      console.log('[WebSocket] Received conflict:', conflict);
+      console.warn('[WebSocket] Received conflict:', conflict);
       handleConflict(conflict);
     });
 
@@ -322,7 +322,7 @@ export function useSyncWithWebSocket() {
 
     const handleOnline = () => {
       if (user) {
-        console.log('[Sync] Network online, triggering sync');
+        console.warn('[Sync] Network online, triggering sync');
         triggerSync('network_online');
       }
     };
@@ -407,7 +407,7 @@ export function useSyncWithWebSocket() {
   const resolveConflict = useCallback(async (
     conflictId: string,
     resolution: 'local' | 'server' | 'merge' | 'custom',
-    customData?: any
+    customData?: unknown
   ) => {
     if (!user) return false;
 
@@ -479,7 +479,7 @@ import { createContext, useContext, ReactNode } from 'react';
 interface SyncContextValue {
   status: EnhancedSyncStatus;
   sync: () => Promise<TableSyncResult[] | undefined>;
-  resolveConflict: (conflictId: string, resolution: 'local' | 'server' | 'merge' | 'custom', customData?: any) => Promise<boolean>;
+  resolveConflict: (conflictId: string, resolution: 'local' | 'server' | 'merge' | 'custom', customData?: unknown) => Promise<boolean>;
   isOnline: boolean;
 }
 

@@ -24,7 +24,7 @@ interface EventRecord {
   id: string;
   type: string;
   timestamp: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 interface EventStats {

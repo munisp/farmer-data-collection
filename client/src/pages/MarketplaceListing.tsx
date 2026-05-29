@@ -80,7 +80,7 @@ export default function MarketplaceListing() {
       
       // Show compression stats
       const savings = compressed.compressionRatio.toFixed(1);
-      console.log(`Image compressed: ${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)} (${savings}% reduction)`);
+      console.warn(`Image compressed: ${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)} (${savings}% reduction)`);
       
       // Add compressed photo to photos array for preview
       setPhotos(prev => [...prev, compressed.dataUrl]);
