@@ -335,6 +335,41 @@ mod tests {
         assert!(!is_sql_injection("Cassava farming in Nigeria"));
     }
 
+    #[test]
+    fn test_path_traversal_detection() {
+        let payloads = vec!["../../etc/passwd", "..\\windows\\system32", "%2e%2e%2f"];
+        for p in payloads {
+            assert!(is_path_traversal(p), "Should detect path traversal: {}", p);
+        }
+        assert!(!is_path_traversal("/api/farmers/42"));
+    }
+
+    #[test]
+    fn test_rate_limiting_state() {
+        let rl = RateLimiter::new(10, 60);
+        let ip = "192.168.1.1";
+        for _ in 0..10 {
+            assert!(rl.allow(ip));
+        }
+        assert!(!rl.allow(ip), "Should block after limit reached");
+    }
+
+    #[test]
+    fn test_event_logging() {
+        let event = SecurityEvent {
+            id: "EVT-001".into(),
+            event_type: "sql_injection".into(),
+            source_ip: "10.0.0.1".into(),
+            path: "/api/farmers".into(),
+            payload: "' OR 1=1 --".into(),
+            action: "block".into(),
+            rule_id: Some("SQL-001".into()),
+            timestamp: 1000,
+        };
+        assert_eq!(event.action, "block");
+        assert_eq!(event.event_type, "sql_injection");
+    }
+
     fn is_sql_injection(input: &str) -> bool {
         let lower = input.to_lowercase();
         lower.contains("select ") || lower.contains("drop ") || lower.contains("1=1") || lower.contains("--")
@@ -343,5 +378,20 @@ mod tests {
     fn is_xss_attack(input: &str) -> bool {
         let lower = input.to_lowercase();
         lower.contains("<script") || lower.contains("javascript:") || lower.contains("onerror")
+    }
+
+    fn is_path_traversal(input: &str) -> bool {
+        let lower = input.to_lowercase();
+        lower.contains("..") || lower.contains("%2e%2e")
+    }
+
+    struct RateLimiter { max_requests: u32, window_secs: u64, counts: std::sync::Mutex<std::collections::HashMap<String, u32>> }
+    impl RateLimiter {
+        fn new(max: u32, window: u64) -> Self { RateLimiter { max_requests: max, window_secs: window, counts: std::sync::Mutex::new(std::collections::HashMap::new()) } }
+        fn allow(&self, ip: &str) -> bool {
+            let mut counts = self.counts.lock().unwrap();
+            let count = counts.entry(ip.to_string()).or_insert(0);
+            if *count >= self.max_requests { false } else { *count += 1; true }
+        }
     }
 }

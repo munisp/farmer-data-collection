@@ -158,4 +158,57 @@ mod tests {
         }
         inside
     }
+
+    fn polygon_area_ha(coords: &[(f64, f64)]) -> f64 {
+        let n = coords.len();
+        if n < 3 { return 0.0; }
+        let mut area = 0.0_f64;
+        for i in 0..n {
+            let j = (i + 1) % n;
+            let xi = coords[i].1.to_radians() * 6371000.0 * coords[i].0.to_radians().cos();
+            let yi = coords[i].0.to_radians() * 6371000.0;
+            let xj = coords[j].1.to_radians() * 6371000.0 * coords[j].0.to_radians().cos();
+            let yj = coords[j].0.to_radians() * 6371000.0;
+            area += xi * yj - xj * yi;
+        }
+        (area.abs() / 2.0) / 10000.0
+    }
+
+    #[test]
+    fn test_haversine_same_point() {
+        let dist = haversine(6.5244, 3.3792, 6.5244, 3.3792);
+        assert!(dist.abs() < 0.01, "Same point distance should be 0, got {}", dist);
+    }
+
+    #[test]
+    fn test_farms_within_radius() {
+        let center = (6.5244, 3.3792); // Lagos
+        let farms = vec![
+            (6.5300, 3.3800), // ~0.7 km
+            (6.6000, 3.4000), // ~8.6 km
+            (7.3775, 3.9470), // ~119 km (Ibadan)
+        ];
+        let radius_km = 10.0;
+        let nearby: Vec<_> = farms.iter()
+            .filter(|(lat, lon)| haversine(center.0, center.1, *lat, *lon) <= radius_km)
+            .collect();
+        assert_eq!(nearby.len(), 2);
+    }
+
+    #[test]
+    fn test_polygon_area() {
+        let coords = vec![
+            (6.0, 3.0), (6.01, 3.0), (6.01, 3.01), (6.0, 3.01),
+        ];
+        let area = polygon_area_ha(&coords);
+        assert!(area > 0.5 && area < 2.0, "~1.1 km² = ~110 ha, got {} ha", area);
+    }
+
+    #[test]
+    fn test_overlapping_boundaries() {
+        let farm_a = vec![(6.0, 3.0), (6.01, 3.0), (6.01, 3.01), (6.0, 3.01)];
+        let farm_b = vec![(6.005, 3.005), (6.015, 3.005), (6.015, 3.015), (6.005, 3.015)];
+        let overlap = point_in_polygon(6.007, 3.007, &farm_a) && point_in_polygon(6.007, 3.007, &farm_b);
+        assert!(overlap, "Point should be in both farms (overlap)");
+    }
 }

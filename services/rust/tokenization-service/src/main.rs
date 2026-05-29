@@ -531,17 +531,129 @@ mod tests {
         assert!(buy.price >= sell.price, "Buy price should meet or exceed sell");
     }
 
+    #[test]
+    fn test_order_book_buy_sell_match() {
+        let mut book = OrderBook::new();
+        let sell_order = OrderBookEntry {
+            order_id: "SELL-1".into(), token_id: "TKN-MAIZE".into(),
+            user_id: 1, side: "sell".into(), price: 100.0,
+            quantity: 50.0, remaining: 50.0, status: "open".into(),
+            created_at: "2026-01-01".into(),
+        };
+        let trades = book.place_order(sell_order);
+        assert!(trades.is_empty());
+
+        let buy_order = OrderBookEntry {
+            order_id: "BUY-1".into(), token_id: "TKN-MAIZE".into(),
+            user_id: 2, side: "buy".into(), price: 105.0,
+            quantity: 30.0, remaining: 30.0, status: "open".into(),
+            created_at: "2026-01-01".into(),
+        };
+        let trades = book.place_order(buy_order);
+        assert_eq!(trades.len(), 1);
+        assert_eq!(trades[0].quantity, 30.0);
+        assert_eq!(trades[0].price, 100.0); // matched at seller's price
+    }
+
+    #[test]
+    fn test_order_book_partial_fill() {
+        let mut book = OrderBook::new();
+        book.place_order(OrderBookEntry {
+            order_id: "SELL-1".into(), token_id: "T1".into(),
+            user_id: 1, side: "sell".into(), price: 50.0,
+            quantity: 100.0, remaining: 100.0, status: "open".into(),
+            created_at: "".into(),
+        });
+        let trades = book.place_order(OrderBookEntry {
+            order_id: "BUY-1".into(), token_id: "T1".into(),
+            user_id: 2, side: "buy".into(), price: 55.0,
+            quantity: 60.0, remaining: 60.0, status: "open".into(),
+            created_at: "".into(),
+        });
+        assert_eq!(trades.len(), 1);
+        assert_eq!(trades[0].quantity, 60.0);
+
+        let (bids, asks) = book.get_depth();
+        assert!(bids.is_empty());
+        assert_eq!(asks.len(), 1);
+        assert!((asks[0].1 - 40.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_order_book_no_match_price_gap() {
+        let mut book = OrderBook::new();
+        book.place_order(OrderBookEntry {
+            order_id: "SELL-1".into(), token_id: "T1".into(),
+            user_id: 1, side: "sell".into(), price: 100.0,
+            quantity: 50.0, remaining: 50.0, status: "open".into(),
+            created_at: "".into(),
+        });
+        let trades = book.place_order(OrderBookEntry {
+            order_id: "BUY-1".into(), token_id: "T1".into(),
+            user_id: 2, side: "buy".into(), price: 90.0,
+            quantity: 50.0, remaining: 50.0, status: "open".into(),
+            created_at: "".into(),
+        });
+        assert!(trades.is_empty());
+
+        let (bids, asks) = book.get_depth();
+        assert_eq!(bids.len(), 1);
+        assert_eq!(asks.len(), 1);
+    }
+
+    #[test]
+    fn test_json_helpers() {
+        assert_eq!(json_str("name", "maize"), "\"name\":\"maize\"");
+        assert_eq!(json_num("price", 42.5), "\"price\":42.5");
+        assert_eq!(json_int("qty", 100), "\"qty\":100");
+    }
+
+    #[test]
+    fn test_extract_json_str() {
+        let json = r#"{"crop":"cassava","grade":"A"}"#;
+        assert_eq!(extract_json_str(json, "crop"), Some("cassava".into()));
+        assert_eq!(extract_json_str(json, "grade"), Some("A".into()));
+        assert_eq!(extract_json_str(json, "missing"), None);
+    }
+
+    #[test]
+    fn test_extract_json_num() {
+        let json = r#"{"price":150.5,"qty":1000}"#;
+        let price = extract_json_num(json, "price");
+        assert!(price.is_some());
+        assert!((price.unwrap() - 150.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_carbon_credit_token() {
+        let cc = CarbonCreditToken {
+            token_id: "CC-001".into(), farmer_id: 42, farm_id: 7,
+            credits_tonnes_co2: 12.5, verification_method: "verra_vcs".into(),
+            verification_date: "2026-01-15".into(), registry_id: Some("VCS-12345".into()),
+            price_per_tonne: 25.0, currency: "USD".into(), status: "verified".into(),
+        };
+        assert_eq!(cc.credits_tonnes_co2, 12.5);
+        assert_eq!(cc.status, "verified");
+    }
+
+    #[test]
+    fn test_futures_contract() {
+        let fc = FuturesContract {
+            contract_id: "FUT-001".into(), token_id: "TKN-COCOA".into(),
+            buyer_id: 10, seller_id: 20, quantity_kg: 5000.0,
+            agreed_price: 3500.0, currency: "NGN".into(),
+            delivery_date: "2026-06-01".into(), status: "open".into(),
+            created_at: "2026-01-01".into(),
+        };
+        assert_eq!(fc.quantity_kg, 5000.0);
+        assert_eq!(fc.status, "open");
+    }
+
     struct Token {
         id: String,
         asset_type: String,
         quantity: f64,
         unit: String,
         owner: String,
-    }
-
-    struct Order {
-        price: f64,
-        quantity: f64,
-        side: String,
     }
 }

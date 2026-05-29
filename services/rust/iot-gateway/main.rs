@@ -451,4 +451,106 @@ mod tests {
         let (risk, _) = detect_frost_risk(15.0, 50.0, 5.0);
         assert!(!risk);
     }
+
+    #[test]
+    fn test_device_registration_and_retrieval() {
+        let gw = IoTGateway::new();
+        let device = IoTDevice {
+            id: "DEV-001".into(), device_eui: Some("0011223344556677".into()),
+            name: "Soil Probe Alpha".into(), device_type: DeviceType::SoilSensor,
+            protocol: Protocol::LoRaWAN, manufacturer: "SenseCap".into(),
+            model: "S2101".into(), farm_id: 42, lat: 9.06, lon: 7.49,
+            battery_pct: 85.0, firmware_version: "1.2.3".into(),
+            status: "active".into(), last_seen: 0,
+            config: DeviceConfig {
+                reporting_interval_s: 300,
+                thresholds: HashMap::new(),
+                calibration: HashMap::new(),
+            },
+        };
+        gw.register_device(device);
+
+        let all = gw.get_all_devices();
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].id, "DEV-001");
+
+        let farm_devices = gw.get_farm_devices(42);
+        assert_eq!(farm_devices.len(), 1);
+        assert_eq!(gw.get_farm_devices(999).len(), 0);
+    }
+
+    #[test]
+    fn test_reading_ingestion_and_retrieval() {
+        let gw = IoTGateway::new();
+        let device = IoTDevice {
+            id: "DEV-002".into(), device_eui: None,
+            name: "Weather Station".into(), device_type: DeviceType::WeatherStation,
+            protocol: Protocol::MQTT, manufacturer: "Davis".into(),
+            model: "VP2".into(), farm_id: 1, lat: 6.5, lon: 3.4,
+            battery_pct: 100.0, firmware_version: "2.0".into(),
+            status: "active".into(), last_seen: 0,
+            config: DeviceConfig {
+                reporting_interval_s: 60, thresholds: HashMap::new(), calibration: HashMap::new(),
+            },
+        };
+        gw.register_device(device);
+
+        let readings = vec![
+            SensorReading {
+                device_id: "DEV-002".into(), reading_type: "temperature".into(),
+                value: 28.5, unit: "°C".into(), quality: ReadingQuality::Good,
+                timestamp: 1000, raw_value: None,
+            },
+            SensorReading {
+                device_id: "DEV-002".into(), reading_type: "humidity".into(),
+                value: 72.0, unit: "%".into(), quality: ReadingQuality::Good,
+                timestamp: 1000, raw_value: None,
+            },
+        ];
+        gw.ingest_reading("DEV-002", readings);
+
+        let stored = gw.get_device_readings("DEV-002", 10);
+        assert_eq!(stored.len(), 2);
+    }
+
+    #[test]
+    fn test_soil_moisture_average() {
+        let readings = vec![
+            SensorReading { device_id: "D1".into(), reading_type: "soil_moisture".into(), value: 30.0, unit: "%".into(), quality: ReadingQuality::Good, timestamp: 0, raw_value: None },
+            SensorReading { device_id: "D1".into(), reading_type: "soil_moisture".into(), value: 40.0, unit: "%".into(), quality: ReadingQuality::Good, timestamp: 0, raw_value: None },
+            SensorReading { device_id: "D1".into(), reading_type: "temperature".into(), value: 25.0, unit: "°C".into(), quality: ReadingQuality::Good, timestamp: 0, raw_value: None },
+        ];
+        let avg = compute_soil_moisture_average(&readings);
+        assert!((avg - 35.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_empty_moisture_average() {
+        let avg = compute_soil_moisture_average(&[]);
+        assert_eq!(avg, 0.0);
+    }
+
+    #[test]
+    fn test_irrigation_need_multiple_crops() {
+        let (need, _) = detect_irrigation_need(55.0, "rice");
+        assert!(need); // 55% < 60% threshold for rice
+        let (need, _) = detect_irrigation_need(20.0, "cassava");
+        assert!(need); // 20% < 25% threshold
+        let (need, _) = detect_irrigation_need(30.0, "cassava");
+        assert!(!need); // 30% > 25% threshold
+        let (need, _) = detect_irrigation_need(25.0, "unknown_crop");
+        assert!(need); // 25% < 30% default
+    }
+
+    #[test]
+    fn test_mqtt_topic_parsing() {
+        let result = MQTTAdapter::parse_topic("farm/42/device/DEV-001/readings");
+        assert!(result.is_some());
+        let (farm, device) = result.unwrap();
+        assert_eq!(farm, "42");
+        assert_eq!(device, "DEV-001");
+
+        let result = MQTTAdapter::parse_topic("invalid/topic");
+        assert!(result.is_none());
+    }
 }

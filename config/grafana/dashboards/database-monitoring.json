@@ -1,0 +1,90 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "Connection Pool — Total / Active / Idle",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "pg_pool_total_connections", "legendFormat": "Total" },
+        { "expr": "pg_pool_active_connections", "legendFormat": "Active" },
+        { "expr": "pg_pool_idle_connections", "legendFormat": "Idle" },
+        { "expr": "pg_pool_waiting_count", "legendFormat": "Waiting" }
+      ]
+    },
+    {
+      "title": "Query Duration (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(pg_query_duration_seconds_bucket[5m]))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.50, rate(pg_query_duration_seconds_bucket[5m]))", "legendFormat": "p50" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "title": "Pool Exhaustion Events",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "increase(pg_pool_exhaustion_total[1h])" }
+      ],
+      "fieldConfig": {
+        "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }
+      }
+    },
+    {
+      "title": "Database Size",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+      "targets": [
+        { "expr": "pg_database_size_bytes{datname=\"farmer_data\"}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Active Queries",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "pg_stat_activity_count{state=\"active\"}" }
+      ]
+    },
+    {
+      "title": "Transaction Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 8 },
+      "targets": [
+        { "expr": "rate(pg_stat_database_xact_commit{datname=\"farmer_data\"}[5m])", "legendFormat": "Commits/s" },
+        { "expr": "rate(pg_stat_database_xact_rollback{datname=\"farmer_data\"}[5m])", "legendFormat": "Rollbacks/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "title": "Table Sizes (Top 10)",
+      "type": "bargauge",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        { "expr": "topk(10, pg_stat_user_tables_size)", "legendFormat": "{{relname}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Replication Lag",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "expr": "pg_replication_lag_seconds", "legendFormat": "Replica Lag" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["farmconnect", "database", "postgresql"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "FarmConnect — Database Monitoring",
+  "uid": "farmconnect-db-monitoring"
+}

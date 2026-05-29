@@ -357,4 +357,86 @@ mod tests {
         assert!(xml.contains("ISO11783_TaskData"));
         assert!(xml.contains("FarmConnect"));
     }
+
+    #[test]
+    fn test_device_registration() {
+        let tc = TaskController::new();
+        let device = ISOBUSDevice {
+            address: 10, name: "John Deere Planter".into(),
+            manufacturer: "John Deere".into(), device_class: "planter".into(),
+            function: "precision_planting".into(), ecu_count: 2,
+            capabilities: vec!["section_control".into(), "variable_rate".into()],
+        };
+        tc.register_device(device);
+        let devices = tc.devices.read().unwrap();
+        assert_eq!(devices.len(), 1);
+    }
+
+    #[test]
+    fn test_prescription_upload_and_rate() {
+        let tc = TaskController::new();
+        let rx = PrescriptionMap {
+            id: "RX-FERT-1".into(), field_id: 42, map_type: "fertilizer".into(),
+            zones: vec![
+                PrescriptionZone { polygon_wkt: "POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))".into(), rate: 200.0, unit: "kg/ha".into() },
+            ],
+            default_rate: 150.0, unit: "kg/ha".into(), product: "NPK 15-15-15".into(),
+        };
+        tc.upload_prescription(rx);
+
+        let rate = tc.get_rate_for_position("RX-FERT-1", 0.5, 0.5);
+        assert!(rate > 0.0);
+    }
+
+    #[test]
+    fn test_work_record_storage() {
+        let tc = TaskController::new();
+        let record = WorkRecord {
+            id: "WR-001".into(), field_id: 1, equipment_id: "EQ-1".into(),
+            operation_type: "spraying".into(), start_time: 1000, end_time: 2000,
+            area_worked_ha: 3.5, product_applied: 105.0, product_unit: "L".into(),
+            fuel_used_l: 12.0, avg_speed_kmh: 8.5,
+            coverage_pct: 98.0, overlap_pct: 3.0,
+        };
+        tc.complete_work_record(record);
+        let records = tc.get_work_records(1);
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].area_worked_ha, 3.5);
+    }
+
+    #[test]
+    fn test_can_decode_engine_rpm() {
+        let msg = CANMessage {
+            pgn: pgn::ENGINE_RPM,
+            source: 0, priority: 3,
+            data: vec![0, 0, 0, 0xE0, 0x2E, 0, 0, 0],
+            timestamp: 0,
+        };
+        let result = CANDecoder::decode_pgn(&msg);
+        assert!(result.is_some());
+        let (name, _, unit) = result.unwrap();
+        assert_eq!(name, "engine_rpm");
+        assert_eq!(unit, "rpm");
+    }
+
+    #[test]
+    fn test_can_decode_unknown_pgn() {
+        let msg = CANMessage { pgn: 99999, source: 0, priority: 3, data: vec![], timestamp: 0 };
+        let result = CANDecoder::decode_pgn(&msg);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_process_data_tracking() {
+        let tc = TaskController::new();
+        let msg1 = CANMessage { pgn: pgn::WHEEL_SPEED, source: 1, priority: 6, data: vec![0x00, 0x10, 0, 0, 0, 0, 0, 0], timestamp: 100 };
+        let msg2 = CANMessage { pgn: pgn::ENGINE_RPM, source: 1, priority: 3, data: vec![0, 0, 0, 0xE0, 0x2E, 0, 0, 0], timestamp: 200 };
+        tc.process_can_message(&msg1);
+        tc.process_can_message(&msg2);
+
+        let pd = tc.get_process_data("ISOBUS-1");
+        assert!(pd.is_some());
+        let data = pd.unwrap();
+        assert!(data.values.len() >= 2);
+    }
 }

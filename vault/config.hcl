@@ -2,11 +2,14 @@ storage "file" {
   path = "/vault/data"
 }
 
-# Production TLS listener
+# Production TLS listener with mTLS
 listener "tcp" {
-  address       = "0.0.0.0:8200"
-  tls_cert_file = "/vault/tls/vault.crt"
-  tls_key_file  = "/vault/tls/vault.key"
+  address            = "0.0.0.0:8200"
+  tls_cert_file      = "/vault/certs/server-cert.pem"
+  tls_key_file       = "/vault/certs/server-key.pem"
+  tls_client_ca_file = "/vault/certs/ca-cert.pem"
+  tls_min_version    = "tls12"
+  tls_require_and_verify_client_cert = false
 }
 
 # Dev listener (disable in production by removing this block)

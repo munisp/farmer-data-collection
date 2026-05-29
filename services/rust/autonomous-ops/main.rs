@@ -417,7 +417,6 @@ mod tests {
 
         let op_id = orch.create_operation(op);
 
-        // Good weather
         let weather = WeatherConditions {
             temperature: 25.0, humidity: 60.0, wind_speed_ms: 3.0,
             wind_gust_ms: 5.0, precipitation_mm: 0.0, visibility_m: 10000.0,
@@ -426,7 +425,6 @@ mod tests {
         let (ok, _) = orch.check_weather_gate(&op_id, &weather);
         assert!(ok);
 
-        // Bad weather (too windy + rain)
         let bad_weather = WeatherConditions {
             temperature: 25.0, humidity: 60.0, wind_speed_ms: 12.0,
             wind_gust_ms: 18.0, precipitation_mm: 5.0, visibility_m: 500.0,
@@ -434,6 +432,157 @@ mod tests {
         };
         let (ok, issues) = orch.check_weather_gate(&op_id, &bad_weather);
         assert!(!ok);
-        assert!(issues.len() >= 2); // wind + rain
+        assert!(issues.len() >= 2);
+    }
+
+    #[test]
+    fn test_complete_operation_with_result() {
+        let orch = OperationsOrchestrator::new();
+        let op = FieldOperation {
+            id: String::new(), farm_id: 1, field_id: 2,
+            operation_type: OperationType::Harvesting, priority: 9,
+            status: OperationStatus::Planned, equipment_ids: vec!["EQ-2".into()],
+            prescription_id: None,
+            constraints: OperationConstraints {
+                max_wind_speed_ms: None, no_rain: false, daylight_only: true,
+                min_soil_moisture: None, max_soil_moisture: None,
+                min_temperature: None, max_temperature: None,
+                min_visibility_m: None, depends_on: vec![],
+            },
+            plan: OperationPlan {
+                field_boundary_wkt: String::new(), headland_passes: 2,
+                entry_point_lat: 9.06, entry_point_lon: 7.49, direction_deg: 90.0,
+                swath_width_m: 4.5, speed_target_kmh: 6.0,
+                product: None, rate: None, rate_unit: None,
+                estimated_time_h: 3.0, estimated_fuel_l: 20.0, estimated_product_needed: 0.0,
+            },
+            result: None, created_at: 0, started_at: None, completed_at: None,
+        };
+
+        let op_id = orch.create_operation(op);
+        assert!(orch.dispatch(&op_id).is_ok());
+        let result = OperationResult {
+            area_covered_ha: 5.0, coverage_pct: 98.5, overlap_pct: 2.1, skip_pct: 0.4,
+            fuel_used_l: 18.0, time_elapsed_h: 2.8, quality_score: 92.0,
+            product_applied: 0.0,
+        };
+        assert!(orch.complete_operation(&op_id, result).is_ok());
+
+        let metrics = orch.calculate_field_efficiency(&op_id);
+        assert!(metrics.is_some());
+        let m = metrics.unwrap();
+        assert!(*m.get("area_efficiency").unwrap() > 95.0);
+        assert!(*m.get("fuel_efficiency_l_ha").unwrap() > 0.0);
+    }
+
+    #[test]
+    fn test_dependency_tracking() {
+        let orch = OperationsOrchestrator::new();
+        let make_op = |deps: Vec<String>| FieldOperation {
+            id: String::new(), farm_id: 1, field_id: 1,
+            operation_type: OperationType::Planting, priority: 5,
+            status: OperationStatus::Planned, equipment_ids: vec![],
+            prescription_id: None,
+            constraints: OperationConstraints {
+                max_wind_speed_ms: None, no_rain: false, daylight_only: false,
+                min_soil_moisture: None, max_soil_moisture: None,
+                min_temperature: None, max_temperature: None,
+                min_visibility_m: None, depends_on: deps,
+            },
+            plan: OperationPlan {
+                field_boundary_wkt: String::new(), headland_passes: 0,
+                entry_point_lat: 0.0, entry_point_lon: 0.0, direction_deg: 0.0,
+                swath_width_m: 3.0, speed_target_kmh: 5.0,
+                product: None, rate: None, rate_unit: None,
+                estimated_time_h: 1.0, estimated_fuel_l: 5.0, estimated_product_needed: 0.0,
+            },
+            result: None, created_at: 0, started_at: None, completed_at: None,
+        };
+
+        let tillage_id = orch.create_operation(make_op(vec![]));
+        let planting_id = orch.create_operation(make_op(vec![tillage_id.clone()]));
+
+        let (ready, unmet) = orch.check_dependencies(&planting_id);
+        assert!(!ready);
+        assert_eq!(unmet.len(), 1);
+
+        orch.dispatch(&tillage_id).unwrap();
+        let result = OperationResult {
+            area_covered_ha: 2.0, coverage_pct: 100.0, overlap_pct: 0.0, skip_pct: 0.0,
+            fuel_used_l: 10.0, time_elapsed_h: 1.0, quality_score: 95.0, product_applied: 0.0,
+        };
+        orch.complete_operation(&tillage_id, result).unwrap();
+
+        let (ready, unmet) = orch.check_dependencies(&planting_id);
+        assert!(ready);
+        assert!(unmet.is_empty());
+    }
+
+    #[test]
+    fn test_farm_operations_filter() {
+        let orch = OperationsOrchestrator::new();
+        let make_op = |farm_id: i64| FieldOperation {
+            id: String::new(), farm_id, field_id: 1,
+            operation_type: OperationType::Irrigation, priority: 5,
+            status: OperationStatus::Planned, equipment_ids: vec![],
+            prescription_id: None,
+            constraints: OperationConstraints {
+                max_wind_speed_ms: None, no_rain: false, daylight_only: false,
+                min_soil_moisture: None, max_soil_moisture: None,
+                min_temperature: None, max_temperature: None,
+                min_visibility_m: None, depends_on: vec![],
+            },
+            plan: OperationPlan {
+                field_boundary_wkt: String::new(), headland_passes: 0,
+                entry_point_lat: 0.0, entry_point_lon: 0.0, direction_deg: 0.0,
+                swath_width_m: 3.0, speed_target_kmh: 5.0,
+                product: None, rate: None, rate_unit: None,
+                estimated_time_h: 1.0, estimated_fuel_l: 5.0, estimated_product_needed: 0.0,
+            },
+            result: None, created_at: 0, started_at: None, completed_at: None,
+        };
+
+        orch.create_operation(make_op(1));
+        orch.create_operation(make_op(1));
+        orch.create_operation(make_op(2));
+
+        assert_eq!(orch.get_farm_operations(1).len(), 2);
+        assert_eq!(orch.get_farm_operations(2).len(), 1);
+        assert_eq!(orch.get_farm_operations(999).len(), 0);
+    }
+
+    #[test]
+    fn test_safety_zone() {
+        let orch = OperationsOrchestrator::new();
+        orch.add_safety_zone(SafetyZone {
+            zone_type: "water_body".into(),
+            boundary_wkt: "POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))".into(),
+            buffer_m: 50.0,
+            restriction: "no_spray".into(),
+        });
+        let zones = orch.safety_zones.read().unwrap();
+        assert_eq!(zones.len(), 1);
+        assert_eq!(zones[0].buffer_m, 50.0);
+    }
+
+    #[test]
+    fn test_field_path_generation() {
+        let boundary = vec![(0.0, 0.0), (0.001, 0.0), (0.001, 0.001), (0.0, 0.001)];
+        let path = generate_field_path(&boundary, 1, 6.0, 0.0, 0.0, 0.0);
+        assert!(!path.is_empty());
+    }
+
+    #[test]
+    fn test_overlap_calculation() {
+        let path = vec![(0.0, 0.0), (0.0, 0.001), (0.00005, 0.001), (0.00005, 0.0)];
+        let overlap = calculate_overlap(&path, 6.0);
+        assert!(overlap >= 0.0);
+        assert!(overlap <= 100.0);
+    }
+
+    #[test]
+    fn test_dispatch_invalid_status() {
+        let orch = OperationsOrchestrator::new();
+        assert!(orch.dispatch("nonexistent").is_err());
     }
 }

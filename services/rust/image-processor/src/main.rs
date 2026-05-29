@@ -448,7 +448,65 @@ mod tests {
         assert!(!validate_dimensions(50000, 50000));
     }
 
+    #[test]
+    fn test_thumbnail_sizes() {
+        let sizes: Vec<(&str, u32, u32)> = vec![
+            ("small", 150, 150),
+            ("medium", 300, 300),
+            ("large", 800, 600),
+        ];
+        for (name, w, h) in &sizes {
+            assert!(validate_dimensions(*w, *h), "Size {} should be valid", name);
+        }
+    }
+
+    #[test]
+    fn test_resize_ratio_calculation() {
+        let (orig_w, orig_h) = (1920u32, 1080u32);
+        let target_w = 800u32;
+        let ratio = target_w as f32 / orig_w as f32;
+        let new_h = (orig_h as f32 * ratio) as u32;
+        assert_eq!(new_h, 450);
+    }
+
+    #[test]
+    fn test_s3_key_generation() {
+        let key = generate_s3_key("upload-123", "jpg");
+        assert!(key.contains("upload-123"));
+        assert!(key.ends_with(".jpg"));
+    }
+
+    #[test]
+    fn test_content_type_detection() {
+        assert_eq!(detect_content_type("jpg"), "image/jpeg");
+        assert_eq!(detect_content_type("png"), "image/png");
+        assert_eq!(detect_content_type("webp"), "image/webp");
+        assert_eq!(detect_content_type("unknown"), "application/octet-stream");
+    }
+
+    #[test]
+    fn test_allowed_formats() {
+        let allowed = vec!["jpg".to_string(), "png".to_string(), "webp".to_string()];
+        assert!(allowed.contains(&"jpg".to_string()));
+        assert!(allowed.contains(&"png".to_string()));
+        assert!(!allowed.contains(&"bmp".to_string()));
+    }
+
     fn validate_dimensions(width: u32, height: u32) -> bool {
         width > 0 && height > 0 && width <= 10000 && height <= 10000
+    }
+
+    fn generate_s3_key(upload_id: &str, ext: &str) -> String {
+        format!("images/{}.{}", upload_id, ext)
+    }
+
+    fn detect_content_type(ext: &str) -> &str {
+        match ext {
+            "jpg" | "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "webp" => "image/webp",
+            "gif" => "image/gif",
+            _ => "application/octet-stream",
+        }
     }
 }

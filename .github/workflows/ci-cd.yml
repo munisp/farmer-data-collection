@@ -129,7 +129,7 @@ jobs:
           - lang: python
             services: [geocoding, weather-alerts, credit-scoring, voice-navigation]
           - lang: rust
-            services: [spatial-queries, search-proxy, waf-security, fluvio-streaming]
+            services: [rust/autonomous-ops, rust/image-processor, rust/iot-gateway, rust/isobus-gateway, rust/openappsec-waf, rust/spatial-query-service, rust/tokenization-service]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -587,3 +587,25 @@ jobs:
             Commit: ${{ github.sha }}
           draft: false
           prerelease: false
+
+  # ============================================================================
+  # Job 10: Branch Protection Gate
+  # ============================================================================
+  branch-protection:
+    name: Branch Protection Gate
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security, microservice-tests, production-audit]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: All required checks passed
+        run: |
+          echo "=== Branch Protection Gate ==="
+          echo "All required CI checks have passed:"
+          echo "  ✓ Code Quality & Linting"
+          echo "  ✓ Unit & Integration Tests"
+          echo "  ✓ Build & Validate"
+          echo "  ✓ Security Scanning"
+          echo "  ✓ Microservice Tests"
+          echo "  ✓ Production Readiness Audit"
+          echo ""
+          echo "This PR is safe to merge."
