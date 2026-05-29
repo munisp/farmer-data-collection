@@ -1,0 +1,456 @@
+// FarmConnect Platform — Inter-Service gRPC Contract Definitions
+// Defines the service mesh communication contracts between polyglot microservices
+// Generated clients: TypeScript, Go, Python, Rust
+syntax = "proto3";
+
+package farmconnect;
+
+option go_package = "github.com/farmconnect/proto/farmconnect";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// ============================================================================
+// Common Types
+// ============================================================================
+
+message Coordinate {
+  double latitude = 1;
+  double longitude = 2;
+  double altitude = 3;
+}
+
+message Pagination {
+  int32 page = 1;
+  int32 page_size = 2;
+  string sort_by = 3;
+  string sort_order = 4;  // "asc" | "desc"
+}
+
+message PaginatedResponse {
+  int32 total = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  bool has_more = 4;
+}
+
+// ============================================================================
+// IoT Gateway Service (Rust — port 8101)
+// ============================================================================
+
+service IoTGatewayService {
+  // Device management
+  rpc RegisterDevice(RegisterDeviceRequest) returns (Device);
+  rpc GetDevice(GetDeviceRequest) returns (Device);
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+  
+  // Telemetry ingestion
+  rpc IngestTelemetry(stream TelemetryData) returns (IngestResponse);
+  rpc GetLatestTelemetry(GetTelemetryRequest) returns (TelemetryData);
+  
+  // Alerts
+  rpc GetActiveAlerts(GetAlertsRequest) returns (AlertsResponse);
+}
+
+message Device {
+  string id = 1;
+  string farm_id = 2;
+  string device_type = 3;  // soil_sensor, weather_station, camera, drone
+  string protocol = 4;     // mqtt, modbus, isobus, can
+  Coordinate location = 5;
+  string status = 6;       // online, offline, maintenance
+  google.protobuf.Timestamp last_seen = 7;
+  map<string, string> metadata = 8;
+}
+
+message RegisterDeviceRequest {
+  string farm_id = 1;
+  string device_type = 2;
+  string protocol = 3;
+  Coordinate location = 4;
+  map<string, string> metadata = 5;
+}
+
+message GetDeviceRequest {
+  string device_id = 1;
+}
+
+message ListDevicesRequest {
+  string farm_id = 1;
+  string device_type = 2;
+  string status = 3;
+  Pagination pagination = 4;
+}
+
+message ListDevicesResponse {
+  repeated Device devices = 1;
+  PaginatedResponse pagination = 2;
+}
+
+message TelemetryData {
+  string device_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  map<string, double> readings = 3;  // sensor_type -> value
+  map<string, string> labels = 4;
+}
+
+message IngestResponse {
+  int32 accepted = 1;
+  int32 rejected = 2;
+  repeated string errors = 3;
+}
+
+message GetTelemetryRequest {
+  string device_id = 1;
+  repeated string sensor_types = 2;
+}
+
+message GetAlertsRequest {
+  string farm_id = 1;
+  string severity = 2;  // critical, warning, info
+}
+
+message AlertsResponse {
+  repeated Alert alerts = 1;
+}
+
+message Alert {
+  string id = 1;
+  string device_id = 2;
+  string alert_type = 3;
+  string severity = 4;
+  string message = 5;
+  double current_value = 6;
+  double threshold = 7;
+  google.protobuf.Timestamp triggered_at = 8;
+  bool acknowledged = 9;
+}
+
+// ============================================================================
+// Spatial Query Service (Rust — port 8084)
+// ============================================================================
+
+service SpatialQueryService {
+  rpc GetLandSuitability(LandSuitabilityRequest) returns (LandSuitabilityResponse);
+  rpc FindNearbyFarms(NearbyFarmsRequest) returns (NearbyFarmsResponse);
+  rpc CalculateFieldArea(FieldAreaRequest) returns (FieldAreaResponse);
+  rpc GetSoilAnalysis(SoilAnalysisRequest) returns (SoilAnalysisResponse);
+}
+
+message LandSuitabilityRequest {
+  Coordinate center = 1;
+  double radius_km = 2;
+  string crop_type = 3;
+  string season = 4;
+}
+
+message LandSuitabilityResponse {
+  double overall_score = 1;  // 0-100
+  double soil_score = 2;
+  double climate_score = 3;
+  double topography_score = 4;
+  double water_score = 5;
+  repeated string recommendations = 6;
+  repeated string amendments = 7;
+}
+
+message NearbyFarmsRequest {
+  Coordinate center = 1;
+  double radius_km = 2;
+  string crop_type = 3;
+  Pagination pagination = 4;
+}
+
+message NearbyFarmsResponse {
+  repeated FarmLocation farms = 1;
+  PaginatedResponse pagination = 2;
+}
+
+message FarmLocation {
+  int64 farm_id = 1;
+  string name = 2;
+  Coordinate location = 3;
+  double distance_km = 4;
+  repeated string crops = 5;
+  double area_ha = 6;
+}
+
+message FieldAreaRequest {
+  repeated Coordinate boundary_points = 1;
+}
+
+message FieldAreaResponse {
+  double area_ha = 1;
+  double perimeter_m = 2;
+  Coordinate centroid = 3;
+}
+
+message SoilAnalysisRequest {
+  Coordinate location = 1;
+  double depth_cm = 2;
+}
+
+message SoilAnalysisResponse {
+  double ph = 1;
+  double nitrogen_ppm = 2;
+  double phosphorus_ppm = 3;
+  double potassium_ppm = 4;
+  double organic_matter_pct = 5;
+  string texture = 6;  // sandy, loam, clay, silt
+  double moisture_pct = 7;
+  string classification = 8;
+}
+
+// ============================================================================
+// Supply Chain Service (Go — port 8099)
+// ============================================================================
+
+service SupplyChainService {
+  rpc CreateShipment(CreateShipmentRequest) returns (ShipmentResponse);
+  rpc UpdateShipmentStatus(UpdateStatusRequest) returns (ShipmentResponse);
+  rpc GetShipment(GetShipmentRequest) returns (ShipmentResponse);
+  rpc TrackShipment(TrackShipmentRequest) returns (TrackingResponse);
+  rpc RecordHandoff(HandoffRequest) returns (google.protobuf.Empty);
+  rpc GetProvenance(GetProvenanceRequest) returns (ProvenanceResponse);
+}
+
+message CreateShipmentRequest {
+  string produce_type = 1;
+  double quantity = 2;
+  string unit = 3;
+  int64 origin_farm_id = 4;
+  string destination_id = 5;
+  string transport_mode = 6;
+  map<string, string> metadata = 7;
+}
+
+message ShipmentResponse {
+  string id = 1;
+  string status = 2;
+  string produce_type = 3;
+  double quantity = 4;
+  string unit = 5;
+  int64 origin_farm_id = 6;
+  string destination_id = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message UpdateStatusRequest {
+  string shipment_id = 1;
+  string new_status = 2;
+  Coordinate current_location = 3;
+  string notes = 4;
+}
+
+message GetShipmentRequest {
+  string shipment_id = 1;
+}
+
+message TrackShipmentRequest {
+  string shipment_id = 1;
+}
+
+message TrackingResponse {
+  string shipment_id = 1;
+  string current_status = 2;
+  Coordinate current_location = 3;
+  repeated TrackingEvent events = 4;
+  google.protobuf.Timestamp eta = 5;
+}
+
+message TrackingEvent {
+  string status = 1;
+  Coordinate location = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string actor = 4;
+  string notes = 5;
+}
+
+message HandoffRequest {
+  string shipment_id = 1;
+  string from_entity = 2;
+  string to_entity = 3;
+  double temperature_c = 4;
+  double humidity_pct = 5;
+  bool chain_intact = 6;
+  string notes = 7;
+}
+
+message GetProvenanceRequest {
+  string shipment_id = 1;
+}
+
+message ProvenanceResponse {
+  string shipment_id = 1;
+  repeated ProvenanceEvent events = 2;
+  string qr_code_data = 3;
+}
+
+message ProvenanceEvent {
+  string event = 1;
+  string location = 2;
+  string actor = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  map<string, string> metadata = 5;
+}
+
+// ============================================================================
+// ML Prediction Service (Python — port 8089)
+// ============================================================================
+
+service MLPredictionService {
+  rpc PredictYield(YieldPredictionRequest) returns (YieldPredictionResponse);
+  rpc PredictPrice(PricePredictionRequest) returns (PricePredictionResponse);
+  rpc DetectDisease(DiseaseDetectionRequest) returns (DiseaseDetectionResponse);
+  rpc GetWeatherForecast(WeatherForecastRequest) returns (WeatherForecastResponse);
+}
+
+message YieldPredictionRequest {
+  int64 farm_id = 1;
+  string crop_type = 2;
+  double area_ha = 3;
+  string season = 4;
+  map<string, double> soil_params = 5;
+  map<string, double> weather_params = 6;
+}
+
+message YieldPredictionResponse {
+  double predicted_yield_kg = 1;
+  double confidence = 2;
+  double lower_bound = 3;
+  double upper_bound = 4;
+  repeated string factors = 5;
+  repeated string recommendations = 6;
+}
+
+message PricePredictionRequest {
+  string commodity = 1;
+  string market = 2;
+  int32 days_ahead = 3;
+  string currency = 4;
+}
+
+message PricePredictionResponse {
+  repeated PricePoint predictions = 1;
+  double confidence = 2;
+  string trend = 3;  // rising, falling, stable
+}
+
+message PricePoint {
+  google.protobuf.Timestamp date = 1;
+  double price = 2;
+  double lower_bound = 3;
+  double upper_bound = 4;
+}
+
+message DiseaseDetectionRequest {
+  bytes image_data = 1;
+  string crop_type = 2;
+  string image_format = 3;  // jpeg, png
+}
+
+message DiseaseDetectionResponse {
+  bool disease_detected = 1;
+  string disease_name = 2;
+  double confidence = 3;
+  string severity = 4;
+  repeated string treatments = 5;
+  repeated string preventive_measures = 6;
+}
+
+message WeatherForecastRequest {
+  Coordinate location = 1;
+  int32 days = 2;
+}
+
+message WeatherForecastResponse {
+  repeated DailyForecast forecasts = 1;
+  repeated string alerts = 2;
+}
+
+message DailyForecast {
+  google.protobuf.Timestamp date = 1;
+  double temp_min_c = 2;
+  double temp_max_c = 3;
+  double precipitation_mm = 4;
+  double humidity_pct = 5;
+  double wind_speed_ms = 6;
+  string condition = 7;
+}
+
+// ============================================================================
+// Autonomous Operations Service (Rust — port 8102)
+// ============================================================================
+
+service AutonomousOpsService {
+  rpc CreateOperation(CreateOperationRequest) returns (OperationResponse);
+  rpc GetOperationStatus(GetOperationStatusRequest) returns (OperationResponse);
+  rpc CheckWeatherGate(WeatherGateRequest) returns (WeatherGateResponse);
+  rpc DispatchEquipment(DispatchRequest) returns (DispatchResponse);
+  rpc AbortOperation(AbortRequest) returns (google.protobuf.Empty);
+}
+
+message CreateOperationRequest {
+  int64 farm_id = 1;
+  int64 field_id = 2;
+  string operation_type = 3;
+  uint32 priority = 4;
+  repeated string equipment_ids = 5;
+  OperationPlanProto plan = 6;
+}
+
+message OperationPlanProto {
+  string field_boundary_wkt = 1;
+  uint32 headland_passes = 2;
+  Coordinate entry_point = 3;
+  double direction_deg = 4;
+  double swath_width_m = 5;
+  double speed_target_kmh = 6;
+  string product = 7;
+  double rate = 8;
+  string rate_unit = 9;
+}
+
+message OperationResponse {
+  string id = 1;
+  string status = 2;
+  string operation_type = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp started_at = 5;
+  google.protobuf.Timestamp completed_at = 6;
+  double progress_pct = 7;
+}
+
+message GetOperationStatusRequest {
+  string operation_id = 1;
+}
+
+message WeatherGateRequest {
+  string operation_id = 1;
+  double temperature = 2;
+  double humidity = 3;
+  double wind_speed_ms = 4;
+  double precipitation_mm = 5;
+  bool is_daylight = 6;
+}
+
+message WeatherGateResponse {
+  bool can_proceed = 1;
+  repeated string blocking_reasons = 2;
+}
+
+message DispatchRequest {
+  string operation_id = 1;
+  repeated string equipment_ids = 2;
+}
+
+message DispatchResponse {
+  bool dispatched = 1;
+  string message = 2;
+}
+
+message AbortRequest {
+  string operation_id = 1;
+  string reason = 2;
+}

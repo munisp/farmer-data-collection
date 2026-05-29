@@ -1,17 +1,20 @@
+/**
+ * Vitest Integration Test Configuration
+ * 
+ * Runs tests that require a live PostgreSQL database and external services.
+ * Usage: npx vitest run --config vitest.integration.config.ts
+ * 
+ * Prerequisites:
+ *   - PostgreSQL running with DATABASE_URL set
+ *   - Migrations applied
+ */
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
-    exclude: [
-      'node_modules',
-      'dist',
-      'client',
-      'mobile/**',
-      'tests/mobile/**',
-      // Integration tests that require running PostgreSQL/services
+    include: [
       'server/__tests__/auth.test.ts',
       'server/__tests__/auth-integration.test.ts',
       'server/__tests__/farmer-crud.test.ts',
@@ -39,25 +42,8 @@ export default defineConfig({
       'server/__tests__/new-features.test.ts',
       'server/services/__tests__/payment-reminder-cron.test.ts',
     ],
-    testTimeout: 30000,
+    exclude: ['node_modules', 'dist', 'client', 'mobile/**'],
+    testTimeout: 60000,
     setupFiles: ['./tests/setup.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'text-summary', 'json', 'html', 'lcov'],
-      reportsDirectory: './coverage',
-      include: ['server/**/*.ts'],
-      exclude: [
-        'server/**/__tests__/**',
-        'server/**/*.test.ts',
-        'server/**/*.spec.ts',
-        'node_modules/**',
-      ],
-      thresholds: {
-        lines: 60,
-        functions: 55,
-        branches: 45,
-        statements: 60,
-      },
-    },
   },
 });

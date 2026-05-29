@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure, publicProcedure } from '../trpc.js';
+import { router, protectedProcedure, publicProcedure } from '../_core/trpc-base.js';
 import { TRPCError } from '@trpc/server';
 import { createKycService, type KycTier, type KycStatus, type DocumentType } from '../services/kyc-service.js';
 import { getDb } from '../db.js';

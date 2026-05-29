@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { TRPCError } from '@trpc/server';
 import { requireDb } from '../utils/require-db.js';
 import {

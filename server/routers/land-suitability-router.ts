@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import {
   assessLandSuitability,
   findSuitableCrops,
