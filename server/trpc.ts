@@ -87,6 +87,9 @@ import { communicationAIRouter } from "./routers/communication-ai-router.js";
 import { blockchainProvenanceRouter } from "./routers/blockchain-provenance-router.js";
 import { subscriptionDeliveryRouter } from "./routers/subscription-delivery-router.js";
 import { ceaAIRouter } from "./routers/cea-ai-router.js";
+import { aquaculturePondRouter } from "./routers/aquaculture-pond-router.js";
+import { aquacultureFeedRouter } from "./routers/aquaculture-feed-router.js";
+import { aquacultureAIRouter } from "./routers/aquaculture-ai-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -208,6 +211,10 @@ export const appRouter = router({
   blockchainProvenance: blockchainProvenanceRouter,
   subscriptionDelivery: subscriptionDeliveryRouter,
   ceaAI: ceaAIRouter,
+  // === Aquaculture / Fish Farming Module ===
+  aquaculturePond: aquaculturePondRouter,
+  aquacultureFeed: aquacultureFeedRouter,
+  aquacultureAI: aquacultureAIRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
