@@ -84,6 +84,9 @@ import { stressTestingRouter } from "./routers/stress-testing-router.js";
 import { marketDataRouter } from "./routers/market-data-router.js";
 import { regulatoryReportingRouter } from "./routers/regulatory-reporting-router.js";
 import { communicationAIRouter } from "./routers/communication-ai-router.js";
+import { blockchainProvenanceRouter } from "./routers/blockchain-provenance-router.js";
+import { subscriptionDeliveryRouter } from "./routers/subscription-delivery-router.js";
+import { ceaAIRouter } from "./routers/cea-ai-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -201,6 +204,10 @@ export const appRouter = router({
   marketData: marketDataRouter,
   regulatoryReporting: regulatoryReportingRouter,
   communicationAI: communicationAIRouter,
+  // === Urban Vertical Farming Gap Implementation ===
+  blockchainProvenance: blockchainProvenanceRouter,
+  subscriptionDelivery: subscriptionDeliveryRouter,
+  ceaAI: ceaAIRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
