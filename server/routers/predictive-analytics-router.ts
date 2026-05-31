@@ -28,7 +28,7 @@ async function callMLService(path: string, body: Record<string, unknown>): Promi
       { maxRetries: 2, timeoutMs: 30_000 },
     );
     return await resp.json() as Record<string, unknown>;
-  } catch (error) { console.error("Operation failed:", error);
+  } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
     return { error: "ML service unavailable", fallback: true };
   }
 }

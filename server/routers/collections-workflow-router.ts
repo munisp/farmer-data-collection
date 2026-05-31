@@ -72,13 +72,9 @@ const COLLECTIONS_STAGES = {
 
 type CollectionsStage = keyof typeof COLLECTIONS_STAGES;
 
-const PROVISION_RATES: Record<CollectionsStage, number> = {
-  early_warning: 0.01,   // 1% provision
-  demand_letter: 0.05,   // 5% provision
-  field_visit: 0.25,     // 25% provision
-  collections_escalation: 0.50, // 50% provision
-  write_off: 1.00,       // 100% provision
-};
+// Provision rates loaded from centralized config (env-overridable)
+import { PROVISION_RATES as CONFIG_PROVISION_RATES } from '../config/business-rules.js';
+const PROVISION_RATES: Record<CollectionsStage, number> = CONFIG_PROVISION_RATES as Record<CollectionsStage, number>;
 
 function getCollectionsStage(daysOverdue: number): CollectionsStage {
   if (daysOverdue <= 7) return "early_warning";

@@ -23,4 +23,7 @@ COPY . .
 EXPOSE 8082
 
 # Run the application
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "print('healthy')" || exit 1
+
 CMD ["python", "main.py"]

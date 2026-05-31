@@ -79,15 +79,16 @@ interface IVRSession {
   updatedAt: Date;
 }
 
-// In-memory session store (use Redis in production)
-const sessions: Map<string, IVRSession> = new Map();
+// Redis-backed session store with in-memory fallback
+import { PersistentStateStore } from './redis-state-store.js';
+const sessionStore = new PersistentStateStore<IVRSession>('ivr:sessions', 1800); // 30 min TTL
 
 export class IVRVoiceService {
   private defaultLanguage: string = 'en';
 
   // Get or create session
-  getSession(sessionId: string, phoneNumber: string): IVRSession {
-    let session = sessions.get(sessionId);
+  async getSession(sessionId: string, phoneNumber: string): Promise<IVRSession> {
+    let session = await sessionStore.get(sessionId);
     
     if (!session) {
       session = {
@@ -99,23 +100,24 @@ export class IVRVoiceService {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      sessions.set(sessionId, session);
+      await sessionStore.set(sessionId, session);
     }
 
     return session;
   }
 
   // Update session
-  updateSession(sessionId: string, updates: Partial<IVRSession>): void {
-    const session = sessions.get(sessionId);
+  async updateSession(sessionId: string, updates: Partial<IVRSession>): Promise<void> {
+    const session = await sessionStore.get(sessionId);
     if (session) {
       Object.assign(session, updates, { updatedAt: new Date() });
+      await sessionStore.set(sessionId, session);
     }
   }
 
   // Delete session
-  deleteSession(sessionId: string): void {
-    sessions.delete(sessionId);
+  async deleteSession(sessionId: string): Promise<void> {
+    await sessionStore.delete(sessionId);
   }
 
   // Get prompt in user's language
@@ -198,7 +200,7 @@ export class IVRVoiceService {
       recordingUrl,
     } = this.parseRequest(req);
 
-    const session = this.getSession(sessionId, phoneNumber);
+    const session = await this.getSession(sessionId, phoneNumber);
     const input = dtmfDigits || speechResult || '';
 
     // Route based on current state

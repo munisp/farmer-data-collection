@@ -1281,32 +1281,12 @@ export const microfinanceRouter = router({
       const daysOverdue = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / 86400000));
       const outstanding = loan.outstandingBalance || loan.principalAmount;
 
-      let penaltyRate = 0;
-      let tier: "current" | "grace" | "late" | "delinquent" | "collections" | "default" = "current";
-      let creditScoreImpact = 0;
-
-      if (daysOverdue <= 0) {
-        tier = "current";
-      } else if (daysOverdue <= 7) {
-        penaltyRate = 0.01;
-        tier = "grace";
-      } else if (daysOverdue <= 30) {
-        penaltyRate = 0.02;
-        tier = "late";
-        creditScoreImpact = -25;
-      } else if (daysOverdue <= 60) {
-        penaltyRate = 0.05;
-        tier = "delinquent";
-        creditScoreImpact = -75;
-      } else if (daysOverdue <= 90) {
-        penaltyRate = 0.08;
-        tier = "collections";
-        creditScoreImpact = -150;
-      } else {
-        penaltyRate = 0.10;
-        tier = "default";
-        creditScoreImpact = -300;
-      }
+      // Penalty tiers loaded from centralized config (env-overridable)
+      const { getPenaltyTier } = await import('../config/business-rules.js');
+      const tierInfo = getPenaltyTier(daysOverdue);
+      const penaltyRate = tierInfo.rate;
+      const tier = tierInfo.tier;
+      const creditScoreImpact = tierInfo.creditScoreImpact;
 
       const penalty = Math.round(outstanding * penaltyRate);
 
@@ -1579,9 +1559,11 @@ export const microfinanceRouter = router({
       // Decay rules: score decays if not refreshed within 90 days
       const lastCalculated = new Date(currentScore.calculatedAt || Date.now());
       const daysSinceRefresh = Math.floor((Date.now() - lastCalculated.getTime()) / (86400 * 1000));
-      const DECAY_THRESHOLD_DAYS = 90;
-      const DECAY_RATE_PER_DAY = 0.5; // 0.5 points per day after threshold
-      const MAX_DECAY = 50; // Maximum 50 point decay
+      // Credit decay config loaded from centralized config (env-overridable)
+      const { CREDIT_DECAY } = await import('../config/business-rules.js');
+      const DECAY_THRESHOLD_DAYS = CREDIT_DECAY.thresholdDays;
+      const DECAY_RATE_PER_DAY = CREDIT_DECAY.ratePerDay;
+      const MAX_DECAY = CREDIT_DECAY.maxDecay;
 
       let decayAmount = 0;
       let isStale = false;

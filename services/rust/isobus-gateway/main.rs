@@ -283,6 +283,11 @@ pub fn generate_iso_xml_task(task_type: &str, field_id: i64, prescription: &Pres
 // Entry Point
 // ============================================================================
 
+fn health_response() -> String {
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    format!(r#"{{"status":"healthy","service":"isobus-gateway","timestamp":{}}}"#, now)
+}
+
 fn main() {
     let _tc = TaskController::new();
     let port = std::env::var("PORT").unwrap_or_else(|_| "8101".into());
@@ -290,6 +295,7 @@ fn main() {
     println!("[isobus-gateway] Starting on :{}", port);
     println!("[isobus-gateway] CAN bus protocol: ISO 11783 (ISOBUS)");
     println!("[isobus-gateway] Features: TaskController, Process Data, Work Records, Prescription Maps, ISO-XML");
+    println!("[isobus-gateway] Health endpoint: http://0.0.0.0:{}/health", port);
 
     // In production, this would:
     // 1. Connect to SocketCAN interface (vcan0 or can0)

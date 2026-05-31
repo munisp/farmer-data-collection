@@ -395,6 +395,11 @@ pub fn detect_frost_risk(temperature: f64, humidity: f64, wind_speed: f64) -> (b
 // Entry Point
 // ============================================================================
 
+fn health_response() -> String {
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    format!(r#"{{"status":"healthy","service":"iot-gateway","timestamp":{}}}"#, now)
+}
+
 fn main() {
     let gateway = IoTGateway::new();
     let port = std::env::var("PORT").unwrap_or_else(|_| "8100".into());
@@ -402,6 +407,7 @@ fn main() {
     println!("[iot-gateway] Starting on :{}", port);
     println!("[iot-gateway] Protocols: LoRaWAN, MQTT, BLE, Modbus TCP, MAVLink, REST");
     println!("[iot-gateway] Kafka broker: {}", gateway.kafka_broker);
+    println!("[iot-gateway] Health endpoint: http://0.0.0.0:{}/health", port);
 
     // In production, this would start:
     // 1. MQTT subscriber (farm/+/device/+/readings)

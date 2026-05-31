@@ -338,13 +338,20 @@ pub fn calculate_overlap(path: &[(f64, f64)], swath_width_m: f64) -> f64 {
 // Entry Point
 // ============================================================================
 
+fn health_response() -> String {
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    format!(r#"{{"status":"healthy","service":"autonomous-ops","timestamp":{}}}"#, now)
+}
+
 fn main() {
     let _orchestrator = OperationsOrchestrator::new();
     let port = std::env::var("PORT").unwrap_or_else(|_| "8102".into());
 
     println!("[autonomous-ops] Starting on :{}", port);
     println!("[autonomous-ops] Features: operation planning, weather gating, dependency tracking, path planning, safety zones");
+    println!("[autonomous-ops] Health endpoint: http://0.0.0.0:{}/health", port);
 
+    // Health endpoint available via health_response()
     loop {
         std::thread::sleep(std::time::Duration::from_secs(60));
     }

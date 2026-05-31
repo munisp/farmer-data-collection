@@ -16,25 +16,8 @@ import { loans } from "../../drizzle/financial-schema.js";
 import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 
-// AML thresholds (CBN Guidelines for Nigeria, CBK for Kenya)
-const AML_CONFIG = {
-  // Single transaction reporting threshold (in local currency)
-  singleTransactionThreshold: { NGN: 5000000, KES: 1000000, UGX: 20000000 },
-  // Cumulative daily threshold
-  dailyCumulativeThreshold: { NGN: 10000000, KES: 2000000, UGX: 40000000 },
-  // Structuring detection (multiple transactions just below threshold)
-  structuringWindow: 24 * 60 * 60 * 1000, // 24 hours
-  structuringMinTransactions: 3,
-  structuringThresholdPercent: 0.8, // 80% of single threshold
-  // Velocity checks
-  maxDailyTransactions: 20,
-  maxWeeklyTransactions: 50,
-  // Rapid movement detection
-  rapidMovementWindowMs: 60 * 60 * 1000, // 1 hour
-  rapidMovementMinTransactions: 5,
-  // PEP enhanced due diligence threshold multiplier
-  pepThresholdMultiplier: 0.5, // half of normal thresholds for PEPs
-};
+// AML thresholds loaded from centralized config (env-overridable)
+import { AML_THRESHOLDS as AML_CONFIG } from '../config/business-rules.js';
 
 // Risk scoring weights
 const RISK_WEIGHTS = {
@@ -46,9 +29,8 @@ const RISK_WEIGHTS = {
   behavioralPattern: 0.15,
 };
 
-// High-risk country list (FATF greylist simplified)
-const HIGH_RISK_JURISDICTIONS = new Set(["MM", "HT", "SY", "KP", "IR", "YE"]);
-const MEDIUM_RISK_JURISDICTIONS = new Set(["PK", "TR", "JM", "PH", "SS", "ML"]);
+// High-risk jurisdictions loaded from centralized config (env-overridable)
+import { HIGH_RISK_JURISDICTIONS, MEDIUM_RISK_JURISDICTIONS } from '../config/business-rules.js';
 
 type RiskLevel = "low" | "medium" | "high" | "critical";
 type AlertType = "large_transaction" | "structuring" | "rapid_movement" | "velocity_breach" | "high_risk_country" | "behavioral_anomaly" | "pep_transaction" | "dormant_reactivation";

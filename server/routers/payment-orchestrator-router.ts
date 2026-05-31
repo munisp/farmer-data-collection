@@ -486,7 +486,7 @@ export const paymentOrchestratorRouter = router({
                 .where(eq(mobileMoneyTransactions.id, tx.id));
               return { ...tx, status: "failed", reconciled: true };
             }
-          } catch (error) { console.error("Operation failed:", error);
+          } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
             // Status check failed, return current state
           }
         }
@@ -609,7 +609,7 @@ export const paymentOrchestratorRouter = router({
               .where(eq(mobileMoneyTransactions.id, tx.id));
             failed++;
           }
-        } catch (error) { console.error("Operation failed:", error);
+        } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
           // Skip, will retry next run
         }
       }

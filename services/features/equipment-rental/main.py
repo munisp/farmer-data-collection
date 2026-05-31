@@ -38,3 +38,34 @@ class EquipmentRental:
 
 if __name__ == "__main__":
     print("Equipment Rental Marketplace Service running...")
+
+# Health endpoint for container orchestration
+import http.server
+import threading
+import json
+
+class HealthHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health':
+            response = json.dumps({
+                "status": "healthy",
+                "service": self.server.service_name,
+                "timestamp": datetime.now().isoformat()
+            })
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(response.encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+    def log_message(self, format, *args):
+        pass  # Suppress access logs
+
+def start_health_server(service_name: str, port: int = 8080):
+    server = http.server.HTTPServer(('0.0.0.0', port), HealthHandler)
+    server.service_name = service_name
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f"Health endpoint available at http://0.0.0.0:{port}/health")
+

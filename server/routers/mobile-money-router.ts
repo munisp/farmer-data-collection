@@ -15,6 +15,7 @@ import { mobileMoneyAccounts, mobileMoneyTransactions } from "../../drizzle/sche
 import { eq, and, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
+import { logger } from "../logger.js";
 import { resilientPost } from "../services/resilient-http.js";
 
 const MOBILE_MONEY_SERVICE_URL = process.env.MOBILE_MONEY_SERVICE_URL || "http://localhost:8090";
@@ -478,7 +479,7 @@ export const mobileMoneyRouter = router({
                     .where(eq(mobileMoneyTransactions.id, tx.id));
                   reconciliation.fixed++;
                 }
-              } catch (error) { console.error("Operation failed:", error);
+              } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
                 // Provider query failed — skip
               }
             }
@@ -529,7 +530,7 @@ export const mobileMoneyRouter = router({
           currency: result.currency as string || "NGN",
           lastUpdated: new Date().toISOString(),
         };
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         return {
           provider: input.provider,
           balance: 0,
@@ -674,7 +675,7 @@ export const mobileMoneyRouter = router({
           callbackUrl: `${process.env.BASE_URL || ""}/api/webhooks/airtel`,
         };
       } catch (error) {
-        console.error("Operation failed:", error);
+        logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         throw new Error("Failed to initiate Airtel Money payment");
       }
     }),

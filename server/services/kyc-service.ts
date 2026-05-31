@@ -179,8 +179,9 @@ const TIER_CONFIG: Record<KycTier, {
   },
 };
 
-// In-memory OTP store (use Redis in production)
-const otpStore = new Map<string, OtpRecord>();
+// Redis-backed OTP store with in-memory fallback
+import { PersistentStateStore } from './redis-state-store.js';
+const otpStore = new PersistentStateStore<OtpRecord>('kyc:otp', 600); // 10 min TTL
 
 export class KycService {
   private db: PostgresJsDatabase<any> | null = null;
@@ -207,7 +208,8 @@ export class KycService {
   // Send phone OTP
   async sendPhoneOtp(userId: number, phoneNumber: string): Promise<{ success: boolean; message: string; expiresIn: number }> {
     // Check rate limiting (max 3 OTPs per hour)
-    const recentOtps = Array.from(otpStore.values()).filter(
+    const allOtps = await otpStore.values();
+    const recentOtps = allOtps.filter(
       otp => otp.userId === userId && otp.type === 'phone' && 
       Date.now() - otp.createdAt.getTime() < 3600000
     );
@@ -232,7 +234,7 @@ export class KycService {
       createdAt: new Date(),
     };
 
-    otpStore.set(otpId, otpRecord);
+    await otpStore.set(otpId, otpRecord);
 
     // Send SMS (integrate with Africa's Talking or similar)
     if (this.smsProvider) {
@@ -256,7 +258,8 @@ export class KycService {
   // Verify phone OTP
   async verifyPhoneOtp(userId: number, phoneNumber: string, code: string): Promise<{ success: boolean; message: string }> {
     // Find matching OTP
-    const otpRecord = Array.from(otpStore.values()).find(
+    const allPhoneOtps = await otpStore.values();
+    const otpRecord = allPhoneOtps.find(
       otp => otp.userId === userId && otp.type === 'phone' && 
       otp.destination === phoneNumber && !otp.verified
     );
@@ -267,25 +270,26 @@ export class KycService {
 
     // Check expiry
     if (new Date() > otpRecord.expiresAt) {
-      otpStore.delete(otpRecord.id);
+      await otpStore.delete(otpRecord.id);
       return { success: false, message: 'OTP has expired. Please request a new code.' };
     }
 
     // Check attempts
     if (otpRecord.attempts >= 3) {
-      otpStore.delete(otpRecord.id);
+      await otpStore.delete(otpRecord.id);
       return { success: false, message: 'Too many failed attempts. Please request a new code.' };
     }
 
     // Verify code
     if (otpRecord.code !== code) {
       otpRecord.attempts++;
+      await otpStore.set(otpRecord.id, otpRecord);
       return { success: false, message: `Invalid code. ${3 - otpRecord.attempts} attempts remaining.` };
     }
 
     // Mark as verified
     otpRecord.verified = true;
-    otpStore.delete(otpRecord.id);
+    await otpStore.delete(otpRecord.id);
 
     return { success: true, message: 'Phone number verified successfully' };
   }
@@ -293,7 +297,8 @@ export class KycService {
   // Send email OTP
   async sendEmailOtp(userId: number, email: string): Promise<{ success: boolean; message: string; expiresIn: number }> {
     // Check rate limiting
-    const recentOtps = Array.from(otpStore.values()).filter(
+    const allEmailOtps = await otpStore.values();
+    const recentOtps = allEmailOtps.filter(
       otp => otp.userId === userId && otp.type === 'email' && 
       Date.now() - otp.createdAt.getTime() < 3600000
     );
@@ -318,7 +323,7 @@ export class KycService {
       createdAt: new Date(),
     };
 
-    otpStore.set(otpId, otpRecord);
+    await otpStore.set(otpId, otpRecord);
 
     // Send email
     if (this.emailProvider) {
@@ -346,7 +351,8 @@ export class KycService {
 
   // Verify email OTP
   async verifyEmailOtp(userId: number, email: string, code: string): Promise<{ success: boolean; message: string }> {
-    const otpRecord = Array.from(otpStore.values()).find(
+    const allEmailOtpsVerify = await otpStore.values();
+    const otpRecord = allEmailOtpsVerify.find(
       otp => otp.userId === userId && otp.type === 'email' && 
       otp.destination === email && !otp.verified
     );
@@ -356,22 +362,23 @@ export class KycService {
     }
 
     if (new Date() > otpRecord.expiresAt) {
-      otpStore.delete(otpRecord.id);
+      await otpStore.delete(otpRecord.id);
       return { success: false, message: 'OTP has expired. Please request a new code.' };
     }
 
     if (otpRecord.attempts >= 3) {
-      otpStore.delete(otpRecord.id);
+      await otpStore.delete(otpRecord.id);
       return { success: false, message: 'Too many failed attempts. Please request a new code.' };
     }
 
     if (otpRecord.code !== code) {
       otpRecord.attempts++;
+      await otpStore.set(otpRecord.id, otpRecord);
       return { success: false, message: `Invalid code. ${3 - otpRecord.attempts} attempts remaining.` };
     }
 
     otpRecord.verified = true;
-    otpStore.delete(otpRecord.id);
+    await otpStore.delete(otpRecord.id);
 
     return { success: true, message: 'Email verified successfully' };
   }
@@ -948,7 +955,7 @@ export class KycService {
             },
           };
         }
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         // IPRS unavailable, fall through to local verification
       }
     }

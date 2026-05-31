@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
+import { logger } from "../logger.js";
 import { users, farmers } from "../../drizzle/schema.js";
 import { subsidyPrograms, subsidyApplications, subsidyDisbursements, extensionWorkerVisits } from "../../drizzle/schema.js";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
@@ -81,7 +82,7 @@ export const governmentSubsidyRouter = router({
           .orderBy(desc(subsidyPrograms.applicationDeadline));
 
         if (programs.length > 0) return programs;
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         // Table may not exist yet; fall through to seed data
       }
 
@@ -161,7 +162,7 @@ export const governmentSubsidyRouter = router({
         const [p] = await db.select().from(subsidyPrograms)
           .where(eq(subsidyPrograms.id, input.programId));
         program = p;
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         // Table may not exist
       }
 
@@ -220,7 +221,7 @@ export const governmentSubsidyRouter = router({
           eligibilityScore: kycVerified ? 85 : 50,
           estimatedProcessingDays: 14,
         };
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         // Fallback if table doesn't exist
         return {
           applicationId: Date.now(),
@@ -285,7 +286,7 @@ export const governmentSubsidyRouter = router({
             eligibilityScore: app.eligibilityScore,
           };
         }
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         // Table may not exist
       }
 
@@ -381,7 +382,7 @@ export const governmentSubsidyRouter = router({
       return db.select().from(subsidyDisbursements)
         .where(eq(subsidyDisbursements.userId, ctx.user.id))
         .orderBy(desc(subsidyDisbursements.createdAt));
-    } catch (error) { console.error("Operation failed:", error);
+    } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }),
@@ -421,7 +422,7 @@ export const governmentSubsidyRouter = router({
           maxBeneficiaries: program.maxBeneficiaries,
           applicationsByStatus: statusCounts,
         };
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         return {
           program: "Unknown",
           totalBudget: 0, allocatedBudget: 0, remainingBudget: 0,
@@ -462,7 +463,7 @@ export const governmentSubsidyRouter = router({
           photosUrls: input.photosUrls ? JSON.stringify(input.photosUrls) : null,
         }).returning();
         return { visitId: visit.id, status: "recorded" };
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         return {
           visitId: Date.now(),
           extensionWorkerId: ctx.user.id,
@@ -513,7 +514,7 @@ export const governmentSubsidyRouter = router({
             date: v.createdAt?.toISOString() || "",
           })),
         };
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         return {
           workerId: ctx.user.id, totalVisits: 0, farmersReached: 0,
           seedsDistributedKg: 0, trainingsCompleted: 0, pendingFollowUps: 0,
@@ -555,7 +556,7 @@ export const governmentSubsidyRouter = router({
           pendingReview: statusMap["submitted"] || 0,
           rejected: statusMap["rejected"] || 0,
         };
-      } catch (error) { console.error("Operation failed:", error);
+      } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
         return {
           totalApplications: 0, approved: 0, disbursed: 0,
           totalDisbursedAmount: 0, pendingReview: 0, rejected: 0,

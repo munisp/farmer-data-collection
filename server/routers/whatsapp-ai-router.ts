@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
+import { logger } from "../logger.js";
 import { users } from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
 import { resilientFetch } from "../services/resilient-http.js";
@@ -119,7 +120,7 @@ export const whatsappAiRouter = router({
             const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
             diagnosis = diseases[0];
           }
-        } catch (error) { console.error("Operation failed:", error);
+        } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
           // AI service unavailable, fall back to knowledge base
           const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
           diagnosis = diseases[0];
@@ -163,7 +164,7 @@ export const whatsappAiRouter = router({
             const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
             diagnosis = diseases[0];
           }
-        } catch (error) { console.error("Operation failed:", error);
+        } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
           const diseases = CROP_DISEASE_DB[cropLower] ?? CROP_DISEASE_DB["maize"];
           diagnosis = diseases[0];
         }
@@ -201,7 +202,7 @@ export const whatsappAiRouter = router({
               text: { body: message },
             }),
           }, { maxRetries: 2, timeoutMs: 15_000 });
-        } catch (error) { console.error("Operation failed:", error);
+        } catch (error) { logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
           // WhatsApp delivery failure is non-fatal
         }
       }
