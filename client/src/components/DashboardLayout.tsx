@@ -68,7 +68,9 @@ import {
   Mic,
   AlertTriangle,
   ArrowRightLeft,
-  Warehouse
+  Warehouse,
+  Fish,
+  Droplets
 } from "lucide-react";
 
 // Navigation sections organized by domain
@@ -240,6 +242,14 @@ const navSections = [
       { href: "/event-analytics", label: "Event Analytics", icon: BarChart3 },
       { href: "/settings", label: "Settings", icon: Settings },
       { href: "/voice-navigation", label: "Voice Navigation", icon: Mic },
+    ]
+  },
+  {
+    title: "Aquaculture",
+    items: [
+      { href: "/aquaculture", label: "Pond Dashboard", icon: Fish },
+      { href: "/aquaculture/feed", label: "Feed & Harvest", icon: Droplets },
+      { href: "/aquaculture/ai", label: "Fish Health AI", icon: Brain },
     ]
   },
   {

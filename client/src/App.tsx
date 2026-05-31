@@ -147,6 +147,9 @@ const WeatherAlerts = lazy(() => import("./pages/WeatherAlerts"));
 const PaymentReconciliation = lazy(() => import("./pages/PaymentReconciliation"));
 const VoiceNavigation = lazy(() => import("./pages/VoiceNavigation"));
 const AggregationHub = lazy(() => import("./pages/AggregationHub"));
+const AquacultureDashboard = lazy(() => import("./pages/AquacultureDashboard"));
+const AquacultureFeed = lazy(() => import("./pages/AquacultureFeed"));
+const AquacultureAI = lazy(() => import("./pages/AquacultureAI"));
 
 function Router() {
   return (
@@ -298,6 +301,9 @@ function Router() {
         <Route path="/voice-navigation" component={VoiceNavigation} />
         <Route path="/cooperative-dashboard" component={CooperativeDashboard} />
         <Route path="/aggregation-hub" component={AggregationHub} />
+        <Route path="/aquaculture" component={AquacultureDashboard} />
+        <Route path="/aquaculture/feed" component={AquacultureFeed} />
+        <Route path="/aquaculture/ai" component={AquacultureAI} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
