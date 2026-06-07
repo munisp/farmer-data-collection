@@ -90,6 +90,20 @@ import { ceaAIRouter } from "./routers/cea-ai-router.js";
 import { aquaculturePondRouter } from "./routers/aquaculture-pond-router.js";
 import { aquacultureFeedRouter } from "./routers/aquaculture-feed-router.js";
 import { aquacultureAIRouter } from "./routers/aquaculture-ai-router.js";
+import { contractFarmingRouter } from "./routers/contract-farming-router.js";
+import { warehouseReceiptRouter } from "./routers/warehouse-receipt-router.js";
+import { conversationalCommerceRouter } from "./routers/conversational-commerce-router.js";
+import { cooperativeGovernanceRouter } from "./routers/cooperative-governance-router.js";
+import { inputFinancingRouter } from "./routers/input-financing-router.js";
+import { parametricInsuranceRouter } from "./routers/parametric-insurance-router.js";
+import { p2pLendingRouter } from "./routers/p2p-lending-router.js";
+import { extensionServicesRouter } from "./routers/extension-services-router.js";
+import { governmentIntegrationRouter } from "./routers/government-integration-router.js";
+import { supplyDemandMatchingRouter } from "./routers/supply-demand-matching-router.js";
+import { tokenizedAssetsRouter } from "./routers/tokenized-assets-router.js";
+import { digitalTwinRouter } from "./routers/digital-twin-router.js";
+import { apiDeveloperPortalRouter } from "./routers/api-developer-portal-router.js";
+import { decentralizedIdentityRouter } from "./routers/decentralized-identity-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -215,6 +229,21 @@ export const appRouter = router({
   aquaculturePond: aquaculturePondRouter,
   aquacultureFeed: aquacultureFeedRouter,
   aquacultureAI: aquacultureAIRouter,
+  // === Platform Recommendations Implementation ===
+  contractFarming: contractFarmingRouter,
+  warehouseReceipt: warehouseReceiptRouter,
+  conversationalCommerce: conversationalCommerceRouter,
+  cooperativeGovernance: cooperativeGovernanceRouter,
+  inputFinancing: inputFinancingRouter,
+  parametricInsurance: parametricInsuranceRouter,
+  p2pLending: p2pLendingRouter,
+  extensionServices: extensionServicesRouter,
+  governmentIntegration: governmentIntegrationRouter,
+  supplyDemandMatching: supplyDemandMatchingRouter,
+  tokenizedAssets: tokenizedAssetsRouter,
+  digitalTwin: digitalTwinRouter,
+  apiDeveloperPortal: apiDeveloperPortalRouter,
+  decentralizedIdentity: decentralizedIdentityRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
