@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,13 @@ export default function CooperativeDashboard() {
   const { formatCurrency } = useLocalization();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Summary data from cooperative
+  const { data: proposals } = trpc.cooperativeGovernance.listProposals.useQuery(
+    { cooperativeId: 1 },
+    { retry: 1, refetchOnWindowFocus: false }
+  );
+
+  const openProposals = proposals?.filter((p: any) => p.status === "open").length ?? 0;
+
   const coopData = {
     name: "Oyo Farmers Cooperative Union",
     members: 156,
@@ -19,6 +26,7 @@ export default function CooperativeDashboard() {
     totalSales: 23_450_000,
     avgCreditScore: 72,
     regions: ["Ibadan", "Oyo", "Ogbomoso", "Iseyin"],
+    activeProposals: openProposals,
   };
 
   const memberBreakdown = [
