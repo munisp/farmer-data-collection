@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 
 type Message = {

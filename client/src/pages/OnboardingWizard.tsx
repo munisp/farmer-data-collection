@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import {

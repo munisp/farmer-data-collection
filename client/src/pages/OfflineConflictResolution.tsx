@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 /**
  * Offline Conflict Resolution UI
  * Allows users to view and resolve sync conflicts between local and server data

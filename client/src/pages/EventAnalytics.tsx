@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 /**
  * Event Analytics Dashboard
  * 
