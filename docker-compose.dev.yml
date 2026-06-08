@@ -696,6 +696,354 @@ services:
       - erpnext
     restart: unless-stopped
 
+  # ====================================================================
+  # Middleware: OpenSearch, TigerBeetle, Mojaloop, OpenAppSec
+  # ====================================================================
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: farmer-opensearch
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=FarmC0nnect!
+      - DISABLE_SECURITY_PLUGIN=true
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q green"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  tigerbeetle:
+    image: ghcr.io/tigerbeetle/tigerbeetle:0.15.3
+    container_name: farmer-tigerbeetle
+    ports:
+      - "3000:3000"
+    command: start --addresses=0.0.0.0:3000 /data/0_0.tigerbeetle
+    volumes:
+      - tigerbeetle-data:/data
+    restart: unless-stopped
+
+  mojaloop-simulator:
+    image: mojaloop/ml-testing-toolkit:v17.1.0
+    container_name: farmer-mojaloop
+    ports:
+      - "4000:4000"
+      - "4040:4040"
+    environment:
+      - CALLBACK_URL=http://farmconnect-api:3001
+    restart: unless-stopped
+
+  openappsec:
+    image: ghcr.io/openappsec/agent:latest
+    container_name: farmer-openappsec
+    ports:
+      - "8085:8080"
+    environment:
+      - LEARNING_MODE=true
+      - LOG_LEVEL=info
+    restart: unless-stopped
+
+  # ====================================================================
+  # Polyglot Services: Go (blockchain, pond, contract-farming, equipment)
+  # ====================================================================
+
+  blockchain-provenance-go:
+    build:
+      context: ./services/blockchain-provenance-go
+      dockerfile: Dockerfile
+    container_name: farmer-blockchain-provenance
+    ports:
+      - "8110:8110"
+      - "9110:9110"
+    environment:
+      - HTTP_PORT=8110
+      - GRPC_PORT=9110
+      - KAFKA_BROKERS=kafka:9092
+      - REDIS_URL=redis://redis:6379
+      - OPENSEARCH_URL=http://opensearch:9200
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8110/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  aquaculture-pond-go:
+    build:
+      context: ./services/aquaculture-pond-go
+      dockerfile: Dockerfile
+    container_name: farmer-aquaculture-pond
+    ports:
+      - "8113:8113"
+      - "9113:9113"
+    environment:
+      - HTTP_PORT=8113
+      - GRPC_PORT=9113
+      - KAFKA_BROKERS=kafka:9092
+      - REDIS_URL=redis://redis:6379
+      - DAPR_HTTP_PORT=3500
+      - OPENSEARCH_URL=http://opensearch:9200
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8113/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  contract-farming-go:
+    build:
+      context: ./services/contract-farming-go
+      dockerfile: Dockerfile
+    container_name: farmer-contract-farming
+    ports:
+      - "8116:8116"
+      - "9116:9116"
+    environment:
+      - HTTP_PORT=8116
+      - GRPC_PORT=9116
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/farmer_data
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8116/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  equipment-fleet-go:
+    build:
+      context: ./services/equipment-fleet-go
+      dockerfile: Dockerfile
+    container_name: farmer-equipment-fleet
+    ports:
+      - "8098:8098"
+      - "9098:9098"
+    environment:
+      - HTTP_PORT=8098
+      - GRPC_PORT=9098
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/farmer_data
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8098/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ====================================================================
+  # Polyglot Services: Rust (urban-delivery, feed, warehouse-receipt)
+  # ====================================================================
+
+  urban-delivery-rust:
+    build:
+      context: ./services/urban-delivery-rust
+      dockerfile: Dockerfile
+    container_name: farmer-urban-delivery
+    ports:
+      - "8111:8111"
+      - "9111:9111"
+    environment:
+      - HTTP_PORT=8111
+      - GRPC_PORT=9111
+      - TIGERBEETLE_ADDRESS=tigerbeetle:3000
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - tigerbeetle
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8111/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  aquaculture-feed-rust:
+    build:
+      context: ./services/aquaculture-feed-rust
+      dockerfile: Dockerfile
+    container_name: farmer-aquaculture-feed
+    ports:
+      - "8114:8114"
+      - "9114:9114"
+    environment:
+      - HTTP_PORT=8114
+      - GRPC_PORT=9114
+      - TIGERBEETLE_ADDRESS=tigerbeetle:3000
+      - FLUVIO_ENDPOINT=fluvio-streaming:9003
+    depends_on:
+      - tigerbeetle
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8114/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  warehouse-receipt-rust:
+    build:
+      context: ./services/warehouse-receipt-rust
+      dockerfile: Dockerfile
+    container_name: farmer-warehouse-receipt
+    ports:
+      - "8117:8117"
+      - "9117:9117"
+    environment:
+      - HTTP_PORT=8117
+      - GRPC_PORT=9117
+      - TIGERBEETLE_ADDRESS=tigerbeetle:3000
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/farmer_data
+    depends_on:
+      - tigerbeetle
+      - postgres
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8117/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ====================================================================
+  # Polyglot Services: Python (cea-ai, aquaculture-ai, conversational)
+  # ====================================================================
+
+  cea-ai-python:
+    build:
+      context: ./services/cea-ai-python
+      dockerfile: Dockerfile
+    container_name: farmer-cea-ai
+    ports:
+      - "8112:8112"
+      - "9112:9112"
+    environment:
+      - HTTP_PORT=8112
+      - GRPC_PORT=9112
+      - MODEL_PATH=/models
+      - LAKEHOUSE_URL=http://lakehouse-service:8070
+    volumes:
+      - ml-models:/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8112/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  aquaculture-ai-python:
+    build:
+      context: ./services/aquaculture-ai-python
+      dockerfile: Dockerfile
+    container_name: farmer-aquaculture-ai
+    ports:
+      - "8115:8115"
+      - "9115:9115"
+    environment:
+      - HTTP_PORT=8115
+      - GRPC_PORT=9115
+      - LAKEHOUSE_URL=http://lakehouse-service:8070
+      - MODEL_PATH=/models
+    volumes:
+      - ml-models:/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8115/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  conversational-commerce-python:
+    build:
+      context: ./services/conversational-commerce-python
+      dockerfile: Dockerfile
+    container_name: farmer-conversational-commerce
+    ports:
+      - "8118:8118"
+      - "9118:9118"
+    environment:
+      - HTTP_PORT=8118
+      - GRPC_PORT=9118
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:9092
+      - OPENSEARCH_URL=http://opensearch:9200
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8118/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ====================================================================
+  # Main FarmConnect API Server
+  # ====================================================================
+
+  farmconnect-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: farmer-api
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/farmer_data
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:9092
+      - KEYCLOAK_URL=http://keycloak:8080
+      - PERMIFY_URL=http://permify:3476
+      - OPENSEARCH_URL=http://opensearch:9200
+      - TIGERBEETLE_ADDRESS=tigerbeetle:3000
+      - MOJALOOP_URL=http://mojaloop-simulator:4000
+      - APISIX_ADMIN_URL=http://apisix:9180
+      - DAPR_HTTP_URL=http://dapr-service:3500
+      - FLUVIO_URL=http://fluvio-streaming:9003
+      - OPENAPPSEC_URL=http://openappsec:8080
+      - LAKEHOUSE_URL=http://lakehouse-service:8070
+      - BLOCKCHAIN_PROVENANCE_SERVICE_URL=http://blockchain-provenance-go:8110
+      - URBAN_DELIVERY_SERVICE_URL=http://urban-delivery-rust:8111
+      - CEA_AI_SERVICE_URL=http://cea-ai-python:8112
+      - AQUACULTURE_POND_SERVICE_URL=http://aquaculture-pond-go:8113
+      - AQUACULTURE_FEED_SERVICE_URL=http://aquaculture-feed-rust:8114
+      - AQUACULTURE_AI_SERVICE_URL=http://aquaculture-ai-python:8115
+      - CONTRACT_FARMING_SERVICE_URL=http://contract-farming-go:8116
+      - WAREHOUSE_RECEIPT_SERVICE_URL=http://warehouse-receipt-rust:8117
+      - CONVERSATIONAL_COMMERCE_SERVICE_URL=http://conversational-commerce-python:8118
+      - EQUIPMENT_FLEET_SERVICE_URL=http://equipment-fleet-go:8098
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
 volumes:
   postgres-data:
     driver: local
@@ -722,6 +1070,10 @@ volumes:
   rustfs-data:
     driver: local
   rustfs-logs:
+    driver: local
+  opensearch-data:
+    driver: local
+  tigerbeetle-data:
     driver: local
 
 networks:

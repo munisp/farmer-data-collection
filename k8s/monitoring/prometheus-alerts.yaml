@@ -1,0 +1,332 @@
+# Prometheus Alerting Rules for FarmConnect Production
+# Deploy as a ConfigMap and reference in prometheus.yml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alerting-rules
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+    component: monitoring
+data:
+  farmconnect-alerts.yml: |
+    groups:
+      # ================================================================
+      # 1. API Server Health
+      # ================================================================
+      - name: api-server
+        rules:
+          - alert: APIServerDown
+            expr: up{job="farmconnect-api"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "FarmConnect API server is down"
+              description: "API server {{ $labels.instance }} has been unreachable for > 1 minute."
+              runbook: "/docs/runbooks/api-server-down.md"
+
+          - alert: HighErrorRate
+            expr: |
+              sum(rate(http_requests_total{status=~"5.."}[5m]))
+              / sum(rate(http_requests_total[5m])) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "Error rate exceeds 5%"
+              description: "HTTP 5xx error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+          - alert: HighLatencyP99
+            expr: |
+              histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))
+              > 2.0
+            for: 10m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "P99 latency exceeds 2 seconds"
+              description: "99th percentile request latency is {{ $value }}s."
+
+          - alert: HighLatencyP50
+            expr: |
+              histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))
+              > 0.5
+            for: 10m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "Median latency exceeds 500ms"
+              description: "50th percentile request latency is {{ $value }}s."
+
+      # ================================================================
+      # 2. Database (PostgreSQL)
+      # ================================================================
+      - name: database
+        rules:
+          - alert: PostgresDown
+            expr: pg_up == 0
+            for: 30s
+            labels:
+              severity: critical
+              team: data
+            annotations:
+              summary: "PostgreSQL is down"
+              description: "Database {{ $labels.instance }} is unreachable."
+              runbook: "/docs/runbooks/postgres-down.md"
+
+          - alert: HighDatabaseConnections
+            expr: |
+              sum(pg_stat_activity_count) / pg_settings_max_connections > 0.8
+            for: 5m
+            labels:
+              severity: warning
+              team: data
+            annotations:
+              summary: "Database connection pool > 80% utilized"
+              description: "{{ $value | humanizePercentage }} of max connections in use."
+
+          - alert: SlowQueries
+            expr: |
+              rate(pg_stat_activity_max_tx_duration{datname="farmer_data"}[5m]) > 30
+            for: 5m
+            labels:
+              severity: warning
+              team: data
+            annotations:
+              summary: "Long-running queries detected"
+              description: "Queries running longer than 30 seconds on farmer_data."
+
+          - alert: DatabaseDiskUsageHigh
+            expr: |
+              pg_database_size_bytes{datname="farmer_data"} / (50 * 1024 * 1024 * 1024) > 0.8
+            for: 10m
+            labels:
+              severity: warning
+              team: data
+            annotations:
+              summary: "Database disk usage > 80%"
+              description: "farmer_data is using {{ $value | humanizePercentage }} of allocated storage."
+
+      # ================================================================
+      # 3. Redis
+      # ================================================================
+      - name: redis
+        rules:
+          - alert: RedisDown
+            expr: redis_up == 0
+            for: 30s
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "Redis is down"
+              description: "Redis {{ $labels.instance }} is unreachable."
+
+          - alert: RedisMemoryHigh
+            expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "Redis memory > 85%"
+              description: "Redis is using {{ $value | humanizePercentage }} of max memory."
+
+          - alert: RedisHighEvictions
+            expr: rate(redis_evicted_keys_total[5m]) > 100
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "Redis evicting > 100 keys/sec"
+              description: "High eviction rate indicates memory pressure."
+
+      # ================================================================
+      # 4. Kafka
+      # ================================================================
+      - name: kafka
+        rules:
+          - alert: KafkaBrokerDown
+            expr: kafka_server_replicamanager_leadercount == 0
+            for: 1m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "Kafka broker has no leader partitions"
+              description: "Broker {{ $labels.instance }} has zero leader partitions."
+
+          - alert: KafkaConsumerLag
+            expr: kafka_consumergroup_lag_sum > 10000
+            for: 10m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "Kafka consumer lag > 10,000"
+              description: "Consumer group {{ $labels.consumergroup }} has lag of {{ $value }}."
+
+          - alert: KafkaUnderReplicatedPartitions
+            expr: kafka_server_replicamanager_underreplicatedpartitions > 0
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "Under-replicated Kafka partitions"
+              description: "{{ $value }} partitions are under-replicated."
+
+      # ================================================================
+      # 5. Polyglot Services (gRPC + HTTP)
+      # ================================================================
+      - name: polyglot-services
+        rules:
+          - alert: GrpcServiceDown
+            expr: probe_success{job="grpc-services"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "gRPC service {{ $labels.instance }} is down"
+              description: "Service has been unreachable for > 2 minutes."
+
+          - alert: CircuitBreakerOpen
+            expr: farmconnect_circuit_breaker_state{state="OPEN"} == 1
+            for: 1m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "Circuit breaker OPEN for {{ $labels.service }}"
+              description: "Service {{ $labels.service }} has tripped the circuit breaker."
+
+          - alert: ServiceHighErrorRate
+            expr: |
+              sum(rate(grpc_server_handled_total{grpc_code!="OK"}[5m])) by (grpc_service)
+              / sum(rate(grpc_server_handled_total[5m])) by (grpc_service) > 0.1
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "gRPC error rate > 10% for {{ $labels.grpc_service }}"
+
+      # ================================================================
+      # 6. Financial Operations (TigerBeetle + Mojaloop)
+      # ================================================================
+      - name: financial
+        rules:
+          - alert: TigerBeetleDown
+            expr: probe_success{job="tigerbeetle"} == 0
+            for: 30s
+            labels:
+              severity: critical
+              team: financial
+            annotations:
+              summary: "TigerBeetle ledger is unreachable"
+              description: "Double-entry ledger is down — all financial operations blocked."
+              runbook: "/docs/runbooks/tigerbeetle-down.md"
+
+          - alert: HighTransactionFailureRate
+            expr: |
+              sum(rate(farmconnect_transaction_failures_total[5m]))
+              / sum(rate(farmconnect_transactions_total[5m])) > 0.02
+            for: 5m
+            labels:
+              severity: critical
+              team: financial
+            annotations:
+              summary: "Transaction failure rate > 2%"
+              description: "Financial transaction failure rate is {{ $value | humanizePercentage }}."
+
+          - alert: AMLThresholdBreached
+            expr: farmconnect_aml_flagged_transactions_total > 0
+            for: 0m
+            labels:
+              severity: critical
+              team: compliance
+            annotations:
+              summary: "AML flagged transaction detected"
+              description: "A transaction exceeding AML thresholds has been flagged."
+
+      # ================================================================
+      # 7. Infrastructure (K8s, Disk, Memory)
+      # ================================================================
+      - name: infrastructure
+        rules:
+          - alert: PodCrashLooping
+            expr: |
+              increase(kube_pod_container_status_restarts_total{namespace="farmconnect"}[1h]) > 5
+            for: 5m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "Pod {{ $labels.pod }} is crash-looping"
+              description: "{{ $labels.pod }} restarted {{ $value }} times in the last hour."
+
+          - alert: PodOOMKilled
+            expr: |
+              kube_pod_container_status_last_terminated_reason{namespace="farmconnect", reason="OOMKilled"} > 0
+            for: 0m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "Pod {{ $labels.pod }} was OOM killed"
+              description: "Container {{ $labels.container }} ran out of memory."
+
+          - alert: NodeDiskPressure
+            expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+            for: 5m
+            labels:
+              severity: critical
+              team: infra
+            annotations:
+              summary: "Node {{ $labels.node }} has disk pressure"
+
+          - alert: PersistentVolumeAlmostFull
+            expr: |
+              kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 0.85
+            for: 10m
+            labels:
+              severity: warning
+              team: infra
+            annotations:
+              summary: "PV {{ $labels.persistentvolumeclaim }} > 85% full"
+              description: "Volume is {{ $value | humanizePercentage }} utilized."
+
+      # ================================================================
+      # 8. Backup Monitoring
+      # ================================================================
+      - name: backups
+        rules:
+          - alert: BackupJobFailed
+            expr: |
+              kube_job_status_failed{namespace="farmconnect", job_name=~".*backup.*"} > 0
+            for: 0m
+            labels:
+              severity: warning
+              team: data
+            annotations:
+              summary: "Backup job {{ $labels.job_name }} failed"
+              description: "A scheduled backup job has failed."
+
+          - alert: BackupStale
+            expr: |
+              time() - farmconnect_last_backup_timestamp_seconds > 86400 * 2
+            for: 1h
+            labels:
+              severity: warning
+              team: data
+            annotations:
+              summary: "No successful backup in 48 hours"
+              description: "Last backup was {{ $value | humanizeDuration }} ago."
