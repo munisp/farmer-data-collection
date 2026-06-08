@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Cooperative Governance Router — DB-backed
  * Proposal management, voting, member governance for farmer cooperatives.

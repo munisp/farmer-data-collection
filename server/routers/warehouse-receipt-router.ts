@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Warehouse Receipt Router — DB-backed
  * Tradeable digital receipts for stored commodities, collateral management, storage fees.

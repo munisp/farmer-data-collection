@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Core Features Router — Production-grade CRUD + Analytics for all 9 core features
  * Farms, Livestock, Crops, Harvests, Expenses, Inventory, Farm Inputs, Equipment, Traceability

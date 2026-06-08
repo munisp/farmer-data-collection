@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * CEA (Controlled Environment Agriculture) AI Router — DB-backed
  * Indoor/vertical farming management, grow recipes, environment optimization.

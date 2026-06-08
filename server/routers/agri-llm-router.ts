@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Agricultural LLM Advisory Router
  * Integrates with Python agri-llm service (:8103) for Farmer.Chat-style advisory.

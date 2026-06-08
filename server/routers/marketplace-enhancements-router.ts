@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";

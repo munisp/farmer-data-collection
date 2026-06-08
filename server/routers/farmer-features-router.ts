@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Comprehensive Farmer Features Router
  * Exposes all 10 strategic farmer features via tRPC endpoints

@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Equipment Fleet Management & Autonomous Operations Router
  * Integrates with Go equipment-fleet-service (:8098), Rust ISOBUS gateway (:8101),

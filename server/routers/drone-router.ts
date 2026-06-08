@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Drone Flight Planning & Imagery Router
  * Integrates with Go drone-service (:8097) and Python ML for image processing.

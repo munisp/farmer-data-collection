@@ -112,6 +112,8 @@ import { voiceFirstRouter } from "./routers/voice-first-router.js";
 import { carbonCreditRouter } from "./routers/carbon-credit-router.js";
 import { federatedLearningRouter } from "./routers/federated-learning-router.js";
 import { chamaSavingsRouter } from "./routers/chama-savings-router.js";
+import { exportChainRouter } from "./routers/export-chain-router.js";
+import { dataPipelineRouter } from "./routers/data-pipeline-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -262,6 +264,8 @@ export const appRouter = router({
   carbonCredit: carbonCreditRouter,
   federatedLearning: federatedLearningRouter,
   chamaSavings: chamaSavingsRouter,
+  exportChain: exportChainRouter,
+  dataPipeline: dataPipelineRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)

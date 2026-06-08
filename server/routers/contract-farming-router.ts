@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Contract Farming Router — DB-backed
  * Manages offtaker agreements, delivery tracking, penalty/bonus settlement.

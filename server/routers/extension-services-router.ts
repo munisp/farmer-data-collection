@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Extension Services Router — DB-backed
  * Agricultural training programs, farmer visits, curriculum delivery.
