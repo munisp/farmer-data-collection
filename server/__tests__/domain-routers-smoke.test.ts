@@ -23,7 +23,7 @@ const routerModules = [
   { path: "../routers/aquaculture-feed-router.js", name: "aquacultureFeedRouter", procedures: ["listSpecies", "getSpeciesProfile", "calculateFCR"] },
   { path: "../routers/aquaculture-ai-router.js", name: "aquacultureAIRouter", procedures: ["listDiseases", "listGrowthModels", "diagnoseFishDisease"] },
   { path: "../routers/warehouse-receipt-router.js", name: "warehouseReceiptRouter", procedures: ["listReceipts"] },
-  { path: "../routers/conversational-commerce-router.js", name: "conversationalCommerceRouter", procedures: ["processMessage"] },
+  { path: "../routers/conversational-commerce-router.js", name: "conversationalCommerceRouter", procedures: ["sendMessage"] },
   { path: "../routers/p2p-lending-router.js", name: "p2pLendingRouter", procedures: ["listLoans"] },
   { path: "../routers/digital-twin-router.js", name: "digitalTwinRouter", procedures: ["getFarmTwin", "runSimulation", "getSensorData"] },
 ];
