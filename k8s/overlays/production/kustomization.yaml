@@ -5,6 +5,14 @@ namespace: farmconnect
 
 resources:
   - ../../base
+  - ../../monitoring/prometheus-alerts.yaml
+  - ../../monitoring/prometheus-config.yaml
+  - ../../monitoring/grafana-dashboard.json
+  - ../../monitoring/otel-collector.yaml
+  - ../../monitoring/fluentd-config.yaml
+  - ../../hardening/hpa.yaml
+  - ../../hardening/backup-cronjobs.yaml
+  - ../../istio/service-mesh.yaml
 
 patchesStrategicMerge:
   - app-patch.yaml

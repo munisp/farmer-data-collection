@@ -381,3 +381,705 @@ spec:
   ports:
     - port: 8109
       targetPort: 8109
+
+## ============================================================================
+## Polyglot Services — Go
+## ============================================================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blockchain-provenance-go
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: go
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: blockchain-provenance-go
+  template:
+    metadata:
+      labels:
+        app: blockchain-provenance-go
+        tier: polyglot
+        language: go
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8110"
+    spec:
+      containers:
+        - name: blockchain-provenance
+          image: farmconnect/blockchain-provenance-go:latest
+          ports:
+            - containerPort: 8110
+              name: http
+            - containerPort: 9110
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8110"
+            - name: GRPC_PORT
+              value: "9110"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8110
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8110
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockchain-provenance-go
+  namespace: farmconnect
+spec:
+  selector:
+    app: blockchain-provenance-go
+  ports:
+    - name: http
+      port: 8110
+      targetPort: 8110
+    - name: grpc
+      port: 9110
+      targetPort: 9110
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aquaculture-pond-go
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: go
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aquaculture-pond-go
+  template:
+    metadata:
+      labels:
+        app: aquaculture-pond-go
+        tier: polyglot
+        language: go
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8113"
+    spec:
+      containers:
+        - name: aquaculture-pond
+          image: farmconnect/aquaculture-pond-go:latest
+          ports:
+            - containerPort: 8113
+              name: http
+            - containerPort: 9113
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8113"
+            - name: GRPC_PORT
+              value: "9113"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8113
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8113
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aquaculture-pond-go
+  namespace: farmconnect
+spec:
+  selector:
+    app: aquaculture-pond-go
+  ports:
+    - name: http
+      port: 8113
+      targetPort: 8113
+    - name: grpc
+      port: 9113
+      targetPort: 9113
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contract-farming-go
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: go
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: contract-farming-go
+  template:
+    metadata:
+      labels:
+        app: contract-farming-go
+        tier: polyglot
+        language: go
+    spec:
+      containers:
+        - name: contract-farming
+          image: farmconnect/contract-farming-go:latest
+          ports:
+            - containerPort: 8116
+              name: http
+            - containerPort: 9116
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8116"
+            - name: GRPC_PORT
+              value: "9116"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8116
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: contract-farming-go
+  namespace: farmconnect
+spec:
+  selector:
+    app: contract-farming-go
+  ports:
+    - name: http
+      port: 8116
+      targetPort: 8116
+    - name: grpc
+      port: 9116
+      targetPort: 9116
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: equipment-fleet-go
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: go
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: equipment-fleet-go
+  template:
+    metadata:
+      labels:
+        app: equipment-fleet-go
+        tier: polyglot
+        language: go
+    spec:
+      containers:
+        - name: equipment-fleet
+          image: farmconnect/equipment-fleet-go:latest
+          ports:
+            - containerPort: 8098
+              name: http
+            - containerPort: 9098
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8098"
+            - name: GRPC_PORT
+              value: "9098"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8098
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: equipment-fleet-go
+  namespace: farmconnect
+spec:
+  selector:
+    app: equipment-fleet-go
+  ports:
+    - name: http
+      port: 8098
+      targetPort: 8098
+    - name: grpc
+      port: 9098
+      targetPort: 9098
+
+## ============================================================================
+## Polyglot Services — Rust
+## ============================================================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: urban-delivery-rust
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: rust
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: urban-delivery-rust
+  template:
+    metadata:
+      labels:
+        app: urban-delivery-rust
+        tier: polyglot
+        language: rust
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8111"
+    spec:
+      containers:
+        - name: urban-delivery
+          image: farmconnect/urban-delivery-rust:latest
+          ports:
+            - containerPort: 8111
+              name: http
+            - containerPort: 9111
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8111"
+            - name: GRPC_PORT
+              value: "9111"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8111
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: urban-delivery-rust
+  namespace: farmconnect
+spec:
+  selector:
+    app: urban-delivery-rust
+  ports:
+    - name: http
+      port: 8111
+      targetPort: 8111
+    - name: grpc
+      port: 9111
+      targetPort: 9111
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aquaculture-feed-rust
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: rust
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aquaculture-feed-rust
+  template:
+    metadata:
+      labels:
+        app: aquaculture-feed-rust
+        tier: polyglot
+        language: rust
+    spec:
+      containers:
+        - name: aquaculture-feed
+          image: farmconnect/aquaculture-feed-rust:latest
+          ports:
+            - containerPort: 8114
+              name: http
+            - containerPort: 9114
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8114"
+            - name: GRPC_PORT
+              value: "9114"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8114
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aquaculture-feed-rust
+  namespace: farmconnect
+spec:
+  selector:
+    app: aquaculture-feed-rust
+  ports:
+    - name: http
+      port: 8114
+      targetPort: 8114
+    - name: grpc
+      port: 9114
+      targetPort: 9114
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warehouse-receipt-rust
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: rust
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: warehouse-receipt-rust
+  template:
+    metadata:
+      labels:
+        app: warehouse-receipt-rust
+        tier: polyglot
+        language: rust
+    spec:
+      containers:
+        - name: warehouse-receipt
+          image: farmconnect/warehouse-receipt-rust:latest
+          ports:
+            - containerPort: 8117
+              name: http
+            - containerPort: 9117
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8117"
+            - name: GRPC_PORT
+              value: "9117"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8117
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: warehouse-receipt-rust
+  namespace: farmconnect
+spec:
+  selector:
+    app: warehouse-receipt-rust
+  ports:
+    - name: http
+      port: 8117
+      targetPort: 8117
+    - name: grpc
+      port: 9117
+      targetPort: 9117
+
+## ============================================================================
+## Polyglot Services — Python (ML/AI)
+## ============================================================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cea-ai-python
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: python
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cea-ai-python
+  template:
+    metadata:
+      labels:
+        app: cea-ai-python
+        tier: polyglot
+        language: python
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8112"
+    spec:
+      containers:
+        - name: cea-ai
+          image: farmconnect/cea-ai-python:latest
+          ports:
+            - containerPort: 8112
+              name: http
+            - containerPort: 9112
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8112"
+            - name: GRPC_PORT
+              value: "9112"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8112
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: ml-models
+              mountPath: /models
+      volumes:
+        - name: ml-models
+          persistentVolumeClaim:
+            claimName: ml-models-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cea-ai-python
+  namespace: farmconnect
+spec:
+  selector:
+    app: cea-ai-python
+  ports:
+    - name: http
+      port: 8112
+      targetPort: 8112
+    - name: grpc
+      port: 9112
+      targetPort: 9112
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aquaculture-ai-python
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: python
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aquaculture-ai-python
+  template:
+    metadata:
+      labels:
+        app: aquaculture-ai-python
+        tier: polyglot
+        language: python
+    spec:
+      containers:
+        - name: aquaculture-ai
+          image: farmconnect/aquaculture-ai-python:latest
+          ports:
+            - containerPort: 8115
+              name: http
+            - containerPort: 9115
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8115"
+            - name: GRPC_PORT
+              value: "9115"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8115
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: ml-models
+              mountPath: /models
+      volumes:
+        - name: ml-models
+          persistentVolumeClaim:
+            claimName: ml-models-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aquaculture-ai-python
+  namespace: farmconnect
+spec:
+  selector:
+    app: aquaculture-ai-python
+  ports:
+    - name: http
+      port: 8115
+      targetPort: 8115
+    - name: grpc
+      port: 9115
+      targetPort: 9115
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: conversational-commerce-python
+  namespace: farmconnect
+  labels:
+    tier: polyglot
+    language: python
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: conversational-commerce-python
+  template:
+    metadata:
+      labels:
+        app: conversational-commerce-python
+        tier: polyglot
+        language: python
+    spec:
+      containers:
+        - name: conversational-commerce
+          image: farmconnect/conversational-commerce-python:latest
+          ports:
+            - containerPort: 8118
+              name: http
+            - containerPort: 9118
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8118"
+            - name: GRPC_PORT
+              value: "9118"
+          envFrom:
+            - configMapRef:
+                name: farmconnect-config
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8118
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: conversational-commerce-python
+  namespace: farmconnect
+spec:
+  selector:
+    app: conversational-commerce-python
+  ports:
+    - name: http
+      port: 8118
+      targetPort: 8118
+    - name: grpc
+      port: 9118
+      targetPort: 9118

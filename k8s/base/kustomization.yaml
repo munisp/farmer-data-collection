@@ -8,6 +8,8 @@ resources:
   - configmap.yaml
   - app-deployment.yaml
   - microservices.yaml
+  - ingress.yaml
+  - external-secrets.yaml
 
 commonLabels:
   app.kubernetes.io/part-of: farmconnect-platform
