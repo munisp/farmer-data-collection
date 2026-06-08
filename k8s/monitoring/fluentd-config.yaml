@@ -1,0 +1,249 @@
+# Fluentd Log Collection Pipeline for FarmConnect
+# Collects structured logs from all pods and forwards to OpenSearch + S3
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+    component: logging
+data:
+  fluent.conf: |
+    # ================================================================
+    # 1. Input — Kubernetes container logs
+    # ================================================================
+    <source>
+      @type tail
+      path /var/log/containers/farmer-*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type json
+        time_key time
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+        keep_time_key true
+      </parse>
+    </source>
+
+    # ================================================================
+    # 2. Filter — Kubernetes metadata enrichment
+    # ================================================================
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id filter_kube_metadata
+      kubernetes_url "https://#{ENV['KUBERNETES_SERVICE_HOST']}:#{ENV['KUBERNETES_SERVICE_PORT_HTTPS']}"
+      cache_size 1000
+      watch true
+    </filter>
+
+    # ================================================================
+    # 3. Filter — Parse structured log fields (JSON logs from Node.js)
+    # ================================================================
+    <filter kubernetes.**>
+      @type parser
+      key_name log
+      reserve_data true
+      remove_key_name_field false
+      <parse>
+        @type json
+        json_parser json
+      </parse>
+    </filter>
+
+    # ================================================================
+    # 4. Filter — Add FarmConnect-specific fields
+    # ================================================================
+    <filter kubernetes.**>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        cluster "farmconnect-production"
+        environment "#{ENV['ENVIRONMENT'] || 'production'}"
+        service ${record.dig("kubernetes", "labels", "app") || "unknown"}
+        tier ${record.dig("kubernetes", "labels", "tier") || "unknown"}
+        language ${record.dig("kubernetes", "labels", "language") || "unknown"}
+        request_id ${record["requestId"] || record["request_id"] || record["x-request-id"] || ""}
+        trace_id ${record["traceId"] || record["trace_id"] || ""}
+        timestamp ${time.strftime('%Y-%m-%dT%H:%M:%S.%LZ')}
+      </record>
+    </filter>
+
+    # ================================================================
+    # 5. Filter — Drop noisy health check logs
+    # ================================================================
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+        key log
+        pattern /GET \/health|GET \/readyz|GET \/healthz|GET \/metrics/
+      </exclude>
+    </filter>
+
+    # ================================================================
+    # 6. Output — OpenSearch (primary)
+    # ================================================================
+    <match kubernetes.**>
+      @type opensearch
+      @id out_opensearch
+      host "#{ENV['OPENSEARCH_HOST'] || 'opensearch'}"
+      port "#{ENV['OPENSEARCH_PORT'] || '9200'}"
+      scheme http
+      ssl_verify false
+
+      index_name farmconnect-logs
+      type_name _doc
+      include_timestamp true
+
+      # Index lifecycle — daily rotation
+      logstash_format true
+      logstash_prefix farmconnect-logs
+      logstash_dateformat %Y.%m.%d
+
+      # Buffering
+      <buffer>
+        @type file
+        path /var/log/fluentd-buffers/opensearch.buffer
+        flush_mode interval
+        flush_interval 10s
+        flush_thread_count 2
+        retry_type exponential_backoff
+        retry_wait 1s
+        retry_max_interval 60s
+        retry_forever true
+        chunk_limit_size 8MB
+        queue_limit_length 32
+        overflow_action block
+      </buffer>
+    </match>
+
+    # ================================================================
+    # 7. Output — S3 archive (long-term retention)
+    # ================================================================
+    <match kubernetes.**>
+      @type s3
+      @id out_s3
+
+      s3_bucket "#{ENV['LOG_S3_BUCKET'] || 'farmconnect-logs'}"
+      s3_region "#{ENV['LOG_S3_REGION'] || 'us-east-1'}"
+      path logs/%Y/%m/%d/
+
+      # Use IAM role (no explicit credentials)
+      <instance_profile_credentials>
+        ip_address 169.254.169.254
+        port 80
+      </instance_profile_credentials>
+
+      <buffer time>
+        @type file
+        path /var/log/fluentd-buffers/s3.buffer
+        timekey 3600        # 1 hour chunks
+        timekey_wait 300    # 5 min wait after chunk close
+        chunk_limit_size 64MB
+      </buffer>
+
+      <format>
+        @type json
+      </format>
+    </match>
+
+---
+# Fluentd DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: farmconnect
+  labels:
+    app: fluentd
+    component: logging
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+  template:
+    metadata:
+      labels:
+        app: fluentd
+        component: logging
+    spec:
+      serviceAccountName: fluentd-sa
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      containers:
+        - name: fluentd
+          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-opensearch
+          env:
+            - name: OPENSEARCH_HOST
+              value: opensearch
+            - name: OPENSEARCH_PORT
+              value: "9200"
+            - name: ENVIRONMENT
+              value: production
+            - name: LOG_S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: s3-bucket
+            - name: LOG_S3_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: s3-region
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+            - name: config
+              mountPath: /fluentd/etc
+            - name: buffer
+              mountPath: /var/log/fluentd-buffers
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: config
+          configMap:
+            name: fluentd-config
+        - name: buffer
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd-sa
+  namespace: farmconnect
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluentd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fluentd
+subjects:
+  - kind: ServiceAccount
+    name: fluentd-sa
+    namespace: farmconnect

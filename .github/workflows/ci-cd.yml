@@ -429,6 +429,32 @@ jobs:
         run: |
           npm audit --audit-level=moderate || true
 
+      - name: Scan Dockerfiles for misconfigurations
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          skip-dirs: 'node_modules,.git'
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "=== Scanning for hardcoded secrets ==="
+          # Check for common secret patterns in source code
+          FOUND=0
+          for pattern in "sk_live_" "sk_test_[A-Za-z0-9]{20}" "AKIA[A-Z0-9]{16}" "-----BEGIN RSA PRIVATE KEY-----" "-----BEGIN EC PRIVATE KEY-----"; do
+            if grep -rn "$pattern" --include="*.ts" --include="*.js" --include="*.py" --include="*.go" --include="*.rs" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null; then
+              echo "WARNING: Potential secret found matching pattern: $pattern"
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -eq 1 ]; then
+            echo "::warning::Potential hardcoded secrets detected. Review findings above."
+          else
+            echo "No hardcoded secrets detected."
+          fi
+
   # ============================================================================
   # Job 6: Production Readiness Audit
   # ============================================================================
