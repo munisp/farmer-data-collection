@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +47,7 @@ interface FarmerWithFarm {
 
 export default function FarmersEnhanced() {
   const { isInitialized, db } = useDatabase();
+  const farmersQuery = trpc.coreFarms.list.useQuery({}, { enabled: false });
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [farmersList, setFarmersList] = useState<FarmerWithFarm[]>([]);

@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ interface HarvestByMonth {
 
 export default function Reports() {
   const { isInitialized, db } = useDatabase();
+  const farmersQuery = trpc.coreFarms.list.useQuery({}, { enabled: false });
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [expenseData, setExpenseData] = useState<ExpenseByCategory[]>([]);

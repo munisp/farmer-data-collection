@@ -21,13 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useDatabase } from "@/hooks/useDatabase";
-import { farmers } from "@/db/schema";
+import { trpc } from "@/lib/trpc";
 import { Plus, Loader2, UserPlus, Search } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { eq } from "drizzle-orm";
 
 interface Farmer {
   id: number;
@@ -45,7 +43,7 @@ interface Farmer {
 }
 
 export default function Farmers() {
-  const { isInitialized, db } = useDatabase();
+  const farmersQuery = trpc.coreFarms.list.useQuery({ limit: 100, offset: 0 });
   const { user } = useAuth();
   const [farmersList, setFarmersList] = useState<Farmer[]>([]);
   const [filteredFarmers, setFilteredFarmers] = useState<Farmer[]>([]);
@@ -69,11 +67,18 @@ export default function Farmers() {
   });
 
   useEffect(() => {
-    if (!isInitialized) return;
-    fetchFarmers();
-  }, [isInitialized, db]);
+    if (farmersQuery.data) {
+      const items = (farmersQuery.data as any)?.items ?? farmersQuery.data;
+      setFarmersList(items as Farmer[]);
+      setFilteredFarmers(items as Farmer[]);
+      setLoading(false);
+    }
+    if (farmersQuery.error) {
+      toast.error("Failed to load farmers");
+      setLoading(false);
+    }
+  }, [farmersQuery.data, farmersQuery.error]);
 
-  // Filter farmers based on search query
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredFarmers(farmersList);
@@ -99,21 +104,6 @@ export default function Farmers() {
     setCurrentPage(1);
   }, [searchQuery, farmersList]);
 
-  const fetchFarmers = async () => {
-    if (!user) return;
-    try {
-      setLoading(true);
-      const result = await db.select().from(farmers).where(eq(farmers.userId, Number(user.id)));
-      setFarmersList(result as Farmer[]);
-      setFilteredFarmers(result as Farmer[]);
-    } catch (err) {
-      console.error("Failed to fetch farmers:", err);
-      toast.error("Failed to load farmers");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -128,17 +118,20 @@ export default function Farmers() {
         toast.error("User not authenticated");
         return;
       }
-      await db.insert(farmers).values({
-        userId: user.id,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phoneNumber: formData.phoneNumber || null,
-        email: formData.email || null,
-        address: formData.address || null,
-        village: formData.village || null,
-        district: formData.district || null,
-        region: formData.region || null,
-        nationalId: formData.nationalId || null,
+      await fetch('/api/trpc/coreFarms.create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.phoneNumber || null,
+          email: formData.email || null,
+          address: formData.address || null,
+          village: formData.village || null,
+          district: formData.district || null,
+          region: formData.region || null,
+          nationalId: formData.nationalId || null,
+        }),
       });
 
       toast.success("Farmer registered successfully");
@@ -154,7 +147,7 @@ export default function Farmers() {
         region: "",
         nationalId: "",
       });
-      fetchFarmers();
+      farmersQuery.refetch();
     } catch (err) {
       console.error("Failed to register farmer:", err);
       toast.error("Failed to register farmer");
@@ -163,7 +156,7 @@ export default function Farmers() {
     }
   };
 
-  if (!isInitialized || loading) {
+  if (farmersQuery.isLoading || loading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">

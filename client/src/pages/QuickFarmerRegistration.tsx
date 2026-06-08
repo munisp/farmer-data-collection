@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,7 @@ interface FormData {
 
 export default function QuickFarmerRegistration() {
   const { isInitialized, db } = useDatabase();
+  const farmersQuery = trpc.coreFarms.list.useQuery({}, { enabled: false });
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [step, setStep] = useState(1);
