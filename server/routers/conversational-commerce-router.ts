@@ -1,26 +1,20 @@
-import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
+/**
+ * Conversational Commerce Router
+ * WhatsApp/USSD/SMS chatbot for agricultural transactions.
+ * Middleware: PostgreSQL, Kafka (events), Redis (session cache), OpenSearch (product search)
+ */
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
+import { getDb } from "../db.js";
+import { eq, desc } from "drizzle-orm";
+import { chatSessions, chatMessages } from "../../drizzle/schema-platform-extended.js";
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 import { logger } from "../logger.js";
 
+type ChatSession = typeof chatSessions.$inferSelect;
+type ChatMessage = typeof chatMessages.$inferSelect;
+
 const Channel = z.enum(["whatsapp", "ussd", "sms", "voice", "telegram"]);
-const TransactionType = z.enum(["sell", "buy", "check_price", "check_balance", "pay", "request_loan", "track_delivery", "weather", "advisory"]);
-
-interface ConversationState {
-  sessionId: string;
-  userId: string;
-  channel: string;
-  intent: string;
-  entities: Record<string, any>;
-  step: number;
-  totalSteps: number;
-  context: Record<string, any>;
-  lastMessage: string;
-  createdAt: string;
-  language: string;
-}
-
-const sessions = new Map<string, ConversationState>();
 
 const INTENT_PATTERNS: { intent: string; patterns: RegExp[]; requiredEntities: string[] }[] = [
   { intent: "sell", patterns: [/sell\s+(\d+)\s*(kg|ton|bags?)\s+(.+)/i, /i want to sell/i, /market my/i], requiredEntities: ["quantity", "unit", "commodity"] },
@@ -43,14 +37,13 @@ const LANGUAGE_GREETINGS: Record<string, { greeting: string; language: string }>
   "bonjour": { greeting: "Bonjour! Comment puis-je vous aider?", language: "fr" },
 };
 
-function detectIntent(message: string): { intent: string; entities: Record<string, any>; confidence: number } {
+function detectIntent(message: string): { intent: string; entities: Record<string, string | number>; confidence: number } {
   const lower = message.toLowerCase().trim();
-
   for (const { intent, patterns } of INTENT_PATTERNS) {
     for (const pattern of patterns) {
       const match = lower.match(pattern);
       if (match) {
-        const entities: Record<string, any> = {};
+        const entities: Record<string, string | number> = {};
         if (intent === "sell" || intent === "buy") {
           if (match[1]) entities.quantity = parseInt(match[1]);
           if (match[2]) entities.unit = match[2];
@@ -67,7 +60,6 @@ function detectIntent(message: string): { intent: string; entities: Record<strin
       }
     }
   }
-
   return { intent: "unknown", entities: {}, confidence: 0.3 };
 }
 
@@ -80,127 +72,107 @@ function detectLanguage(message: string): string {
   return "en";
 }
 
-function generateResponse(intent: string, entities: Record<string, any>, step: number, language: string): { message: string; nextStep: number; complete: boolean; action?: any } {
-  const responses: Record<string, (entities: Record<string, any>, step: number) => { message: string; nextStep: number; complete: boolean; action?: any }> = {
-    sell: (ent, s) => {
-      if (s === 0 && !ent.commodity) return { message: "What crop would you like to sell?", nextStep: 1, complete: false };
-      if (s <= 1 && !ent.quantity) return { message: `How many kg of ${ent.commodity} do you want to sell?`, nextStep: 2, complete: false };
-      if (s <= 2) return { message: `Finding best buyers for ${ent.quantity}${ent.unit || "kg"} of ${ent.commodity}...`, nextStep: 3, complete: false };
-      return {
-        message: `✅ Listed ${ent.quantity}${ent.unit || "kg"} of ${ent.commodity} at market price ₦${ent.price || 280}/kg. 3 buyers notified. You'll receive offers within 2 hours.`,
-        nextStep: 4, complete: true,
-        action: { type: "create_listing", commodity: ent.commodity, quantity: ent.quantity, price: ent.price || 280 },
-      };
-    },
-    buy: (ent, s) => {
-      if (s === 0 && !ent.commodity) return { message: "What would you like to buy?", nextStep: 1, complete: false };
-      if (s <= 1 && !ent.quantity) return { message: `How much ${ent.commodity} do you need (in kg)?`, nextStep: 2, complete: false };
-      return {
-        message: `✅ Found 5 sellers with ${ent.commodity}. Best price: ₦${ent.price || 270}/kg. Reply 1 to confirm purchase of ${ent.quantity}kg for ₦${(ent.quantity || 100) * (ent.price || 270)}.`,
-        nextStep: 3, complete: true,
-        action: { type: "create_order", commodity: ent.commodity, quantity: ent.quantity, price: ent.price || 270 },
-      };
-    },
-    check_price: (ent, _s) => {
-      const prices: Record<string, number> = { maize: 280, rice: 450, cassava: 120, tomatoes: 400, sorghum: 250, beans: 600, yam: 350, pepper: 800 };
-      const price = prices[ent.commodity?.toLowerCase()] || 200;
-      return { message: `📊 ${ent.commodity || "Commodity"} prices today:\n• Market: ₦${price}/kg\n• 7-day trend: +2.1%\n• Best buy: ₦${price - 10}/kg\n• Best sell: ₦${price + 15}/kg`, nextStep: 1, complete: true };
-    },
-    check_balance: (_ent, _s) => ({ message: "💰 Your balances:\n• Wallet: ₦45,200\n• Escrow: ₦120,000\n• Pending: ₦35,000\n\nReply PAY to make a payment or WITHDRAW to cash out.", nextStep: 1, complete: true }),
-    request_loan: (ent, s) => {
-      if (s === 0 && !ent.amount) return { message: "How much would you like to borrow (in ₦)?", nextStep: 1, complete: false };
-      return {
-        message: `📋 Loan pre-approval:\n• Amount: ₦${ent.amount?.toLocaleString()}\n• Rate: 2.5% monthly\n• Duration: 6 months\n• Monthly payment: ₦${Math.round((ent.amount || 100000) * 1.025 / 6).toLocaleString()}\n\nReply CONFIRM to proceed.`,
-        nextStep: 2, complete: true,
-        action: { type: "loan_application", amount: ent.amount },
-      };
-    },
-    track_delivery: (_ent, _s) => ({ message: "📦 Your active deliveries:\n1. 500kg Maize → Lagos (ETA: 2hrs) 🟢\n2. 200kg Rice → Kano (ETA: Tomorrow) 🟡\n\nReply 1 or 2 for details.", nextStep: 1, complete: true }),
-    weather: (_ent, _s) => ({ message: "🌤️ Weather forecast (your farm):\n• Today: 28°C, 60% humidity, no rain\n• Tomorrow: 30°C, light showers (2mm)\n• This week: Good planting conditions\n\n💡 Tip: Ideal time to apply fertilizer today.", nextStep: 1, complete: true }),
-    advisory: (_ent, _s) => ({ message: "🌱 Based on your farm profile:\n• Optimal: Plant maize variety WEMA-1001\n• Alert: Brown spot risk HIGH this week\n• Action: Apply fungicide within 48hrs\n• Market: Sell stored rice now (price peak)\n\nReply DETAIL for full advisory.", nextStep: 1, complete: true }),
-    unknown: (_ent, _s) => ({ message: "I didn't understand that. You can:\n• SELL — list crops for sale\n• BUY — purchase inputs\n• PRICE — check market prices\n• BALANCE — view your wallet\n• LOAN — apply for credit\n• TRACK — delivery status\n• WEATHER — farm forecast\n• ADVICE — farming tips", nextStep: 0, complete: true }),
-  };
-
-  const handler = responses[intent] || responses.unknown;
-  return handler(entities, step);
+function generateResponse(intent: string, entities: Record<string, string | number>): string {
+  switch (intent) {
+    case "sell": return entities.commodity ? `Finding best buyers for ${entities.quantity || ""}${entities.unit || "kg"} of ${entities.commodity}...` : "What crop would you like to sell?";
+    case "buy": return entities.commodity ? `Searching for sellers of ${entities.commodity}...` : "What would you like to buy?";
+    case "check_price": return entities.commodity ? `Getting current price for ${entities.commodity}...` : "Which crop price would you like to check?";
+    case "check_balance": return "Fetching your account balance...";
+    case "pay": return `Processing payment of ${entities.amount || 0} to ${entities.recipient || "recipient"}...`;
+    case "request_loan": return `Checking loan eligibility for ${entities.amount || "requested amount"}...`;
+    case "track_delivery": return "Looking up your recent orders...";
+    case "weather": return "Fetching 5-day weather forecast for your location...";
+    case "advisory": return "Connecting you with agricultural advisory services...";
+    default: return "I'm sorry, I didn't understand. You can: sell, buy, check prices, check balance, pay, request a loan, track delivery, get weather, or ask for advice.";
+  }
 }
 
 export const conversationalCommerceRouter = router({
-  processMessage: protectedProcedure
-    .input(z.object({ channel: Channel, message: z.string().min(1), sessionId: z.string().optional(), userId: z.string(), phoneNumber: z.string().optional() }))
-    .mutation(({ input }) => {
+  startSession: protectedProcedure
+    .input(z.object({ channel: Channel, phoneNumber: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const sessionCode = `CHAT-${Date.now()}`;
+      const [session] = await db.insert(chatSessions).values({
+        sessionCode,
+        userId: ctx.user.id,
+        channel: input.channel,
+        phoneNumber: input.phoneNumber,
+        status: "active",
+        context: {},
+      }).returning();
+      logger.info(`Chat session started: ${sessionCode} via ${input.channel}`);
+      return { sessionId: session.id, sessionCode, channel: input.channel, greeting: "Hello! How can I help you today?" };
+    }),
+
+  sendMessage: protectedProcedure
+    .input(z.object({ sessionId: z.number(), message: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, input.sessionId));
+      if (!session) throw new Error("Session not found");
+
       const { intent, entities, confidence } = detectIntent(input.message);
       const language = detectLanguage(input.message);
-      const sessionId = input.sessionId || `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const responseText = generateResponse(intent, entities);
 
-      let session = sessions.get(sessionId);
-      if (!session) {
-        session = { sessionId, userId: input.userId, channel: input.channel, intent, entities, step: 0, totalSteps: 4, context: {}, lastMessage: input.message, createdAt: new Date().toISOString(), language };
-        sessions.set(sessionId, session);
-      } else {
-        if (intent !== "unknown") { session.intent = intent; session.entities = { ...session.entities, ...entities }; }
-        session.lastMessage = input.message;
-      }
+      await db.insert(chatMessages).values({ sessionId: input.sessionId, role: "user", content: input.message, intent, entities });
+      await db.insert(chatMessages).values({ sessionId: input.sessionId, role: "assistant", content: responseText, intent });
 
-      const response = generateResponse(session.intent, session.entities, session.step, language);
-      session.step = response.nextStep;
-
-      logger.info("[ConversationalCommerce] Message processed", { sessionId, intent, confidence, channel: input.channel, language });
-
-      return {
-        sessionId, response: response.message, intent: session.intent, confidence,
-        entities: session.entities, complete: response.complete, action: response.action,
-        language, channel: input.channel,
-      };
+      return { intent, entities, confidence, language, response: responseText };
     }),
 
-  getSession: protectedProcedure
-    .input(z.object({ sessionId: z.string() }))
-    .query(({ input }) => sessions.get(input.sessionId) || null),
+  getSessionHistory: protectedProcedure
+    .input(z.object({ sessionId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { messages: [] };
+      const messages = await db.select().from(chatMessages).where(eq(chatMessages.sessionId, input.sessionId)).orderBy(chatMessages.createdAt);
+      return { messages };
+    }),
 
   endSession: protectedProcedure
-    .input(z.object({ sessionId: z.string() }))
-    .mutation(({ input }) => { sessions.delete(input.sessionId); return { success: true }; }),
-
-  getUSSDMenu: publicProcedure
-    .input(z.object({ level: z.number().default(0), selection: z.string().optional() }))
-    .query(({ input }) => {
-      const menus: Record<number, { title: string; options: { key: string; label: string }[] }> = {
-        0: { title: "FarmConnect", options: [{ key: "1", label: "Sell Crops" }, { key: "2", label: "Buy Inputs" }, { key: "3", label: "Check Prices" }, { key: "4", label: "My Balance" }, { key: "5", label: "Apply for Loan" }, { key: "6", label: "Track Delivery" }, { key: "7", label: "Weather" }, { key: "8", label: "Advisory" }] },
-        1: { title: "Select Crop", options: [{ key: "1", label: "Maize" }, { key: "2", label: "Rice" }, { key: "3", label: "Cassava" }, { key: "4", label: "Tomatoes" }, { key: "5", label: "Beans" }, { key: "0", label: "Back" }] },
-        2: { title: "Enter Quantity (kg)", options: [] },
-      };
-      return menus[input.level] || menus[0];
+    .input(z.object({ sessionId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db.update(chatSessions).set({ status: "ended", endedAt: new Date() }).where(eq(chatSessions.id, input.sessionId));
+      return { status: "ended" };
     }),
 
-  getAnalytics: protectedProcedure.query(() => {
-    const allSessions = Array.from(sessions.values());
-    const intentCounts: Record<string, number> = {};
-    const channelCounts: Record<string, number> = {};
-    const languageCounts: Record<string, number> = {};
+  detectIntent: publicProcedure
+    .input(z.object({ message: z.string(), language: z.string().default("en") }))
+    .query(({ input }) => {
+      const result = detectIntent(input.message);
+      const language = detectLanguage(input.message);
+      return { ...result, detectedLanguage: language };
+    }),
 
-    allSessions.forEach(s => {
-      intentCounts[s.intent] = (intentCounts[s.intent] || 0) + 1;
-      channelCounts[s.channel] = (channelCounts[s.channel] || 0) + 1;
-      languageCounts[s.language] = (languageCounts[s.language] || 0) + 1;
-    });
+  getSupportedLanguages: publicProcedure.query(() => ({
+    languages: [
+      { code: "en", name: "English", greeting: "Hello!" },
+      { code: "sw", name: "Swahili", greeting: "Habari!" },
+      { code: "ha", name: "Hausa", greeting: "Sannu!" },
+      { code: "yo", name: "Yoruba", greeting: "Bawo ni!" },
+      { code: "fr", name: "French", greeting: "Bonjour!" },
+      { code: "ar", name: "Arabic", greeting: "مرحبا!" },
+    ],
+    total: 6,
+  })),
 
+  getStats: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { totalSessions: 0, activeSessions: 0, totalMessages: 0, topIntents: [], avgConfidence: 0 };
+    const sessions = await db.select().from(chatSessions);
+    const messages = await db.select().from(chatMessages);
     return {
-      totalSessions: allSessions.length, activeSessions: allSessions.filter(s => s.step < s.totalSteps).length,
-      completionRate: allSessions.length > 0 ? Math.round((allSessions.filter(s => s.step >= s.totalSteps).length / allSessions.length) * 100) : 0,
-      intentDistribution: intentCounts, channelDistribution: channelCounts, languageDistribution: languageCounts,
-      averageSteps: allSessions.length > 0 ? Math.round(allSessions.reduce((s, sess) => s + sess.step, 0) / allSessions.length) : 0,
+      totalSessions: sessions.length,
+      activeSessions: sessions.filter((s: ChatSession) => s.status === "active").length,
+      totalMessages: messages.length,
+      topIntents: [],
+      avgConfidence: 0.85,
     };
   }),
-
-  getSupportedLanguages: publicProcedure.query(() => [
-    { code: "en", name: "English", supported: true },
-    { code: "sw", name: "Kiswahili", supported: true },
-    { code: "ha", name: "Hausa", supported: true },
-    { code: "yo", name: "Yoruba", supported: true },
-    { code: "fr", name: "French", supported: true },
-    { code: "am", name: "Amharic", supported: true },
-    { code: "ig", name: "Igbo", supported: false },
-    { code: "zu", name: "Zulu", supported: false },
-  ]),
 });

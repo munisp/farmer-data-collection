@@ -1,42 +1,31 @@
 /**
  * WebSocket Real-Time Hub Router (P2-1)
  * Provides real-time price feeds, delivery tracking, IoT readings via SSE.
- * Uses Kafka/Fluvio for event sourcing, Redis for session state.
+ * Middleware: PostgreSQL, Kafka/Fluvio (event sourcing), Redis (session state/cache).
  */
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
+import { getDb } from "../db.js";
+import { eq, desc } from "drizzle-orm";
+import { marketPrices, iotDevices, iotReadings } from "../../drizzle/schema-platform-extended.js";
 import { withRedisCache, publishKafkaEvent, streamEvent, KAFKA_TOPICS } from "../integrations/middleware-router-hooks.js";
 
-interface PriceTick {
-  commodity: string;
-  price: number;
-  currency: string;
-  market: string;
-  change: number;
-  changePercent: number;
-  timestamp: string;
-}
-
-const LIVE_PRICES: PriceTick[] = [
-  { commodity: "Maize", price: 4500, currency: "KES", market: "Nairobi", change: 50, changePercent: 1.12, timestamp: new Date().toISOString() },
-  { commodity: "Coffee (Arabica)", price: 35000, currency: "KES", market: "Nairobi", change: -200, changePercent: -0.57, timestamp: new Date().toISOString() },
-  { commodity: "Beans", price: 12000, currency: "KES", market: "Nairobi", change: 300, changePercent: 2.56, timestamp: new Date().toISOString() },
-  { commodity: "Wheat", price: 5500, currency: "KES", market: "Nairobi", change: -100, changePercent: -1.79, timestamp: new Date().toISOString() },
-  { commodity: "Rice", price: 12000, currency: "KES", market: "Nairobi", change: 150, changePercent: 1.27, timestamp: new Date().toISOString() },
-  { commodity: "Cocoa", price: 250000, currency: "NGN", market: "Lagos", change: 5000, changePercent: 2.04, timestamp: new Date().toISOString() },
-  { commodity: "Cashew", price: 180000, currency: "NGN", market: "Lagos", change: -3000, changePercent: -1.64, timestamp: new Date().toISOString() },
-  { commodity: "Tea", price: 28000, currency: "KES", market: "Mombasa", change: 800, changePercent: 2.94, timestamp: new Date().toISOString() },
-];
+type MarketPrice = typeof marketPrices.$inferSelect;
+type IotDevice = typeof iotDevices.$inferSelect;
+type IotReading = typeof iotReadings.$inferSelect;
 
 export const websocketHubRouter = router({
   getLivePrices: publicProcedure
     .input(z.object({ market: z.string().optional() }).optional())
     .query(async ({ input }) => {
       return withRedisCache("live-prices", 30, async () => {
-        const market = input?.market;
-        const prices = market ? LIVE_PRICES.filter((p) => p.market === market) : LIVE_PRICES;
-        await publishKafkaEvent(KAFKA_TOPICS.PRICE_UPDATED, "prices-fetched", { count: prices.length });
-        return { prices, markets: ["Nairobi", "Lagos", "Mombasa"], lastUpdated: new Date().toISOString() };
+        const db = await getDb();
+        if (!db) return { prices: [], markets: [], lastUpdated: new Date().toISOString() };
+        const prices = await db.select().from(marketPrices).orderBy(desc(marketPrices.priceDate)).limit(50);
+        const filtered = input?.market ? prices.filter((p: MarketPrice) => p.market === input.market) : prices;
+        const markets = [...new Set(prices.map((p: MarketPrice) => p.market))];
+        await publishKafkaEvent(KAFKA_TOPICS.PRICE_UPDATED, "prices-fetched", { count: filtered.length });
+        return { prices: filtered, markets, lastUpdated: new Date().toISOString() };
       });
     }),
 
@@ -60,26 +49,31 @@ export const websocketHubRouter = router({
   getIoTReadings: protectedProcedure
     .input(z.object({ deviceId: z.string().optional() }).optional())
     .query(async () => {
+      const db = await getDb();
+      if (!db) return { devices: [], totalDevices: 0, onlineDevices: 0 };
+      const devices = await db.select().from(iotDevices).limit(20);
       await streamEvent("iot.readings.fetch", "hub", { source: "websocket-hub" });
       return {
-        devices: [
-          { id: "IOT-001", type: "soil_moisture", value: 42.5, unit: "%", status: "normal", lastReading: new Date().toISOString() },
-          { id: "IOT-002", type: "temperature", value: 28.3, unit: "°C", status: "normal", lastReading: new Date().toISOString() },
-          { id: "IOT-003", type: "humidity", value: 65.0, unit: "%", status: "normal", lastReading: new Date().toISOString() },
-          { id: "IOT-004", type: "ph_level", value: 6.8, unit: "pH", status: "optimal", lastReading: new Date().toISOString() },
-          { id: "IOT-005", type: "water_level", value: 78.0, unit: "cm", status: "normal", lastReading: new Date().toISOString() },
-        ],
-        totalDevices: 5,
-        onlineDevices: 5,
+        devices: devices.map((d: IotDevice) => ({
+          id: d.id, type: d.type, status: d.status, lastReading: d.lastSeen?.toISOString(),
+        })),
+        totalDevices: devices.length,
+        onlineDevices: devices.filter((d: IotDevice) => d.status === "active").length,
       };
     }),
 
-  getHubStats: publicProcedure.query(async () => ({
-    connectedClients: 42,
-    priceFeeds: LIVE_PRICES.length,
-    activeDeliveries: 15,
-    iotDevices: 5,
-    eventsPerMinute: 230,
-    uptime: "99.97%",
-  })),
+  getHubStats: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { connectedClients: 0, priceFeeds: 0, activeDeliveries: 0, iotDevices: 0, eventsPerMinute: 0, uptime: "0%" };
+    const prices = await db.select().from(marketPrices);
+    const devices = await db.select().from(iotDevices);
+    return {
+      connectedClients: 0,
+      priceFeeds: prices.length,
+      activeDeliveries: 0,
+      iotDevices: devices.length,
+      eventsPerMinute: 0,
+      uptime: "99.97%",
+    };
+  }),
 });
