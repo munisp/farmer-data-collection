@@ -25,11 +25,16 @@ export const exportChainRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return { shipments: [], total: 0 };
-      let query = db.select().from(exportShipments).orderBy(desc(exportShipments.createdAt)).limit(input?.limit ?? 20);
-      const shipments = await query;
-      const filtered = input?.status ? shipments.filter((s: ExportShipment) => s.status === input.status) : shipments;
-      const result = input?.commodity ? filtered.filter((s: ExportShipment) => s.commodity === input.commodity) : filtered;
-      return { shipments: result, total: result.length };
+      try {
+        let query = db.select().from(exportShipments).orderBy(desc(exportShipments.createdAt)).limit(input?.limit ?? 20);
+        const shipments = await query;
+        const filtered = input?.status ? shipments.filter((s: ExportShipment) => s.status === input.status) : shipments;
+        const result = input?.commodity ? filtered.filter((s: ExportShipment) => s.commodity === input.commodity) : filtered;
+        return { shipments: result, total: result.length };
+      } catch (err) {
+        logger.warn(`export-chain: listShipments query failed, returning fallback: ${err}`);
+        return { shipments: [], total: 0 };
+      }
     }),
 
   getShipmentDetails: publicProcedure
@@ -108,14 +113,19 @@ export const exportChainRouter = router({
   getExportStats: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { totalShipments: 0, inTransit: 0, delivered: 0, totalValue: 0, topCommodities: [], topDestinations: [] };
-    const shipments = await db.select().from(exportShipments);
-    return {
-      totalShipments: shipments.length,
-      inTransit: shipments.filter((s: ExportShipment) => s.status === "shipped" || s.status === "customs").length,
-      delivered: shipments.filter((s: ExportShipment) => s.status === "delivered").length,
-      totalValue: shipments.reduce((s: number, sh: ExportShipment) => s + Number(sh.quantity), 0),
-      topCommodities: [],
-      topDestinations: [],
-    };
+    try {
+      const shipments = await db.select().from(exportShipments);
+      return {
+        totalShipments: shipments.length,
+        inTransit: shipments.filter((s: ExportShipment) => s.status === "shipped" || s.status === "customs").length,
+        delivered: shipments.filter((s: ExportShipment) => s.status === "delivered").length,
+        totalValue: shipments.reduce((s: number, sh: ExportShipment) => s + Number(sh.quantity), 0),
+        topCommodities: [],
+        topDestinations: [],
+      };
+    } catch (err) {
+      logger.warn(`export-chain: getExportStats query failed, returning fallback: ${err}`);
+      return { totalShipments: 0, inTransit: 0, delivered: 0, totalValue: 0, topCommodities: [], topDestinations: [] };
+    }
   }),
 });

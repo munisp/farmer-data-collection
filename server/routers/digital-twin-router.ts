@@ -65,10 +65,15 @@ export const digitalTwinRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return null;
-      const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
-      if (!twin) return null;
-      const devices = await db.select().from(iotDevices).where(eq(iotDevices.farmId, input.farmId));
-      return { ...twin, devices, deviceCount: devices.length };
+      try {
+        const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
+        if (!twin) return null;
+        const devices = await db.select().from(iotDevices).where(eq(iotDevices.farmId, input.farmId));
+        return { ...twin, devices, deviceCount: devices.length };
+      } catch (err) {
+        logger.warn(`digital-twin: getFarmTwin query failed, returning fallback: ${err}`);
+        return null;
+      }
     }),
 
   getZoneDetail: protectedProcedure
@@ -76,11 +81,16 @@ export const digitalTwinRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return null;
-      const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
-      if (!twin) return null;
-      const state = twin.state as { zones?: Array<Record<string, unknown>> };
-      const zone = (state.zones ?? []).find((z: Record<string, unknown>) => z.id === input.zoneId);
-      return zone ?? null;
+      try {
+        const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
+        if (!twin) return null;
+        const state = twin.state as { zones?: Array<Record<string, unknown>> };
+        const zone = (state.zones ?? []).find((z: Record<string, unknown>) => z.id === input.zoneId);
+        return zone ?? null;
+      } catch (err) {
+        logger.warn(`digital-twin: getZoneDetail query failed, returning fallback: ${err}`);
+        return null;
+      }
     }),
 
   runSimulation: protectedProcedure
@@ -92,11 +102,16 @@ export const digitalTwinRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) return { success: false, error: "Database not available" };
-      const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
-      if (!twin) return { success: false, error: "Farm twin not found" };
-      const result = runSimulation(twin.state as Record<string, unknown>, input.scenario, input.parameters || {});
-      logger.info(`Digital twin simulation: ${input.farmId} / ${input.scenario}`);
-      return { success: true, result };
+      try {
+        const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
+        if (!twin) return { success: false, error: "Farm twin not found" };
+        const result = runSimulation(twin.state as Record<string, unknown>, input.scenario, input.parameters || {});
+        logger.info(`Digital twin simulation: ${input.farmId} / ${input.scenario}`);
+        return { success: true, result };
+      } catch (err) {
+        logger.warn(`digital-twin: runSimulation query failed, returning fallback: ${err}`);
+        return { success: false, error: "Query failed — table may not exist" };
+      }
     }),
 
   getSensorData: protectedProcedure
@@ -105,12 +120,17 @@ export const digitalTwinRouter = router({
       const db = await getDb();
       if (!db) return [];
       if (!input?.farmId) return [];
-      const devices = await db.select().from(iotDevices).where(eq(iotDevices.farmId, input.farmId));
-      if (devices.length === 0) return [];
-      const deviceIds = devices.map((d: IotDevice) => d.id);
-      const allReadings = await db.select().from(iotReadings).orderBy(desc(iotReadings.timestamp)).limit(100);
-      const filtered = allReadings.filter((r: IotReading) => deviceIds.includes(r.deviceId));
-      return input.sensorType ? filtered.filter((r: IotReading) => r.metric === input.sensorType) : filtered;
+      try {
+        const devices = await db.select().from(iotDevices).where(eq(iotDevices.farmId, input.farmId));
+        if (devices.length === 0) return [];
+        const deviceIds = devices.map((d: IotDevice) => d.id);
+        const allReadings = await db.select().from(iotReadings).orderBy(desc(iotReadings.timestamp)).limit(100);
+        const filtered = allReadings.filter((r: IotReading) => deviceIds.includes(r.deviceId));
+        return input.sensorType ? filtered.filter((r: IotReading) => r.metric === input.sensorType) : filtered;
+      } catch (err) {
+        logger.warn(`digital-twin: getSensorData query failed, returning fallback: ${err}`);
+        return [];
+      }
     }),
 
   getAlerts: protectedProcedure
@@ -118,15 +138,20 @@ export const digitalTwinRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
-      if (!twin) return [];
-      const alerts: { type: string; severity: string; message: string; timestamp: string }[] = [];
-      const state = twin.state as { zones?: Array<{ healthScore?: number; pestRisk?: string; soilPH?: number; name?: string }> };
-      (state.zones ?? []).forEach((z: { healthScore?: number; pestRisk?: string; soilPH?: number; name?: string }) => {
-        if ((z.healthScore ?? 100) < 70) alerts.push({ type: "health", severity: "warning", message: `Zone ${z.name} health below threshold (${z.healthScore}/100)`, timestamp: twin.lastSync?.toISOString() ?? "" });
-        if (z.pestRisk === "high") alerts.push({ type: "pest", severity: "critical", message: `High pest risk in ${z.name}`, timestamp: twin.lastSync?.toISOString() ?? "" });
-      });
-      return alerts;
+      try {
+        const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
+        if (!twin) return [];
+        const alerts: { type: string; severity: string; message: string; timestamp: string }[] = [];
+        const state = twin.state as { zones?: Array<{ healthScore?: number; pestRisk?: string; soilPH?: number; name?: string }> };
+        (state.zones ?? []).forEach((z: { healthScore?: number; pestRisk?: string; soilPH?: number; name?: string }) => {
+          if ((z.healthScore ?? 100) < 70) alerts.push({ type: "health", severity: "warning", message: `Zone ${z.name} health below threshold (${z.healthScore}/100)`, timestamp: twin.lastSync?.toISOString() ?? "" });
+          if (z.pestRisk === "high") alerts.push({ type: "pest", severity: "critical", message: `High pest risk in ${z.name}`, timestamp: twin.lastSync?.toISOString() ?? "" });
+        });
+        return alerts;
+      } catch (err) {
+        logger.warn(`digital-twin: getAlerts query failed, returning fallback: ${err}`);
+        return [];
+      }
     }),
 
   compareScenarios: protectedProcedure
@@ -137,10 +162,15 @@ export const digitalTwinRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return null;
-      const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
-      if (!twin) return null;
-      const results = input.scenarios.map((s) => runSimulation(twin.state as Record<string, unknown>, s.scenario, s.parameters || {}));
-      const best = results.reduce((best, r) => ((r.yieldChange as number) > (best.yieldChange as number)) ? r : best, results[0]);
-      return { comparisons: results, bestScenario: best.scenario, bestYieldChange: best.yieldChange };
+      try {
+        const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.farmId, input.farmId));
+        if (!twin) return null;
+        const results = input.scenarios.map((s) => runSimulation(twin.state as Record<string, unknown>, s.scenario, s.parameters || {}));
+        const best = results.reduce((best, r) => ((r.yieldChange as number) > (best.yieldChange as number)) ? r : best, results[0]);
+        return { comparisons: results, bestScenario: best.scenario, bestYieldChange: best.yieldChange };
+      } catch (err) {
+        logger.warn(`digital-twin: compareScenarios query failed, returning fallback: ${err}`);
+        return null;
+      }
     }),
 });

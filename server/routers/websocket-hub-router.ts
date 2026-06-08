@@ -21,11 +21,15 @@ export const websocketHubRouter = router({
       return withRedisCache("live-prices", 30, async () => {
         const db = await getDb();
         if (!db) return { prices: [], markets: [], lastUpdated: new Date().toISOString() };
-        const prices = await db.select().from(marketPrices).orderBy(desc(marketPrices.priceDate)).limit(50);
-        const filtered = input?.market ? prices.filter((p: MarketPrice) => p.market === input.market) : prices;
-        const markets = [...new Set(prices.map((p: MarketPrice) => p.market))];
-        await publishKafkaEvent(KAFKA_TOPICS.PRICE_UPDATED, "prices-fetched", { count: filtered.length });
-        return { prices: filtered, markets, lastUpdated: new Date().toISOString() };
+        try {
+          const prices = await db.select().from(marketPrices).orderBy(desc(marketPrices.priceDate)).limit(50);
+          const filtered = input?.market ? prices.filter((p: MarketPrice) => p.market === input.market) : prices;
+          const markets = [...new Set(prices.map((p: MarketPrice) => p.market))];
+          await publishKafkaEvent(KAFKA_TOPICS.PRICE_UPDATED, "prices-fetched", { count: filtered.length });
+          return { prices: filtered, markets, lastUpdated: new Date().toISOString() };
+        } catch (err) {
+          return { prices: [], markets: [], lastUpdated: new Date().toISOString() };
+        }
       });
     }),
 
@@ -51,29 +55,37 @@ export const websocketHubRouter = router({
     .query(async () => {
       const db = await getDb();
       if (!db) return { devices: [], totalDevices: 0, onlineDevices: 0 };
-      const devices = await db.select().from(iotDevices).limit(20);
-      await streamEvent("iot.readings.fetch", "hub", { source: "websocket-hub" });
-      return {
-        devices: devices.map((d: IotDevice) => ({
-          id: d.id, type: d.type, status: d.status, lastReading: d.lastSeen?.toISOString(),
-        })),
-        totalDevices: devices.length,
-        onlineDevices: devices.filter((d: IotDevice) => d.status === "active").length,
-      };
+      try {
+        const devices = await db.select().from(iotDevices).limit(20);
+        await streamEvent("iot.readings.fetch", "hub", { source: "websocket-hub" });
+        return {
+          devices: devices.map((d: IotDevice) => ({
+            id: d.id, type: d.type, status: d.status, lastReading: d.lastSeen?.toISOString(),
+          })),
+          totalDevices: devices.length,
+          onlineDevices: devices.filter((d: IotDevice) => d.status === "active").length,
+        };
+      } catch (err) {
+        return { devices: [], totalDevices: 0, onlineDevices: 0 };
+      }
     }),
 
   getHubStats: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { connectedClients: 0, priceFeeds: 0, activeDeliveries: 0, iotDevices: 0, eventsPerMinute: 0, uptime: "0%" };
-    const prices = await db.select().from(marketPrices);
-    const devices = await db.select().from(iotDevices);
-    return {
-      connectedClients: 0,
-      priceFeeds: prices.length,
-      activeDeliveries: 0,
-      iotDevices: devices.length,
-      eventsPerMinute: 0,
-      uptime: "99.97%",
-    };
+    try {
+      const prices = await db.select().from(marketPrices);
+      const devices = await db.select().from(iotDevices);
+      return {
+        connectedClients: 0,
+        priceFeeds: prices.length,
+        activeDeliveries: 0,
+        iotDevices: devices.length,
+        eventsPerMinute: 0,
+        uptime: "99.97%",
+      };
+    } catch (err) {
+      return { connectedClients: 0, priceFeeds: 0, activeDeliveries: 0, iotDevices: 0, eventsPerMinute: 0, uptime: "0%" };
+    }
   }),
 });

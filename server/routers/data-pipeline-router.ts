@@ -19,8 +19,13 @@ export const dataPipelineRouter = router({
   listJobs: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { jobs: [], total: 0 };
-    const jobs = await db.select().from(pipelineJobs).orderBy(desc(pipelineJobs.lastRunAt));
-    return { jobs, total: jobs.length };
+    try {
+      const jobs = await db.select().from(pipelineJobs).orderBy(desc(pipelineJobs.lastRunAt));
+      return { jobs, total: jobs.length };
+    } catch (err) {
+      logger.warn(`data-pipeline: listJobs query failed, returning fallback: ${err}`);
+      return { jobs: [], total: 0 };
+    }
   }),
 
   getJobDetails: publicProcedure
@@ -75,30 +80,40 @@ export const dataPipelineRouter = router({
   getDataQuality: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { metrics: [], overallScore: 0 };
-    const jobs = await db.select().from(pipelineJobs);
-    const totalRecords = jobs.reduce((s: number, j: PipelineJob) => s + (j.recordsProcessed ?? 0), 0);
-    return {
-      metrics: jobs.map((j: PipelineJob) => ({
-        pipeline: j.name,
-        recordsProcessed: j.recordsProcessed ?? 0,
-        lastDuration: j.lastDuration ?? 0,
-        status: j.status,
-      })),
-      overallScore: jobs.length > 0 ? Math.round(jobs.filter((j: PipelineJob) => j.status === "completed").length / jobs.length * 100) : 0,
-      totalRecords,
-    };
+    try {
+      const jobs = await db.select().from(pipelineJobs);
+      const totalRecords = jobs.reduce((s: number, j: PipelineJob) => s + (j.recordsProcessed ?? 0), 0);
+      return {
+        metrics: jobs.map((j: PipelineJob) => ({
+          pipeline: j.name,
+          recordsProcessed: j.recordsProcessed ?? 0,
+          lastDuration: j.lastDuration ?? 0,
+          status: j.status,
+        })),
+        overallScore: jobs.length > 0 ? Math.round(jobs.filter((j: PipelineJob) => j.status === "completed").length / jobs.length * 100) : 0,
+        totalRecords,
+      };
+    } catch (err) {
+      logger.warn(`data-pipeline: getDataQuality query failed, returning fallback: ${err}`);
+      return { metrics: [], overallScore: 0 };
+    }
   }),
 
   getStats: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { totalJobs: 0, running: 0, completed: 0, failed: 0, totalRecordsProcessed: 0 };
-    const jobs = await db.select().from(pipelineJobs);
-    return {
-      totalJobs: jobs.length,
-      running: jobs.filter((j: PipelineJob) => j.status === "running").length,
-      completed: jobs.filter((j: PipelineJob) => j.status === "completed").length,
-      failed: jobs.filter((j: PipelineJob) => j.status === "failed").length,
-      totalRecordsProcessed: jobs.reduce((s: number, j: PipelineJob) => s + (j.recordsProcessed ?? 0), 0),
-    };
+    try {
+      const jobs = await db.select().from(pipelineJobs);
+      return {
+        totalJobs: jobs.length,
+        running: jobs.filter((j: PipelineJob) => j.status === "running").length,
+        completed: jobs.filter((j: PipelineJob) => j.status === "completed").length,
+        failed: jobs.filter((j: PipelineJob) => j.status === "failed").length,
+        totalRecordsProcessed: jobs.reduce((s: number, j: PipelineJob) => s + (j.recordsProcessed ?? 0), 0),
+      };
+    } catch (err) {
+      logger.warn(`data-pipeline: getStats query failed, returning fallback: ${err}`);
+      return { totalJobs: 0, running: 0, completed: 0, failed: 0, totalRecordsProcessed: 0 };
+    }
   }),
 });

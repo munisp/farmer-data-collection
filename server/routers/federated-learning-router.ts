@@ -19,12 +19,17 @@ export const federatedLearningRouter = router({
     return withRedisCache("federated-models", 120, async () => {
       const db = await getDb();
       if (!db) return { models: [], total: 0, totalParticipants: 0 };
-      const models = await db.select().from(federatedModels).orderBy(desc(federatedModels.createdAt));
-      return {
-        models,
-        total: models.length,
-        totalParticipants: models.reduce((s: number, m: FedModel) => s + m.participantCount, 0),
-      };
+      try {
+        const models = await db.select().from(federatedModels).orderBy(desc(federatedModels.createdAt));
+        return {
+          models,
+          total: models.length,
+          totalParticipants: models.reduce((s: number, m: FedModel) => s + m.participantCount, 0),
+        };
+      } catch (err) {
+        logger.warn(`federated-learning: listModels query failed, returning fallback: ${err}`);
+        return { models: [], total: 0, totalParticipants: 0 };
+      }
     });
   }),
 
@@ -120,15 +125,20 @@ export const federatedLearningRouter = router({
   getStats: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { totalModels: 0, activeTraining: 0, deployedModels: 0, totalParticipants: 0, avgAccuracy: 0, privacyPreserved: true };
-    const models = await db.select().from(federatedModels);
-    const participants = await db.select().from(federatedParticipants);
-    return {
-      totalModels: models.length,
-      activeTraining: models.filter((m: FedModel) => m.status === "training").length,
-      deployedModels: models.filter((m: FedModel) => m.status === "deployed").length,
-      totalParticipants: participants.length,
-      avgAccuracy: models.length > 0 ? Math.round(models.reduce((s: number, m: FedModel) => s + Number(m.globalAccuracy ?? 0), 0) / models.length * 10) / 10 : 0,
-      privacyPreserved: true,
-    };
+    try {
+      const models = await db.select().from(federatedModels);
+      const participants = await db.select().from(federatedParticipants);
+      return {
+        totalModels: models.length,
+        activeTraining: models.filter((m: FedModel) => m.status === "training").length,
+        deployedModels: models.filter((m: FedModel) => m.status === "deployed").length,
+        totalParticipants: participants.length,
+        avgAccuracy: models.length > 0 ? Math.round(models.reduce((s: number, m: FedModel) => s + Number(m.globalAccuracy ?? 0), 0) / models.length * 10) / 10 : 0,
+        privacyPreserved: true,
+      };
+    } catch (err) {
+      logger.warn(`federated-learning: getStats query failed, returning fallback: ${err}`);
+      return { totalModels: 0, activeTraining: 0, deployedModels: 0, totalParticipants: 0, avgAccuracy: 0, privacyPreserved: true };
+    }
   }),
 });

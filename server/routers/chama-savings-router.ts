@@ -34,13 +34,18 @@ export const chamaSavingsRouter = router({
     return withRedisCache("chamas-list", 120, async () => {
       const db = await getDb();
       if (!db) return { chamas: [], total: 0, totalMembers: 0, totalSavings: 0 };
-      const groups = await db.select().from(chamaGroups).where(eq(chamaGroups.isActive, true));
-      return {
-        chamas: groups,
-        total: groups.length,
-        totalMembers: groups.reduce((s: number, c: ChamaGroup) => s + c.memberCount, 0),
-        totalSavings: groups.reduce((s: number, c: ChamaGroup) => s + Number(c.totalSavings), 0),
-      };
+      try {
+        const groups = await db.select().from(chamaGroups).where(eq(chamaGroups.isActive, true));
+        return {
+          chamas: groups,
+          total: groups.length,
+          totalMembers: groups.reduce((s: number, c: ChamaGroup) => s + c.memberCount, 0),
+          totalSavings: groups.reduce((s: number, c: ChamaGroup) => s + Number(c.totalSavings), 0),
+        };
+      } catch (err) {
+        logger.warn(`chama-savings: listChamas query failed, returning fallback: ${err}`);
+        return { chamas: [], total: 0, totalMembers: 0, totalSavings: 0 };
+      }
     });
   }),
 
@@ -125,17 +130,22 @@ export const chamaSavingsRouter = router({
   getStats: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { totalChamas: 0, totalMembers: 0, totalSavings: 0, avgReturnRate: 0, totalLoansIssued: 0, loanRepaymentRate: 0, currency: "KES" };
-    const groups = await db.select().from(chamaGroups);
-    const txns = await db.select().from(chamaTransactions);
-    const loans = txns.filter((t) => t.type === "loan_disbursed");
-    return {
-      totalChamas: groups.length,
-      totalMembers: groups.reduce((s: number, c: ChamaGroup) => s + c.memberCount, 0),
-      totalSavings: groups.reduce((s: number, c: ChamaGroup) => s + Number(c.totalSavings), 0),
-      avgReturnRate: 0,
-      totalLoansIssued: loans.length,
-      loanRepaymentRate: 94.5,
-      currency: "KES",
-    };
+    try {
+      const groups = await db.select().from(chamaGroups);
+      const txns = await db.select().from(chamaTransactions);
+      const loans = txns.filter((t) => t.type === "loan_disbursed");
+      return {
+        totalChamas: groups.length,
+        totalMembers: groups.reduce((s: number, c: ChamaGroup) => s + c.memberCount, 0),
+        totalSavings: groups.reduce((s: number, c: ChamaGroup) => s + Number(c.totalSavings), 0),
+        avgReturnRate: 0,
+        totalLoansIssued: loans.length,
+        loanRepaymentRate: 94.5,
+        currency: "KES",
+      };
+    } catch (err) {
+      logger.warn(`chama-savings: getStats query failed, returning fallback: ${err}`);
+      return { totalChamas: 0, totalMembers: 0, totalSavings: 0, avgReturnRate: 0, totalLoansIssued: 0, loanRepaymentRate: 0, currency: "KES" };
+    }
   }),
 });

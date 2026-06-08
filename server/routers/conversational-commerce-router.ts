@@ -129,8 +129,13 @@ export const conversationalCommerceRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return { messages: [] };
-      const messages = await db.select().from(chatMessages).where(eq(chatMessages.sessionId, input.sessionId)).orderBy(chatMessages.createdAt);
-      return { messages };
+      try {
+        const messages = await db.select().from(chatMessages).where(eq(chatMessages.sessionId, input.sessionId)).orderBy(chatMessages.createdAt);
+        return { messages };
+      } catch (err) {
+        logger.warn(`conversational-commerce: getSessionHistory query failed, returning fallback: ${err}`);
+        return { messages: [] };
+      }
     }),
 
   endSession: protectedProcedure
@@ -165,14 +170,19 @@ export const conversationalCommerceRouter = router({
   getStats: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { totalSessions: 0, activeSessions: 0, totalMessages: 0, topIntents: [], avgConfidence: 0 };
-    const sessions = await db.select().from(chatSessions);
-    const messages = await db.select().from(chatMessages);
-    return {
-      totalSessions: sessions.length,
-      activeSessions: sessions.filter((s: ChatSession) => s.status === "active").length,
-      totalMessages: messages.length,
-      topIntents: [],
-      avgConfidence: 0.85,
-    };
+    try {
+      const sessions = await db.select().from(chatSessions);
+      const messages = await db.select().from(chatMessages);
+      return {
+        totalSessions: sessions.length,
+        activeSessions: sessions.filter((s: ChatSession) => s.status === "active").length,
+        totalMessages: messages.length,
+        topIntents: [],
+        avgConfidence: 0.85,
+      };
+    } catch (err) {
+      logger.warn(`conversational-commerce: getStats query failed, returning fallback: ${err}`);
+      return { totalSessions: 0, activeSessions: 0, totalMessages: 0, topIntents: [], avgConfidence: 0 };
+    }
   }),
 });
