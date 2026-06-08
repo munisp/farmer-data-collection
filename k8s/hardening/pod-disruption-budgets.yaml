@@ -1,0 +1,100 @@
+# PodDisruptionBudgets for FarmConnect Platform
+# Ensures minimum availability during voluntary disruptions (upgrades, drains)
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: farmconnect-api-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: api
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: farmconnect-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: delivery-service-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: delivery
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: delivery-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mobile-money-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: payments
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: mobile-money-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ml-inference-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: ml
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: ml-inference-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: exchange-service-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: exchange
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: exchange-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: aquaculture-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: aquaculture
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: aquaculture-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: blockchain-provenance-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: blockchain
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: blockchain-provenance-service
