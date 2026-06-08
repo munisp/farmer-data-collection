@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats, saveDaprState, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { eq, and, desc, asc, sql, gte, lte, or } from "drizzle-orm";
@@ -518,8 +518,10 @@ export const exchangeRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const userId = ctx.user.id;
+        await checkRateLimit("exchange-order", String(userId), 20, 60);
+        await scanForThreats("exchange-order");
+        await checkPermission(String(userId), "exchange", "trade");
       
-        // Enforce KYC requirements before trading
         const tradeType = input.side === 'buy' ? 'buy' : 'sell';
         const estimatedAmount = (input.price || 0) * input.quantity;
         const kycCheck = await checkTradingKyc(userId, tradeType, estimatedAmount);

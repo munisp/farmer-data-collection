@@ -1,5 +1,4 @@
 /**
-import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * Escrow Payment Router
  * 
  * Holds funds in TigerBeetle until buyer confirms receipt.
@@ -10,6 +9,7 @@ import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordL
  */
 
 import { z } from "zod";
+import { checkPermission, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
 import { escrowAccounts, marketplaceOrders } from "../../drizzle/schema.js";
@@ -29,6 +29,10 @@ export const escrowRouter = router({
       currency: z.string().default("NGN"),
     }))
     .mutation(async ({ input, ctx }) => {
+      await checkRateLimit("escrow-create", String(ctx.user.id), 10, 60);
+      await scanForThreats("escrow-create");
+      await checkPermission(String(ctx.user.id), "escrow", "create");
+
       const db = await requireDb();
       const tigerBeetleTransferId = crypto.randomUUID();
       const autoReleaseAt = new Date(Date.now() + AUTO_RELEASE_HOURS * 60 * 60 * 1000);

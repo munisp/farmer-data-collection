@@ -1,10 +1,10 @@
 /**
-import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * KYC Router
  * API endpoints for KYC verification and management
  */
 
 import { z } from 'zod';
+import { checkRateLimit, scanForThreats, verifyKeycloakToken } from '../integrations/middleware-router-hooks.js';
 import { router, protectedProcedure, publicProcedure } from '../_core/trpc-base.js';
 import { TRPCError } from '@trpc/server';
 import { createKycService, type KycTier, type KycStatus, type DocumentType } from '../services/kyc-service.js';
@@ -178,6 +178,9 @@ export const kycRouter = router({
       phoneNumber: z.string().min(10).max(15),
     }))
     .mutation(async ({ input, ctx }) => {
+      await checkRateLimit("kyc-otp", String(ctx.user?.id ?? "anon"), 3, 300);
+      await scanForThreats("kyc-verification");
+
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -290,6 +293,9 @@ export const kycRouter = router({
       expiryDate: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      await verifyKeycloakToken(ctx.token ?? "");
+      await scanForThreats("kyc-document-upload");
+
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });

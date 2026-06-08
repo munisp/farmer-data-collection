@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * Loan Application Router
  * 
@@ -77,13 +77,16 @@ export const loanApplicationRouter = router({
       })
     )
         .mutation(async ({ input, ctx }) => {
+          await checkRateLimit("loan-application", ctx.token ?? "anon", 5, 60);
+          await scanForThreats("loan-application");
+          await checkPermission(ctx.token ?? "anon", "loan", "apply");
+
           const db = await getDb();
           if (!db) throw new Error("Database not available");
 
           const userId = ctx.token ? parseInt(ctx.token) : null;
           if (!userId) throw new Error("User not authenticated");
 
-          // Enforce KYC requirements before loan application
           const kycCheck = await checkLoanApplicationKyc(userId, input.loanAmount);
           if (!kycCheck.allowed) {
             throw new Error(kycCheck.reason || "KYC verification required for loan applications");
