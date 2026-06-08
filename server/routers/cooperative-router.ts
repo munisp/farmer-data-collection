@@ -1,4 +1,5 @@
 /**
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * Cooperative Management Router
  * CRUD operations for cooperatives, members, accounts, and transactions
  */

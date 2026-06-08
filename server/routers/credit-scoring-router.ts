@@ -1,4 +1,5 @@
 /**
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * Credit Scoring Router
  * Transparent, explainable credit scoring for smallholder farmers
  */

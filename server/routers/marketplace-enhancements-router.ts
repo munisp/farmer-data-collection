@@ -9,6 +9,7 @@ import {
   insuranceClaims,
 } from "../../drizzle/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { withRedisCache, invalidateRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, searchDocuments, checkRateLimit } from "../integrations/middleware-router-hooks.js";
 
 export const marketplaceEnhancementsRouter = router({
   // ======================== NEGOTIATION / BIDDING ========================

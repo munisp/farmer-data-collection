@@ -1,4 +1,5 @@
 /**
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * Agent Productivity Router
  * Task management, route planning, and visit tracking for field agents
  */

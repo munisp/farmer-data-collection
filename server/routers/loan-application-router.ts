@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
 /**
  * Loan Application Router
  * 

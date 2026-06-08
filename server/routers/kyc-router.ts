@@ -1,4 +1,5 @@
 /**
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * KYC Router
  * API endpoints for KYC verification and management
  */

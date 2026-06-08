@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { eq, and, desc, asc, sql, gte, lte, or } from "drizzle-orm";

@@ -112,3 +112,4 @@ services/rust/*/target/
 test-plan*.md
 test-report.md
 test-screenshots/
+__pycache__/

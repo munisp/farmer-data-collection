@@ -1,4 +1,5 @@
 /**
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * Order Fulfillment Router
  * 
  * Handles the farm-to-home pipeline beyond basic order CRUD:

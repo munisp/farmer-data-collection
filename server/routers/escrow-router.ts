@@ -1,4 +1,5 @@
 /**
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * Escrow Payment Router
  * 
  * Holds funds in TigerBeetle until buyer confirms receipt.

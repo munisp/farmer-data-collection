@@ -1,4 +1,5 @@
 /**
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * Delivery & Supply Chain tRPC Router
  * 
  * Farm-to-table delivery: collection points, aggregation hubs, 
