@@ -42,6 +42,21 @@ export const SERVICE_URLS = {
   IOT_GATEWAY_URL: process.env.IOT_GATEWAY_URL || "http://localhost:8108",
   ML_SERVICE_URL: process.env.ML_SERVICE_URL || "http://localhost:8109",
 
+  // New polyglot services
+  CONTRACT_FARMING_URL: process.env.CONTRACT_FARMING_URL || "http://localhost:8116",
+  WAREHOUSE_RECEIPT_URL: process.env.WAREHOUSE_RECEIPT_URL || "http://localhost:8117",
+  CONVERSATIONAL_COMMERCE_URL: process.env.CONVERSATIONAL_COMMERCE_URL || "http://localhost:8118",
+
+  // Legacy polyglot services
+  MOBILE_MONEY_URL: process.env.MOBILE_MONEY_SERVICE_URL || "http://localhost:8090",
+  COLD_CHAIN_URL: process.env.COLD_CHAIN_SERVICE_URL || "http://localhost:8092",
+  PRICE_SERVICE_URL: process.env.PRICE_PREDICTION_SERVICE_URL || "http://localhost:8093",
+  KYC_SERVICE_URL: process.env.KYC_SERVICE_URL || "http://localhost:8104",
+  AGRI_LLM_URL: process.env.AGRI_LLM_URL || "http://localhost:8103",
+  FLEET_SERVICE_URL: process.env.FLEET_SERVICE_URL || "http://localhost:8098",
+  SOIL_ANALYSIS_URL: process.env.SOIL_ANALYSIS_URL || "http://localhost:8096",
+  MODEL_SERVING_URL: process.env.MODEL_SERVING_URL || "http://localhost:8087",
+
   // External APIs
   OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY || "",
   AFRICASTALKING_API_KEY: process.env.AFRICASTALKING_API_KEY || "",

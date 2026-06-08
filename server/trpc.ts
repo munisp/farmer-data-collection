@@ -104,6 +104,14 @@ import { tokenizedAssetsRouter } from "./routers/tokenized-assets-router.js";
 import { digitalTwinRouter } from "./routers/digital-twin-router.js";
 import { apiDeveloperPortalRouter } from "./routers/api-developer-portal-router.js";
 import { decentralizedIdentityRouter } from "./routers/decentralized-identity-router.js";
+import { websocketHubRouter } from "./routers/websocket-hub-router.js";
+import { pushNotificationRouter } from "./routers/push-notification-router.js";
+import { reportGenerationRouter } from "./routers/report-generation-router.js";
+import { insuranceAIRouter } from "./routers/insurance-ai-router.js";
+import { voiceFirstRouter } from "./routers/voice-first-router.js";
+import { carbonCreditRouter } from "./routers/carbon-credit-router.js";
+import { federatedLearningRouter } from "./routers/federated-learning-router.js";
+import { chamaSavingsRouter } from "./routers/chama-savings-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -244,6 +252,16 @@ export const appRouter = router({
   digitalTwin: digitalTwinRouter,
   apiDeveloperPortal: apiDeveloperPortalRouter,
   decentralizedIdentity: decentralizedIdentityRouter,
+  // === P2: Enhancements ===
+  websocketHub: websocketHubRouter,
+  pushNotifications: pushNotificationRouter,
+  reportGeneration: reportGenerationRouter,
+  // === P3: Innovations ===
+  insuranceAI: insuranceAIRouter,
+  voiceFirst: voiceFirstRouter,
+  carbonCredit: carbonCreditRouter,
+  federatedLearning: federatedLearningRouter,
+  chamaSavings: chamaSavingsRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
