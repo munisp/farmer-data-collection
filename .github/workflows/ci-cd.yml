@@ -125,11 +125,11 @@ jobs:
       matrix:
         include:
           - lang: go
-            services: [feature-flags, whatsapp-service, qr-traceability, tile-cache, gps-streaming]
+            services: [feature-flags, whatsapp-service, qr-traceability, tile-cache, gps-streaming, blockchain-provenance-go, aquaculture-pond-go, contract-farming-go, equipment-fleet-go]
           - lang: python
-            services: [geocoding, weather-alerts, credit-scoring, voice-navigation]
+            services: [geocoding, weather-alerts, credit-scoring, voice-navigation, cea-ai-python, aquaculture-ai-python, conversational-commerce-python]
           - lang: rust
-            services: [rust/autonomous-ops, rust/image-processor, rust/iot-gateway, rust/isobus-gateway, rust/openappsec-waf, rust/spatial-query-service, rust/tokenization-service]
+            services: [rust/autonomous-ops, rust/image-processor, rust/iot-gateway, rust/isobus-gateway, rust/openappsec-waf, rust/spatial-query-service, rust/tokenization-service, aquaculture-feed-rust, urban-delivery-rust, warehouse-receipt-rust]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -632,12 +632,72 @@ jobs:
           echo "Mobile TypeScript and tests validated successfully"
 
   # ============================================================================
-  # Job 11: Branch Protection Gate
+  # Job 11: E2E Smoke Tests
+  # ============================================================================
+  smoke-tests:
+    name: E2E Smoke Tests
+    runs-on: ubuntu-latest
+    needs: build
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: farmer_data
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start server
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/farmer_data
+          REDIS_URL: redis://localhost:6379
+          PORT: 3001
+          NODE_ENV: test
+        run: |
+          node dist/index.js &
+          sleep 5
+          curl -f http://localhost:3001/health || echo "Server startup check"
+
+      - name: Run E2E smoke tests
+        run: |
+          chmod +x scripts/e2e-smoke-test.sh
+          CI=true ./scripts/e2e-smoke-test.sh http://localhost:3001
+
+  # ============================================================================
+  # Job 12: Branch Protection Gate
   # ============================================================================
   branch-protection:
     name: Branch Protection Gate
     runs-on: ubuntu-latest
-    needs: [lint, test, build, security, microservice-tests, production-audit]
+    needs: [lint, test, build, security, microservice-tests, production-audit, smoke-tests]
     if: github.event_name == 'pull_request'
     steps:
       - name: All required checks passed
@@ -650,5 +710,6 @@ jobs:
           echo "  ✓ Security Scanning"
           echo "  ✓ Microservice Tests"
           echo "  ✓ Production Readiness Audit"
+          echo "  ✓ E2E Smoke Tests"
           echo ""
           echo "This PR is safe to merge."
