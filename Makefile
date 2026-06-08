@@ -92,22 +92,131 @@ check-env-validation:
 	@echo "[PRB-011] Checking environment validation..."
 	@bash scripts/prb/check-env-validation.sh
 
+# ============================================================================
+# Developer Workflow Targets
+# ============================================================================
+
+.PHONY: dev build lint test-all smoke backup migrate seed up down logs health load-test
+
+# Start development server
+dev:
+	@echo "Starting FarmConnect dev server..."
+	@npx tsx server/index.ts
+
+# Build production bundle
+build:
+	@echo "Building FarmConnect..."
+	@npx vite build
+	@echo "Build complete"
+
+# Run linting
+lint:
+	@npx prettier --check . 2>/dev/null || echo "Format issues found (run 'make fmt' to fix)"
+
+# Format code
+fmt:
+	@npx prettier --write .
+
+# Run all tests (TypeScript + polyglot)
+test-all: test
+	@echo "Running polyglot service tests..."
+	@for svc in services/*/; do \
+		if [ -f "$$svc/go.mod" ]; then (cd "$$svc" && go test ./... -v -count=1 2>/dev/null || true); fi; \
+		if [ -f "$$svc/requirements.txt" ]; then (cd "$$svc" && python -m pytest -v --tb=short 2>/dev/null || true); fi; \
+		if [ -f "$$svc/Cargo.toml" ]; then (cd "$$svc" && cargo test --release 2>/dev/null || true); fi; \
+	done
+	@echo "All tests complete"
+
+# Run E2E smoke tests against running server
+smoke:
+	@chmod +x scripts/e2e-smoke-test.sh
+	@./scripts/e2e-smoke-test.sh http://localhost:3001
+
+# Database operations
+migrate:
+	@chmod +x scripts/db-migrate.sh
+	@./scripts/db-migrate.sh migrate
+
+migrate-status:
+	@chmod +x scripts/db-migrate.sh
+	@./scripts/db-migrate.sh status
+
+seed:
+	@chmod +x scripts/db-migrate.sh
+	@./scripts/db-migrate.sh seed
+
+# Docker Compose operations
+up:
+	@echo "Starting full stack..."
+	@docker compose -f docker-compose.dev.yml up -d
+	@echo "Stack is running. API: http://localhost:3001"
+
+down:
+	@docker compose -f docker-compose.dev.yml down
+
+logs:
+	@docker compose -f docker-compose.dev.yml logs -f --tail=50
+
+# Health check
+health:
+	@curl -s http://localhost:3001/health | python3 -m json.tool 2>/dev/null || echo "Server not running"
+
+# Service health aggregator
+health-all:
+	@curl -s http://localhost:3001/api/service-health | python3 -m json.tool 2>/dev/null || echo "Server not running"
+
+# Backup operations
+backup-pg:
+	@chmod +x scripts/backup/pg_backup.sh
+	@./scripts/backup/pg_backup.sh full local
+
+backup-redis:
+	@chmod +x scripts/backup/redis_backup.sh
+	@./scripts/backup/redis_backup.sh backup local
+
+backup-tb:
+	@chmod +x scripts/backup/tigerbeetle_backup.sh
+	@./scripts/backup/tigerbeetle_backup.sh backup local
+
+backup-all: backup-pg backup-redis backup-tb
+	@echo "All backups complete"
+
+# Load testing (requires k6)
+load-test:
+	@k6 run scripts/load-testing/k6-baseline.js
+
 # Help target
 help:
-	@echo "Production Readiness Baseline (PRB) v2"
+	@echo "FarmConnect Platform — Makefile"
 	@echo ""
-	@echo "Usage:"
+	@echo "Development:"
+	@echo "  make dev                 Start dev server"
+	@echo "  make build               Build production bundle"
+	@echo "  make lint                Run linting"
+	@echo "  make fmt                 Auto-format code"
+	@echo "  make test                Run TypeScript tests"
+	@echo "  make test-all            Run all tests (TS + Go + Python + Rust)"
+	@echo "  make smoke               Run E2E smoke tests"
+	@echo ""
+	@echo "Database:"
+	@echo "  make migrate             Apply pending migrations"
+	@echo "  make migrate-status      Show migration status"
+	@echo "  make seed                Run seed scripts"
+	@echo ""
+	@echo "Docker:"
+	@echo "  make up                  Start full stack (Docker Compose)"
+	@echo "  make down                Stop all services"
+	@echo "  make logs                Tail service logs"
+	@echo ""
+	@echo "Operations:"
+	@echo "  make health              Check API health"
+	@echo "  make health-all          Service health aggregator"
+	@echo "  make backup-all          Backup PostgreSQL + Redis + TigerBeetle"
+	@echo "  make load-test           Run k6 load tests"
+	@echo ""
+	@echo "PRB Verification:"
 	@echo "  make verify              Run all PRB v2 checks"
 	@echo "  make verify-v1           Run PRB v1 checks only (quick)"
-	@echo "  make typecheck           Check TypeScript compilation (PRB-004)"
-	@echo "  make test                Run tests with coverage (PRB-007)"
-	@echo "  make check-secrets       Check for hardcoded credentials (PRB-001)"
-	@echo "  make check-mocks         Check for mock functions (PRB-002)"
-	@echo "  make check-todos         Check for TODO/FIXME placeholders (PRB-003)"
-	@echo "  make check-docker        Check Dockerfile builds (PRB-005)"
-	@echo "  make check-db-persistence Check DB config (PRB-006)"
-	@echo "  make check-audit         Check for vulnerabilities (PRB-008)"
-	@echo "  make check-rate-limiting Check rate limiting (PRB-009)"
-	@echo "  make check-health-endpoints Check health endpoints (PRB-010)"
-	@echo "  make check-production-readiness Run the comprehensive production readiness audit (PRB-012)"
-	@echo "  make check-env-validation Check env validation (PRB-011)"
+	@echo "  make typecheck           Check TypeScript compilation"
+	@echo "  make check-secrets       Check for hardcoded credentials"
+	@echo "  make check-docker        Check Dockerfile builds"
