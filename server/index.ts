@@ -134,6 +134,14 @@ async function startServer() {
     logger.warn('[Server] Redis rate limiting initialization failed, using in-memory fallback:', error);
   }
 
+  // ============ Service Health Aggregator ============
+  try {
+    const { registerHealthAggregator } = await import('./services/service-health-aggregator.js');
+    registerHealthAggregator(app);
+  } catch (err) {
+    logger.warn('[Server] Health aggregator registration failed:', err);
+  }
+
   // ============ API Documentation (OpenAPI/Swagger) ============
   try {
     const { registerOpenAPIDocs } = await import('./services/openapi-generator.js');

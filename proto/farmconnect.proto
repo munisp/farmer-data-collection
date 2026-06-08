@@ -399,3 +399,995 @@ message TradeSettlementResponse {
   string settlement_id = 2;
   string status = 3;
 }
+
+// ===== Price Prediction Service (Python :8093) =====
+
+service PricePredictionService {
+  rpc GetLivePrice(LivePriceRequest) returns (LivePriceResponse);
+  rpc GetPriceHistory(PriceHistoryRequest) returns (PriceHistoryResponse);
+  rpc ForecastPrice(PriceForecastRequest) returns (PriceForecastResponse);
+  rpc GetMarketSentiment(MarketSentimentRequest) returns (MarketSentimentResponse);
+}
+
+message LivePriceRequest {
+  string commodity = 1;
+  string market = 2;
+  string currency = 3;
+}
+
+message LivePriceResponse {
+  string commodity = 1;
+  double price_per_kg = 2;
+  string currency = 3;
+  string market = 4;
+  int64 timestamp = 5;
+  double change_24h_pct = 6;
+}
+
+message PriceHistoryRequest {
+  string commodity = 1;
+  string market = 2;
+  int32 days = 3;
+}
+
+message PriceHistoryResponse {
+  repeated PricePoint points = 1;
+  double avg_price = 2;
+  double min_price = 3;
+  double max_price = 4;
+}
+
+message PricePoint {
+  int64 timestamp = 1;
+  double price = 2;
+  double volume = 3;
+}
+
+message PriceForecastRequest {
+  string commodity = 1;
+  int32 horizon_days = 2;
+  string model = 3;
+}
+
+message PriceForecastResponse {
+  repeated PricePoint forecast = 1;
+  double confidence = 2;
+  string model_used = 3;
+}
+
+message MarketSentimentRequest {
+  string commodity = 1;
+  string region = 2;
+}
+
+message MarketSentimentResponse {
+  string sentiment = 1; // bullish, bearish, neutral
+  double score = 2;
+  repeated string factors = 3;
+}
+
+// ===== Equipment & Fleet Service (Go :8098) =====
+
+service EquipmentFleetService {
+  rpc ListEquipment(EquipmentListRequest) returns (EquipmentListResponse);
+  rpc GetEquipmentStatus(EquipmentStatusRequest) returns (EquipmentStatus);
+  rpc ScheduleMaintenance(MaintenanceRequest) returns (MaintenanceResponse);
+  rpc TrackFleetLocation(FleetLocationRequest) returns (FleetLocationResponse);
+  rpc ReportUsage(UsageReportRequest) returns (UsageReportResponse);
+}
+
+message EquipmentListRequest {
+  string cooperative_id = 1;
+  string equipment_type = 2;
+  string status_filter = 3;
+}
+
+message EquipmentListResponse {
+  repeated EquipmentItem items = 1;
+  int32 total = 2;
+}
+
+message EquipmentItem {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string status = 4;
+  double lat = 5;
+  double lon = 6;
+  int32 hours_used = 7;
+  int32 next_maintenance_hours = 8;
+}
+
+message EquipmentStatusRequest {
+  string equipment_id = 1;
+}
+
+message EquipmentStatus {
+  string equipment_id = 1;
+  string status = 2;
+  double fuel_level_pct = 3;
+  int32 engine_hours = 4;
+  double lat = 5;
+  double lon = 6;
+  string current_operator = 7;
+  int64 last_maintenance = 8;
+}
+
+message MaintenanceRequest {
+  string equipment_id = 1;
+  string maintenance_type = 2;
+  int64 scheduled_date = 3;
+  string notes = 4;
+}
+
+message MaintenanceResponse {
+  bool success = 1;
+  string work_order_id = 2;
+  int64 scheduled_date = 3;
+}
+
+message FleetLocationRequest {
+  string cooperative_id = 1;
+}
+
+message FleetLocationResponse {
+  repeated EquipmentLocation locations = 1;
+}
+
+message EquipmentLocation {
+  string equipment_id = 1;
+  string name = 2;
+  double lat = 3;
+  double lon = 4;
+  double speed_kmh = 5;
+  string status = 6;
+  int64 updated_at = 7;
+}
+
+message UsageReportRequest {
+  string equipment_id = 1;
+  double hours_used = 2;
+  double fuel_consumed_liters = 3;
+  double area_covered_ha = 4;
+  string operator_id = 5;
+}
+
+message UsageReportResponse {
+  bool success = 1;
+  string report_id = 2;
+  double total_hours = 3;
+}
+
+// ===== Blockchain Provenance Service (Go :8110) =====
+
+service BlockchainProvenanceService {
+  rpc RegisterAsset(AssetRegistration) returns (AssetRegistrationResponse);
+  rpc RecordTransfer(TransferRecord) returns (TransferRecordResponse);
+  rpc GetProvenanceChain(ProvenanceQuery) returns (ProvenanceChain);
+  rpc VerifyAuthenticity(AuthenticityRequest) returns (AuthenticityResponse);
+  rpc GetBlockExplorerData(BlockExplorerRequest) returns (BlockExplorerResponse);
+}
+
+message AssetRegistration {
+  string asset_type = 1;
+  string origin_farm_id = 2;
+  string commodity = 3;
+  double quantity_kg = 4;
+  string quality_grade = 5;
+  int64 harvest_date = 6;
+  string farmer_id = 7;
+  map<string, string> metadata = 8;
+}
+
+message AssetRegistrationResponse {
+  bool success = 1;
+  string asset_id = 2;
+  string tx_hash = 3;
+  int64 block_number = 4;
+}
+
+message TransferRecord {
+  string asset_id = 1;
+  string from_entity = 2;
+  string to_entity = 3;
+  string transfer_type = 4;
+  double lat = 5;
+  double lon = 6;
+  double temperature_c = 7;
+  int64 timestamp = 8;
+}
+
+message TransferRecordResponse {
+  bool success = 1;
+  string transfer_id = 2;
+  string tx_hash = 3;
+}
+
+message ProvenanceQuery {
+  string asset_id = 1;
+  bool include_metadata = 2;
+}
+
+message ProvenanceChain {
+  string asset_id = 1;
+  repeated ProvenanceEvent events = 2;
+  string current_holder = 3;
+  int32 total_transfers = 4;
+}
+
+message ProvenanceEvent {
+  string event_type = 1;
+  string entity = 2;
+  int64 timestamp = 3;
+  string tx_hash = 4;
+  double lat = 5;
+  double lon = 6;
+}
+
+message AuthenticityRequest {
+  string asset_id = 1;
+  string qr_code = 2;
+}
+
+message AuthenticityResponse {
+  bool verified = 1;
+  string asset_id = 2;
+  string origin_farm = 3;
+  string commodity = 4;
+  int32 chain_length = 5;
+  int64 first_registered = 6;
+}
+
+message BlockExplorerRequest {
+  int32 limit = 1;
+  int64 from_block = 2;
+}
+
+message BlockExplorerResponse {
+  repeated BlockSummary blocks = 1;
+  int64 latest_block = 2;
+  int32 total_transactions = 3;
+}
+
+message BlockSummary {
+  int64 block_number = 1;
+  string hash = 2;
+  int32 tx_count = 3;
+  int64 timestamp = 4;
+}
+
+// ===== Urban Delivery Service (Rust :8111) =====
+
+service UrbanDeliveryService {
+  rpc ListMicroZones(MicroZoneListRequest) returns (MicroZoneListResponse);
+  rpc OptimizeRoute(UrbanRouteRequest) returns (UrbanRouteResponse);
+  rpc TrackCourier(CourierTrackRequest) returns (CourierTrackResponse);
+  rpc EstimateDelivery(DeliveryEstimateRequest) returns (DeliveryEstimateResponse);
+  rpc GetDynamicPricing(DynamicPricingRequest) returns (DynamicPricingResponse);
+}
+
+message MicroZoneListRequest {
+  string city = 1;
+  bool active_only = 2;
+}
+
+message MicroZoneListResponse {
+  repeated MicroZone zones = 1;
+}
+
+message MicroZone {
+  string zone_id = 1;
+  string name = 2;
+  string city = 3;
+  double center_lat = 4;
+  double center_lon = 5;
+  double radius_km = 6;
+  int32 active_couriers = 7;
+  int32 pending_deliveries = 8;
+  double avg_delivery_minutes = 9;
+}
+
+message UrbanRouteRequest {
+  string zone_id = 1;
+  repeated UrbanDeliveryStop stops = 2;
+  string optimization_goal = 3; // fastest, cheapest, balanced
+}
+
+message UrbanDeliveryStop {
+  string order_id = 1;
+  double lat = 2;
+  double lon = 3;
+  double weight_kg = 4;
+  bool is_express = 5;
+}
+
+message UrbanRouteResponse {
+  repeated string stop_order = 1;
+  double total_distance_km = 2;
+  int32 estimated_minutes = 3;
+  double estimated_cost = 4;
+}
+
+message CourierTrackRequest {
+  string courier_id = 1;
+}
+
+message CourierTrackResponse {
+  string courier_id = 1;
+  double lat = 2;
+  double lon = 3;
+  string status = 4;
+  string current_order_id = 5;
+  int32 deliveries_today = 6;
+  double speed_kmh = 7;
+}
+
+message DeliveryEstimateRequest {
+  double pickup_lat = 1;
+  double pickup_lon = 2;
+  double dropoff_lat = 3;
+  double dropoff_lon = 4;
+  string delivery_type = 5;
+}
+
+message DeliveryEstimateResponse {
+  int32 estimated_minutes = 1;
+  double estimated_cost = 2;
+  string delivery_type = 3;
+  double distance_km = 4;
+  double surge_multiplier = 5;
+}
+
+message DynamicPricingRequest {
+  string zone_id = 1;
+  string delivery_type = 2;
+  double distance_km = 3;
+}
+
+message DynamicPricingResponse {
+  double base_price = 1;
+  double surge_multiplier = 2;
+  double final_price = 3;
+  string reason = 4;
+}
+
+// ===== CEA AI Service (Python :8112) =====
+
+service CeaAIService {
+  rpc ListIndoorCrops(IndoorCropListRequest) returns (IndoorCropListResponse);
+  rpc GetGrowRecipe(GrowRecipeRequest) returns (GrowRecipe);
+  rpc AssessCropHealth(IndoorHealthRequest) returns (IndoorHealthResponse);
+  rpc PredictYield(IndoorYieldRequest) returns (IndoorYieldResponse);
+  rpc OptimizeEnvironment(EnvironmentOptRequest) returns (EnvironmentOptResponse);
+}
+
+message IndoorCropListRequest {
+  string facility_type = 1;
+}
+
+message IndoorCropListResponse {
+  repeated IndoorCrop crops = 1;
+}
+
+message IndoorCrop {
+  string id = 1;
+  string name = 2;
+  string scientific_name = 3;
+  string facility_type = 4;
+  int32 growth_days = 5;
+  double yield_kg_per_sqm = 6;
+}
+
+message GrowRecipeRequest {
+  string crop_id = 1;
+  string stage = 2;
+}
+
+message GrowRecipe {
+  string crop_id = 1;
+  string stage = 2;
+  double temperature_c = 3;
+  double humidity_pct = 4;
+  double light_hours = 5;
+  double light_intensity_ppfd = 6;
+  double co2_ppm = 7;
+  double ec_ms_cm = 8;
+  double ph = 9;
+}
+
+message IndoorHealthRequest {
+  string facility_id = 1;
+  string crop_id = 2;
+  repeated float sensor_readings = 3;
+}
+
+message IndoorHealthResponse {
+  double health_score = 1;
+  string status = 2;
+  repeated string issues = 3;
+  repeated string recommendations = 4;
+}
+
+message IndoorYieldRequest {
+  string crop_id = 1;
+  double area_sqm = 2;
+  int32 growth_day = 3;
+  double avg_temperature_c = 4;
+  double avg_humidity_pct = 5;
+}
+
+message IndoorYieldResponse {
+  double predicted_yield_kg = 1;
+  double confidence = 2;
+  int32 days_to_harvest = 3;
+}
+
+message EnvironmentOptRequest {
+  string facility_id = 1;
+  string crop_id = 2;
+  double current_temp = 3;
+  double current_humidity = 4;
+  double current_co2 = 5;
+}
+
+message EnvironmentOptResponse {
+  double target_temp = 1;
+  double target_humidity = 2;
+  double target_co2 = 3;
+  double target_light_ppfd = 4;
+  double energy_saving_pct = 5;
+  repeated string adjustments = 6;
+}
+
+// ===== Aquaculture Pond Service (Go :8113) =====
+
+service AquaculturePondService {
+  rpc ListPonds(PondListRequest) returns (PondListResponse);
+  rpc GetPondStatus(PondStatusRequest) returns (PondStatus);
+  rpc RecordWaterQuality(WaterQualityReading) returns (WaterQualityResponse);
+  rpc GetWaterQualityHistory(WaterQualityHistoryRequest) returns (WaterQualityHistory);
+  rpc CreatePond(CreatePondRequest) returns (CreatePondResponse);
+}
+
+message PondListRequest {
+  string farm_id = 1;
+  string pond_type = 2;
+}
+
+message PondListResponse {
+  repeated PondSummary ponds = 1;
+  int32 total = 2;
+}
+
+message PondSummary {
+  string pond_id = 1;
+  string name = 2;
+  string type = 3;
+  double area_sqm = 4;
+  double depth_m = 5;
+  string species = 6;
+  int32 stock_count = 7;
+  double water_quality_index = 8;
+}
+
+message PondStatusRequest {
+  string pond_id = 1;
+}
+
+message PondStatus {
+  string pond_id = 1;
+  string name = 2;
+  double temperature_c = 3;
+  double ph = 4;
+  double dissolved_oxygen_mg_l = 5;
+  double ammonia_mg_l = 6;
+  double turbidity_ntu = 7;
+  int32 fish_count = 8;
+  double avg_weight_g = 9;
+  string health_status = 10;
+}
+
+message WaterQualityReading {
+  string pond_id = 1;
+  double temperature_c = 2;
+  double ph = 3;
+  double dissolved_oxygen_mg_l = 4;
+  double ammonia_mg_l = 5;
+  double nitrite_mg_l = 6;
+  double nitrate_mg_l = 7;
+  double turbidity_ntu = 8;
+  double salinity_ppt = 9;
+  int64 timestamp = 10;
+}
+
+message WaterQualityResponse {
+  bool within_range = 1;
+  double quality_index = 2;
+  repeated string alerts = 3;
+}
+
+message WaterQualityHistoryRequest {
+  string pond_id = 1;
+  int32 days = 2;
+}
+
+message WaterQualityHistory {
+  repeated WaterQualitySnapshot snapshots = 1;
+  double avg_quality_index = 2;
+}
+
+message WaterQualitySnapshot {
+  int64 timestamp = 1;
+  double temperature_c = 2;
+  double ph = 3;
+  double dissolved_oxygen_mg_l = 4;
+  double quality_index = 5;
+}
+
+message CreatePondRequest {
+  string farm_id = 1;
+  string name = 2;
+  string type = 3;
+  double area_sqm = 4;
+  double depth_m = 5;
+  string species = 6;
+  int32 initial_stock = 7;
+}
+
+message CreatePondResponse {
+  bool success = 1;
+  string pond_id = 2;
+}
+
+// ===== Aquaculture Feed Service (Rust :8114) =====
+
+service AquacultureFeedService {
+  rpc GetFeedSchedule(FeedScheduleRequest) returns (FeedSchedule);
+  rpc RecordFeeding(FeedingRecord) returns (FeedingRecordResponse);
+  rpc CalculateFCR(FCRRequest) returns (FCRResponse);
+  rpc GetFeedInventory(FeedInventoryRequest) returns (FeedInventory);
+  rpc OptimizeFeedPlan(FeedOptimizeRequest) returns (FeedOptimizeResponse);
+}
+
+message FeedScheduleRequest {
+  string pond_id = 1;
+  string species = 2;
+}
+
+message FeedSchedule {
+  string pond_id = 1;
+  repeated FeedingSlot slots = 2;
+  double daily_total_kg = 3;
+}
+
+message FeedingSlot {
+  string time = 1;
+  double amount_kg = 2;
+  string feed_type = 3;
+  double protein_pct = 4;
+}
+
+message FeedingRecord {
+  string pond_id = 1;
+  string feed_type = 2;
+  double amount_kg = 3;
+  double water_temp_c = 4;
+  string observer_notes = 5;
+  int64 timestamp = 6;
+}
+
+message FeedingRecordResponse {
+  bool success = 1;
+  string record_id = 2;
+  double cumulative_today_kg = 3;
+}
+
+message FCRRequest {
+  string pond_id = 1;
+  int32 period_days = 2;
+}
+
+message FCRResponse {
+  double fcr = 1;
+  double feed_consumed_kg = 2;
+  double weight_gained_kg = 3;
+  string rating = 4;
+  double cost_per_kg_gain = 5;
+}
+
+message FeedInventoryRequest {
+  string farm_id = 1;
+}
+
+message FeedInventory {
+  repeated FeedStock stocks = 1;
+  int32 days_supply_remaining = 2;
+  double total_value = 3;
+}
+
+message FeedStock {
+  string feed_type = 1;
+  double quantity_kg = 2;
+  double price_per_kg = 3;
+  string expiry_date = 4;
+  double protein_pct = 5;
+}
+
+message FeedOptimizeRequest {
+  string pond_id = 1;
+  string species = 2;
+  double current_avg_weight_g = 3;
+  double target_weight_g = 4;
+  int32 days_remaining = 5;
+}
+
+message FeedOptimizeResponse {
+  double recommended_daily_kg = 1;
+  string recommended_feed_type = 2;
+  double expected_fcr = 3;
+  double estimated_cost = 4;
+  repeated string adjustments = 5;
+}
+
+// ===== Aquaculture AI Service (Python :8115) =====
+
+service AquacultureAIService {
+  rpc DiagnoseFishDisease(FishDiseaseRequest) returns (FishDiseaseResponse);
+  rpc PredictGrowth(FishGrowthRequest) returns (FishGrowthResponse);
+  rpc OptimalConditions(OptimalConditionsRequest) returns (OptimalConditionsResponse);
+  rpc EstimateHatchery(HatcheryRequest) returns (HatcheryResponse);
+  rpc PredictMortality(MortalityRequest) returns (MortalityResponse);
+}
+
+message FishDiseaseRequest {
+  string species = 1;
+  repeated string symptoms = 2;
+  double water_temp_c = 3;
+  double ph = 4;
+  double dissolved_oxygen_mg_l = 5;
+}
+
+message FishDiseaseResponse {
+  string disease = 1;
+  double confidence = 2;
+  string category = 3;
+  string treatment = 4;
+  repeated string preventive_measures = 5;
+  int32 recovery_days = 6;
+}
+
+message FishGrowthRequest {
+  string species = 1;
+  double current_weight_g = 2;
+  int32 age_days = 3;
+  double water_temp_c = 4;
+  double feed_rate_pct = 5;
+}
+
+message FishGrowthResponse {
+  double predicted_weight_g = 1;
+  int32 days_to_market = 2;
+  double growth_rate_g_day = 3;
+  double confidence = 4;
+  string model = 5;
+}
+
+message OptimalConditionsRequest {
+  string species = 1;
+  string life_stage = 2;
+}
+
+message OptimalConditionsResponse {
+  double temp_min_c = 1;
+  double temp_max_c = 2;
+  double ph_min = 3;
+  double ph_max = 4;
+  double do_min_mg_l = 5;
+  double ammonia_max_mg_l = 6;
+  double salinity_min_ppt = 7;
+  double salinity_max_ppt = 8;
+  double feed_rate_pct = 9;
+  double stocking_density_per_sqm = 10;
+}
+
+message HatcheryRequest {
+  string species = 1;
+  int32 broodstock_count = 2;
+  double avg_weight_kg = 3;
+}
+
+message HatcheryResponse {
+  int32 estimated_eggs = 1;
+  int32 estimated_fry = 2;
+  double survival_rate_pct = 3;
+  int32 incubation_days = 4;
+  double estimated_cost = 5;
+}
+
+message MortalityRequest {
+  string species = 1;
+  double water_temp_c = 2;
+  double dissolved_oxygen_mg_l = 3;
+  double ammonia_mg_l = 4;
+  int32 stocking_density = 5;
+  int32 age_days = 6;
+}
+
+message MortalityResponse {
+  double mortality_rate_pct = 1;
+  string risk_level = 2;
+  repeated string risk_factors = 3;
+  repeated string mitigation_actions = 4;
+}
+
+// ===== Contract Farming Service (Go :8116) =====
+
+service ContractFarmingService {
+  rpc CreateContract(ContractCreateRequest) returns (ContractCreateResponse);
+  rpc ListContracts(ContractListRequest) returns (ContractListResponse);
+  rpc GetContractPerformance(ContractPerformanceRequest) returns (ContractPerformance);
+  rpc RecordDelivery(ContractDeliveryRecord) returns (ContractDeliveryResponse);
+  rpc EvaluateOfftaker(OfftakerEvalRequest) returns (OfftakerEvalResponse);
+}
+
+message ContractCreateRequest {
+  string farmer_id = 1;
+  string offtaker_id = 2;
+  string commodity = 3;
+  double quantity_kg = 4;
+  double price_per_kg = 5;
+  string delivery_schedule = 6;
+  int64 start_date = 7;
+  int64 end_date = 8;
+  string quality_requirements = 9;
+}
+
+message ContractCreateResponse {
+  bool success = 1;
+  string contract_id = 2;
+  string status = 3;
+}
+
+message ContractListRequest {
+  string farmer_id = 1;
+  string offtaker_id = 2;
+  string status = 3;
+}
+
+message ContractListResponse {
+  repeated ContractSummary contracts = 1;
+  int32 total = 2;
+}
+
+message ContractSummary {
+  string contract_id = 1;
+  string farmer_name = 2;
+  string offtaker_name = 3;
+  string commodity = 4;
+  double quantity_kg = 5;
+  double price_per_kg = 6;
+  string status = 7;
+  double fulfillment_pct = 8;
+}
+
+message ContractPerformanceRequest {
+  string contract_id = 1;
+}
+
+message ContractPerformance {
+  string contract_id = 1;
+  double delivered_kg = 2;
+  double target_kg = 3;
+  double fulfillment_pct = 4;
+  int32 on_time_deliveries = 5;
+  int32 total_deliveries = 6;
+  double avg_quality_score = 7;
+  double total_paid = 8;
+}
+
+message ContractDeliveryRecord {
+  string contract_id = 1;
+  double quantity_kg = 2;
+  string quality_grade = 3;
+  double moisture_pct = 4;
+  int64 delivery_date = 5;
+}
+
+message ContractDeliveryResponse {
+  bool success = 1;
+  string delivery_id = 2;
+  double remaining_kg = 3;
+  double amount_payable = 4;
+}
+
+message OfftakerEvalRequest {
+  string offtaker_id = 1;
+}
+
+message OfftakerEvalResponse {
+  string offtaker_id = 1;
+  double reliability_score = 2;
+  double avg_payment_days = 3;
+  int32 contracts_completed = 4;
+  int32 contracts_defaulted = 5;
+  string rating = 6;
+}
+
+// ===== Warehouse Receipt Service (Rust :8117) =====
+
+service WarehouseReceiptService {
+  rpc IssueReceipt(ReceiptIssueRequest) returns (ReceiptIssueResponse);
+  rpc GetReceipt(ReceiptGetRequest) returns (WarehouseReceipt);
+  rpc TransferReceipt(ReceiptTransferRequest) returns (ReceiptTransferResponse);
+  rpc PledgeAsCollateral(CollateralPledgeRequest) returns (CollateralPledgeResponse);
+  rpc GetWarehouseInventory(WarehouseInventoryRequest) returns (WarehouseInventory);
+}
+
+message ReceiptIssueRequest {
+  string warehouse_id = 1;
+  string depositor_id = 2;
+  string commodity = 3;
+  double quantity_kg = 4;
+  string quality_grade = 5;
+  double moisture_pct = 6;
+  int64 storage_date = 7;
+}
+
+message ReceiptIssueResponse {
+  bool success = 1;
+  string receipt_id = 2;
+  string receipt_number = 3;
+  int64 expiry_date = 4;
+}
+
+message ReceiptGetRequest {
+  string receipt_id = 1;
+}
+
+message WarehouseReceipt {
+  string receipt_id = 1;
+  string receipt_number = 2;
+  string warehouse_id = 3;
+  string warehouse_name = 4;
+  string depositor_id = 5;
+  string commodity = 6;
+  double quantity_kg = 7;
+  string quality_grade = 8;
+  double current_value = 9;
+  string status = 10;
+  bool is_pledged = 11;
+  int64 storage_date = 12;
+  int64 expiry_date = 13;
+}
+
+message ReceiptTransferRequest {
+  string receipt_id = 1;
+  string from_holder = 2;
+  string to_holder = 3;
+  string reason = 4;
+}
+
+message ReceiptTransferResponse {
+  bool success = 1;
+  string transfer_id = 2;
+  string new_holder = 3;
+}
+
+message CollateralPledgeRequest {
+  string receipt_id = 1;
+  string lender_id = 2;
+  double loan_amount = 3;
+  string currency = 4;
+  double ltv_ratio = 5;
+}
+
+message CollateralPledgeResponse {
+  bool success = 1;
+  string pledge_id = 2;
+  double approved_amount = 3;
+  double interest_rate_pct = 4;
+  int64 maturity_date = 5;
+}
+
+message WarehouseInventoryRequest {
+  string warehouse_id = 1;
+}
+
+message WarehouseInventory {
+  string warehouse_id = 1;
+  string name = 2;
+  double capacity_mt = 3;
+  double used_mt = 4;
+  double utilization_pct = 5;
+  repeated CommodityStock stocks = 6;
+}
+
+message CommodityStock {
+  string commodity = 1;
+  double quantity_kg = 2;
+  int32 receipt_count = 3;
+  double avg_quality_score = 4;
+}
+
+// ===== Conversational Commerce Service (Python :8118) =====
+
+service ConversationalCommerceService {
+  rpc ProcessMessage(ChatMessage) returns (ChatResponse);
+  rpc GetConversationHistory(ConversationHistoryRequest) returns (ConversationHistory);
+  rpc ExecuteTransaction(TransactionIntent) returns (TransactionResult);
+  rpc GetSupportedIntents(IntentsRequest) returns (IntentsList);
+}
+
+message ChatMessage {
+  string user_id = 1;
+  string message = 2;
+  string channel = 3; // whatsapp, ussd, sms, web
+  string language = 4;
+  string session_id = 5;
+}
+
+message ChatResponse {
+  string response_text = 1;
+  string intent = 2;
+  double confidence = 3;
+  repeated ChatAction actions = 4;
+  bool requires_confirmation = 5;
+}
+
+message ChatAction {
+  string type = 1;
+  string label = 2;
+  string payload = 3;
+}
+
+message ConversationHistoryRequest {
+  string user_id = 1;
+  string session_id = 2;
+  int32 limit = 3;
+}
+
+message ConversationHistory {
+  repeated ConversationTurn turns = 1;
+  string session_id = 2;
+}
+
+message ConversationTurn {
+  string role = 1;
+  string message = 2;
+  string intent = 3;
+  int64 timestamp = 4;
+}
+
+message TransactionIntent {
+  string user_id = 1;
+  string intent = 2;
+  string commodity = 3;
+  double quantity_kg = 4;
+  double price = 5;
+  string counterparty_id = 6;
+  string confirmation_token = 7;
+}
+
+message TransactionResult {
+  bool success = 1;
+  string transaction_id = 2;
+  string status = 3;
+  string summary = 4;
+  double amount = 5;
+}
+
+message IntentsRequest {
+  string language = 1;
+  string channel = 2;
+}
+
+message IntentsList {
+  repeated SupportedIntent intents = 1;
+}
+
+message SupportedIntent {
+  string intent = 1;
+  string description = 2;
+  repeated string example_phrases = 3;
+  string category = 4;
+}
