@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { TRPCError } from "@trpc/server";
 import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * Loan Application Router
@@ -77,9 +78,12 @@ export const loanApplicationRouter = router({
       })
     )
         .mutation(async ({ input, ctx }) => {
-          await checkRateLimit("loan-application", ctx.token ?? "anon", 5, 60);
-          await scanForThreats("loan-application");
-          await checkPermission(ctx.token ?? "anon", "loan", "apply");
+          const rateCheck = await checkRateLimit("loan-application", ctx.token ?? "anon", 5, 60);
+          if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for loan applications" });
+          const wafScan = await scanForThreats("loan-application", input);
+          if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+          const permissionGranted = await checkPermission(ctx.token ?? "anon", "loan", "apply");
+          if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: loan application" });
 
           const db = await getDb();
           if (!db) throw new Error("Database not available");

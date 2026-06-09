@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats, saveDaprState, writeToLakehouse, initiatePaymentSettlement } from "../integrations/middleware-router-hooks.js";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
@@ -518,9 +519,12 @@ export const exchangeRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const userId = ctx.user.id;
-        await checkRateLimit("exchange-order", String(userId), 20, 60);
-        await scanForThreats("exchange-order");
-        await checkPermission(String(userId), "exchange", "trade");
+        const rateCheck = await checkRateLimit("exchange-order", String(userId), 20, 60);
+        if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for exchange orders" });
+        const wafScan = await scanForThreats("exchange-order", input);
+        if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+        const permissionGranted = await checkPermission(String(userId), "exchange", "trade");
+        if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: exchange trade" });
       
         const tradeType = input.side === 'buy' ? 'buy' : 'sell';
         const estimatedAmount = (input.price || 0) * input.quantity;

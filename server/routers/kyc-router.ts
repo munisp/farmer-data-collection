@@ -178,8 +178,10 @@ export const kycRouter = router({
       phoneNumber: z.string().min(10).max(15),
     }))
     .mutation(async ({ input, ctx }) => {
-      await checkRateLimit("kyc-otp", String(ctx.user?.id ?? "anon"), 3, 300);
-      await scanForThreats("kyc-verification");
+      const rateCheck = await checkRateLimit("kyc-otp", String(ctx.user?.id ?? "anon"), 3, 300);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for KYC verification" });
+      const wafScan = await scanForThreats("kyc-verification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const userId = ctx.user?.id;
       if (!userId) {
@@ -294,7 +296,8 @@ export const kycRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       await verifyKeycloakToken(ctx.token ?? "");
-      await scanForThreats("kyc-document-upload");
+      const docWafScan = await scanForThreats("kyc-document-upload", input);
+      if (!docWafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${docWafScan.threats.join(", ")}` });
 
       const userId = ctx.user?.id;
       if (!userId) {

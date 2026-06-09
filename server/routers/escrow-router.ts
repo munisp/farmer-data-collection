@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { checkPermission, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -29,9 +30,12 @@ export const escrowRouter = router({
       currency: z.string().default("NGN"),
     }))
     .mutation(async ({ input, ctx }) => {
-      await checkRateLimit("escrow-create", String(ctx.user.id), 10, 60);
-      await scanForThreats("escrow-create");
-      await checkPermission(String(ctx.user.id), "escrow", "create");
+      const rateCheck = await checkRateLimit("escrow-create", String(ctx.user.id), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for escrow creation" });
+      const wafScan = await scanForThreats("escrow-create", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permissionGranted = await checkPermission(String(ctx.user.id), "escrow", "create");
+      if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: escrow create" });
 
       const db = await requireDb();
       const tigerBeetleTransferId = crypto.randomUUID();
