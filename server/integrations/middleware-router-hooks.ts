@@ -75,15 +75,22 @@ export const KAFKA_TOPICS = {
   CREDIT_SCORE_UPDATED: "credit.score.updated",
 } as const;
 
-// ─── TigerBeetle Ledger Hooks ───────────────────────────────────────
+// ─── TigerBeetle Ledger Hooks (with balance verification) ───────────
 export async function recordLedgerEntry(
   debitAccountId: string,
   creditAccountId: string,
   amount: number,
   currency: string,
   description: string,
-): Promise<{ transactionId: string; status: string }> {
+): Promise<{ transactionId: string; status: string; balanceVerified: boolean }> {
   try {
+    // Verify debit account has sufficient balance before transfer
+    const balance = await tigerBeetle.getAccountBalance(debitAccountId);
+    if (balance.balance < BigInt(amount)) {
+      logger.warn(`[TigerBeetle] Insufficient balance for ${debitAccountId}: has ${balance.balance}, needs ${amount}`);
+      return { transactionId: '', status: 'insufficient_balance', balanceVerified: true };
+    }
+
     const result = await tigerBeetle.createTransfer({
       debitAccountId,
       creditAccountId,
@@ -91,34 +98,49 @@ export async function recordLedgerEntry(
       ledger: 1,
       code: 1,
     });
-    return { transactionId: result.id || `TB-${Date.now()}`, status: "completed" };
+    return { transactionId: result.id || `TB-${Date.now()}`, status: "completed", balanceVerified: true };
   } catch {
     logger.warn("[TigerBeetle] Unavailable, recording in PostgreSQL fallback");
-    return { transactionId: `PG-${Date.now()}`, status: "fallback" };
+    return { transactionId: `PG-${Date.now()}`, status: "fallback", balanceVerified: false };
   }
 }
 
-// ─── Mojaloop Payment Settlement ────────────────────────────────────
+// ─── Mojaloop Payment Settlement (cross-FSP interop) ────────────────
 export async function initiatePaymentSettlement(
   payerFsp: string,
   payeeFsp: string,
   amount: number,
   currency: string,
-): Promise<{ transferId: string; status: string }> {
+  payerIdType = "MSISDN",
+  payerIdValue?: string,
+  payeeIdType = "MSISDN",
+  payeeIdValue?: string,
+): Promise<{ transferId: string; status: string; settlementWindow?: string }> {
   try {
     const result = await mojaloop.initiateTransfer({
       payerFsp,
       payeeFsp,
       amount,
       currency,
-      payerIdType: "MSISDN",
-      payerIdValue: payerFsp,
-      payeeIdType: "MSISDN",
-      payeeIdValue: payeeFsp,
+      payerIdType,
+      payerIdValue: payerIdValue || payerFsp,
+      payeeIdType,
+      payeeIdValue: payeeIdValue || payeeFsp,
     });
-    return { transferId: result.transferId || `MOJA-${Date.now()}`, status: "pending" };
-  } catch {
-    logger.warn("[Mojaloop] Hub unavailable, queuing for retry");
+    logger.info(`[Mojaloop] Transfer initiated`, { transferId: result.transferId, state: result.state });
+    return {
+      transferId: result.transferId || `MOJA-${Date.now()}`,
+      status: result.state === "COMMITTED" ? "settled" : "pending",
+      settlementWindow: new Date().toISOString(),
+    };
+  } catch (err) {
+    logger.warn("[Mojaloop] Hub unavailable, queuing for async retry", { error: (err as Error).message });
+    // Publish retry event to Kafka for async processing
+    try {
+      await kafka.produce("payment.settlement_retry" as any, `${payerFsp}-${payeeFsp}`, {
+        payerFsp, payeeFsp, amount, currency, retryAt: new Date(Date.now() + 60_000).toISOString(),
+      });
+    } catch { /* Kafka also unavailable, will be picked up by outbox processor */ }
     return { transferId: `QUEUED-${Date.now()}`, status: "queued" };
   }
 }
@@ -149,9 +171,10 @@ export async function checkPermission(
       subject: userId,
     });
     return result === true;
-  } catch {
-    logger.warn(`[Permify] Check failed for ${userId}/${resource}/${action}, defaulting to role-based`);
-    return true;
+  } catch (err) {
+    logger.warn(`[Permify] Authorization check failed for ${userId}/${resource}/${action} — DENYING access`, { error: String(err) });
+    // DENY by default when Permify is unavailable (secure posture)
+    return false;
   }
 }
 
@@ -192,19 +215,23 @@ export async function searchDocuments(
   }
 }
 
-// ─── Fluvio Event Streaming ─────────────────────────────────────────
+// ─── Fluvio Event Streaming (with Kafka fallback) ───────────────────
 export async function streamEvent(
   topic: string,
   key: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
+  const enrichedPayload = { ...payload, _streamedAt: new Date().toISOString() };
   try {
-    await fluvio.produce(topic, key, {
-      ...payload,
-      _streamedAt: new Date().toISOString(),
-    });
+    await fluvio.produce(topic, key, enrichedPayload);
   } catch {
-    logger.warn(`[Fluvio] Stream failed for ${topic}, event lost`);
+    // Fluvio unavailable — fall back to Kafka (durable delivery via outbox)
+    logger.warn(`[Fluvio] Unavailable, falling back to Kafka for ${topic}`);
+    try {
+      await kafka.produce(`fluvio.${topic}` as any, key, enrichedPayload);
+    } catch (err) {
+      logger.error(`[Fluvio+Kafka] Both unavailable for ${topic}`, { error: (err as Error).message });
+    }
   }
 }
 
@@ -253,17 +280,57 @@ export async function checkRateLimit(
   }
 }
 
-// ─── OpenAppSec WAF Hooks ───────────────────────────────────────────
+// ─── OpenAppSec WAF Hooks (inspects request payload) ───────────────
 export async function scanForThreats(
   requestPath: string,
+  requestBody?: unknown,
 ): Promise<{ safe: boolean; threats: string[] }> {
-  try {
-    const events = await openAppSec.getSecurityEvents(1);
-    const hasThreats = events.some((e) => (e as Record<string, unknown>).severity === "critical");
-    return { safe: !hasThreats, threats: hasThreats ? ["security_event_detected"] : [] };
-  } catch {
-    return { safe: true, threats: [] };
+  const threats: string[] = [];
+
+  // Local input validation (always runs, regardless of OpenAppSec availability)
+  if (requestBody && typeof requestBody === 'object') {
+    const bodyStr = JSON.stringify(requestBody);
+    // SQL injection patterns
+    const sqlInjectionRe = new RegExp("('\\s*(OR|AND)\\s+['\"]|;\\s*(DROP|DELETE|UPDATE|INSERT|ALTER)\\s)", "i");
+    if (sqlInjectionRe.test(bodyStr)) {
+      threats.push('sql_injection_attempt');
+    }
+    // XSS patterns
+    const xssRe = new RegExp("(<script[^>]*>|javascript:|on\\w+\\s*=|eval\\s*\\()", "i");
+    if (xssRe.test(bodyStr)) {
+      threats.push('xss_attempt');
+    }
+    // Path traversal
+    const pathTraversalRe = new RegExp("(\\.\\.\\/|\\.\\.\\\\|%2e%2e%2f)", "i");
+    if (pathTraversalRe.test(bodyStr)) {
+      threats.push('path_traversal_attempt');
+    }
+    // Command injection
+    const cmdInjectionRe = new RegExp("(;\\s*(cat|ls|rm|wget|curl|nc)\\s|\\|\\s*(cat|ls|rm)|`[^`]+`)", "i");
+    if (cmdInjectionRe.test(bodyStr)) {
+      threats.push('command_injection_attempt');
+    }
   }
+
+  // Path-based checks
+  const maliciousPathRe = new RegExp("(\\.\\.\\/|%00)", "i");
+  if (maliciousPathRe.test(requestPath)) {
+    threats.push('malicious_path');
+  }
+
+  // Also check OpenAppSec for recent critical events (supplementary)
+  try {
+    const events = await openAppSec.getSecurityEvents(5);
+    const criticalEvents = events.filter((e) => (e as Record<string, unknown>).severity === "critical");
+    if (criticalEvents.length > 0) {
+      threats.push(`${criticalEvents.length}_critical_events_detected`);
+    }
+  } catch {
+    // OpenAppSec unavailable — local scanning still provides baseline protection
+    logger.debug('[OpenAppSec] Service unavailable, relying on local input validation');
+  }
+
+  return { safe: threats.length === 0, threats };
 }
 
 // ─── Lakehouse Analytics ────────────────────────────────────────────

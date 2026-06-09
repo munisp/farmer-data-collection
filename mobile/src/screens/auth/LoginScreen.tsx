@@ -27,11 +27,20 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      accessibilityLabel="Login screen"
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Farmer Data Collection</Text>
-          <Text style={styles.subtitle}>Login to your account</Text>
+        <View style={styles.content} accessibilityRole="form">
+          <Text
+            style={styles.title}
+            accessibilityRole="header"
+            accessibilityLabel="Farmer Data Collection"
+          >
+            Farmer Data Collection
+          </Text>
+          <Text style={styles.subtitle} accessibilityLabel="Login to your account">
+            Login to your account
+          </Text>
 
           <Input
             label="Email"
@@ -41,6 +50,8 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            accessibilityLabel="Email address input"
+            accessibilityHint="Enter your email address to login"
           />
 
           <Input
@@ -50,6 +61,8 @@ export default function LoginScreen() {
             placeholder="Enter your password"
             secureTextEntry
             autoComplete="password"
+            accessibilityLabel="Password input"
+            accessibilityHint="Enter your password to login"
           />
 
           <Button
@@ -57,6 +70,8 @@ export default function LoginScreen() {
             onPress={handleLogin}
             loading={isLoading}
             style={styles.button}
+            accessibilityLabel="Login button"
+            accessibilityHint="Tap to sign in with your credentials"
           />
         </View>
       </ScrollView>

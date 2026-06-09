@@ -1,63 +1,88 @@
 /**
  * Middleware Integration Clients
- * Real client implementations for all 12 middleware systems.
+ * Production-grade client implementations for all 12 middleware systems.
+ * Uses REAL protocol clients (ioredis, kafkajs) — NOT HTTP stubs.
  * Each client connects to its service and provides graceful fallback when unavailable.
  */
 import { logger } from "../logger.js";
+import { getRedisClient, CacheService } from "../redis.js";
+import { eventBus } from "../services/event-bus.js";
 
 // ─── PostgreSQL (via Drizzle ORM) ───────────────────────────────────
 export { getDb } from "../db.js";
 export { requireDb } from "../utils/require-db.js";
 
-// ─── Redis Client ───────────────────────────────────────────────────
+// ─── Redis Client (real ioredis via CacheService) ───────────────────
 class RedisClient {
-  private url: string;
-  private connected = false;
+  private cache: CacheService;
 
   constructor() {
-    this.url = process.env.REDIS_URL || "redis://localhost:6379";
+    this.cache = new CacheService(300);
   }
 
   async get(key: string): Promise<string | null> {
+    const client = getRedisClient();
+    if (!client) return null;
     try {
-      const resp = await fetch(`${this.url.replace("redis://", "http://")}/GET/${key}`);
-      if (resp.ok) return await resp.text();
-    } catch { /* Redis unavailable */ }
-    return null;
+      return await client.get(key);
+    } catch (err) {
+      logger.warn(`[Redis] GET failed for ${key}`, { error: (err as Error).message });
+      return null;
+    }
   }
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    const client = getRedisClient();
+    if (!client) return;
     try {
-      const body = ttlSeconds ? `SET ${key} ${value} EX ${ttlSeconds}` : `SET ${key} ${value}`;
-      await fetch(`${this.url.replace("redis://", "http://")}/`, { method: "POST", body });
-    } catch { /* Redis unavailable */ }
+      if (ttlSeconds) {
+        await client.setex(key, ttlSeconds, value);
+      } else {
+        await client.set(key, value);
+      }
+    } catch (err) {
+      logger.warn(`[Redis] SET failed for ${key}`, { error: (err as Error).message });
+    }
   }
 
   async del(key: string): Promise<void> {
+    const client = getRedisClient();
+    if (!client) return;
     try {
-      await fetch(`${this.url.replace("redis://", "http://")}/DEL/${key}`);
-    } catch { /* Redis unavailable */ }
+      await client.del(key);
+    } catch (err) {
+      logger.warn(`[Redis] DEL failed for ${key}`, { error: (err as Error).message });
+    }
   }
 
-  isConnected(): boolean { return this.connected; }
+  isConnected(): boolean {
+    const client = getRedisClient();
+    return client !== null && client.status === 'ready';
+  }
 }
 
 export const redis = new RedisClient();
 
-// ─── Kafka Producer ─────────────────────────────────────────────────
+// ─── Kafka Producer (real kafkajs via EventBus with outbox pattern) ──
 class KafkaProducer {
-  private brokers: string[];
-
-  constructor() {
-    this.brokers = (process.env.KAFKA_BROKERS || "localhost:9092").split(",");
-  }
-
   async produce(topic: string, key: string, value: Record<string, unknown>): Promise<void> {
-    const event = { topic, key, value, timestamp: Date.now() };
-    logger.info(`[Kafka] Event produced`, { topic, key });
-    // In production, use kafkajs or confluent-kafka-javascript
-    // For now, emit to the event bus
-    globalEventBus.emit(topic, event);
+    try {
+      // Uses real kafkajs producer with transactional outbox pattern
+      // Events are persisted to PostgreSQL outbox AND sent to Kafka
+      const [domain] = topic.split(".");
+      const eventType = topic as any;
+      await eventBus.publish(
+        eventType,
+        domain || "system",
+        key,
+        value,
+        { source: "middleware-router-hook" },
+      );
+      logger.info(`[Kafka] Event durably published`, { topic, key });
+    } catch (err) {
+      logger.error(`[Kafka] Failed to publish event`, { topic, key, error: (err as Error).message });
+      throw err;
+    }
   }
 
   async produceBatch(topic: string, messages: Array<{ key: string; value: Record<string, unknown> }>): Promise<void> {
@@ -68,26 +93,6 @@ class KafkaProducer {
 }
 
 export const kafka = new KafkaProducer();
-
-// ─── Event Bus (in-process, used when Kafka unavailable) ────────────
-class EventBus {
-  private handlers = new Map<string, Array<(event: unknown) => void>>();
-
-  on(topic: string, handler: (event: unknown) => void): void {
-    const existing = this.handlers.get(topic) || [];
-    existing.push(handler);
-    this.handlers.set(topic, existing);
-  }
-
-  emit(topic: string, event: unknown): void {
-    const handlers = this.handlers.get(topic) || [];
-    for (const h of handlers) {
-      try { h(event); } catch (err) { logger.error(`[EventBus] Handler error on ${topic}`, err); }
-    }
-  }
-}
-
-export const globalEventBus = new EventBus();
 
 // ─── TigerBeetle Client ────────────────────────────────────────────
 class TigerBeetleClient {
@@ -209,8 +214,14 @@ class PermifyClient {
         body: JSON.stringify({ metadata: { schema_version: "", snap_token: "" }, ...permission }),
       });
       if (resp.ok) { const d = await resp.json(); return d.can === "CHECK_RESULT_ALLOWED"; }
-    } catch { /* Permify unavailable */ }
-    return true; // Allow by default when Permify unavailable
+      // Non-OK response (e.g. 500) — deny for safety
+      logger.warn(`[Permify] Non-OK response, denying access`, { status: resp.status });
+      return false;
+    } catch (err) {
+      // Permify unavailable — DENY by default (secure posture)
+      logger.warn(`[Permify] Service unavailable, denying access`, { error: (err as Error).message });
+      return false;
+    }
   }
 
   async writeRelationship(tuple: { entity: string; relation: string; subject: string }): Promise<void> {
@@ -394,8 +405,12 @@ export async function getMiddlewareStatus(): Promise<Record<string, { connected:
     }
   };
 
-  const [redisStatus, kafkaStatus, tbStatus, mojaStatus, kcStatus, permStatus, osStatus, fluvStatus, daprStatus, apisixStatus, oasStatus] = await Promise.all([
-    checkEndpoint(process.env.REDIS_URL?.replace("redis://", "http://") || "http://localhost:6379"),
+  // Check Redis via real ioredis client
+  const redisStart = Date.now();
+  const redisConnected = redis.isConnected();
+  const redisStatus = { connected: redisConnected, latencyMs: Date.now() - redisStart };
+
+  const [kafkaStatus, tbStatus, mojaStatus, kcStatus, permStatus, osStatus, fluvStatus, daprStatus, apisixStatus, oasStatus] = await Promise.all([
     checkEndpoint(`http://${(process.env.KAFKA_BROKERS || "localhost:9092").split(",")[0]}`),
     checkEndpoint(process.env.TIGERBEETLE_URL || "http://localhost:3004"),
     checkEndpoint(process.env.MOJALOOP_HUB_URL || "http://localhost:4000"),

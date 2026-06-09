@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats, saveDaprState, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats, saveDaprState, writeToLakehouse, initiatePaymentSettlement } from "../integrations/middleware-router-hooks.js";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { eq, and, desc, asc, sql, gte, lte, or } from "drizzle-orm";
@@ -1074,6 +1074,14 @@ async function matchOrder(
         netSellerCredit: tradeValue - feesSeller,
         status: "pending",
       });
+
+      // Initiate cross-FSP settlement via Mojaloop switch
+      await initiatePaymentSettlement(
+        `fsp-buyer-${buyerAccount.id}`,
+        `fsp-seller-${sellerAccount.id}`,
+        tradeValue,
+        "KES",
+      );
       
       // Update buyer account (release reserved, deduct actual)
       const buyerCashUsed = tradeValue + feesBuyer;

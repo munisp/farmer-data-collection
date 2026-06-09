@@ -782,4 +782,62 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* ============================================
+     MOBILE-FIRST TOUCH TARGETS
+     WCAG 2.5.5 Target Size (Enhanced): min 44x44px
+     Optimized for farmer-facing PWA on low-end mobile
+     ============================================ */
+  
+  /* All interactive elements have minimum 44px touch targets */
+  button,
+  [role="button"],
+  a,
+  input,
+  select,
+  textarea,
+  .touchable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Form inputs need larger targets on mobile */
+  @media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+      min-height: 48px;
+      font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    button,
+    [role="button"],
+    a.btn {
+      min-height: 48px;
+      padding: 12px 16px;
+    }
+  }
+
+  /* Touch-friendly spacing between interactive elements */
+  @media (pointer: coarse) {
+    button + button,
+    a + a,
+    .touchable + .touchable {
+      margin-top: 8px;
+    }
+
+    /* Larger checkboxes/radios on touch devices */
+    input[type="checkbox"],
+    input[type="radio"] {
+      min-width: 24px;
+      min-height: 24px;
+    }
+  }
+
+  /* Focus visible for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid oklch(var(--primary));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }

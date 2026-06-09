@@ -2,33 +2,18 @@
  * Carbon Credit Tokenization Router (P3-4)
  * Tokenized carbon credits from sustainable farming practices.
  * MRV (Monitoring, Reporting, Verification), trading, and retirement.
- * Middleware: TigerBeetle (ledger), Kafka (events), OpenSearch (marketplace), Lakehouse (analytics).
+ * Middleware: PostgreSQL, TigerBeetle (ledger), Kafka (events), OpenSearch (marketplace), Redis (cache).
  */
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
+import { getDb } from "../db.js";
+import { eq, desc } from "drizzle-orm";
+import { carbonProjects, carbonCredits } from "../../drizzle/schema-platform-extended.js";
 import { withRedisCache, recordLedgerEntry, publishKafkaEvent, indexDocument, searchDocuments, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
+import { logger } from "../logger.js";
 
-interface CarbonProject {
-  id: string;
-  name: string;
-  type: string;
-  methodology: string;
-  annualCredits: number;
-  pricePerTonne: number;
-  currency: string;
-  status: string;
-  verifier: string;
-  location: string;
-  farmerId: string;
-}
-
-const carbonProjects: CarbonProject[] = [
-  { id: "CP-001", name: "Agroforestry Carbon Sink", type: "afforestation", methodology: "AR-ACM0003", annualCredits: 450, pricePerTonne: 25, currency: "USD", status: "verified", verifier: "Verra VCS", location: "Nakuru, Kenya", farmerId: "F-101" },
-  { id: "CP-002", name: "Conservation Tillage", type: "soil_carbon", methodology: "VM0042", annualCredits: 180, pricePerTonne: 18, currency: "USD", status: "verified", verifier: "Gold Standard", location: "Kiambu, Kenya", farmerId: "F-102" },
-  { id: "CP-003", name: "Biochar Application", type: "biochar", methodology: "CDM-AMS-III.BK", annualCredits: 320, pricePerTonne: 35, currency: "USD", status: "pending_verification", verifier: "Verra VCS", location: "Oyo, Nigeria", farmerId: "F-103" },
-  { id: "CP-004", name: "Rice Paddy Methane Reduction", type: "methane_reduction", methodology: "VM0006", annualCredits: 600, pricePerTonne: 22, currency: "USD", status: "verified", verifier: "Gold Standard", location: "Mwea, Kenya", farmerId: "F-104" },
-  { id: "CP-005", name: "Mangrove Restoration", type: "blue_carbon", methodology: "VM0033", annualCredits: 280, pricePerTonne: 45, currency: "USD", status: "verified", verifier: "Verra VCS", location: "Lamu, Kenya", farmerId: "F-105" },
-];
+type CarbonProject = typeof carbonProjects.$inferSelect;
+type CarbonCredit = typeof carbonCredits.$inferSelect;
 
 function calculateCarbonFootprint(farmSizeHa: number, cropType: string, practiceType: string): number {
   const baseSequestration: Record<string, number> = {
@@ -41,11 +26,13 @@ function calculateCarbonFootprint(farmSizeHa: number, cropType: string, practice
 
 export const carbonCreditRouter = router({
   listProjects: publicProcedure.query(async () => {
-    return withRedisCache("carbon-projects", 300, async () => ({
-      projects: carbonProjects,
-      total: carbonProjects.length,
-      totalCredits: carbonProjects.reduce((sum, p) => sum + p.annualCredits, 0),
-    }));
+    return withRedisCache("carbon-projects", 300, async () => {
+      const db = await getDb();
+      if (!db) return { projects: [], total: 0, totalCredits: 0 };
+      const projects = await db.select().from(carbonProjects).orderBy(desc(carbonProjects.createdAt));
+      const totalCredits = projects.reduce((sum: number, p: CarbonProject) => sum + Number(p.annualCredits), 0);
+      return { projects, total: projects.length, totalCredits };
+    });
   }),
 
   calculateSequestration: publicProcedure
@@ -76,34 +63,55 @@ export const carbonCreditRouter = router({
       location: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const projectId = `CP-${Date.now()}`;
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
       const credits = calculateCarbonFootprint(input.farmSizeHa, "mixed", input.type);
-      const project = {
-        id: projectId, ...input,
-        annualCredits: credits, pricePerTonne: 25, currency: "USD",
-        status: "pending_verification", verifier: "pending", farmerId: ctx.user.id,
-      };
-      await indexDocument("carbon-projects", projectId, project);
-      await publishKafkaEvent("carbon.project.registered", projectId, project);
-      await writeToLakehouse("carbon_projects", [project]);
+      const projectCode = `CP-${Date.now()}`;
+      const [project] = await db.insert(carbonProjects).values({
+        projectCode,
+        name: input.name,
+        type: input.type,
+        methodology: input.methodology,
+        annualCredits: String(credits),
+        pricePerTonne: "25.00",
+        currency: "USD",
+        status: "pending_verification",
+        verifier: "pending",
+        location: input.location,
+      }).returning();
+      await indexDocument("carbon-projects", projectCode, project as Record<string, unknown>);
+      await publishKafkaEvent("carbon.project.registered", projectCode, project as Record<string, unknown>);
+      await writeToLakehouse("carbon_projects", [project as Record<string, unknown>]);
+      logger.info(`Carbon project registered: ${projectCode}`);
       return project;
     }),
 
   tradeCredits: protectedProcedure
     .input(z.object({
-      projectId: z.string(),
+      projectId: z.number(),
       quantity: z.number().min(1),
       pricePerTonne: z.number().min(1),
     }))
     .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
       const tradeId = `TR-${Date.now()}`;
       const total = input.quantity * input.pricePerTonne;
+      const tokenId = `TK-${Date.now()}`;
+
+      const [credit] = await db.insert(carbonCredits).values({
+        projectId: input.projectId,
+        tokenId,
+        vintage: new Date().getFullYear(),
+        tonnes: String(input.quantity),
+        status: "traded",
+        ownerId: ctx.user.id,
+      }).returning();
+
       await recordLedgerEntry("carbon-buyer", String(ctx.user.id), total * 100, "USD", `Carbon credit trade ${tradeId}`);
-      await publishKafkaEvent("carbon.trade.executed", tradeId, { ...input, sellerId: ctx.user.id, total });
-      return {
-        tradeId, status: "executed", quantity: input.quantity,
-        pricePerTonne: input.pricePerTonne, total, currency: "USD",
-      };
+      await publishKafkaEvent("carbon.trade.executed", tradeId, { projectId: input.projectId, quantity: input.quantity, sellerId: ctx.user.id, total });
+      logger.info(`Carbon credit trade executed: ${tradeId}, total: ${total}`);
+      return { tradeId, credit, status: "executed", quantity: input.quantity, pricePerTonne: input.pricePerTonne, total, currency: "USD" };
     }),
 
   getMarketplace: publicProcedure
@@ -112,29 +120,37 @@ export const carbonCreditRouter = router({
       if (input?.query) {
         return { listings: await searchDocuments("carbon-marketplace", input.query), query: input.query };
       }
+      const db = await getDb();
+      if (!db) return { listings: [], totalAvailable: 0 };
+      const projects = await db.select().from(carbonProjects).where(eq(carbonProjects.status, "verified"));
       return {
-        listings: carbonProjects.filter((p) => p.status === "verified").map((p) => ({
+        listings: projects.map((p: CarbonProject) => ({
           projectId: p.id, name: p.name, type: p.type,
-          available: p.annualCredits, pricePerTonne: p.pricePerTonne,
+          available: Number(p.annualCredits), pricePerTonne: Number(p.pricePerTonne),
           currency: p.currency, verifier: p.verifier,
         })),
-        totalAvailable: carbonProjects.filter((p) => p.status === "verified").reduce((s, p) => s + p.annualCredits, 0),
+        totalAvailable: projects.reduce((s: number, p: CarbonProject) => s + Number(p.annualCredits), 0),
       };
     }),
 
-  getStats: publicProcedure.query(async () => ({
-    totalProjects: carbonProjects.length,
-    verifiedProjects: carbonProjects.filter((p) => p.status === "verified").length,
-    totalCreditsIssued: 1830,
-    totalCreditsTraded: 920,
-    totalCreditsRetired: 410,
-    totalRevenue: 48750,
-    currency: "USD",
-    avgPrice: 25.3,
-    topMethodologies: [
-      { methodology: "VM0042", projects: 12 },
-      { methodology: "AR-ACM0003", projects: 8 },
-      { methodology: "VM0033", projects: 5 },
-    ],
-  })),
+  getStats: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { totalProjects: 0, verifiedProjects: 0, totalCreditsIssued: 0, totalCreditsTraded: 0, totalCreditsRetired: 0, totalRevenue: 0, currency: "USD", avgPrice: 0 };
+    const projects = await db.select().from(carbonProjects);
+    const credits = await db.select().from(carbonCredits);
+    const verified = projects.filter((p: CarbonProject) => p.status === "verified").length;
+    const totalIssued = credits.reduce((s: number, c: CarbonCredit) => s + Number(c.tonnes), 0);
+    const traded = credits.filter((c: CarbonCredit) => c.status === "traded");
+    const retired = credits.filter((c: CarbonCredit) => c.status === "retired");
+    return {
+      totalProjects: projects.length,
+      verifiedProjects: verified,
+      totalCreditsIssued: totalIssued,
+      totalCreditsTraded: traded.reduce((s: number, c: CarbonCredit) => s + Number(c.tonnes), 0),
+      totalCreditsRetired: retired.reduce((s: number, c: CarbonCredit) => s + Number(c.tonnes), 0),
+      totalRevenue: traded.reduce((s: number, c: CarbonCredit) => s + Number(c.tonnes) * 25, 0),
+      currency: "USD",
+      avgPrice: projects.length > 0 ? projects.reduce((s: number, p: CarbonProject) => s + Number(p.pricePerTonne), 0) / projects.length : 0,
+    };
+  }),
 });
