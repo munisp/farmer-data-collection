@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -5,6 +6,7 @@ import { farmers, users, weatherStations } from "../../drizzle/schema.js";
 import { eq, sql, and } from "drizzle-orm";
 import { resilientFetch } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const AFRICASTALKING_API_KEY = process.env.AFRICASTALKING_API_KEY || "";
 const AFRICASTALKING_USERNAME = process.env.AFRICASTALKING_USERNAME || "sandbox";
 const AFRICASTALKING_URL = "https://api.africastalking.com/version1/messaging";
@@ -78,6 +80,11 @@ export const weatherAlertsRouter = router({
       language: z.string().default("en"),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("weather_alerts", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("weather_alerts", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
 
       const allFarmers = await db.select({
@@ -152,6 +159,11 @@ export const weatherAlertsRouter = router({
       region: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("weather_alerts", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("weather_alerts", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [station] = await db.insert(weatherStations).values({
         stationId: input.stationId,

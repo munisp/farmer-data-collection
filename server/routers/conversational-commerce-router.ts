@@ -3,6 +3,7 @@
  * WhatsApp/USSD/SMS chatbot for agricultural transactions.
  * Middleware: PostgreSQL, Kafka (events), Redis (session cache), OpenSearch (product search)
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
@@ -11,6 +12,7 @@ import { chatSessions, chatMessages } from "../../drizzle/schema-platform-extend
 import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 import { logger } from "../logger.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 type ChatSession = typeof chatSessions.$inferSelect;
 type ChatMessage = typeof chatMessages.$inferSelect;
 
@@ -91,6 +93,11 @@ export const conversationalCommerceRouter = router({
   startSession: protectedProcedure
     .input(z.object({ channel: Channel, phoneNumber: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("conversational_commerce", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("conversational_commerce", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const sessionCode = `CHAT-${Date.now()}`;
@@ -109,6 +116,11 @@ export const conversationalCommerceRouter = router({
   sendMessage: protectedProcedure
     .input(z.object({ sessionId: z.number(), message: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("conversational_commerce", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("conversational_commerce", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, input.sessionId));
@@ -141,6 +153,11 @@ export const conversationalCommerceRouter = router({
   endSession: protectedProcedure
     .input(z.object({ sessionId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("conversational_commerce", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("conversational_commerce", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await db.update(chatSessions).set({ status: "ended", endedAt: new Date() }).where(eq(chatSessions.id, input.sessionId));

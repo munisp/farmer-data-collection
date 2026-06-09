@@ -5,6 +5,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Delivery: WhatsApp, USSD, Voice/IVR, SMS, Mobile App
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -13,6 +14,7 @@ import { aiConversations } from "../../drizzle/supply-chain-schema.js";
 import crypto from "crypto";
 import { resilientFetch } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const AGRI_LLM_URL = process.env.AGRI_LLM_URL || "http://localhost:8103";
 
 export const agriLlmRouter = router({
@@ -35,6 +37,11 @@ export const agriLlmRouter = router({
       }).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("agri_llm", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agri_llm", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const sessionId = crypto.randomUUID();
       const startTime = Date.now();
@@ -112,6 +119,11 @@ export const agriLlmRouter = router({
       language: z.string().default("en"),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("agri_llm", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agri_llm", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const userId = ctx.user?.id ?? 1;
       try {
         const res = await resilientFetch(
@@ -151,6 +163,11 @@ export const agriLlmRouter = router({
       language: z.string().default("en"),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("agri_llm", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agri_llm", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const userId = ctx.user?.id ?? 1;
       try {
         const res = await resilientFetch(
@@ -181,6 +198,11 @@ export const agriLlmRouter = router({
       feedbackText: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agri_llm", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agri_llm", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(aiConversations)
         .set({

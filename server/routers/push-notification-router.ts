@@ -4,9 +4,10 @@
  * delivery scheduling, and preference management.
  * Middleware: Redis (dedup), Kafka (event sourcing), Dapr (state).
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
-import { publishKafkaEvent, saveDaprState, getDaprState, withRedisCache } from "../integrations/middleware-router-hooks.js";
+import { publishKafkaEvent, saveDaprState, getDaprState, withRedisCache, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 const notificationTopics = [
   { id: "price_alerts", name: "Price Alerts", description: "Commodity price changes above your threshold" },
@@ -49,6 +50,11 @@ export const pushNotificationRouter = router({
       }).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("push_notification", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("push_notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const prefs = {
         userId: ctx.user.id,
         enabled: true,
@@ -83,6 +89,11 @@ export const pushNotificationRouter = router({
       deviceName: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("push_notification", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("push_notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       await saveDaprState("notifications", `device:${ctx.user.id}:${input.platform}`, {
         token: input.token,
         platform: input.platform,

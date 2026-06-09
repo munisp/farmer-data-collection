@@ -4,12 +4,14 @@
  * Features: device registration, sensor readings, alerts, irrigation triggers, frost detection
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
 import { eq, desc, and } from "drizzle-orm";
 import { iotDevices, iotReadings } from "../../drizzle/supply-chain-schema.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const iotGatewayRouter = router({
   registerDevice: protectedProcedure
     .input(z.object({
@@ -33,6 +35,11 @@ export const iotGatewayRouter = router({
       }).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("iot_gateway", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("iot_gateway", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [device] = await db.insert(iotDevices).values({
         farmId: input.farmId,
@@ -64,6 +71,11 @@ export const iotGatewayRouter = router({
       })),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("iot_gateway", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("iot_gateway", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const records = [];
       for (const reading of input.readings) {
@@ -199,6 +211,11 @@ export const iotGatewayRouter = router({
       status: z.enum(["active", "offline", "maintenance", "decommissioned"]),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("iot_gateway", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("iot_gateway", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(iotDevices)
         .set({ status: input.status })

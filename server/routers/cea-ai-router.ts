@@ -3,6 +3,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * CEA (Controlled Environment Agriculture) AI Router — DB-backed
  * Indoor/vertical farming management, grow recipes, environment optimization.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -10,6 +11,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { indoorFarms, growRecipes } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const ceaAIRouter = router({
   listIndoorFarms: protectedProcedure
     .input(z.object({
@@ -44,6 +46,11 @@ export const ceaAIRouter = router({
       environmentParams: z.record(z.string(), z.number()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cea_ai", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cea_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [created] = await db.insert(indoorFarms).values({
         name: input.name, ownerId: input.ownerId, farmType: input.farmType,
@@ -99,6 +106,11 @@ export const ceaAIRouter = router({
       growthDays: z.number(), expectedYieldKgPerSqm: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cea_ai", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cea_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [created] = await db.insert(growRecipes).values({
         cropType: input.cropType, recipeName: input.recipeName,

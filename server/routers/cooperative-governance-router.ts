@@ -3,6 +3,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Cooperative Governance Router — DB-backed
  * Proposal management, voting, member governance for farmer cooperatives.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -10,6 +11,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { governanceProposals, governanceVotes } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const cooperativeGovernanceRouter = router({
   listProposals: protectedProcedure
     .input(z.object({
@@ -50,6 +52,11 @@ export const cooperativeGovernanceRouter = router({
       quorumRequired: z.number().min(1), deadline: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative_governance", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative_governance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [created] = await db.insert(governanceProposals).values({
         cooperativeId: input.cooperativeId, title: input.title, description: input.description,
@@ -63,6 +70,11 @@ export const cooperativeGovernanceRouter = router({
   castVote: protectedProcedure
     .input(z.object({ proposalId: z.number(), memberId: z.number(), vote: z.enum(["yes", "no", "abstain"]), reason: z.string().optional() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative_governance", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative_governance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [proposal] = await db.select().from(governanceProposals).where(eq(governanceProposals.id, input.proposalId));
       if (!proposal) return { success: false, error: "Proposal not found" };
@@ -82,6 +94,11 @@ export const cooperativeGovernanceRouter = router({
   closeVoting: protectedProcedure
     .input(z.object({ proposalId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative_governance", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative_governance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const votes = await db.select().from(governanceVotes).where(eq(governanceVotes.proposalId, input.proposalId));
       const [proposal] = await db.select().from(governanceProposals).where(eq(governanceProposals.id, input.proposalId));

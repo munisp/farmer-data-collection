@@ -3,6 +3,7 @@
  * Farm digital twin with zone management, sensor data, simulation, and alerts.
  * Middleware: PostgreSQL, Redis (cache), Kafka (events)
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
@@ -11,6 +12,7 @@ import { digitalTwins, iotDevices, iotReadings } from "../../drizzle/schema-plat
 import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 import { logger } from "../logger.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 type DigitalTwin = typeof digitalTwins.$inferSelect;
 type IotDevice = typeof iotDevices.$inferSelect;
 type IotReading = typeof iotReadings.$inferSelect;
@@ -100,6 +102,11 @@ export const digitalTwinRouter = router({
       parameters: z.record(z.string(), z.number()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("digital_twin", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("digital_twin", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) return { success: false, error: "Database not available" };
       try {

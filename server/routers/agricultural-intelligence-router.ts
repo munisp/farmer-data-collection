@@ -8,6 +8,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * - Pest and disease risk assessment
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from 'zod';
 import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { getDb } from '../db.js';
@@ -39,6 +40,7 @@ import {
   type WeatherConditions,
 } from '../services/pest-disease-risk-service.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const agriculturalIntelligenceRouter = router({
   // ============================================================================
   // CROP SELECTION AND DISCOVERY
@@ -289,6 +291,11 @@ export const agriculturalIntelligenceRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("agricultural_intelligence", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agricultural_intelligence", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 

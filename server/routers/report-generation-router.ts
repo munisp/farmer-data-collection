@@ -3,9 +3,10 @@
  * Generate farm reports, financial summaries, compliance exports.
  * Middleware: Redis (cache), OpenSearch (data aggregation), Lakehouse (analytics).
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
-import { withRedisCache, writeToLakehouse, searchDocuments } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, writeToLakehouse, searchDocuments, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 const reportTemplates = [
   { id: "farm_summary", name: "Farm Summary Report", description: "Overview of farm performance, yields, and expenses", format: ["pdf", "csv", "xlsx"] },
@@ -35,6 +36,11 @@ export const reportGenerationRouter = router({
       filters: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("report_generation", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("report_generation", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const template = reportTemplates.find((t) => t.id === input.templateId);
       if (!template) throw new Error("Report template not found");
 

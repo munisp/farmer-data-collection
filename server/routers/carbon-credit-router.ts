@@ -4,12 +4,13 @@
  * MRV (Monitoring, Reporting, Verification), trading, and retirement.
  * Middleware: PostgreSQL, TigerBeetle (ledger), Kafka (events), OpenSearch (marketplace), Redis (cache).
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { eq, desc } from "drizzle-orm";
 import { carbonProjects, carbonCredits } from "../../drizzle/schema-platform-extended.js";
-import { withRedisCache, recordLedgerEntry, publishKafkaEvent, indexDocument, searchDocuments, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, recordLedgerEntry, publishKafkaEvent, indexDocument, searchDocuments, writeToLakehouse, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 import { logger } from "../logger.js";
 
 type CarbonProject = typeof carbonProjects.$inferSelect;
@@ -63,6 +64,11 @@ export const carbonCreditRouter = router({
       location: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("carbon_credit", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("carbon_credit", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const credits = calculateCarbonFootprint(input.farmSizeHa, "mixed", input.type);
@@ -93,6 +99,11 @@ export const carbonCreditRouter = router({
       pricePerTonne: z.number().min(1),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("carbon_credit", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("carbon_credit", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tradeId = `TR-${Date.now()}`;

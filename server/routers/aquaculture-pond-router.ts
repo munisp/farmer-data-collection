@@ -30,6 +30,7 @@ import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { resilientPost } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const POND_SERVICE_URL = process.env.AQUACULTURE_POND_SERVICE_URL || "http://localhost:8113";
 
 // Species-specific water quality thresholds (fallback when Go service unavailable)
@@ -123,6 +124,11 @@ export const aquaculturePondRouter = router({
       drainageType: z.enum(["monk", "standpipe", "siphon", "pump", "gravity"]).default("monk"),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_pond", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_pond", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callPondService("/ponds", {
           farm_id: input.farmId, name: input.name, pond_type: input.pondType,
@@ -193,6 +199,11 @@ export const aquaculturePondRouter = router({
       readingMethod: z.enum(["sensor", "manual", "lab"]).default("manual"),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_pond", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_pond", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callPondService(`/ponds/${input.pondId}/readings`, {
           ph: input.ph,
@@ -276,6 +287,11 @@ export const aquaculturePondRouter = router({
       postExchangePH: z.number().min(0).max(14).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_pond", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_pond", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callPondService(`/ponds/${input.pondId}/water-exchange`, {
           volume_exchanged_liters: input.volumeExchangedLiters,
@@ -306,6 +322,11 @@ export const aquaculturePondRouter = router({
       daysOfWeek: z.array(z.string()).default(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_pond", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_pond", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callPondService(`/ponds/${input.pondId}/aeration`, {
           device_type: input.deviceType,

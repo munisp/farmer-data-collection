@@ -12,6 +12,7 @@ import { exportShipments, exportCertifications } from "../../drizzle/schema-plat
 import { applyMiddleware } from "../middleware/deep-integration.js";
 import { logger } from "../logger.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 type ExportShipment = typeof exportShipments.$inferSelect;
 type ExportCertification = typeof exportCertifications.$inferSelect;
 
@@ -71,6 +72,11 @@ export const exportChainRouter = router({
       destination: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("export_chain", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("export_chain", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const shipmentCode = `EXP-${Date.now()}`;
@@ -98,6 +104,11 @@ export const exportChainRouter = router({
       certNumber: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("export_chain", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("export_chain", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [cert] = await db.insert(exportCertifications).values({

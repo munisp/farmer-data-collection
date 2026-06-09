@@ -14,6 +14,7 @@ import { ERPNextSyncService } from "../services/erpnext/erpnext-sync-service.js"
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypto";
 import { logger } from '../logger.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * ERPNext Integration Router
  * 
@@ -79,6 +80,11 @@ export const erpnextRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("erpnext", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("erpnext", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -142,6 +148,11 @@ export const erpnextRouter = router({
   }),
 
   testConnection: protectedProcedure.mutation(async ({ ctx }) => {
+      const rateCheck = await checkRateLimit("erpnext", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("erpnext", undefined);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
     const userId = Number(ctx.user.id);
 
     try {
@@ -162,6 +173,11 @@ export const erpnextRouter = router({
   }),
 
   deleteConfig: protectedProcedure.mutation(async ({ ctx }) => {
+      const rateCheck = await checkRateLimit("erpnext", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("erpnext", undefined);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -183,6 +199,11 @@ export const erpnextRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("erpnext", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("erpnext", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -254,6 +275,11 @@ export const erpnextRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("erpnext", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("erpnext", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -489,6 +515,11 @@ export const erpnextRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("erpnext", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("erpnext", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 

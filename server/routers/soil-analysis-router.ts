@@ -11,6 +11,7 @@
  * - Redis for latest test result caching
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -19,6 +20,7 @@ import { eq, and, desc, gte, lte, sql, asc } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
 import { resilientPost } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8096";
 
 async function callMLService(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -63,6 +65,11 @@ export const soilAnalysisRouter = router({
       inferenceMs: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("soil_analysis", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("soil_analysis", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const userId = ctx.user?.id ?? 1;
 
@@ -140,6 +147,11 @@ export const soilAnalysisRouter = router({
       ndvi: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("soil_analysis", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("soil_analysis", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const result = await callMLService("/predict/soil", {
         photo: input.photo ?? null,
         ph: input.ph,

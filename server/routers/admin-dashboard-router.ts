@@ -16,6 +16,7 @@ import { loanApplications } from '../../drizzle/loan-application-schema.js';
 import { eq, sql, and, gte, count, desc } from 'drizzle-orm';
 import crypto from 'crypto';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const adminDashboardRouter = router({
   getLoanOfficerMetrics: protectedProcedure
     .input(z.object({
@@ -214,6 +215,11 @@ export const adminDashboardRouter = router({
       period: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("admin_dashboard", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("admin_dashboard", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return {
         reportId: `CR-${input.reportType.toUpperCase()}-${crypto.randomUUID().slice(0, 8)}`,
         status: 'generating',
@@ -332,6 +338,11 @@ export const adminDashboardRouter = router({
       format: z.enum(['pdf', 'csv', 'excel']).default('csv'),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("admin_dashboard", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("admin_dashboard", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return {
         downloadUrl: `/api/reports/${input.reportId}.${input.format}`,
         expiresAt: new Date(Date.now() + 3600_000).toISOString(),

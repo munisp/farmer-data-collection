@@ -2,6 +2,7 @@
  * Parametric Insurance Router — DB-backed
  * Climate insurance with satellite/IoT-triggered auto-payouts.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -10,6 +11,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { insurancePolicies } from "../../drizzle/platform-extensions-schema.js";
 
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const parametricInsuranceRouter = router({
   listPolicies: protectedProcedure
     .input(z.object({
@@ -46,6 +48,11 @@ export const parametricInsuranceRouter = router({
       startDate: z.string(), endDate: z.string(), dataSource: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("parametric_insurance", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("parametric_insurance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const premiumRate = Number(process.env.INSURANCE_PREMIUM_RATE_PCT ?? "5");
       const premiumAmount = input.coverageAmount * (premiumRate / 100);
@@ -64,6 +71,11 @@ export const parametricInsuranceRouter = router({
   evaluateTrigger: protectedProcedure
     .input(z.object({ policyId: z.number(), sensorData: z.object({ rainfallMm: z.number().optional(), ndvi: z.number().optional(), temperatureC: z.number().optional() }) }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("parametric_insurance", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("parametric_insurance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [policy] = await db.select().from(insurancePolicies).where(eq(insurancePolicies.id, input.policyId));
       if (!policy) return { triggered: false, error: "Policy not found" };

@@ -9,6 +9,7 @@
  * PostgreSQL (alert subscriptions), Africa's Talking (SMS delivery)
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -17,6 +18,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
 import { resilientFetch } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const PRICE_SERVICE_URL = process.env.PRICE_PREDICTION_SERVICE_URL || "http://localhost:8093";
 
 async function callPriceService(method: string, path: string, body?: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -54,6 +56,11 @@ export const priceAlertsRouter = router({
       region: z.string().default("kenya"),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("price_alerts", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("price_alerts", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [alert] = await db.insert(priceAlerts).values({
         userId: ctx.user.id,
@@ -80,6 +87,11 @@ export const priceAlertsRouter = router({
   deleteAlert: protectedProcedure
     .input(z.object({ alertId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("price_alerts", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("price_alerts", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(priceAlerts)
         .set({ active: false })
@@ -168,6 +180,11 @@ export const priceAlertsRouter = router({
       stationType: z.string().default("automated"),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("price_alerts", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("price_alerts", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [station] = await db.insert(weatherStations).values({
         stationId: input.stationId,

@@ -3,6 +3,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Warehouse Receipt Router — DB-backed
  * Tradeable digital receipts for stored commodities, collateral management, storage fees.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -10,6 +11,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { warehouseReceipts, warehouses } from "../../drizzle/traceability-schema.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const warehouseReceiptRouter = router({
   listReceipts: protectedProcedure
     .input(z.object({
@@ -66,6 +68,11 @@ export const warehouseReceiptRouter = router({
       dailyStorageFee: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("warehouse_receipt", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("warehouse_receipt", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const receiptNumber = `WR-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`;
       const [created] = await db.insert(warehouseReceipts).values({
@@ -91,6 +98,11 @@ export const warehouseReceiptRouter = router({
   pledgeAsCollateral: protectedProcedure
     .input(z.object({ receiptId: z.number(), loanId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("warehouse_receipt", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("warehouse_receipt", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [receipt] = await db.select().from(warehouseReceipts).where(eq(warehouseReceipts.id, input.receiptId));
       if (!receipt) return { success: false, error: "Receipt not found" };
@@ -107,6 +119,11 @@ export const warehouseReceiptRouter = router({
   releaseReceipt: protectedProcedure
     .input(z.object({ receiptId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("warehouse_receipt", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("warehouse_receipt", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(warehouseReceipts)
         .set({ status: "released", isPledged: false, pledgedToLoanId: null, actualReleaseDate: new Date(), updatedAt: new Date() })

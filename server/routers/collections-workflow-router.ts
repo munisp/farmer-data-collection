@@ -75,6 +75,7 @@ type CollectionsStage = keyof typeof COLLECTIONS_STAGES;
 
 // Provision rates loaded from centralized config (env-overridable)
 import { PROVISION_RATES as CONFIG_PROVISION_RATES } from '../config/business-rules.js';
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 const PROVISION_RATES: Record<CollectionsStage, number> = CONFIG_PROVISION_RATES as Record<CollectionsStage, number>;
 
 function getCollectionsStage(daysOverdue: number): CollectionsStage {
@@ -232,6 +233,13 @@ export const collectionsWorkflowRouter = router({
       externalPartnerId: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("collections_workflow", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("collections_workflow", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "collections_workflow", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const userId = ctx.user?.id;
 
@@ -459,6 +467,13 @@ export const collectionsWorkflowRouter = router({
       boardResolutionRef: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("collections_workflow", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("collections_workflow", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "collections_workflow", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const userId = ctx.user?.id;
 

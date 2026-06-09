@@ -9,6 +9,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * PostgreSQL (transaction records), Permify (authorization)
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -19,6 +20,7 @@ import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { resilientPost } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 const MOBILE_MONEY_SERVICE_URL = process.env.MOBILE_MONEY_SERVICE_URL || "http://localhost:8090";
 
 async function callMobileMoneyService(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -40,6 +42,13 @@ export const mobileMoneyRouter = router({
       isDefault: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("mobile_money", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const userId = ctx.user.id;
       
@@ -78,6 +87,13 @@ export const mobileMoneyRouter = router({
       description: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("mobile_money", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const txId = crypto.randomUUID();
       
@@ -141,6 +157,13 @@ export const mobileMoneyRouter = router({
       orderId: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("mobile_money", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const externalId = crypto.randomUUID();
 
@@ -183,6 +206,13 @@ export const mobileMoneyRouter = router({
       reason: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("mobile_money", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const externalId = crypto.randomUUID();
 
@@ -271,6 +301,13 @@ export const mobileMoneyRouter = router({
       }),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("mobile_money", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const callback = input.Body.stkCallback;
       const checkoutId = callback.CheckoutRequestID;
@@ -347,6 +384,13 @@ export const mobileMoneyRouter = router({
       externalId: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("mobile_money", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
 
       // Find transaction by external ID or provider ref
@@ -403,6 +447,13 @@ export const mobileMoneyRouter = router({
       autoFix: z.boolean().default(false),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("mobile_money", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       if (ctx.user.role !== "admin") throw new Error("Only admins can run reconciliation");
       const db = await requireDb();
 
@@ -610,6 +661,13 @@ export const mobileMoneyRouter = router({
       transactionType: z.enum(["collection", "disbursement"]),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("mobile_money", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
 
       // Generate unique transaction ID
@@ -692,6 +750,13 @@ export const mobileMoneyRouter = router({
       }),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("mobile_money", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("mobile_money", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "mobile_money", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
 
       const statusMap: Record<string, string> = {

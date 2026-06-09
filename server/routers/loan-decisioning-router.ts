@@ -6,6 +6,7 @@
  * risk-based pricing, debt-to-income checks, and decision audit trail.
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -16,6 +17,7 @@ import { loanApplications, applicationStatusHistory } from "../../drizzle/loan-a
 import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 // Decision rule thresholds
 const DECISION_RULES = {
   autoApprove: {
@@ -112,6 +114,13 @@ export const loanDecisioningRouter = router({
       applicationId: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("loan_decisioning", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("loan_decisioning", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "loan_decisioning", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
 
       // Fetch the loan application
@@ -279,6 +288,13 @@ export const loanDecisioningRouter = router({
       limit: z.number().min(1).max(100).default(20),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("loan_decisioning", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("loan_decisioning", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "loan_decisioning", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
 
       const pendingApps = await db.select().from(loanApplications)
@@ -431,6 +447,13 @@ export const loanDecisioningRouter = router({
       approvedTerm: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("loan_decisioning", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("loan_decisioning", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "loan_decisioning", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
 
       const [app] = await db.select().from(loanApplications)

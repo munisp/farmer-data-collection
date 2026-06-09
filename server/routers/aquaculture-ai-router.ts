@@ -28,6 +28,7 @@ import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { resilientPost } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const AI_SERVICE_URL = process.env.AQUACULTURE_AI_SERVICE_URL || "http://localhost:8115";
 
 // Fallback disease database
@@ -155,6 +156,11 @@ export const aquacultureAIRouter = router({
       stockingDensity: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_ai", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await resilientPost("aquaculture-ai", `${AI_SERVICE_URL}/diagnose`, {
           species: input.species, symptoms: input.symptoms,
@@ -206,6 +212,11 @@ export const aquacultureAIRouter = router({
       feedingRatePct: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_ai", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await resilientPost("aquaculture-ai", `${AI_SERVICE_URL}/predict-growth`, {
           species: input.species,
@@ -268,6 +279,11 @@ export const aquacultureAIRouter = router({
       numFemales: z.number().int().positive().default(1),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_ai", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await resilientPost("aquaculture-ai", `${AI_SERVICE_URL}/hatchery/estimate`, {
           species: input.species,
@@ -316,6 +332,11 @@ export const aquacultureAIRouter = router({
       growOutDays: z.number().int().positive(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_ai", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await resilientPost("aquaculture-ai", `${AI_SERVICE_URL}/stocking-density`, {
           species: input.species,
@@ -368,6 +389,11 @@ export const aquacultureAIRouter = router({
       marketPricePerKg: z.number().positive().default(1800),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_ai", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await resilientPost("aquaculture-ai", `${AI_SERVICE_URL}/yield-forecast`, {
           species: input.species, stocked_count: input.stockedCount,
@@ -429,6 +455,11 @@ export const aquacultureAIRouter = router({
       waterExchangePct: z.number().positive().default(10),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_ai", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await resilientPost("aquaculture-ai", `${AI_SERVICE_URL}/effluent-prediction`, {
           species: input.species, stocked_count: input.stockedCount,

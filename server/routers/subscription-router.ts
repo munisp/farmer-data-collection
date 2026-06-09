@@ -8,6 +8,7 @@
  * PostgreSQL (subscription state), Temporal (recurring workflow)
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -15,6 +16,7 @@ import { subscriptionPlans, subscriptions, standingOrders, supplyContracts } fro
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 export const subscriptionRouter = router({
   // ============================================================================
   // Subscription Plans (for consumers)
@@ -46,6 +48,13 @@ export const subscriptionRouter = router({
       maxSubscribers: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("subscription", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [plan] = await db.insert(subscriptionPlans).values({
         name: input.name,
@@ -82,6 +91,13 @@ export const subscriptionRouter = router({
       }).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [plan] = await db.select().from(subscriptionPlans)
         .where(eq(subscriptionPlans.id, input.planId));
@@ -124,6 +140,13 @@ export const subscriptionRouter = router({
   pauseSubscription: protectedProcedure
     .input(z.object({ subscriptionId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       await db.update(subscriptions)
         .set({ status: "paused", updatedAt: new Date() })
@@ -137,6 +160,13 @@ export const subscriptionRouter = router({
   resumeSubscription: protectedProcedure
     .input(z.object({ subscriptionId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       await db.update(subscriptions)
         .set({ status: "active", updatedAt: new Date() })
@@ -154,6 +184,13 @@ export const subscriptionRouter = router({
       feedback: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [sub] = await db.select().from(subscriptions)
         .where(and(eq(subscriptions.id, input.subscriptionId), eq(subscriptions.userId, ctx.user.id)));
@@ -204,6 +241,13 @@ export const subscriptionRouter = router({
   processRenewal: protectedProcedure
     .input(z.object({ subscriptionId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [sub] = await db.select().from(subscriptions)
         .where(and(
@@ -316,6 +360,13 @@ export const subscriptionRouter = router({
    */
   processAllDueRenewals: protectedProcedure
     .mutation(async ({ ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", undefined);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const dueSubscriptions = await db.select().from(subscriptions)
         .where(and(
@@ -358,6 +409,13 @@ export const subscriptionRouter = router({
       newPlanId: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [sub] = await db.select().from(subscriptions)
         .where(and(
@@ -423,6 +481,13 @@ export const subscriptionRouter = router({
       }),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       // Check if user already had a trial
       const existingSubs = await db.select().from(subscriptions)
@@ -471,6 +536,13 @@ export const subscriptionRouter = router({
       endDate: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [order] = await db.insert(standingOrders).values({
         buyerId: ctx.user.id,
@@ -521,6 +593,13 @@ export const subscriptionRouter = router({
       advancePaymentPct: z.number().min(0).max(100).default(0),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [contract] = await db.insert(supplyContracts).values({
         farmerId: ctx.user.id,
@@ -544,6 +623,13 @@ export const subscriptionRouter = router({
   acceptContract: protectedProcedure
     .input(z.object({ contractId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("subscription", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("subscription", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "subscription", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       await db.update(supplyContracts)
         .set({ status: "active", updatedAt: new Date() })

@@ -5,6 +5,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Features: flight planning, spray prescriptions, telemetry, drift risk, NDVI processing
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -12,6 +13,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { droneFlights, droneImagery, prescriptionMaps } from "../../drizzle/supply-chain-schema.js";
 import { resilientFetch, resilientPost } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const DRONE_SERVICE_URL = process.env.DRONE_SERVICE_URL || "http://localhost:8097";
 
 const coordinateSchema = z.object({
@@ -29,6 +31,11 @@ export const droneRouter = router({
       overlapPct: z.number().min(30).max(90).default(70),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("drone", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("drone", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const res = await resilientFetch("drone-service", `${DRONE_SERVICE_URL}/api/v1/flights/plan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -66,6 +73,11 @@ export const droneRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("drone", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("drone", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const userId = ctx.user?.id ?? 1;
       const [flight] = await db.insert(droneFlights).values({
@@ -102,6 +114,11 @@ export const droneRouter = router({
       processingEngine: z.enum(["opendronemap", "pix4d", "dronedeploy"]).default("opendronemap"),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("drone", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("drone", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [imagery] = await db.insert(droneImagery).values({
         flightId: input.flightId,
@@ -172,6 +189,11 @@ export const droneRouter = router({
       chemical: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("drone", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("drone", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const zones = input.ndviZones.map((zone, i) => {
         let rate: number;

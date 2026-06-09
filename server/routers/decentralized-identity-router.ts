@@ -3,6 +3,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Decentralized Identity Router — DB-backed
  * DID document management, verifiable credential issuance and verification.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -10,6 +11,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { didDocuments, verifiableCredentials } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const CredentialType = z.enum(["farmer_identity", "credit_history", "land_ownership", "crop_certification", "cooperative_membership", "training_completion"]);
 
 export const decentralizedIdentityRouter = router({
@@ -24,6 +26,11 @@ export const decentralizedIdentityRouter = router({
   createDID: protectedProcedure
     .input(z.object({ farmerId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("decentralized_identity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("decentralized_identity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const did = `did:farmconnect:farmer:${input.farmerId}`;
       const [existing] = await db.select().from(didDocuments).where(eq(didDocuments.did, did));
@@ -44,6 +51,11 @@ export const decentralizedIdentityRouter = router({
   issueCredential: protectedProcedure
     .input(z.object({ subjectDid: z.string(), type: CredentialType, claims: z.record(z.string(), z.any()), expirationMonths: z.number().default(12) }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("decentralized_identity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("decentralized_identity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const credId = `vc:farmconnect:${input.type}:${Date.now()}`;
       const issuerDid = "did:farmconnect:platform:farmconnect-africa";
@@ -82,6 +94,11 @@ export const decentralizedIdentityRouter = router({
   revokeCredential: protectedProcedure
     .input(z.object({ credentialId: z.string(), reason: z.string() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("decentralized_identity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("decentralized_identity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(verifiableCredentials).set({ isRevoked: true, revocationReason: input.reason }).where(eq(verifiableCredentials.credentialId, input.credentialId));
       logger.info("[DID] Credential revoked", { credentialId: input.credentialId, reason: input.reason });
@@ -91,6 +108,11 @@ export const decentralizedIdentityRouter = router({
   createVerifiablePresentation: protectedProcedure
     .input(z.object({ holderDid: z.string(), credentialIds: z.array(z.string()), verifierDid: z.string(), purpose: z.string() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("decentralized_identity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("decentralized_identity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const allCreds = await db.select().from(verifiableCredentials).where(eq(verifiableCredentials.subjectDid, input.holderDid));
       const selectedCreds = allCreds.filter(c => input.credentialIds.includes(c.credentialId));

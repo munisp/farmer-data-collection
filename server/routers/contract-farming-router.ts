@@ -3,6 +3,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Contract Farming Router — DB-backed
  * Manages offtaker agreements, delivery tracking, penalty/bonus settlement.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -11,6 +12,7 @@ import { eq, and, desc, sql, count } from "drizzle-orm";
 import { farmingContracts, offtakers } from "../../drizzle/platform-extensions-schema.js";
 import { PENALTY_TIERS } from "../config/business-rules.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const ContractStatus = z.enum(["draft", "proposed", "negotiating", "active", "fulfilled", "breached", "expired", "terminated"]);
 const QualityGrade = z.enum(["A", "B", "C", "D", "reject"]);
 
@@ -102,6 +104,11 @@ export const contractFarmingRouter = router({
       insuranceLinked: z.boolean().default(false),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("contract_farming", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("contract_farming", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const code = `CF-${Date.now().toString(36).toUpperCase()}`;
       const totalValue = input.quantityKg * input.pricePerKg;
@@ -133,6 +140,11 @@ export const contractFarmingRouter = router({
       deliveryDate: z.string(), notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("contract_farming", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("contract_farming", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [contract] = await db.select().from(farmingContracts).where(eq(farmingContracts.id, input.contractId));
       if (!contract) return { success: false, error: "Contract not found" };

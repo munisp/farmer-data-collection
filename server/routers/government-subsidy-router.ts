@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -6,6 +7,7 @@ import { users, farmers } from "../../drizzle/schema.js";
 import { subsidyPrograms, subsidyApplications, subsidyDisbursements, extensionWorkerVisits } from "../../drizzle/schema.js";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const governmentSubsidyRouter = router({
   // ======================== SUBSIDY PROGRAMS (Gap #6: DB-driven, not hardcoded) ========================
 
@@ -33,6 +35,11 @@ export const governmentSubsidyRouter = router({
       description: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("government_subsidy", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("government_subsidy", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       if (ctx.user.role !== "admin") throw new Error("Only admins can create subsidy programs");
       const db = await requireDb();
 
@@ -135,6 +142,11 @@ export const governmentSubsidyRouter = router({
       cooperativeId: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("government_subsidy", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("government_subsidy", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [farmer] = await db.select().from(farmers)
         .where(eq(farmers.userId, ctx.user.id)).limit(1);
@@ -315,6 +327,11 @@ export const governmentSubsidyRouter = router({
       disbursementAmount: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("government_subsidy", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("government_subsidy", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       if (ctx.user.role !== "admin") throw new Error("Only admins can review applications");
       const db = await requireDb();
 
@@ -342,6 +359,11 @@ export const governmentSubsidyRouter = router({
       transactionRef: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("government_subsidy", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("government_subsidy", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       if (ctx.user.role !== "admin") throw new Error("Only admins can disburse");
       const db = await requireDb();
 
@@ -449,6 +471,11 @@ export const governmentSubsidyRouter = router({
       photosUrls: z.array(z.string()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("government_subsidy", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("government_subsidy", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       try {
         const [visit] = await db.insert(extensionWorkerVisits).values({

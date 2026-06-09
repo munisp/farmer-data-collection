@@ -5,6 +5,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Provides TRPC endpoints for analytics dashboard
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc-base.js';
 import * as AnalyticsService from '../services/analytics-service.js';
@@ -18,6 +19,7 @@ import {
   getETLPipeline,
 } from '../services/lakehouse/index.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const analyticsRouter = router({
   /**
    * Get channel usage metrics
@@ -319,6 +321,11 @@ export const analyticsRouter = router({
   computeCreditFeatures: protectedProcedure
     .input(z.object({ farmerId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("analytics", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("analytics", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const features = await computeFarmerFeatures(input.farmerId);
         return { success: true, features };

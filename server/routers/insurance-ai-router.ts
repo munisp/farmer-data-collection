@@ -4,12 +4,13 @@
  * Risk scoring, premium calculation, claim automation, weather indexing.
  * Middleware: PostgreSQL, Kafka (events), TigerBeetle (ledger), Redis (cache), OpenSearch (policy search).
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { insuranceProducts, insurancePolicies, insuranceClaims } from "../../drizzle/schema-platform-extended.js";
-import { withRedisCache, publishKafkaEvent, recordLedgerEntry, indexDocument, KAFKA_TOPICS } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, publishKafkaEvent, recordLedgerEntry, indexDocument, KAFKA_TOPICS, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 import { logger } from "../logger.js";
 
 type InsuranceProduct = typeof insuranceProducts.$inferSelect;
@@ -78,6 +79,11 @@ export const insuranceAIRouter = router({
       location: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("insurance_ai", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("insurance_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [product] = await db.select().from(insuranceProducts).where(eq(insuranceProducts.id, input.productId));

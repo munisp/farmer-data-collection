@@ -1,10 +1,12 @@
 import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
 import { users } from "../../drizzle/schema.js";
 import { eq, desc, and, sql } from "drizzle-orm";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 export const financialEnhancementsRouter = router({
   // ======================== CROP RECEIPT FINANCING ========================
 
@@ -19,6 +21,13 @@ export const financialEnhancementsRouter = router({
       storageLocation: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("financial_enhancements", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("financial_enhancements", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "financial_enhancements", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const maxLoanPct = 0.7;
       const maxLoanAmount = Math.round(input.estimatedValue * maxLoanPct);
       if (input.requestedAmount > maxLoanAmount) {
@@ -78,6 +87,13 @@ export const financialEnhancementsRouter = router({
       deductionPercentage: z.number().min(5).max(50).default(20),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("financial_enhancements", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("financial_enhancements", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "financial_enhancements", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       return {
         enrollmentId: `PAYH-${Date.now()}`,
         userId: ctx.user.id,
@@ -154,6 +170,13 @@ export const financialEnhancementsRouter = router({
       preferredSupplier: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("financial_enhancements", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("financial_enhancements", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "financial_enhancements", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const wholesaleDiscounts: Record<string, number> = {
         seeds: 0.15, fertilizer: 0.20, pesticide: 0.12, tools: 0.10, irrigation: 0.18,
       };
@@ -215,6 +238,13 @@ export const financialEnhancementsRouter = router({
       vehicleType: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("financial_enhancements", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("financial_enhancements", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "financial_enhancements", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       return {
         bidId: `BID-${Date.now()}`,
         jobId: input.jobId,
@@ -240,6 +270,13 @@ export const financialEnhancementsRouter = router({
       currency: z.string().default("NGN"),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("financial_enhancements", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("financial_enhancements", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "financial_enhancements", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const subtotal = input.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
       const tax = Math.round(subtotal * 0.16);
       const total = subtotal + tax;
@@ -287,6 +324,13 @@ export const financialEnhancementsRouter = router({
       autoRejectBelowGrade: z.enum(["C", "D"]).default("D"),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("financial_enhancements", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("financial_enhancements", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "financial_enhancements", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       return {
         slaId: `SLA-${Date.now()}`,
         contractId: input.contractId,
@@ -345,6 +389,13 @@ export const financialEnhancementsRouter = router({
       labName: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("financial_enhancements", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("financial_enhancements", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "financial_enhancements", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const healthScore = calculateSoilHealthScore(input);
       return {
         passportId: `SOIL-${Date.now()}`,
@@ -460,6 +511,13 @@ export const financialEnhancementsRouter = router({
       premium: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("financial_enhancements", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("financial_enhancements", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "financial_enhancements", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       return {
         policyId: `TI-${Date.now()}`,
         userId: ctx.user.id,

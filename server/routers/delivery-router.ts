@@ -1,5 +1,4 @@
 /**
-import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry } from "../integrations/middleware-router-hooks.js";
  * Delivery & Supply Chain tRPC Router
  * 
  * Farm-to-table delivery: collection points, aggregation hubs, 
@@ -10,6 +9,7 @@ import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordL
  * PostgreSQL+PostGIS (spatial data), TigerBeetle (delivery payments)
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -22,6 +22,7 @@ import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import crypto from "crypto";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { resilientPost } from "../services/resilient-http.js";
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 const DELIVERY_SERVICE_URL = process.env.DELIVERY_SERVICE_URL || "http://localhost:8091";
 
@@ -62,6 +63,11 @@ export const deliveryRouter = router({
       currency: z.string().default("NGN"),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("delivery", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [zone] = await db.insert(deliveryZones).values({
         name: input.name,
@@ -166,6 +172,11 @@ export const deliveryRouter = router({
       zoneId: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("delivery", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [point] = await db.insert(collectionPoints).values({
         name: input.name,
@@ -202,6 +213,11 @@ export const deliveryRouter = router({
       contactPhone: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("delivery", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [hub] = await db.insert(aggregationHubs).values({
         name: input.name,
@@ -234,6 +250,11 @@ export const deliveryRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("delivery", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [grade] = await db.insert(qualityGrades).values({
         batchId: input.batchId,
@@ -281,6 +302,11 @@ export const deliveryRouter = router({
       zoneId: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("delivery", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [driver] = await db.insert(drivers).values({
         userId: ctx.user.id,
@@ -300,6 +326,11 @@ export const deliveryRouter = router({
       longitude: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("delivery", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [driver] = await db.select().from(drivers)
         .where(eq(drivers.userId, ctx.user.id));
@@ -333,6 +364,11 @@ export const deliveryRouter = router({
 
   goOffline: protectedProcedure
     .mutation(async ({ ctx }) => {
+      const rateCheck = await checkRateLimit("delivery", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", undefined);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [driver] = await db.select().from(drivers)
         .where(eq(drivers.userId, ctx.user.id));
@@ -357,6 +393,11 @@ export const deliveryRouter = router({
       temperature: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("delivery", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       // Update driver location
       await db.update(drivers)
@@ -397,6 +438,11 @@ export const deliveryRouter = router({
       priority: z.enum(["normal", "express", "scheduled"]).default("normal"),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("delivery", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const result = await callDeliveryService("/api/delivery/request", {
         order_id: input.orderId,
@@ -482,6 +528,11 @@ export const deliveryRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("delivery", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(deliveryAssignments)
         .set({
@@ -522,6 +573,11 @@ export const deliveryRouter = router({
       photoUrl: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("delivery", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [rate] = await db.insert(deliveryRatings).values({
         assignmentId: input.assignmentId,
@@ -552,6 +608,11 @@ export const deliveryRouter = router({
       dietaryPreferences: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("delivery", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("delivery", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const existing = await db.select().from(consumerProfiles)
         .where(eq(consumerProfiles.userId, ctx.user.id));

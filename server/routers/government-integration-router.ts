@@ -2,6 +2,7 @@
  * Government Integration Router — DB-backed
  * Government agricultural programs, beneficiary tracking, subsidy disbursement.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -9,6 +10,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { governmentPrograms, governmentBeneficiaries } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const governmentIntegrationRouter = router({
   listPrograms: publicProcedure
     .input(z.object({
@@ -56,6 +58,11 @@ export const governmentIntegrationRouter = router({
       verificationData: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("government_integration", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("government_integration", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [program] = await db.select().from(governmentPrograms).where(eq(governmentPrograms.id, input.programId));
       if (!program) return { success: false, error: "Program not found" };
@@ -75,6 +82,11 @@ export const governmentIntegrationRouter = router({
   approveApplication: protectedProcedure
     .input(z.object({ applicationId: z.number(), approvedAmount: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("government_integration", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("government_integration", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(governmentBeneficiaries).set({
         status: "approved", disbursementAmount: String(input.approvedAmount),
@@ -87,6 +99,11 @@ export const governmentIntegrationRouter = router({
   recordDisbursement: protectedProcedure
     .input(z.object({ applicationId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("government_integration", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("government_integration", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [app] = await db.select().from(governmentBeneficiaries).where(eq(governmentBeneficiaries.id, input.applicationId));
       if (!app) return { success: false, error: "Application not found" };

@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -5,6 +6,7 @@ import { users, farmers } from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // ============================================================================
 // DECENTRALIZED IDENTITY (DID) — Self-sovereign identity for unbanked farmers
 // ============================================================================
@@ -123,6 +125,11 @@ export const platformAdvancedRouter = router({
       })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("platform_advanced", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("platform_advanced", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [farmer] = await db.select().from(farmers)
         .where(eq(farmers.userId, ctx.user.id))
@@ -180,6 +187,11 @@ export const platformAdvancedRouter = router({
       claims: z.record(z.string(), z.unknown()),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("platform_advanced", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("platform_advanced", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const issuerDID = generateDID("farmconnect", `issuer:${ctx.user.id}`);
       const vc = generateVerifiableCredential(
         issuerDID, input.subjectDID, input.credentialType, input.claims as Record<string, unknown>
@@ -227,6 +239,11 @@ export const platformAdvancedRouter = router({
       language: z.string().default("en"),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("platform_advanced", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("platform_advanced", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const tenantId = `tenant-${crypto.randomUUID().slice(0, 12)}`;
       const apiKey = `fc_${crypto.randomUUID().replace(/-/g, "")}`;
       const apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");

@@ -2,6 +2,7 @@
  * Supply-Demand Matching Router — DB-backed
  * Marketplace matching between farmer supply and buyer demand listings.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -9,6 +10,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { supplyListings, demandListings, supplyDemandMatches } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const supplyDemandMatchingRouter = router({
   listSupplyListings: publicProcedure
     .input(z.object({
@@ -32,6 +34,11 @@ export const supplyDemandMatchingRouter = router({
       availableFrom: z.string(), availableUntil: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("supply_demand_matching", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("supply_demand_matching", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [created] = await db.insert(supplyListings).values({
         farmerId: input.farmerId, cropType: input.cropType, variety: input.variety,
@@ -65,6 +72,11 @@ export const supplyDemandMatchingRouter = router({
       deliveryLocation: z.string(), requiredBy: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("supply_demand_matching", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("supply_demand_matching", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [created] = await db.insert(demandListings).values({
         buyerId: input.buyerId, cropType: input.cropType, quantityKg: String(input.quantityKg),
@@ -107,6 +119,11 @@ export const supplyDemandMatchingRouter = router({
   acceptMatch: protectedProcedure
     .input(z.object({ supplyId: z.number(), demandId: z.number(), agreedPrice: z.number(), agreedQuantity: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("supply_demand_matching", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("supply_demand_matching", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const matchScore = 100;
       const [match] = await db.insert(supplyDemandMatches).values({

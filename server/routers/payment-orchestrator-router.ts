@@ -6,6 +6,7 @@
  * Supports: M-Pesa, MTN MoMo, Airtel Money, Flutterwave, bank transfers.
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -16,6 +17,7 @@ import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import crypto from "crypto";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 const MOBILE_MONEY_SERVICE_URL = process.env.MOBILE_MONEY_SERVICE_URL || "http://localhost:8090";
 
 // Provider configuration
@@ -160,6 +162,13 @@ export const paymentOrchestratorRouter = router({
       metadata: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("payment_orchestrator", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("payment_orchestrator", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "payment_orchestrator", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const userId = ctx.user.id;
 
@@ -367,6 +376,13 @@ export const paymentOrchestratorRouter = router({
       preferredProvider: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("payment_orchestrator", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("payment_orchestrator", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "payment_orchestrator", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const idempotencyKey = crypto.randomUUID();
 
@@ -566,6 +582,13 @@ export const paymentOrchestratorRouter = router({
       limit: z.number().min(1).max(100).default(50),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("payment_orchestrator", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("payment_orchestrator", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "payment_orchestrator", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const cutoff = new Date(Date.now() - input.staleMinutes * 60_000);
 

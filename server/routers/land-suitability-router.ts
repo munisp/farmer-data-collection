@@ -5,6 +5,7 @@
  * Helps answer questions like "Is my land suitable for planting palm trees?"
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import {
@@ -19,6 +20,7 @@ import {
   type TopographyData,
 } from "../services/land-suitability-service";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // Input schemas
 const soilDataSchema = z.object({
   ph: z.number().min(0).max(14),

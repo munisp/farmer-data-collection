@@ -3,6 +3,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * API Developer Portal Router — DB-backed
  * API key management, webhook registration, usage tracking.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -11,6 +12,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { apiKeys, apiWebhooks } from "../../drizzle/platform-extensions-schema.js";
 import { randomBytes, createHash } from "crypto";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 function hashKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
 }
@@ -31,6 +33,11 @@ export const apiDeveloperPortalRouter = router({
       expiresInDays: z.number().min(1).max(365).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("api_developer_portal", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("api_developer_portal", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const rawKey = `fc_${randomBytes(24).toString("hex")}`;
       const prefix = rawKey.substring(0, 10);
@@ -50,6 +57,11 @@ export const apiDeveloperPortalRouter = router({
   revokeApiKey: protectedProcedure
     .input(z.object({ keyId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("api_developer_portal", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("api_developer_portal", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(apiKeys).set({ status: "revoked" }).where(eq(apiKeys.id, input.keyId));
       logger.info("[API Portal] Key revoked", { keyId: input.keyId });
@@ -68,6 +80,11 @@ export const apiDeveloperPortalRouter = router({
       userId: z.number(), url: z.string().url(), events: z.array(z.string()).min(1),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("api_developer_portal", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("api_developer_portal", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const secret = randomBytes(32).toString("hex");
       const [created] = await db.insert(apiWebhooks).values({
@@ -81,6 +98,11 @@ export const apiDeveloperPortalRouter = router({
   deleteWebhook: protectedProcedure
     .input(z.object({ webhookId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("api_developer_portal", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("api_developer_portal", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(apiWebhooks).set({ isActive: false }).where(eq(apiWebhooks.id, input.webhookId));
       logger.info("[API Portal] Webhook deleted", { webhookId: input.webhookId });

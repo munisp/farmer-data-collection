@@ -3,6 +3,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Extension Services Router — DB-backed
  * Agricultural training programs, farmer visits, curriculum delivery.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -10,6 +11,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { extensionPrograms, extensionVisits } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const extensionServicesRouter = router({
   listPrograms: publicProcedure
     .input(z.object({
@@ -41,6 +43,11 @@ export const extensionServicesRouter = router({
   enrollFarmer: protectedProcedure
     .input(z.object({ programId: z.number(), farmerId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("extension_services", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("extension_services", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [program] = await db.select().from(extensionPrograms).where(eq(extensionPrograms.id, input.programId));
       if (!program) return { success: false, error: "Program not found" };
@@ -61,6 +68,11 @@ export const extensionServicesRouter = router({
       gpsLocation: z.object({ lat: z.number(), lng: z.number() }).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("extension_services", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("extension_services", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [created] = await db.insert(extensionVisits).values({
         programId: input.programId, farmerId: input.farmerId, agentId: input.agentId,

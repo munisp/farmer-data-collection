@@ -29,6 +29,7 @@ import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { resilientPost } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || "http://localhost:8110";
 
 function computeHash(data: string): string {
@@ -90,6 +91,11 @@ export const blockchainProvenanceRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("blockchain_provenance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("blockchain_provenance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const assetData = JSON.stringify({
         batchCode: input.batchCode,
         cropType: input.cropType,
@@ -201,6 +207,11 @@ export const blockchainProvenanceRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("blockchain_provenance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("blockchain_provenance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const transferData = JSON.stringify({
         from: { entity: input.fromEntity, type: input.fromEntityType },
         to: { entity: input.toEntity, type: input.toEntityType },
@@ -245,6 +256,11 @@ export const blockchainProvenanceRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("blockchain_provenance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("blockchain_provenance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const inspectionData = JSON.stringify({
         inspector: { id: input.inspectorId, name: input.inspectorName, org: input.organization },
         grade: input.grade,
@@ -285,6 +301,11 @@ export const blockchainProvenanceRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("blockchain_provenance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("blockchain_provenance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const certData = JSON.stringify({
         certification: {
           name: input.certificationName,

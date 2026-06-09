@@ -12,6 +12,7 @@
  * - GPS ingestion monitoring and metrics
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from 'zod';
 import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { getDb } from '../db.js';
@@ -20,6 +21,7 @@ import { rateLimiter, GPS_ACCURACY_THRESHOLDS } from '../services/redis-rate-lim
 import { gpsMetrics } from '../services/gps-monitoring.js';
 import { logger } from '../logger.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // Constants for track quality filtering
 const MAX_SPEED_MS = 55.56; // 200 km/h in m/s - reject points faster than this
 const DEFAULT_RATE_LIMIT_POINTS_PER_MINUTE = 60; // Max GPS points per device per minute
@@ -111,6 +113,11 @@ export const gpsTrackingRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("gps_tracking", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("gps_tracking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 
@@ -187,6 +194,11 @@ export const gpsTrackingRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("gps_tracking", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("gps_tracking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 
@@ -225,6 +237,11 @@ export const gpsTrackingRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("gps_tracking", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("gps_tracking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
         const db = await getDb();
         if (!db) throw new Error('Database not available');
 
@@ -547,6 +564,11 @@ export const gpsTrackingRouter = router({
   deleteDevice: protectedProcedure
     .input(z.object({ deviceId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("gps_tracking", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("gps_tracking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error('Database not available');
 

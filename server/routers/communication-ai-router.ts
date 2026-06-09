@@ -23,6 +23,7 @@ import { resilientFetch } from "../services/resilient-http.js";
 import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // ============================================================================
 // INTENT TAXONOMY
 // ============================================================================
@@ -352,6 +353,11 @@ export const communicationAIRouter = router({
       }).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("communication_ai", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("communication_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const userId = ctx.user?.id;
 

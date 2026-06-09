@@ -9,6 +9,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * PostgreSQL (history), OpenSearch (analytics queries)
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -17,6 +18,7 @@ import { eq, and, desc, gte, sql } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
 import { resilientPost, resilientFetch } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const COLD_CHAIN_SERVICE_URL = process.env.COLD_CHAIN_SERVICE_URL || "http://localhost:8092";
 
 async function callColdChainService(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -44,6 +46,11 @@ export const coldChainRouter = router({
       alertThresholdLow: z.number().default(0),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cold_chain", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cold_chain", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [sensor] = await db.insert(coldChainSensors).values({
         sensorId: input.sensorId,
@@ -78,6 +85,11 @@ export const coldChainRouter = router({
       batteryLevel: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cold_chain", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cold_chain", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       // Store in PostgreSQL
       const [reading] = await db.insert(coldChainReadings).values({
@@ -131,6 +143,11 @@ export const coldChainRouter = router({
       })),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cold_chain", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cold_chain", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       // Bulk insert to PostgreSQL
       if (input.readings.length > 0) {

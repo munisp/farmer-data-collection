@@ -3,12 +3,13 @@
  * Privacy-preserving ML model training across distributed farm devices.
  * Middleware: PostgreSQL, Kafka (events), Fluvio (model updates), Redis (round tracking), Lakehouse (metrics).
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { eq, desc } from "drizzle-orm";
 import { federatedModels, federatedParticipants } from "../../drizzle/schema-platform-extended.js";
-import { withRedisCache, publishKafkaEvent, streamEvent, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, publishKafkaEvent, streamEvent, writeToLakehouse, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 import { logger } from "../logger.js";
 
 type FedModel = typeof federatedModels.$inferSelect;
@@ -72,6 +73,11 @@ export const federatedLearningRouter = router({
       datasetSize: z.number().min(10),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("federated_learning", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("federated_learning", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [participant] = await db.insert(federatedParticipants).values({
@@ -101,6 +107,11 @@ export const federatedLearningRouter = router({
       samplesUsed: z.number().min(1),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("federated_learning", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("federated_learning", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await db.update(federatedParticipants).set({

@@ -2,6 +2,7 @@
  * Tokenized Assets Router — DB-backed
  * Fractional farm investment, carbon credits, harvest futures.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -9,6 +10,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { tokenizedAssets, tokenHoldings } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 export const tokenizedAssetsRouter = router({
   listAssets: publicProcedure
     .input(z.object({
@@ -37,6 +39,13 @@ export const tokenizedAssetsRouter = router({
   purchaseTokens: protectedProcedure
     .input(z.object({ assetId: z.number(), userId: z.number(), quantity: z.number().min(1) }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("tokenized_assets", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("tokenized_assets", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "tokenized_assets", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [asset] = await db.select().from(tokenizedAssets).where(eq(tokenizedAssets.id, input.assetId));
       if (!asset) return { success: false, error: "Asset not found" };

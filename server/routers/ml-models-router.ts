@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc-base.js";
 import { protectedProcedure } from "../_core/trpc-base.js";
@@ -7,6 +8,7 @@ import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import axios from "axios";
 import { logger } from '../logger.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * ML Models Router
  * 

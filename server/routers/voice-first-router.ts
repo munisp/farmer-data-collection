@@ -4,9 +4,10 @@
  * IVR integration, multilingual support (Swahili, Hausa, Yoruba, Amharic).
  * Middleware: Kafka (events), Redis (session), Dapr (state), Fluvio (streaming).
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
-import { publishKafkaEvent, saveDaprState, getDaprState, streamEvent, withRedisCache } from "../integrations/middleware-router-hooks.js";
+import { publishKafkaEvent, saveDaprState, getDaprState, streamEvent, withRedisCache, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 const supportedLanguages = [
   { code: "en", name: "English", ivrCode: "1" },
@@ -67,6 +68,11 @@ export const voiceFirstRouter = router({
       sessionId: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("voice_first", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("voice_first", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const result = processVoiceCommand(input.text, input.language);
       const sessionId = input.sessionId || `VS-${Date.now()}`;
 

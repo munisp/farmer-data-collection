@@ -12,6 +12,7 @@ import {
   notifyFarmer
 } from '../services/africas-talking.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * Africa's Talking Webhook Router
  * 
@@ -332,6 +333,11 @@ export const africasTalkingRouter = router({
       templateParams: z.record(z.string(), z.unknown()).optional()
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("africas_talking", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const result = await sendWhatsApp(input);
       return result;
     }),

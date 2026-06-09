@@ -7,6 +7,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * Implements FATF recommendations for agricultural financial services.
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -33,6 +34,7 @@ const RISK_WEIGHTS = {
 // High-risk jurisdictions loaded from centralized config (env-overridable)
 import { HIGH_RISK_JURISDICTIONS, MEDIUM_RISK_JURISDICTIONS } from '../config/business-rules.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 type RiskLevel = "low" | "medium" | "high" | "critical";
 type AlertType = "large_transaction" | "structuring" | "rapid_movement" | "velocity_breach" | "high_risk_country" | "behavioral_anomaly" | "pep_transaction" | "dormant_reactivation";
 
@@ -120,6 +122,11 @@ export const complianceRouter = router({
       counterpartyName: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("compliance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("compliance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const userId = ctx.user.id;
 

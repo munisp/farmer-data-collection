@@ -2,6 +2,7 @@
  * Input Financing Router — DB-backed
  * Agricultural input financing (seeds, fertilizer, equipment) linked to contracts.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -9,6 +10,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { inputFinancingApplications } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 export const inputFinancingRouter = router({
   listApplications: protectedProcedure
     .input(z.object({
@@ -42,6 +44,13 @@ export const inputFinancingRouter = router({
       harvestLinked: z.boolean().optional(), seasonId: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("input_financing", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("input_financing", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "input_financing", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const code = `IF-${Date.now().toString(36).toUpperCase()}`;
       const [created] = await db.insert(inputFinancingApplications).values({
@@ -56,6 +65,13 @@ export const inputFinancingRouter = router({
   approveApplication: protectedProcedure
     .input(z.object({ applicationId: z.number(), approvedAmount: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("input_financing", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("input_financing", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "input_financing", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       await db.update(inputFinancingApplications).set({
         status: "approved", approvedAmount: String(input.approvedAmount), updatedAt: new Date(),
@@ -67,6 +83,13 @@ export const inputFinancingRouter = router({
   disburseFinancing: protectedProcedure
     .input(z.object({ applicationId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("input_financing", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("input_financing", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "input_financing", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [app] = await db.select().from(inputFinancingApplications).where(eq(inputFinancingApplications.id, input.applicationId));
       if (!app) return { success: false, error: "Application not found" };

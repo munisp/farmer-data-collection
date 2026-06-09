@@ -8,6 +8,7 @@
  * schools, hospitals, and wholesalers.
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -19,6 +20,7 @@ import { eq, and, desc, sql, gte, lte, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { createEscrowForOrder, estimateDeliveryFee, geocodeAddress } from "../services/order-orchestration.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const retailStoreRouter = router({
   // ========================================================================
   // STORE MANAGEMENT
@@ -43,6 +45,11 @@ export const retailStoreRouter = router({
       preferredCategories: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("retail_store", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("retail_store", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const geocoded = await geocodeAddress({
         street: input.address, city: input.city, state: input.state, zip: "", country: input.country,
@@ -95,6 +102,11 @@ export const retailStoreRouter = router({
       preferredCategories: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("retail_store", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("retail_store", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [store] = await db.select().from(retailStores)
         .where(and(eq(retailStores.id, input.storeId), eq(retailStores.ownerId, ctx.user.id)));
@@ -198,6 +210,11 @@ export const retailStoreRouter = router({
       autoRenew: z.boolean().default(true),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("retail_store", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("retail_store", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [store] = await db.select().from(retailStores)
         .where(and(eq(retailStores.id, input.storeId), eq(retailStores.ownerId, ctx.user.id)));
@@ -233,6 +250,11 @@ export const retailStoreRouter = router({
   pauseStandingOrder: protectedProcedure
     .input(z.object({ standingOrderId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("retail_store", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("retail_store", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [updated] = await db.update(retailStandingOrders)
         .set({ status: "paused", updatedAt: new Date() })
@@ -244,6 +266,11 @@ export const retailStoreRouter = router({
   cancelStandingOrder: protectedProcedure
     .input(z.object({ standingOrderId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("retail_store", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("retail_store", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [updated] = await db.update(retailStandingOrders)
         .set({ status: "cancelled", updatedAt: new Date() })
@@ -259,6 +286,11 @@ export const retailStoreRouter = router({
       pricePerUnit: z.number().positive(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("retail_store", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("retail_store", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [so] = await db.select().from(retailStandingOrders)
         .where(eq(retailStandingOrders.id, input.standingOrderId));
@@ -360,6 +392,11 @@ export const retailStoreRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("retail_store", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("retail_store", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [store] = await db.select().from(retailStores)
         .where(and(eq(retailStores.id, input.storeId), eq(retailStores.ownerId, ctx.user.id)));
@@ -485,6 +522,11 @@ export const retailStoreRouter = router({
       paymentReference: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("retail_store", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("retail_store", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [updated] = await db.update(retailInvoices).set({
         status: "paid",

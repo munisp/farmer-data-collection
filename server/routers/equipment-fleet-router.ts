@@ -5,6 +5,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  * and Rust autonomous-ops orchestrator (:8102).
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -16,6 +17,7 @@ import {
 
 import { resilientFetch, resilientPost } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const FLEET_SERVICE_URL = process.env.FLEET_SERVICE_URL || "http://localhost:8098";
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -45,6 +47,11 @@ export const equipmentFleetRouter = router({
       fieldId: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("equipment_fleet", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("equipment_fleet", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [record] = await db.insert(equipmentTelemetry).values({
         equipmentId: input.equipmentId,
@@ -105,6 +112,11 @@ export const equipmentFleetRouter = router({
       farmId: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("equipment_fleet", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("equipment_fleet", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const res = await resilientFetch("fleet-service", `${FLEET_SERVICE_URL}/api/v1/guidance/ab-lines`, {
           method: "POST",
@@ -213,6 +225,11 @@ export const equipmentFleetRouter = router({
       attachments: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("equipment_fleet", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("equipment_fleet", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const userId = ctx.user?.id ?? 1;
       const [listing] = await db.insert(equipmentListings).values({
@@ -267,6 +284,11 @@ export const equipmentFleetRouter = router({
       totalAreaHa: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("equipment_fleet", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("equipment_fleet", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const listing = await db.select()
         .from(equipmentListings)
@@ -317,6 +339,11 @@ export const equipmentFleetRouter = router({
       cropHistory: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("equipment_fleet", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("equipment_fleet", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [twin] = await db.insert(farmDigitalTwins).values({
         farmId: input.farmId,

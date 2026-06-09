@@ -12,6 +12,7 @@ import { pipelineJobs, pipelineMetrics } from "../../drizzle/schema-platform-ext
 import { applyMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 import { logger } from "../logger.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 type PipelineJob = typeof pipelineJobs.$inferSelect;
 type PipelineMetric = typeof pipelineMetrics.$inferSelect;
 
@@ -42,6 +43,11 @@ export const dataPipelineRouter = router({
   triggerJob: protectedProcedure
     .input(z.object({ jobId: z.number() }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("data_pipeline", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("data_pipeline", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [job] = await db.select().from(pipelineJobs).where(eq(pipelineJobs.id, input.jobId));
@@ -61,6 +67,11 @@ export const dataPipelineRouter = router({
       schedule: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("data_pipeline", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("data_pipeline", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const jobCode = `PL-${Date.now()}`;

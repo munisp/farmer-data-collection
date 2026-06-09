@@ -6,6 +6,7 @@
  * Transforms raw IoT data into actionable farm decisions.
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -15,6 +16,7 @@ import { alertThresholds, alertHistory } from "../../drizzle/schema.js";
 import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // Anomaly detection thresholds by sensor type
 const SENSOR_RANGES: Record<string, { min: number; max: number; unit: string; spikeThreshold: number }> = {
   temperature: { min: -10, max: 55, unit: "°C", spikeThreshold: 5 },
@@ -86,6 +88,11 @@ export const iotRulesEngineRouter = router({
       enabled: z.boolean().default(true),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("iot_rules_engine", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("iot_rules_engine", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
 
       const [rule] = await db.insert(alertThresholds).values({
@@ -123,6 +130,11 @@ export const iotRulesEngineRouter = router({
   toggleRule: protectedProcedure
     .input(z.object({ ruleId: z.number(), enabled: z.boolean() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("iot_rules_engine", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("iot_rules_engine", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.update(alertThresholds)
         .set({ isActive: input.enabled })
@@ -136,6 +148,11 @@ export const iotRulesEngineRouter = router({
   deleteRule: protectedProcedure
     .input(z.object({ ruleId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("iot_rules_engine", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("iot_rules_engine", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       await db.delete(alertThresholds)
         .where(and(eq(alertThresholds.id, input.ruleId), eq(alertThresholds.userId, ctx.user.id)));
@@ -268,6 +285,11 @@ export const iotRulesEngineRouter = router({
   evaluateRules: protectedProcedure
     .input(z.object({ farmId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("iot_rules_engine", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("iot_rules_engine", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
 
       // Get all enabled rules for farm

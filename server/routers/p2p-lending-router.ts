@@ -2,6 +2,7 @@
  * P2P Lending & Savings Router — DB-backed
  * Peer-to-peer farm loans, savings circles, portfolio management.
  */
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { logger } from "../logger.js";
@@ -9,6 +10,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { p2pLoans, savingsCircles } from "../../drizzle/platform-extensions-schema.js";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 export const p2pLendingRouter = router({
   listLoans: protectedProcedure
     .input(z.object({
@@ -46,6 +48,13 @@ export const p2pLendingRouter = router({
       collateralType: z.string().optional(), collateralValue: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("p2p_lending", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("p2p_lending", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "p2p_lending", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const code = `P2P-${Date.now().toString(36).toUpperCase()}`;
       const monthlyRate = input.interestRate / 100 / 12;
@@ -65,6 +74,13 @@ export const p2pLendingRouter = router({
   fundLoan: protectedProcedure
     .input(z.object({ loanId: z.number(), lenderId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("p2p_lending", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("p2p_lending", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "p2p_lending", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [loan] = await db.select().from(p2pLoans).where(eq(p2pLoans.id, input.loanId));
       if (!loan) return { success: false, error: "Loan not found" };
@@ -77,6 +93,13 @@ export const p2pLendingRouter = router({
   makeRepayment: protectedProcedure
     .input(z.object({ loanId: z.number(), amount: z.number().min(1) }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("p2p_lending", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("p2p_lending", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "p2p_lending", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await requireDb();
       const [loan] = await db.select().from(p2pLoans).where(eq(p2pLoans.id, input.loanId));
       if (!loan) return { success: false, error: "Loan not found" };

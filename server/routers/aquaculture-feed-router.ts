@@ -31,6 +31,7 @@ import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { resilientPost } from "../services/resilient-http.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const FEED_SERVICE_URL = process.env.AQUACULTURE_FEED_SERVICE_URL || "http://localhost:8114";
 
 // Fallback species profiles (mirrors Rust service data)
@@ -92,6 +93,11 @@ export const aquacultureFeedRouter = router({
       quarantineDays: z.number().int().nonnegative().default(0),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/stocking", {
           id: 0, pond_id: input.pondId, species: input.species,
@@ -129,6 +135,11 @@ export const aquacultureFeedRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/feed", {
           id: 0, pond_id: input.pondId, batch_id: input.batchId,
@@ -163,6 +174,11 @@ export const aquacultureFeedRouter = router({
       reorderLevelKg: z.number().nonnegative().default(100),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/inventory", {
           id: 0, feed_type: input.feedType, brand: input.brand,
@@ -199,6 +215,11 @@ export const aquacultureFeedRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/mortality", {
           id: 0, pond_id: input.pondId, date: input.date,
@@ -230,6 +251,11 @@ export const aquacultureFeedRouter = router({
       daysSinceStocking: z.number().int().nonnegative(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/growth-sample", {
           id: 0, pond_id: input.pondId, batch_id: input.batchId,
@@ -262,6 +288,11 @@ export const aquacultureFeedRouter = router({
       harvestMethod: z.enum(["seine_net", "drain", "partial", "cast_net", "trap"]),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/harvest", {
           id: 0, pond_id: input.pondId, batch_id: input.batchId,
@@ -301,6 +332,11 @@ export const aquacultureFeedRouter = router({
       feedCostPerKg: z.number().nonnegative(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/fcr/calculate", {
           total_feed_kg: input.totalFeedKg,
@@ -351,6 +387,11 @@ export const aquacultureFeedRouter = router({
       daysToHarvest: z.number().int().positive(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/break-even", {
           feed_cost: input.feedCost, fingerling_cost: input.fingerlingCost,
@@ -387,6 +428,11 @@ export const aquacultureFeedRouter = router({
       species: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("aquaculture_feed", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("aquaculture_feed", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       try {
         const result = await callFeedService("/feeding-rate", {
           avg_weight_grams: input.avgWeightGrams,
