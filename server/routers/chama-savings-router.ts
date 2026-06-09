@@ -5,11 +5,12 @@
  * Middleware: PostgreSQL, TigerBeetle (ledger), Kafka (events), Redis (cache), Permify (RBAC), Dapr (state).
  */
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { eq, desc } from "drizzle-orm";
 import { chamaGroups, chamaMembers, chamaTransactions } from "../../drizzle/schema-platform-extended.js";
-import { withRedisCache, recordLedgerEntry, publishKafkaEvent, checkPermission, saveDaprState } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, recordLedgerEntry, publishKafkaEvent, checkPermission, checkRateLimit, scanForThreats, saveDaprState } from "../integrations/middleware-router-hooks.js";
 import { logger } from "../logger.js";
 
 type ChamaGroup = typeof chamaGroups.$inferSelect;
@@ -64,6 +65,13 @@ export const chamaSavingsRouter = router({
   contribute: protectedProcedure
     .input(z.object({ chamaId: z.number(), amount: z.number().min(100) }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("chama-contribute", String(ctx.user.id), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for contributions" });
+      const wafScan = await scanForThreats("chama-contribute", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permissionGranted = await checkPermission(String(ctx.user.id), "chama", "contribute");
+      if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: chama contribution" });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [chama] = await db.select().from(chamaGroups).where(eq(chamaGroups.id, input.chamaId));
@@ -85,6 +93,13 @@ export const chamaSavingsRouter = router({
   requestGroupLoan: protectedProcedure
     .input(z.object({ chamaId: z.number(), amount: z.number().min(1000), purpose: z.string(), termMonths: z.number().min(1).max(24) }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("chama-loan", String(ctx.user.id), 5, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for loan requests" });
+      const wafScan = await scanForThreats("chama-loan", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permissionGranted = await checkPermission(String(ctx.user.id), "chama", "borrow");
+      if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: chama group loan" });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [chama] = await db.select().from(chamaGroups).where(eq(chamaGroups.id, input.chamaId));

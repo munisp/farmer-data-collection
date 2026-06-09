@@ -1,5 +1,6 @@
 import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
 import {
@@ -10,7 +11,7 @@ import {
   insuranceClaims,
 } from "../../drizzle/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { withRedisCache, invalidateRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, searchDocuments, checkRateLimit } from "../integrations/middleware-router-hooks.js";
+import { withRedisCache, invalidateRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, searchDocuments, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const marketplaceEnhancementsRouter = router({
   // ======================== NEGOTIATION / BIDDING ========================
@@ -24,6 +25,11 @@ export const marketplaceEnhancementsRouter = router({
       message: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("marketplace-offer", String(ctx.user.id), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for offers" });
+      const wafScan = await scanForThreats("marketplace-offer", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await requireDb();
       const [offer] = await db.insert(negotiationOffers).values({
         listingId: input.listingId,

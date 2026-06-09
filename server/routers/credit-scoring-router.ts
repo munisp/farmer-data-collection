@@ -1,9 +1,8 @@
 /**
-import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
  * Credit Scoring Router
  * Transparent, explainable credit scoring for smallholder farmers
  */
-
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
 import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
@@ -130,6 +129,13 @@ export const creditScoringRouter = router({
   calculateScore: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("credit-score-calc", String(input.userId), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for credit scoring" });
+      const wafScan = await scanForThreats("credit-scoring", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permissionGranted = await checkPermission(String(input.userId), "credit", "calculate");
+      if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: credit score calculation" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -278,6 +284,11 @@ export const creditScoringRouter = router({
       source: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("credit-repayment", String(input.userId), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("credit-repayment", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -307,6 +318,11 @@ export const creditScoringRouter = router({
       referenceId: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("credit-income", String(input.userId), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("credit-income", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
