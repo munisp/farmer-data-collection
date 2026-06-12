@@ -103,7 +103,7 @@ export default function BiometricSettingsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} accessibilityLabel="Biometric Settings screen">
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
           <Text style={styles.loadingText}>Loading security settings...</Text>
@@ -113,8 +113,8 @@ export default function BiometricSettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} accessibilityLabel="Biometric Settings screen">
+      <View style={styles.header} accessibilityRole="header">
         <Ionicons name="shield-checkmark" size={48} color="#2E7D32" />
         <Text accessibilityRole="header" style={styles.title}>Security Settings</Text>
         <Text style={styles.subtitle}>Protect your account with biometric authentication</Text>

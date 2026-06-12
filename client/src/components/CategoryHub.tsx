@@ -32,6 +32,7 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
       title: "Overview",
       cards: [
         { href: "/", label: "Dashboard", icon: LayoutDashboard, description: "Farm overview & metrics" },
+        { href: "/home", label: "Home", icon: Home, description: "Platform home" },
         { href: "/notifications", label: "Notifications", icon: Bell, description: "Alerts & updates" },
         { href: "/onboarding", label: "Get Started", icon: Target, description: "Setup wizard" },
         { href: "/settings", label: "Settings", icon: Settings, description: "App preferences" },
@@ -240,12 +241,15 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
         { href: "/agricultural-intelligence", label: "Ag Intelligence", icon: Brain, description: "AI insights" },
         { href: "/price-forecast", label: "Price Forecast", icon: LineChart, description: "ML predictions" },
         { href: "/input-yield-analytics", label: "Input/Yield", icon: BarChart3, description: "Correlations" },
+        { href: "/models/downloads", label: "Downloads", icon: Archive, description: "Model downloads" },
+        { href: "/models/benchmarks", label: "Benchmarks", icon: Activity, description: "Model benchmarks" },
       ],
     },
     {
       title: "People & Teams",
       cards: [
-        { href: "/farmers-enhanced", label: "Farmers", icon: Users, description: "Manage farmers" },
+        { href: "/farmers", label: "All Farmers", icon: Users, description: "Farmer records" },
+        { href: "/farmers-enhanced", label: "Farmers Pro", icon: Users, description: "Enhanced view" },
         { href: "/farmers-map", label: "Farmer Map", icon: MapPin, description: "Geographic view" },
         { href: "/cooperatives", label: "Cooperatives", icon: Users, description: "Co-op dashboard" },
         { href: "/field-agent", label: "Field Agent", icon: Briefcase, description: "Agent tasks" },
