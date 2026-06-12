@@ -27,6 +27,9 @@ import {
 import { TrendingUp, Users, ShoppingCart, DollarSign, Calendar } from "lucide-react";
 
 export default function AdvancedAnalytics() {
+  const yieldDataQuery = trpc.analytics.getDashboardSummary.useQuery({ startDate: new Date(Date.now() - 30*24*60*60*1000).toISOString().split("T")[0], endDate: new Date().toISOString().split("T")[0] }, { retry: 1 });
+  const yieldDataData = yieldDataQuery.data ?? null;
+
   const [timeRange, setTimeRange] = useState("30");
   const [comparisonRegion, setComparisonRegion] = useState("all");
 
@@ -288,7 +291,7 @@ export default function AdvancedAnalytics() {
         </Card>
 
         {/* Insights Summary */}
-        <Card className="border-2 border-blue-200 bg-blue-50">
+        <Card className="border-2 border-blue-200 bg-blue-50 dark:bg-blue-950">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-600" />

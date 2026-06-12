@@ -34,6 +34,7 @@ import {
   Loader2,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type FinancialSummary = {
   creditScore: number;
   riskCategory: string;
@@ -174,7 +175,8 @@ export default function FarmerFinancialProfile() {
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <DashboardLayout>
+      <div className="container mx-auto p-4 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <Link href="/farmers">
@@ -507,5 +509,6 @@ export default function FarmerFinancialProfile() {
         </CardContent>
       </Card>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type Message = {
   role: "user" | "assistant";
   content: string;
@@ -13,6 +14,9 @@ type Message = {
 };
 
 export default function AIAdvisorDashboard() {
+  const historyQuery = trpc.agriLlm.getHistory.useQuery({}, { retry: 1 });
+  const historyData = historyQuery.data ?? [];
+
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Hello! I'm your AI farming advisor. I can help you with crop diseases, soil management, planting guides, pest control, market prices, and weather-based recommendations.\n\nI speak 14 languages including Kiswahili, Hausa, Yoruba, Hindi, and more. What can I help you with today?", queryType: "general", confidence: 1.0, suggestions: ["What's wrong with my maize?", "When should I plant beans?", "Interpret my soil test results"] },
   ]);
@@ -51,12 +55,13 @@ export default function AIAdvisorDashboard() {
   };
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
-      <header className="bg-white border-b shadow-sm sticky top-0 z-10">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      <header className="bg-white dark:bg-gray-900 border-b shadow-sm dark:shadow-gray-900/20 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">🤖 AI Farming Advisor</h1>
-            <p className="text-sm text-gray-600">Farmer.Chat — RAG-powered agricultural advisory in {languages.length} languages</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Farmer.Chat — RAG-powered agricultural advisory in {languages.length} languages</p>
           </div>
           <div className="flex items-center gap-4">
             <select value={language} onChange={e => setLanguage(e.target.value)} className="border rounded px-2 py-1 text-sm">
@@ -69,10 +74,10 @@ export default function AIAdvisorDashboard() {
 
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <Card className="cursor-pointer hover:shadow-md"><CardContent className="pt-4 text-center text-sm"><div className="text-2xl mb-1">🌿</div>Crop Disease</CardContent></Card>
-          <Card className="cursor-pointer hover:shadow-md"><CardContent className="pt-4 text-center text-sm"><div className="text-2xl mb-1">🧪</div>Soil Advice</CardContent></Card>
-          <Card className="cursor-pointer hover:shadow-md"><CardContent className="pt-4 text-center text-sm"><div className="text-2xl mb-1">🌱</div>Planting Guide</CardContent></Card>
-          <Card className="cursor-pointer hover:shadow-md"><CardContent className="pt-4 text-center text-sm"><div className="text-2xl mb-1">💰</div>Market Prices</CardContent></Card>
+          <Card className="cursor-pointer hover:shadow-md dark:shadow-gray-900/30"><CardContent className="pt-4 text-center text-sm"><div className="text-2xl mb-1">🌿</div>Crop Disease</CardContent></Card>
+          <Card className="cursor-pointer hover:shadow-md dark:shadow-gray-900/30"><CardContent className="pt-4 text-center text-sm"><div className="text-2xl mb-1">🧪</div>Soil Advice</CardContent></Card>
+          <Card className="cursor-pointer hover:shadow-md dark:shadow-gray-900/30"><CardContent className="pt-4 text-center text-sm"><div className="text-2xl mb-1">🌱</div>Planting Guide</CardContent></Card>
+          <Card className="cursor-pointer hover:shadow-md dark:shadow-gray-900/30"><CardContent className="pt-4 text-center text-sm"><div className="text-2xl mb-1">💰</div>Market Prices</CardContent></Card>
         </div>
 
         {/* Chat Messages */}
@@ -81,7 +86,7 @@ export default function AIAdvisorDashboard() {
             <div className="space-y-4 max-h-[500px] overflow-y-auto">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-lg p-3 ${msg.role === "user" ? "bg-blue-500 text-white" : "bg-gray-100"}`}>
+                  <div className={`max-w-[80%] rounded-lg p-3 ${msg.role === "user" ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-gray-800"}`}>
                     <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                     {msg.confidence && msg.role === "assistant" && (
                       <p className="text-xs mt-2 opacity-70">Confidence: {(msg.confidence * 100).toFixed(0)}% | Type: {msg.queryType}</p>
@@ -92,7 +97,7 @@ export default function AIAdvisorDashboard() {
                     {msg.suggestions && msg.suggestions.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {msg.suggestions.map((s, j) => (
-                          <button key={j} onClick={() => { setInput(s); }} className="text-xs bg-white/20 border border-current/20 rounded-full px-2 py-0.5 hover:bg-white/30">{s}</button>
+                          <button key={j} onClick={() => { setInput(s); }} className="text-xs bg-white dark:bg-gray-900/20 border border-current/20 rounded-full px-2 py-0.5 hover:bg-white dark:bg-gray-900/30">{s}</button>
                         ))}
                       </div>
                     )}
@@ -130,5 +135,6 @@ export default function AIAdvisorDashboard() {
         </Card>
       </main>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

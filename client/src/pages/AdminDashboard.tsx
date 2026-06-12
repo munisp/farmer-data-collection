@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
@@ -89,17 +90,17 @@ export default function AdminDashboard() {
       case "active":
       case "healthy":
       case "published":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800";
       case "pending":
       case "warning":
       case "flagged":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800";
       case "suspended":
       case "hidden":
       case "inactive":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100";
     }
   };
 
@@ -214,48 +215,48 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table role="table" aria-label="Data table" className="w-full">
-                    <thead role="rowgroup">
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-2">User</th>
-                        <th className="text-left py-3 px-2">Role</th>
-                        <th className="text-left py-3 px-2">Status</th>
-                        <th className="text-left py-3 px-2">Joined</th>
-                        <th className="text-right py-3 px-2">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody role="rowgroup">
+                  <Table role="table" aria-label="Data table" className="w-full">
+                    <TableHeader role="rowgroup">
+                      <TableRow className="border-b">
+                        <TableHead className="text-left py-3 px-2">User</TableHead>
+                        <TableHead className="text-left py-3 px-2">Role</TableHead>
+                        <TableHead className="text-left py-3 px-2">Status</TableHead>
+                        <TableHead className="text-left py-3 px-2">Joined</TableHead>
+                        <TableHead className="text-right py-3 px-2">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody role="rowgroup">
                       {recentUsers.map((user: any) => {
                         const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
                         const status = user.isActive === false ? "inactive" : "active";
                         return (
-                          <tr key={user.id} className="border-b hover:bg-muted/50">
-                            <td className="py-3 px-2">
+                          <TableRow key={user.id} className="border-b hover:bg-muted/50">
+                            <TableCell className="py-3 px-2">
                               <div>
                                 <div className="font-medium">{name}</div>
                                 <div className="text-sm text-muted-foreground">{user.email}</div>
                               </div>
-                            </td>
-                            <td className="py-3 px-2">
+                            </TableCell>
+                            <TableCell className="py-3 px-2">
                               <Badge variant="outline">{user.role}</Badge>
-                            </td>
-                            <td className="py-3 px-2">
+                            </TableCell>
+                            <TableCell className="py-3 px-2">
                               <Badge className={`flex items-center gap-1 w-fit ${getStatusColor(status)}`}>
                                 {getStatusIcon(status)}
                                 {status}
                               </Badge>
-                            </td>
-                            <td className="py-3 px-2 text-sm">{formatDate(user.createdAt)}</td>
-                            <td className="py-3 px-2 text-right">
+                            </TableCell>
+                            <TableCell className="py-3 px-2 text-sm">{formatDate(user.createdAt)}</TableCell>
+                            <TableCell className="py-3 px-2 text-right">
                               <Button variant="ghost" size="icon">
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         );
                       })}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
@@ -325,7 +326,7 @@ export default function AdminDashboard() {
                     <span className="text-sm">Moderation Load</span>
                     <span className="text-sm font-semibold">{systemHealth.storageUsage}%</span>
                   </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div className="h-full bg-primary transition-all" style={{ width: `${systemHealth.storageUsage}%` }} />
                   </div>
                 </div>

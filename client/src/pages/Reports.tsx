@@ -11,6 +11,7 @@ import { FileDown, Loader2 } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 interface ExpenseByCategory {
   category: string;
   total: number;
@@ -255,26 +256,26 @@ export default function Reports() {
           <CardContent>
             {expenseData.length > 0 ? (
               <div className="overflow-x-auto">
-                <table role="table" aria-label="Data table" className="w-full">
-                  <thead role="rowgroup">
-                    <tr className="border-b">
-                      <th className="text-left p-2">Category</th>
-                      <th className="text-right p-2">Total Amount</th>
-                      <th className="text-right p-2">Percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody role="rowgroup">
+                <Table role="table" aria-label="Data table" className="w-full">
+                  <TableHeader role="rowgroup">
+                    <TableRow className="border-b">
+                      <TableHead className="text-left p-2">Category</TableHead>
+                      <TableHead className="text-right p-2">Total Amount</TableHead>
+                      <TableHead className="text-right p-2">Percentage</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody role="rowgroup">
                     {expenseData.map((item) => (
-                      <tr key={item.category} className="border-b">
-                        <td className="p-2">{item.category}</td>
-                        <td className="text-right p-2">${item.total.toFixed(2)}</td>
-                        <td className="text-right p-2">
+                      <TableRow key={item.category} className="border-b">
+                        <TableCell className="p-2">{item.category}</TableCell>
+                        <TableCell className="text-right p-2">${item.total.toFixed(2)}</TableCell>
+                        <TableCell className="text-right p-2">
                           {((item.total / totalExpenses) * 100).toFixed(1)}%
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : (
               <p className="text-muted-foreground">No expense data available</p>

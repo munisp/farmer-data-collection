@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Cloud, Droplets, Wind, Thermometer, Sun, CloudRain, Eye } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 interface WeatherData {
   temperature: number;
   feels_like: number;
@@ -103,14 +104,15 @@ export default function WeatherDashboard() {
       case 'drizzle':
         return <CloudRain className="h-8 w-8 text-blue-500" />;
       case 'clouds':
-        return <Cloud className="h-8 w-8 text-gray-500" />;
+        return <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400" />;
       default:
-        return <Cloud className="h-8 w-8 text-gray-500" />;
+        return <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400" />;
     }
   };
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-background p-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -309,5 +311,6 @@ export default function WeatherDashboard() {
         </Tabs>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

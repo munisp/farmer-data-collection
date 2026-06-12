@@ -49,6 +49,47 @@ import LoanApplicationScreen from '@/screens/loans/LoanApplicationScreen';
 // Journey screens
 import JourneyListScreen from '@/screens/journeys/JourneyListScreen';
 import JourneyDetailScreen from '@/screens/journeys/JourneyDetailScreen';
+import JourneyTrackerScreen from '@/screens/journeys/JourneyTrackerScreen';
+
+// AI screens
+import AIChatScreen from '@/screens/ai/AIChatScreen';
+
+// Crop screens
+import CropDashboardScreen from '@/screens/crops/CropDashboardScreen';
+import CropWizardScreen from '@/screens/crops/CropWizardScreen';
+
+// Equipment screens
+import DroneControlScreen from '@/screens/equipment/DroneControlScreen';
+import EquipmentFleetScreen from '@/screens/equipment/EquipmentFleetScreen';
+
+// Delivery screens
+import DeliveryTrackingScreen from '@/screens/delivery/DeliveryTrackingScreen';
+
+// Payment screens
+import MobileMoneyScreen from '@/screens/payments/MobileMoneyScreen';
+
+// Cooperative & Chama screens
+import CooperativeManagement from '@/screens/cooperative/CooperativeManagement';
+import ChamaScreen from '@/screens/chama/ChamaScreen';
+
+// Carbon & Soil screens
+import CarbonCredits from '@/screens/carbon/CarbonCredits';
+import SoilAnalysisScreen from '@/screens/soil/SoilAnalysisScreen';
+
+// Traceability & Analytics screens
+import TraceabilityDashboard from '@/screens/traceability/TraceabilityDashboard';
+import AnalyticsDashboard from '@/screens/analytics/AnalyticsDashboard';
+
+// Admin screens
+import AdminDashboardScreen from '@/screens/admin/AdminDashboardScreen';
+import WorkflowListScreen from '@/screens/admin/WorkflowListScreen';
+import WorkflowDetailScreen from '@/screens/admin/WorkflowDetailScreen';
+
+// Marketplace extra screens
+import PhotoInventoryScreen from '@/screens/marketplace/PhotoInventoryScreen';
+
+// Settings screens
+import BiometricSettingsScreen from '@/screens/settings/BiometricSettingsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -94,6 +135,14 @@ function FarmStack() {
       <Stack.Screen name="YieldPrediction" component={YieldPredictionScreen} />
       <Stack.Screen name="PriceForecast" component={PriceForecastScreen} />
       <Stack.Screen name="FarmRegistration" component={FarmRegistrationScreen} />
+      <Stack.Screen name="CropDashboard" component={CropDashboardScreen} />
+      <Stack.Screen name="CropWizard" component={CropWizardScreen} />
+      <Stack.Screen name="DroneControl" component={DroneControlScreen} />
+      <Stack.Screen name="EquipmentFleet" component={EquipmentFleetScreen} />
+      <Stack.Screen name="SoilAnalysis" component={SoilAnalysisScreen} />
+      <Stack.Screen name="AIChatAdvisor" component={AIChatScreen} />
+      <Stack.Screen name="CarbonCredits" component={CarbonCredits} />
+      <Stack.Screen name="Traceability" component={TraceabilityDashboard} />
     </Stack.Navigator>
   );
 }
@@ -107,6 +156,8 @@ function MarketStack() {
       <Stack.Screen name="Cart" component={CartScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
       <Stack.Screen name="Orders" component={OrdersScreen} />
+      <Stack.Screen name="PhotoInventory" component={PhotoInventoryScreen} />
+      <Stack.Screen name="DeliveryTracking" component={DeliveryTrackingScreen} />
     </Stack.Navigator>
   );
 }
@@ -118,18 +169,27 @@ function FinanceStack() {
       <Stack.Screen name="FarmerRegistration" component={FarmerRegistrationScreen} />
       <Stack.Screen name="FarmerProfile" component={FarmerProfileScreen} />
       <Stack.Screen name="LoanApplication" component={LoanApplicationScreen} />
+      <Stack.Screen name="MobileMoney" component={MobileMoneyScreen} />
+      <Stack.Screen name="Cooperative" component={CooperativeManagement} />
+      <Stack.Screen name="Chama" component={ChamaScreen} />
     </Stack.Navigator>
   );
 }
 
-// ===== More Stack (Profile, Settings, Journeys) =====
+// ===== More Stack (Profile, Settings, Journeys, Admin, Analytics) =====
 function MoreStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="BiometricSettings" component={BiometricSettingsScreen} />
       <Stack.Screen name="JourneyList" component={JourneyListScreen} />
       <Stack.Screen name="JourneyDetail" component={JourneyDetailScreen} />
+      <Stack.Screen name="JourneyTracker" component={JourneyTrackerScreen} />
+      <Stack.Screen name="Analytics" component={AnalyticsDashboard} />
+      <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+      <Stack.Screen name="WorkflowList" component={WorkflowListScreen} />
+      <Stack.Screen name="WorkflowDetail" component={WorkflowDetailScreen} />
     </Stack.Navigator>
   );
 }

@@ -45,6 +45,9 @@ interface NotificationPreferences {
 // ============================================================================
 
 export default function NotificationPreferences() {
+  const preferencesQuery = trpc.notification.getPreferences.useQuery({ userId: 1 }, { retry: 1 });
+  const preferencesData = preferencesQuery.data ?? null;
+
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     smsEnabled: false,
     emailEnabled: false,

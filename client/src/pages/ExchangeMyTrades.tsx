@@ -27,6 +27,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 // Trade type for type safety
 type TradeItem = {
   side: string;
@@ -101,7 +102,8 @@ export default function ExchangeMyTrades() {
   const totalSellValue = sellTrades.reduce((sum: number, t: TradeItem) => sum + t.trade.tradeValue, 0);
 
   return (
-    <div role="main" aria-label="Page content" className="container mx-auto p-4 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-4 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
@@ -268,5 +270,6 @@ export default function ExchangeMyTrades() {
         </CardContent>
       </Card>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

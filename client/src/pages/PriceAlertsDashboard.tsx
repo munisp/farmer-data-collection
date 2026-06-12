@@ -61,7 +61,7 @@ export default function PriceAlertsDashboard() {
                           ) : crop.next_month_trend === "down" ? (
                             <TrendingDown className="h-5 w-5 text-red-500" />
                           ) : (
-                            <BarChart3 className="h-5 w-5 text-gray-400" />
+                            <BarChart3 className="h-5 w-5 text-gray-400 dark:text-gray-500 dark:text-gray-400" />
                           )}
                         </div>
                         <p className="text-2xl font-bold mt-1">
@@ -100,7 +100,7 @@ export default function PriceAlertsDashboard() {
                     <Input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
                   </div>
                   {prediction.data && !("error" in prediction.data) && (
-                    <div role="main" aria-label="Page content" className="p-4 border rounded-lg bg-blue-50">
+                    <div role="main" aria-label="Page content" className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950">
                       <h4 className="font-bold text-lg">
                         {(prediction.data as Record<string, unknown>).currency as string}{" "}
                         {(prediction.data as Record<string, unknown>).predicted_price as number}
@@ -111,7 +111,7 @@ export default function PriceAlertsDashboard() {
                         {((prediction.data as Record<string, unknown>).price_range as Record<string, number>)?.high}
                       </p>
                       <p className="text-sm">Confidence: {Math.round(((prediction.data as Record<string, unknown>).confidence as number) * 100)}%</p>
-                      <div className="mt-3 p-2 bg-white rounded">
+                      <div className="mt-3 p-2 bg-white dark:bg-gray-900 rounded">
                         <Badge variant={(prediction.data as Record<string, unknown>).recommendation === "HOLD" ? "default" : "destructive"}>
                           {(prediction.data as Record<string, unknown>).recommendation as string}
                         </Badge>
@@ -141,7 +141,7 @@ export default function PriceAlertsDashboard() {
                         return (
                           <div key={i} className="flex items-center gap-2 text-sm">
                             <span className="w-24 text-muted-foreground">{p.date as string}</span>
-                            <div className="flex-1 bg-gray-100 rounded-full h-4">
+                            <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-4">
                               <div className="bg-blue-500 rounded-full h-4" style={{ width: `${width}%` }} />
                             </div>
                             <span className="w-16 text-right font-medium">{Math.round(p.price as number)}</span>

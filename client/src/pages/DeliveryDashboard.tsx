@@ -134,7 +134,7 @@ function LiveTrackingMap({ deliveryId }: { deliveryId: number | null }) {
       </div>
 
       {lastUpdate?.geofence && (
-        <div role="main" aria-label="Page content" className="p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div role="main" aria-label="Page content" className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 rounded-lg">
           <p className="text-sm font-medium text-green-800">
             <Navigation className="inline mr-1 h-4 w-4" />
             {lastUpdate.geofence.message}

@@ -145,7 +145,7 @@ export default function RepaymentTracking() {
 
             {/* Overdue Payments Alert */}
             {overduePayments.length > 0 && (
-              <Card className="border-red-200 bg-red-50">
+              <Card className="border-red-200 bg-red-50 dark:bg-red-950">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-red-700">
                     <AlertCircle className="h-5 w-5" />
@@ -158,7 +158,7 @@ export default function RepaymentTracking() {
                 <CardContent>
                   <div className="space-y-2">
                     {overduePayments.map((payment: any) => (
-                      <div key={payment.paymentNumber} className="flex items-center justify-between rounded-lg border border-red-200 bg-white p-3">
+                      <div key={payment.paymentNumber} className="flex items-center justify-between rounded-lg border border-red-200 bg-white dark:bg-gray-900 p-3">
                         <div>
                           <p className="font-medium">Payment #{payment.paymentNumber}</p>
                           <p className="text-sm text-muted-foreground">
@@ -279,7 +279,7 @@ export default function RepaymentTracking() {
                 ) : (
                   <div className="space-y-2">
                     {paidPayments.map((payment: any) => (
-                      <div key={payment.paymentNumber} className="flex items-center justify-between rounded-lg border bg-green-50 p-3">
+                      <div key={payment.paymentNumber} className="flex items-center justify-between rounded-lg border bg-green-50 dark:bg-green-950 p-3">
                         <div>
                           <p className="font-medium">Payment #{payment.paymentNumber}</p>
                           <p className="text-sm text-muted-foreground">

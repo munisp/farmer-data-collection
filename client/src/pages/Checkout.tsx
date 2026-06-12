@@ -13,6 +13,7 @@ import { Loader2, Package, Truck, WifiOff, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useOfflineSync, useOnlineStatus } from "@/hooks/useOfflineSync";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function Checkout() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
@@ -173,7 +174,8 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-8">Checkout</h1>
 
@@ -350,5 +352,6 @@ export default function Checkout() {
         </div>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

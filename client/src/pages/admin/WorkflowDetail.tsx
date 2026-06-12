@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useParams, useLocation } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function WorkflowDetail() {
   const params = useParams<{ workflowId: string }>();
   const [, setLocation] = useLocation();
@@ -28,7 +29,8 @@ export default function WorkflowDetail() {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <DashboardLayout>
+      <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">{workflow.type}</h1>
@@ -43,7 +45,7 @@ export default function WorkflowDetail() {
             <CardTitle>Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="px-4 py-2 rounded-full bg-blue-100 text-blue-800 font-semibold">
+            <span className="px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 font-semibold">
               {workflow.status}
             </span>
           </CardContent>
@@ -55,7 +57,7 @@ export default function WorkflowDetail() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{workflow.progress}%</div>
-            <div className="h-2 bg-gray-200 rounded-full mt-2">
+            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-2">
               <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${workflow.progress}%` }} />
             </div>
           </CardContent>
@@ -100,7 +102,7 @@ export default function WorkflowDetail() {
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
                   step.status === "completed" ? "bg-green-500 text-white" :
                   step.status === "in_progress" ? "bg-blue-500 text-white" :
-                  "bg-gray-200 text-gray-600"
+                  "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                 }`}>
                   {idx + 1}
                 </div>
@@ -116,9 +118,9 @@ export default function WorkflowDetail() {
                   Duration: {step.duration}
                 </div>
                 <span className={`px-3 py-1 rounded-full text-sm ${
-                  step.status === "completed" ? "bg-green-100 text-green-800" :
-                  step.status === "in_progress" ? "bg-blue-100 text-blue-800" :
-                  "bg-gray-100 text-gray-800"
+                  step.status === "completed" ? "bg-green-100 dark:bg-green-900 text-green-800" :
+                  step.status === "in_progress" ? "bg-blue-100 dark:bg-blue-900 text-blue-800" :
+                  "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100"
                 }`}>
                   {step.status.replace("_", " ")}
                 </span>
@@ -139,5 +141,6 @@ export default function WorkflowDetail() {
         </CardContent>
       </Card>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

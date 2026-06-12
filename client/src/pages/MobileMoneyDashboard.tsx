@@ -100,7 +100,7 @@ export default function MobileMoneyDashboard() {
                   {stkPush.isPending ? "Processing..." : "Send STK Push"}
                 </Button>
                 {stkPush.data && (
-                  <div role="main" aria-label="Page content" className="p-3 bg-green-50 rounded-lg">
+                  <div role="main" aria-label="Page content" className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                     <p className="text-green-700">Payment initiated! Check your phone.</p>
                   </div>
                 )}

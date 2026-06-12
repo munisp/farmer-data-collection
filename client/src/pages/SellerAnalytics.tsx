@@ -7,6 +7,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 export default function SellerAnalytics() {
   const [timeRange, setTimeRange] = useState("30");
 
@@ -276,19 +277,19 @@ export default function SellerAnalytics() {
           <CardContent>
             {listings && listings.length > 0 ? (
               <div className="overflow-x-auto">
-                <table role="table" aria-label="Data table" className="w-full">
-                  <thead role="rowgroup">
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-2">Product</th>
-                      <th className="text-left py-3 px-2">Status</th>
-                      <th className="text-right py-3 px-2">Price</th>
-                      <th className="text-right py-3 px-2">Views</th>
-                      <th className="text-right py-3 px-2">Sales</th>
-                      <th className="text-right py-3 px-2">Revenue</th>
-                      <th className="text-right py-3 px-2">Conv. Rate</th>
-                    </tr>
-                  </thead>
-                  <tbody role="rowgroup">
+                <Table role="table" aria-label="Data table" className="w-full">
+                  <TableHeader role="rowgroup">
+                    <TableRow className="border-b">
+                      <TableHead className="text-left py-3 px-2">Product</TableHead>
+                      <TableHead className="text-left py-3 px-2">Status</TableHead>
+                      <TableHead className="text-right py-3 px-2">Price</TableHead>
+                      <TableHead className="text-right py-3 px-2">Views</TableHead>
+                      <TableHead className="text-right py-3 px-2">Sales</TableHead>
+                      <TableHead className="text-right py-3 px-2">Revenue</TableHead>
+                      <TableHead className="text-right py-3 px-2">Conv. Rate</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody role="rowgroup">
                     {listings.map((listing: any) => {
                       const listingSales = sales?.filter((s: any) => s.listingId === listing.id) || [];
                       const listingRevenue = listingSales.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
@@ -296,41 +297,41 @@ export default function SellerAnalytics() {
                       const listingConversion = listingViews > 0 ? (listingSales.length / listingViews) * 100 : 0;
 
                       return (
-                        <tr key={listing.id} className="border-b hover:bg-muted/50">
-                          <td className="py-3 px-2">
+                        <TableRow key={listing.id} className="border-b hover:bg-muted/50">
+                          <TableCell className="py-3 px-2">
                             <div className="font-medium">{listing.title}</div>
                             <div className="text-xs text-muted-foreground">{listing.category}</div>
-                          </td>
-                          <td className="py-3 px-2">
+                          </TableCell>
+                          <TableCell className="py-3 px-2">
                             <Badge variant={listing.status === 'active' ? 'default' : 'secondary'}>
                               {listing.status}
                             </Badge>
-                          </td>
-                          <td className="text-right py-3 px-2">
+                          </TableCell>
+                          <TableCell className="text-right py-3 px-2">
                             {formatCurrency(listing.pricePerUnit)}
-                          </td>
-                          <td className="text-right py-3 px-2">
+                          </TableCell>
+                          <TableCell className="text-right py-3 px-2">
                             <div className="flex items-center justify-end gap-1">
                               <Eye className="h-3 w-3 text-muted-foreground" />
                               {listingViews}
                             </div>
-                          </td>
-                          <td className="text-right py-3 px-2">
+                          </TableCell>
+                          <TableCell className="text-right py-3 px-2">
                             {listingSales.length}
-                          </td>
-                          <td className="text-right py-3 px-2 font-semibold">
+                          </TableCell>
+                          <TableCell className="text-right py-3 px-2 font-semibold">
                             {formatCurrency(listingRevenue)}
-                          </td>
-                          <td className="text-right py-3 px-2">
+                          </TableCell>
+                          <TableCell className="text-right py-3 px-2">
                             <span className={listingConversion > 5 ? 'text-green-600' : 'text-muted-foreground'}>
                               {listingConversion.toFixed(1)}%
                             </span>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">

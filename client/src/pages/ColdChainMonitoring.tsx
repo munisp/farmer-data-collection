@@ -88,7 +88,7 @@ export default function ColdChainMonitoring() {
                 <Input type="number" value={temperature} onChange={e => setTemperature(e.target.value)} />
               </div>
               {compliance.data && !("error" in compliance.data) && (
-                <div className={`p-4 rounded-lg ${(compliance.data as Record<string, unknown>).compliant ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"} border`}>
+                <div className={`p-4 rounded-lg ${(compliance.data as Record<string, unknown>).compliant ? "bg-green-50 dark:bg-green-950 border-green-200" : "bg-red-50 dark:bg-red-950 border-red-200"} border`}>
                   <div className="flex items-center gap-2">
                     {(compliance.data as Record<string, unknown>).compliant ? (
                       <CheckCircle className="h-5 w-5 text-green-600" />

@@ -168,7 +168,7 @@ export default function BulkExport() {
 
         {/* Last Export Info */}
         {lastExport && (
-          <Card className="border-2 border-green-200 bg-green-50">
+          <Card className="border-2 border-green-200 bg-green-50 dark:bg-green-950">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-8 h-8 text-green-600" />

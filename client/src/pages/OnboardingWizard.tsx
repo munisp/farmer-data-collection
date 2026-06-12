@@ -30,6 +30,7 @@ import {
   Shield,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 // Guided Onboarding Wizard
 // Persona-based onboarding that activates only relevant features
 
@@ -359,6 +360,9 @@ const personas: PersonaConfig[] = [
 ];
 
 export default function OnboardingWizard() {
+  const regionConfigQuery = trpc.platformAdvanced.getRegionConfig.useQuery({ region: "west_africa" as const }, { retry: 1 });
+  const regionConfigData = regionConfigQuery.data ?? null;
+
   const [, setLocation] = useLocation();
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
@@ -416,11 +420,11 @@ export default function OnboardingWizard() {
             {personas.map((p) => (
               <Card
                 key={p.id}
-                className="cursor-pointer hover:border-green-500 hover:shadow-lg transition-all"
+                className="cursor-pointer hover:border-green-500 hover:shadow-lg dark:shadow-gray-900/40 transition-all"
                 onClick={() => handlePersonaSelect(p.id)}
               >
                 <CardHeader className="text-center">
-                  <div className="mx-auto mb-2 p-3 bg-green-100 rounded-full w-fit">
+                  <div className="mx-auto mb-2 p-3 bg-green-100 dark:bg-green-900 rounded-full w-fit">
                     {p.icon}
                   </div>
                   <CardTitle>{p.title}</CardTitle>
@@ -460,7 +464,8 @@ export default function OnboardingWizard() {
   const allStepsCompleted = persona && completedSteps.size === persona.steps.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4">
+    <DashboardLayout>
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4">
       <div className="container mx-auto max-w-2xl py-8">
         {/* Header */}
         <div className="mb-8">
@@ -474,7 +479,7 @@ export default function OnboardingWizard() {
           </Button>
 
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-green-100 rounded-full">{persona?.icon}</div>
+            <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">{persona?.icon}</div>
             <div>
               <h1 className="text-2xl font-bold">{persona?.title} Setup</h1>
               <p className="text-muted-foreground">
@@ -498,9 +503,9 @@ export default function OnboardingWizard() {
                 key={s.id}
                 className={`transition-all ${
                   isCurrent
-                    ? "border-green-500 shadow-lg"
+                    ? "border-green-500 shadow-lg dark:shadow-gray-900/40"
                     : isCompleted
-                    ? "border-green-200 bg-green-50"
+                    ? "border-green-200 bg-green-50 dark:bg-green-950"
                     : "opacity-60"
                 }`}
               >
@@ -511,8 +516,8 @@ export default function OnboardingWizard() {
                         isCompleted
                           ? "bg-green-500 text-white"
                           : isCurrent
-                          ? "bg-green-100"
-                          : "bg-gray-100"
+                          ? "bg-green-100 dark:bg-green-900"
+                          : "bg-gray-100 dark:bg-gray-800"
                       }`}
                     >
                       {isCompleted ? (
@@ -600,5 +605,6 @@ export default function OnboardingWizard() {
         </Card>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

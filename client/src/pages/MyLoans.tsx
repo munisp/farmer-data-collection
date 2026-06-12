@@ -29,6 +29,7 @@ import { formatCurrency } from "@/lib/utils";
 import LoanFilters, { LoanFilterState } from "@/components/LoanFilters";
 import { useMemo } from "react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Borrower Dashboard
  * 
@@ -154,7 +155,8 @@ export default function MyLoans() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <DashboardLayout>
+      <div className="container mx-auto py-8 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">My Loans</h1>
@@ -497,5 +499,6 @@ export default function MyLoans() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -30,6 +30,9 @@ interface ExportSchedule {
 }
 
 export default function ExportScheduler() {
+  const schedulesQuery = trpc.export.exportCrops.useQuery({ format: "csv" as const }, { retry: 1 });
+  const schedulesData = schedulesQuery.data ?? [];
+
   const [schedules, setSchedules] = useState<ExportSchedule[]>([]);
   const [exportingType, setExportingType] = useState<string | null>(null);
   const queryClient = useQueryClient();

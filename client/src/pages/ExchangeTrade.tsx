@@ -44,6 +44,7 @@ import {
 import { ModernCard } from "@/components/ui/modern-card";
 import { cn } from "@/lib/utils";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function ExchangeTrade() {
   const { symbol } = useParams<{ symbol: string }>();
   const queryClient = useQueryClient();
@@ -149,7 +150,8 @@ export default function ExchangeTrade() {
   }
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Modern Header */}
       <div className="gradient-hero text-white py-8">
         <div className="container">
@@ -163,14 +165,14 @@ export default function ExchangeTrade() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl md:text-3xl font-bold">{commodity.symbol}</h1>
-                  <Badge className="bg-white/20 text-white border-white/30">
+                  <Badge className="bg-white dark:bg-gray-900/20 text-white border-white/30">
                     {commodity.deliveryType}
                   </Badge>
                 </div>
                 <p className="text-white/80">{commodity.name}</p>
               </div>
             </div>
-            <ModernCard variant="glass" className="bg-white/10 backdrop-blur-sm border-white/20 text-white">
+            <ModernCard variant="glass" className="bg-white dark:bg-gray-900/10 backdrop-blur-sm border-white/20 text-white">
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="text-3xl font-bold">
@@ -180,7 +182,7 @@ export default function ExchangeTrade() {
                     per {commodity.unit}
                   </div>
                 </div>
-                <div className="p-3 rounded-xl bg-white/10">
+                <div className="p-3 rounded-xl bg-white dark:bg-gray-900/10">
                   <Activity className="w-6 h-6" />
                 </div>
               </div>
@@ -440,5 +442,6 @@ export default function ExchangeTrade() {
         </ModernCard>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

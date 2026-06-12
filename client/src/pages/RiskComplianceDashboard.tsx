@@ -41,6 +41,7 @@ import {
   Loader2,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type Severity = "critical" | "high" | "medium" | "low";
 
 function getDateBounds(range: string) {
@@ -108,7 +109,7 @@ function getStatusIcon(status: string) {
       return <Clock className="h-4 w-4 text-yellow-600" />;
     case "dismissed":
     case "rejected":
-      return <XCircle className="h-4 w-4 text-gray-600" />;
+      return <XCircle className="h-4 w-4 text-gray-600 dark:text-gray-300" />;
     default:
       return <AlertCircle className="h-4 w-4" />;
   }
@@ -243,7 +244,8 @@ export default function RiskComplianceDashboard() {
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <DashboardLayout>
+      <div className="container mx-auto p-4 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -604,5 +606,6 @@ export default function RiskComplianceDashboard() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

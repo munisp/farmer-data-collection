@@ -13,13 +13,13 @@ type RiskCategory = 'low' | 'medium' | 'high' | 'critical';
 const getRiskColor = (category: RiskCategory) => {
   switch (category) {
     case 'low':
-      return 'text-green-600 bg-green-100';
+      return 'text-green-600 bg-green-100 dark:bg-green-900';
     case 'medium':
-      return 'text-blue-600 bg-blue-100';
+      return 'text-blue-600 bg-blue-100 dark:bg-blue-900';
     case 'high':
       return 'text-orange-600 bg-orange-100';
     case 'critical':
-      return 'text-red-600 bg-red-100';
+      return 'text-red-600 bg-red-100 dark:bg-red-900';
   }
 };
 

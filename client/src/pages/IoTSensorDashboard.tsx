@@ -4,7 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { Link } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function IoTSensorDashboard() {
+  const devicesQuery = trpc.iotGateway.getFarmDevices.useQuery({ farmId: 1 }, { retry: 1 });
+  const overviewQuery = trpc.iotGateway.getNetworkOverview.useQuery({ farmId: 1 }, { retry: 1 });
+  const devicesData = devicesQuery.data ?? [];
+  const overviewData = overviewQuery.data ?? null;
+
   const [activeTab, setActiveTab] = useState("overview");
   const [devices] = useState<Array<{ id: number; name: string; type: string; protocol: string; status: string; battery: number; lat: number; lon: number; lastReading: Record<string, number> }>>([
     { id: 1, name: "Soil Sensor A1", type: "soil_sensor", protocol: "lorawan", status: "active", battery: 85, lat: -1.2801, lon: 36.8200, lastReading: { soil_moisture: 42.3, soil_temp: 24.1, soil_ec: 0.45 } },
@@ -18,12 +24,13 @@ export default function IoTSensorDashboard() {
   const lowBattery = devices.filter(d => d.battery < 20).length;
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
-      <header className="bg-white border-b shadow-sm sticky top-0 z-10">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
+      <header className="bg-white dark:bg-gray-900 border-b shadow-sm dark:shadow-gray-900/20 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">📡 IoT Sensor Network</h1>
-            <p className="text-sm text-gray-600">LoRaWAN, MQTT, BLE — soil sensors, weather stations, water monitoring</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">LoRaWAN, MQTT, BLE — soil sensors, weather stations, water monitoring</p>
           </div>
           <Link href="/"><a className="text-blue-600">← Dashboard</a></Link>
         </div>
@@ -31,10 +38,10 @@ export default function IoTSensorDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-teal-600">{devices.length}</div><p className="text-sm text-gray-500">Total Devices</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{active}</div><p className="text-sm text-gray-500">Active</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-red-600">{offline}</div><p className="text-sm text-gray-500">Offline</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-yellow-600">{lowBattery}</div><p className="text-sm text-gray-500">Low Battery</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-teal-600">{devices.length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Total Devices</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{active}</div><p className="text-sm text-gray-500 dark:text-gray-400">Active</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-red-600">{offline}</div><p className="text-sm text-gray-500 dark:text-gray-400">Offline</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-yellow-600">{lowBattery}</div><p className="text-sm text-gray-500 dark:text-gray-400">Low Battery</p></CardContent></Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -55,16 +62,16 @@ export default function IoTSensorDashboard() {
                       <div className="flex justify-between items-center mb-2">
                         <div>
                           <span className="font-semibold">{device.name}</span>
-                          <span className="ml-2 text-xs bg-gray-100 px-2 py-0.5 rounded">{device.protocol.toUpperCase()}</span>
+                          <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{device.protocol.toUpperCase()}</span>
                         </div>
-                        <span className={`px-2 py-1 rounded text-xs ${device.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{device.status}</span>
+                        <span className={`px-2 py-1 rounded text-xs ${device.status === "active" ? "bg-green-100 dark:bg-green-900 text-green-800" : "bg-red-100 dark:bg-red-900 text-red-800"}`}>{device.status}</span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
                         <span>🔋 {device.battery}%</span>
                         <span>📍 {device.lat.toFixed(4)}, {device.lon.toFixed(4)}</span>
                         <span>{device.type.replace("_", " ")}</span>
                       </div>
-                      <div className="mt-2 text-xs text-gray-400">
+                      <div className="mt-2 text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">
                         Last: {Object.entries(device.lastReading).map(([k, v]) => `${k.replace("_", " ")}=${v}`).join(", ")}
                       </div>
                     </div>
@@ -81,12 +88,12 @@ export default function IoTSensorDashboard() {
                   <CardHeader><CardTitle className="text-lg">{device.name}</CardTitle></CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4 text-center">
-                      <div><div className="text-2xl font-bold text-blue-600">{device.lastReading.soil_moisture}%</div><p className="text-xs text-gray-500">Moisture</p></div>
-                      <div><div className="text-2xl font-bold text-orange-600">{device.lastReading.soil_temp}°C</div><p className="text-xs text-gray-500">Temperature</p></div>
-                      <div><div className="text-2xl font-bold text-green-600">{device.lastReading.soil_ec} dS/m</div><p className="text-xs text-gray-500">EC</p></div>
+                      <div><div className="text-2xl font-bold text-blue-600">{device.lastReading.soil_moisture}%</div><p className="text-xs text-gray-500 dark:text-gray-400">Moisture</p></div>
+                      <div><div className="text-2xl font-bold text-orange-600">{device.lastReading.soil_temp}°C</div><p className="text-xs text-gray-500 dark:text-gray-400">Temperature</p></div>
+                      <div><div className="text-2xl font-bold text-green-600">{device.lastReading.soil_ec} dS/m</div><p className="text-xs text-gray-500 dark:text-gray-400">EC</p></div>
                     </div>
                     {(device.lastReading.soil_moisture ?? 100) < 35 && (
-                      <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded p-2 text-sm text-yellow-800">
+                      <div className="mt-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 rounded p-2 text-sm text-yellow-800">
                         ⚠️ Soil moisture below irrigation threshold for maize (35%)
                       </div>
                     )}
@@ -102,10 +109,10 @@ export default function IoTSensorDashboard() {
               <CardContent>
                 {devices.filter(d => d.type === "weather_station").map(station => (
                   <div key={station.id} className="grid grid-cols-4 gap-4 text-center">
-                    <div><div className="text-3xl font-bold text-orange-600">{station.lastReading.temperature}°C</div><p className="text-sm text-gray-500">Temperature</p></div>
-                    <div><div className="text-3xl font-bold text-blue-600">{station.lastReading.humidity}%</div><p className="text-sm text-gray-500">Humidity</p></div>
-                    <div><div className="text-3xl font-bold text-gray-600">{station.lastReading.wind_speed} m/s</div><p className="text-sm text-gray-500">Wind Speed</p></div>
-                    <div><div className="text-3xl font-bold text-cyan-600">{station.lastReading.rainfall} mm</div><p className="text-sm text-gray-500">Rainfall</p></div>
+                    <div><div className="text-3xl font-bold text-orange-600">{station.lastReading.temperature}°C</div><p className="text-sm text-gray-500 dark:text-gray-400">Temperature</p></div>
+                    <div><div className="text-3xl font-bold text-blue-600">{station.lastReading.humidity}%</div><p className="text-sm text-gray-500 dark:text-gray-400">Humidity</p></div>
+                    <div><div className="text-3xl font-bold text-gray-600 dark:text-gray-300">{station.lastReading.wind_speed} m/s</div><p className="text-sm text-gray-500 dark:text-gray-400">Wind Speed</p></div>
+                    <div><div className="text-3xl font-bold text-cyan-600">{station.lastReading.rainfall} mm</div><p className="text-sm text-gray-500 dark:text-gray-400">Rainfall</p></div>
                   </div>
                 ))}
               </CardContent>
@@ -118,13 +125,13 @@ export default function IoTSensorDashboard() {
               <CardContent>
                 <div className="space-y-2 text-sm">
                   {devices.filter(d => d.battery < 20).map(d => (
-                    <div key={d.id} className="bg-yellow-50 border-l-4 border-yellow-400 p-3">🔋 Low battery on {d.name}: {d.battery}%</div>
+                    <div key={d.id} className="bg-yellow-50 dark:bg-yellow-950 border-l-4 border-yellow-400 p-3">🔋 Low battery on {d.name}: {d.battery}%</div>
                   ))}
                   {devices.filter(d => d.status === "offline").map(d => (
-                    <div key={d.id} className="bg-red-50 border-l-4 border-red-400 p-3">⚠️ {d.name} is offline</div>
+                    <div key={d.id} className="bg-red-50 dark:bg-red-950 border-l-4 border-red-400 p-3">⚠️ {d.name} is offline</div>
                   ))}
                   {devices.filter(d => d.type === "soil_sensor" && (d.lastReading.soil_moisture ?? 100) < 35).map(d => (
-                    <div key={d.id} className="bg-blue-50 border-l-4 border-blue-400 p-3">💧 {d.name}: Soil moisture {d.lastReading.soil_moisture}% — irrigation recommended</div>
+                    <div key={d.id} className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-400 p-3">💧 {d.name}: Soil moisture {d.lastReading.soil_moisture}% — irrigation recommended</div>
                   ))}
                 </div>
               </CardContent>
@@ -133,5 +140,6 @@ export default function IoTSensorDashboard() {
         </Tabs>
       </main>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

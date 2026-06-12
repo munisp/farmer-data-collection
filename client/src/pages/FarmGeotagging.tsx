@@ -685,7 +685,7 @@ export default function FarmGeotagging() {
       : currentLocation.accuracy <= 30
       ? "text-yellow-500"
       : "text-red-500"
-    : "text-gray-400";
+    : "text-gray-400 dark:text-gray-500 dark:text-gray-400";
 
   const unitInfo = AREA_CONVERSIONS[areaUnit];
 
@@ -873,7 +873,7 @@ export default function FarmGeotagging() {
 
         {/* Live Measurement Display */}
         {boundaryPoints.length >= 3 && (
-          <Card className="border-green-200 bg-green-50/50">
+          <Card className="border-green-200 bg-green-50 dark:bg-green-950/50">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-green-800">
                 <AreaChart className="h-5 w-5" />
@@ -882,31 +882,31 @@ export default function FarmGeotagging() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="text-center p-3 bg-white rounded-lg border border-green-200">
+                <div className="text-center p-3 bg-white dark:bg-gray-900 rounded-lg border border-green-200">
                   <p className="text-xs text-muted-foreground">{unitInfo.label}</p>
                   <p className="text-2xl font-bold text-green-700">
                     {displayArea < 0.01 ? displayArea.toExponential(1) : displayArea.toFixed(2)}
                   </p>
                   <p className="text-xs text-green-600">{unitInfo.abbrev}</p>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-green-200">
+                <div className="text-center p-3 bg-white dark:bg-gray-900 rounded-lg border border-green-200">
                   <p className="text-xs text-muted-foreground">Perimeter</p>
                   <p className="text-2xl font-bold text-green-700">
                     {livePerimeterM < 1000 ? `${livePerimeterM.toFixed(0)}` : `${(livePerimeterM / 1000).toFixed(2)}`}
                   </p>
                   <p className="text-xs text-green-600">{livePerimeterM < 1000 ? 'm' : 'km'}</p>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-green-200">
+                <div className="text-center p-3 bg-white dark:bg-gray-900 rounded-lg border border-green-200">
                   <p className="text-xs text-muted-foreground">Hectares</p>
                   <p className="text-2xl font-bold text-green-700">{(liveAreaSqm / 10000).toFixed(2)}</p>
                   <p className="text-xs text-green-600">ha</p>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-green-200">
+                <div className="text-center p-3 bg-white dark:bg-gray-900 rounded-lg border border-green-200">
                   <p className="text-xs text-muted-foreground">Acres</p>
                   <p className="text-2xl font-bold text-green-700">{(liveAreaSqm / 10000 * 2.47105).toFixed(2)}</p>
                   <p className="text-xs text-green-600">ac</p>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-green-200">
+                <div className="text-center p-3 bg-white dark:bg-gray-900 rounded-lg border border-green-200">
                   <p className="text-xs text-muted-foreground">Points</p>
                   <p className="text-2xl font-bold text-green-700">{boundaryPoints.length}</p>
                   <p className="text-xs text-green-600">captured</p>

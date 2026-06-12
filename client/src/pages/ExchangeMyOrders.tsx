@@ -67,6 +67,7 @@ import {
   X,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function ExchangeMyOrders() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -120,7 +121,7 @@ export default function ExchangeMyOrders() {
         );
       case "cancelled":
         return (
-          <Badge variant="outline" className="text-gray-600 border-gray-600">
+          <Badge variant="outline" className="text-gray-600 dark:text-gray-300 border-gray-600">
             <XCircle className="h-3 w-3 mr-1" />
             Cancelled
           </Badge>
@@ -148,7 +149,8 @@ export default function ExchangeMyOrders() {
   );
 
   return (
-    <div role="main" aria-label="Page content" className="container mx-auto p-4 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-4 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
@@ -383,5 +385,6 @@ export default function ExchangeMyOrders() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

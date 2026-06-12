@@ -951,7 +951,7 @@ export default function InventoryDashboard() {
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.itemName}</TableCell>
                             <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : '-'}</TableCell>
-                            <TableCell><Badge className={item.daysUntilExpiry <= 7 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}>{item.daysUntilExpiry}d</Badge></TableCell>
+                            <TableCell><Badge className={item.daysUntilExpiry <= 7 ? 'bg-red-100 dark:bg-red-900 text-red-800' : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'}>{item.daysUntilExpiry}d</Badge></TableCell>
                             <TableCell>{item.quantity}</TableCell>
                           </TableRow>
                         ))}
@@ -973,10 +973,10 @@ export default function InventoryDashboard() {
                       <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Expired On</TableHead><TableHead>Days Ago</TableHead><TableHead>Qty</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {expiredItems.map((item: any) => (
-                          <TableRow key={item.id} className="bg-red-50">
+                          <TableRow key={item.id} className="bg-red-50 dark:bg-red-950">
                             <TableCell className="font-medium">{item.itemName}</TableCell>
                             <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : '-'}</TableCell>
-                            <TableCell><Badge className="bg-red-100 text-red-800">{item.daysExpired}d ago</Badge></TableCell>
+                            <TableCell><Badge className="bg-red-100 dark:bg-red-900 text-red-800">{item.daysExpired}d ago</Badge></TableCell>
                             <TableCell>{item.quantity}</TableCell>
                           </TableRow>
                         ))}
@@ -1008,11 +1008,11 @@ export default function InventoryDashboard() {
                           <TableCell>{item.currentStock}</TableCell>
                           <TableCell>{item.avgDailyUsage.toFixed(1)}</TableCell>
                           <TableCell>
-                            <Badge className={item.daysUntilStockout <= 7 ? 'bg-red-100 text-red-800' : item.daysUntilStockout <= 14 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}>
+                            <Badge className={item.daysUntilStockout <= 7 ? 'bg-red-100 dark:bg-red-900 text-red-800' : item.daysUntilStockout <= 14 ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800' : 'bg-green-100 dark:bg-green-900 text-green-800'}>
                               {item.daysUntilStockout === Infinity ? '∞' : item.daysUntilStockout.toFixed(0)} days
                             </Badge>
                           </TableCell>
-                          <TableCell>{item.reorderAlert ? <Badge className="bg-red-100 text-red-800">Reorder Now</Badge> : <Badge className="bg-green-100 text-green-800">OK</Badge>}</TableCell>
+                          <TableCell>{item.reorderAlert ? <Badge className="bg-red-100 dark:bg-red-900 text-red-800">Reorder Now</Badge> : <Badge className="bg-green-100 dark:bg-green-900 text-green-800">OK</Badge>}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

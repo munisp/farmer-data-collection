@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BulkSmsScheduler from "@/components/BulkSmsScheduler";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function SmsScheduling() {
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isBulkScheduleOpen, setIsBulkScheduleOpen] = useState(false);
@@ -133,7 +134,8 @@ export default function SmsScheduling() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <DashboardLayout>
+      <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -341,5 +343,6 @@ export default function SmsScheduling() {
         onOpenChange={setIsBulkScheduleOpen}
       />
     </div>
-  );
+  
+    </DashboardLayout>);
 }

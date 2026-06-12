@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { FileText, Plus, Clock, CheckCircle2, XCircle, Eye } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * My Applications Page
  * 
@@ -42,7 +43,8 @@ export default function MyApplications() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <DashboardLayout>
+      <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">My Loan Applications</h1>
@@ -114,7 +116,7 @@ export default function MyApplications() {
                 </div>
 
                 {app.status === "approved" && app.approvedAmount && (
-                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="mt-4 p-4 bg-green-50 dark:bg-green-950 border border-green-200 rounded-lg">
                     <p className="text-sm font-semibold text-green-800">
                       Approved Amount: ₦{(app.approvedAmount / 100).toLocaleString()}
                     </p>
@@ -127,7 +129,7 @@ export default function MyApplications() {
                 )}
 
                 {app.status === "rejected" && app.rejectionReason && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="mt-4 p-4 bg-red-50 dark:bg-red-950 border border-red-200 rounded-lg">
                     <p className="text-sm font-semibold text-red-800">Rejection Reason:</p>
                     <p className="text-sm text-red-700">{app.rejectionReason}</p>
                   </div>
@@ -138,5 +140,6 @@ export default function MyApplications() {
         </div>
       )}
     </div>
-  );
+  
+    </DashboardLayout>);
 }

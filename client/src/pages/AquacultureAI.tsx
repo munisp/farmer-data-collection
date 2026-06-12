@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 
+import DashboardLayout from "@/components/DashboardLayout";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 interface Disease {
   id: string;
   name: string;
@@ -58,18 +60,18 @@ const HATCHERY_PROFILES = [
 ];
 
 function mortalityColor(rate: number) {
-  if (rate <= 0.3) return "bg-yellow-100 text-yellow-800";
+  if (rate <= 0.3) return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800";
   if (rate <= 0.5) return "bg-orange-100 text-orange-800";
-  return "bg-red-100 text-red-800";
+  return "bg-red-100 dark:bg-red-900 text-red-800";
 }
 
 function typeColor(type: string) {
   switch (type) {
-    case "bacterial": return "bg-red-100 text-red-800";
+    case "bacterial": return "bg-red-100 dark:bg-red-900 text-red-800";
     case "viral": return "bg-purple-100 text-purple-800";
-    case "parasitic": return "bg-blue-100 text-blue-800";
-    case "fungal": return "bg-green-100 text-green-800";
-    default: return "bg-gray-100 text-gray-800";
+    case "parasitic": return "bg-blue-100 dark:bg-blue-900 text-blue-800";
+    case "fungal": return "bg-green-100 dark:bg-green-900 text-green-800";
+    default: return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100";
   }
 }
 
@@ -87,12 +89,13 @@ export default function AquacultureAI() {
   const parasitic = diseases.filter(d => d.type === "parasitic").length;
 
   return (
-    <div role="main" aria-label="Aquaculture AI" className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-violet-50">
-      <header className="bg-white border-b shadow-sm sticky top-0 z-10">
+    <DashboardLayout>
+      <div role="main" aria-label="Aquaculture AI" className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-violet-50">
+      <header className="bg-white dark:bg-gray-900 border-b shadow-sm dark:shadow-gray-900/20 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-purple-800">Fish Health & AI</h1>
-            <p className="text-sm text-gray-600">Disease diagnosis, growth prediction, hatchery management</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Disease diagnosis, growth prediction, hatchery management</p>
           </div>
           <div className="flex gap-2">
             <Link href="/aquaculture"><a className="text-sm text-blue-600 hover:underline">Ponds</a></Link>
@@ -107,25 +110,25 @@ export default function AquacultureAI() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-red-600">{bacterial}</div>
-              <p className="text-sm text-gray-500">Bacterial Diseases</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Bacterial Diseases</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-purple-600">{viral}</div>
-              <p className="text-sm text-gray-500">Viral Diseases</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Viral Diseases</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-green-600">{fungal}</div>
-              <p className="text-sm text-gray-500">Fungal Diseases</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Fungal Diseases</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-blue-600">{parasitic}</div>
-              <p className="text-sm text-gray-500">Parasitic Diseases</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Parasitic Diseases</p>
             </CardContent>
           </Card>
         </div>
@@ -140,17 +143,17 @@ export default function AquacultureAI() {
           <TabsContent value="diseases">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {diseases.map(disease => (
-                <Card key={disease.id} className="hover:shadow-md transition-shadow">
+                <Card key={disease.id} className="hover:shadow-md dark:shadow-gray-900/30 transition-shadow">
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-lg">{disease.name}</CardTitle>
                       <Badge className={typeColor(disease.type)}>{disease.type}</Badge>
                     </div>
-                    <p className="text-xs text-gray-500 italic">{disease.pathogen}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">{disease.pathogen}</p>
                   </CardHeader>
                   <CardContent>
                     <div className="mb-3">
-                      <span className="text-xs text-gray-500 block mb-1">Affected Species:</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Affected Species:</span>
                       <div className="flex flex-wrap gap-1">
                         {disease.species.map(sp => (
                           <Badge key={sp} variant="outline" className="text-xs capitalize">{sp}</Badge>
@@ -158,22 +161,22 @@ export default function AquacultureAI() {
                       </div>
                     </div>
                     <div className="mb-3">
-                      <span className="text-xs text-gray-500 block mb-1">Symptoms:</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Symptoms:</span>
                       <div className="flex flex-wrap gap-1">
                         {disease.symptoms.map(sym => (
-                          <span key={sym} className="text-xs bg-gray-100 px-2 py-0.5 rounded">{sym}</span>
+                          <span key={sym} className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{sym}</span>
                         ))}
                       </div>
                     </div>
                     <div className="flex gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500">Mortality: </span>
+                        <span className="text-gray-500 dark:text-gray-400">Mortality: </span>
                         <Badge className={mortalityColor(disease.mortality_rate)}>
                           {(disease.mortality_rate * 100).toFixed(0)}%
                         </Badge>
                       </div>
                       <div>
-                        <span className="text-gray-500">Recovery: </span>
+                        <span className="text-gray-500 dark:text-gray-400">Recovery: </span>
                         <span className="font-medium">{disease.recovery_days > 0 ? `${disease.recovery_days} days` : "No recovery"}</span>
                       </div>
                     </div>
@@ -192,28 +195,28 @@ export default function AquacultureAI() {
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2 px-3">Phase</th>
-                            <th className="text-center py-2 px-3">Days</th>
-                            <th className="text-center py-2 px-3">Weight Range</th>
-                            <th className="text-center py-2 px-3">Protein %</th>
-                            <th className="text-center py-2 px-3">Feed Rate</th>
-                          </tr>
-                        </thead>
-                        <tbody>
+                      <Table className="w-full text-sm">
+                        <TableHeader>
+                          <TableRow className="border-b">
+                            <TableHead className="text-left py-2 px-3">Phase</TableHead>
+                            <TableHead className="text-center py-2 px-3">Days</TableHead>
+                            <TableHead className="text-center py-2 px-3">Weight Range</TableHead>
+                            <TableHead className="text-center py-2 px-3">Protein %</TableHead>
+                            <TableHead className="text-center py-2 px-3">Feed Rate</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {gp.phases.map(phase => (
-                            <tr key={phase.phase} className="border-b hover:bg-gray-50">
-                              <td className="py-2 px-3 font-medium">{phase.phase}</td>
-                              <td className="text-center py-2 px-3">{phase.days}</td>
-                              <td className="text-center py-2 px-3">{phase.weight}</td>
-                              <td className="text-center py-2 px-3">{phase.protein}</td>
-                              <td className="text-center py-2 px-3">{phase.feed_rate}</td>
-                            </tr>
+                            <TableRow key={phase.phase} className="border-b hover:bg-gray-50 dark:bg-gray-950">
+                              <TableCell className="py-2 px-3 font-medium">{phase.phase}</TableCell>
+                              <TableCell className="text-center py-2 px-3">{phase.days}</TableCell>
+                              <TableCell className="text-center py-2 px-3">{phase.weight}</TableCell>
+                              <TableCell className="text-center py-2 px-3">{phase.protein}</TableCell>
+                              <TableCell className="text-center py-2 px-3">{phase.feed_rate}</TableCell>
+                            </TableRow>
                           ))}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                     <div className="mt-3 p-3 bg-indigo-50 rounded text-xs text-indigo-700">
                       Growth model: von Bertalanffy equation with temperature adjustment factor
@@ -229,46 +232,46 @@ export default function AquacultureAI() {
               <CardHeader><CardTitle>Hatchery Production Profiles</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-3">Species</th>
-                        <th className="text-center py-2 px-3">Eggs/kg</th>
-                        <th className="text-center py-2 px-3">Fertilization</th>
-                        <th className="text-center py-2 px-3">Hatching</th>
-                        <th className="text-center py-2 px-3">Fry Survival</th>
-                        <th className="text-center py-2 px-3">Incubation</th>
-                        <th className="text-center py-2 px-3">Temp</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="w-full text-sm">
+                    <TableHeader>
+                      <TableRow className="border-b">
+                        <TableHead className="text-left py-2 px-3">Species</TableHead>
+                        <TableHead className="text-center py-2 px-3">Eggs/kg</TableHead>
+                        <TableHead className="text-center py-2 px-3">Fertilization</TableHead>
+                        <TableHead className="text-center py-2 px-3">Hatching</TableHead>
+                        <TableHead className="text-center py-2 px-3">Fry Survival</TableHead>
+                        <TableHead className="text-center py-2 px-3">Incubation</TableHead>
+                        <TableHead className="text-center py-2 px-3">Temp</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {HATCHERY_PROFILES.map(hp => (
-                        <tr key={hp.species} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-3 font-medium">{hp.species}</td>
-                          <td className="text-center py-2 px-3">{hp.eggs_per_kg.toLocaleString()}</td>
-                          <td className="text-center py-2 px-3">
-                            <Badge className={hp.fertilization_pct >= 80 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                        <TableRow key={hp.species} className="border-b hover:bg-gray-50 dark:bg-gray-950">
+                          <TableCell className="py-2 px-3 font-medium">{hp.species}</TableCell>
+                          <TableCell className="text-center py-2 px-3">{hp.eggs_per_kg.toLocaleString()}</TableCell>
+                          <TableCell className="text-center py-2 px-3">
+                            <Badge className={hp.fertilization_pct >= 80 ? "bg-green-100 dark:bg-green-900 text-green-800" : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800"}>
                               {hp.fertilization_pct}%
                             </Badge>
-                          </td>
-                          <td className="text-center py-2 px-3">
-                            <Badge className={hp.hatching_pct >= 75 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                          </TableCell>
+                          <TableCell className="text-center py-2 px-3">
+                            <Badge className={hp.hatching_pct >= 75 ? "bg-green-100 dark:bg-green-900 text-green-800" : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800"}>
                               {hp.hatching_pct}%
                             </Badge>
-                          </td>
-                          <td className="text-center py-2 px-3">
-                            <Badge className={hp.fry_survival_pct >= 60 ? "bg-green-100 text-green-800" : hp.fry_survival_pct >= 40 ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}>
+                          </TableCell>
+                          <TableCell className="text-center py-2 px-3">
+                            <Badge className={hp.fry_survival_pct >= 60 ? "bg-green-100 dark:bg-green-900 text-green-800" : hp.fry_survival_pct >= 40 ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800" : "bg-red-100 dark:bg-red-900 text-red-800"}>
                               {hp.fry_survival_pct}%
                             </Badge>
-                          </td>
-                          <td className="text-center py-2 px-3">{hp.incubation_hours}h</td>
-                          <td className="text-center py-2 px-3">{hp.temp_c}°C</td>
-                        </tr>
+                          </TableCell>
+                          <TableCell className="text-center py-2 px-3">{hp.incubation_hours}h</TableCell>
+                          <TableCell className="text-center py-2 px-3">{hp.temp_c}°C</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
-                <div className="mt-6 p-4 bg-purple-50 rounded-lg">
+                <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
                   <h3 className="font-semibold text-purple-800 mb-2">Hatchery Yield Estimation</h3>
                   <p className="text-sm text-purple-700">Fry Output = (Female Weight × Eggs/kg) × Fertilization Rate × Hatching Rate × Fry Survival Rate</p>
                 </div>
@@ -278,5 +281,6 @@ export default function AquacultureAI() {
         </Tabs>
       </main>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -19,6 +19,7 @@ import { CameraUpload } from "@/components/CameraUpload";
 import { toast } from "sonner";
 import { compressImage, formatFileSize } from "@/lib/imageCompression";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function MarketplaceListing() {
   const [, params] = useRoute("/marketplace/edit/:id");
   const [, setLocation] = useLocation();
@@ -236,7 +237,8 @@ export default function MarketplaceListing() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container py-8 max-w-4xl">
         <Button variant="ghost" className="mb-6" onClick={() => setLocation("/my-listings")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -328,7 +330,7 @@ export default function MarketplaceListing() {
 
                               {/* Meat/Livestock Specific Options */}
                               {(formData.category === "meat" || formData.category === "poultry") && (
-                                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 space-y-4">
+                                <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 space-y-4">
                                   <h4 className="font-medium text-orange-800 flex items-center gap-2">
                                     <span>Meat & Livestock Options</span>
                                   </h4>
@@ -778,5 +780,6 @@ export default function MarketplaceListing() {
         </Card>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

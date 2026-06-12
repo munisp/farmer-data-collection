@@ -42,6 +42,7 @@ import {
 import { useLocalization } from '@/contexts/LocalizationContext';
 import { trpc } from '@/lib/trpc';
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function PortfolioAtRiskDashboard() {
   const { formatCurrency } = useLocalization();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
@@ -101,21 +102,22 @@ export default function PortfolioAtRiskDashboard() {
   };
 
   const getParBadge = (par: number) => {
-    if (par < 3) return <Badge className="bg-green-100 text-green-800">Low Risk</Badge>;
-    if (par < 5) return <Badge className="bg-yellow-100 text-yellow-800">Moderate</Badge>;
+    if (par < 3) return <Badge className="bg-green-100 dark:bg-green-900 text-green-800">Low Risk</Badge>;
+    if (par < 5) return <Badge className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800">Moderate</Badge>;
     if (par < 10) return <Badge className="bg-orange-100 text-orange-800">High Risk</Badge>;
-    return <Badge className="bg-red-100 text-red-800">Critical</Badge>;
+    return <Badge className="bg-red-100 dark:bg-red-900 text-red-800">Critical</Badge>;
   };
 
   const getOverdueBadge = (days: number) => {
-    if (days < 30) return <Badge className="bg-yellow-100 text-yellow-800">1-29 days</Badge>;
+    if (days < 30) return <Badge className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800">1-29 days</Badge>;
     if (days < 60) return <Badge className="bg-orange-100 text-orange-800">30-59 days</Badge>;
-    if (days < 90) return <Badge className="bg-red-100 text-red-800">60-89 days</Badge>;
+    if (days < 90) return <Badge className="bg-red-100 dark:bg-red-900 text-red-800">60-89 days</Badge>;
     return <Badge className="bg-red-500 text-white">90+ days</Badge>;
   };
 
   return (
-    <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Portfolio at Risk</h1>
@@ -202,7 +204,7 @@ export default function PortfolioAtRiskDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-5 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {(100 - portfolioSummary.par1).toFixed(1)}%
               </div>
@@ -211,28 +213,28 @@ export default function PortfolioAtRiskDashboard() {
                 {formatCurrency((portfolioSummary.totalOutstanding * (100 - portfolioSummary.par1) / 100) / 100)}
               </div>
             </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
               <div className="text-2xl font-bold text-yellow-600">{portfolioSummary.par1}%</div>
               <div className="text-sm text-muted-foreground">1-29 Days</div>
               <div className="text-xs text-muted-foreground">
                 {formatCurrency((portfolioSummary.totalOutstanding * portfolioSummary.par1 / 100) / 100)}
               </div>
             </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
+            <div className="text-center p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">{portfolioSummary.par30}%</div>
               <div className="text-sm text-muted-foreground">30-59 Days</div>
               <div className="text-xs text-muted-foreground">
                 {formatCurrency((portfolioSummary.totalOutstanding * portfolioSummary.par30 / 100) / 100)}
               </div>
             </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg">
+            <div className="text-center p-4 bg-red-50 dark:bg-red-950 rounded-lg">
               <div className="text-2xl font-bold text-red-600">{portfolioSummary.par60}%</div>
               <div className="text-sm text-muted-foreground">60-89 Days</div>
               <div className="text-xs text-muted-foreground">
                 {formatCurrency((portfolioSummary.totalOutstanding * portfolioSummary.par60 / 100) / 100)}
               </div>
             </div>
-            <div className="text-center p-4 bg-red-100 rounded-lg">
+            <div className="text-center p-4 bg-red-100 dark:bg-red-900 rounded-lg">
               <div className="text-2xl font-bold text-red-700">{portfolioSummary.par90}%</div>
               <div className="text-sm text-muted-foreground">90+ Days</div>
               <div className="text-xs text-muted-foreground">
@@ -447,5 +449,6 @@ export default function PortfolioAtRiskDashboard() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

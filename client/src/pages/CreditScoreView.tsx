@@ -30,6 +30,7 @@ import { useLocalization } from '@/contexts/LocalizationContext';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 
+import DashboardLayout from "@/components/DashboardLayout";
 const bandInfo = [
   { band: 'A', label: 'Excellent', minScore: 800, maxScore: 1000, color: 'bg-green-500', textColor: 'text-green-700' },
   { band: 'B', label: 'Good', minScore: 650, maxScore: 799, color: 'bg-blue-500', textColor: 'text-blue-700' },
@@ -118,16 +119,17 @@ export default function CreditScoreView() {
   const getImpactColor = (impact: string) => {
     switch (impact) {
       case 'positive':
-        return 'border-green-200 bg-green-50';
+        return 'border-green-200 bg-green-50 dark:bg-green-950';
       case 'negative':
-        return 'border-red-200 bg-red-50';
+        return 'border-red-200 bg-red-50 dark:bg-red-950';
       default:
-        return 'border-yellow-200 bg-yellow-50';
+        return 'border-yellow-200 bg-yellow-50 dark:bg-yellow-950';
     }
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <DashboardLayout>
+      <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Credit Score</h1>
@@ -419,5 +421,6 @@ export default function CreditScoreView() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

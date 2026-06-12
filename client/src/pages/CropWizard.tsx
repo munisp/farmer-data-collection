@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 const CROPS = [
   { id: "ginger", name: "Ginger", icon: "🫚", color: "bg-yellow-500" },
   { id: "palm", name: "Palm Oil", icon: "🌴", color: "bg-green-600" },
@@ -14,15 +15,19 @@ const CROPS = [
   { id: "maize", name: "Maize", icon: "🌽", color: "bg-yellow-600" },
   { id: "soybean", name: "Soybean", icon: "🫘", color: "bg-green-700" },
   { id: "groundnut", name: "Groundnut", icon: "🥜", color: "bg-orange-600" },
-  { id: "cotton", name: "Cotton", icon: "☁️", color: "bg-blue-100" },
+  { id: "cotton", name: "Cotton", icon: "☁️", color: "bg-blue-100 dark:bg-blue-900" },
 ];
 
 export default function CropWizard() {
+  const existingCropsQuery = trpc.coreCrops.list.useQuery({}, { retry: 1 });
+  const existingCropsData = existingCropsQuery.data ?? [];
+
   const [, setLocation] = useLocation();
   const [selectedCrop, setSelectedCrop] = useState<string | null>(null);
 
   return (
-    <div role="main" aria-label="Page content" className="container mx-auto py-8">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-2">Select Your Crop</h1>
       <p className="text-muted-foreground mb-8">
         Choose the crop you want to manage and we'll guide you through the best practices
@@ -56,5 +61,6 @@ export default function CropWizard() {
         </div>
       )}
     </div>
-  );
+  
+    </DashboardLayout>);
 }

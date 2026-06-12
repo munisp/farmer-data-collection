@@ -26,11 +26,11 @@ export default function FreshnessTracking() {
   };
 
   const gradeColors: Record<string, string> = {
-    "A+": "text-green-700 bg-green-100",
-    "A": "text-green-600 bg-green-50",
-    "B": "text-yellow-600 bg-yellow-50",
-    "C": "text-orange-600 bg-orange-50",
-    "F": "text-red-600 bg-red-50",
+    "A+": "text-green-700 bg-green-100 dark:bg-green-900",
+    "A": "text-green-600 bg-green-50 dark:bg-green-950",
+    "B": "text-yellow-600 bg-yellow-50 dark:bg-yellow-950",
+    "C": "text-orange-600 bg-orange-50 dark:bg-orange-950",
+    "F": "text-red-600 bg-red-50 dark:bg-red-950",
   };
 
   const report = sellerReport.data;
@@ -112,29 +112,29 @@ export default function FreshnessTracking() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="p-3 bg-blue-50 rounded">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded">
                     <Thermometer className="h-4 w-4 text-blue-600 mb-1" />
                     <p className="text-sm text-muted-foreground">Avg Temp</p>
                     <p className="font-semibold">{freshness.data.avgTemperature}°C</p>
                   </div>
-                  <div className="p-3 bg-red-50 rounded">
+                  <div className="p-3 bg-red-50 dark:bg-red-950 rounded">
                     <Thermometer className="h-4 w-4 text-red-600 mb-1" />
                     <p className="text-sm text-muted-foreground">Max Temp</p>
                     <p className="font-semibold">{freshness.data.maxTemperature}°C</p>
                   </div>
-                  <div className="p-3 bg-green-50 rounded">
+                  <div className="p-3 bg-green-50 dark:bg-green-950 rounded">
                     <Thermometer className="h-4 w-4 text-green-600 mb-1" />
                     <p className="text-sm text-muted-foreground">Min Temp</p>
                     <p className="font-semibold">{freshness.data.minTemperature}°C</p>
                   </div>
-                  <div className="p-3 bg-yellow-50 rounded">
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-950 rounded">
                     <Clock className="h-4 w-4 text-yellow-600 mb-1" />
                     <p className="text-sm text-muted-foreground">Transit Time</p>
                     <p className="font-semibold">{freshness.data.totalTransitMinutes || 0} min</p>
                   </div>
                 </div>
                 {(freshness.data.coldChainBreaches || 0) > 0 && (
-                  <div className="p-3 bg-red-100 rounded flex items-center gap-2">
+                  <div className="p-3 bg-red-100 dark:bg-red-900 rounded flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-red-600" />
                     <p className="text-sm text-red-800">{freshness.data.coldChainBreaches} cold chain breach(es) detected during transit</p>
                   </div>

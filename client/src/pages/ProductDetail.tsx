@@ -10,6 +10,7 @@ import { ArrowLeft, ShoppingCart, Leaf, MapPin, Calendar, Package, Truck, Phone,
 import { toast } from "sonner";
 import ReviewsList from "@/components/ReviewsList";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function ProductDetail() {
   const [, params] = useRoute("/marketplace/:id");
   const listingId = params?.id ? parseInt(params.id) : 0;
@@ -61,7 +62,8 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container py-8">
         {/* Back Button */}
         <Link href="/marketplace">
@@ -107,7 +109,7 @@ export default function ProductDetail() {
               <h1 className="text-3xl font-bold mb-2">{listing.title}</h1>
               <div className="flex gap-2 mb-4">
                 {listing.organic && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800">
                     <Leaf className="h-3 w-3 mr-1" />
                     Organic
                   </Badge>
@@ -297,5 +299,6 @@ export default function ProductDetail() {
         </div>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

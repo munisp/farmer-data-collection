@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Building2, FileText } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function LoanApprovals() {
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -105,7 +106,8 @@ export default function LoanApprovals() {
   }
 
   return (
-    <div role="main" aria-label="Page content" className="space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Loan Approvals</h1>
         <p className="text-muted-foreground mt-2">
@@ -175,7 +177,7 @@ export default function LoanApprovals() {
         ) : (
           <div className="grid gap-4">
             {pendingLoans.map((item) => (
-              <Card key={item.id} className="hover:shadow-md transition-shadow">
+              <Card key={item.id} className="hover:shadow-md dark:shadow-gray-900/30 transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
@@ -433,5 +435,6 @@ export default function LoanApprovals() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

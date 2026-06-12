@@ -151,11 +151,11 @@ export default function Livestock() {
 
   const healthBadge = (status: string | null) => {
     const colors: Record<string, string> = {
-      healthy: "bg-green-100 text-green-800", sick: "bg-red-100 text-red-800",
-      recovering: "bg-yellow-100 text-yellow-800", quarantined: "bg-purple-100 text-purple-800",
-      deceased: "bg-gray-100 text-gray-800",
+      healthy: "bg-green-100 dark:bg-green-900 text-green-800", sick: "bg-red-100 dark:bg-red-900 text-red-800",
+      recovering: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800", quarantined: "bg-purple-100 text-purple-800",
+      deceased: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100",
     };
-    return <Badge className={colors[status || "healthy"] || "bg-gray-100"}>{status || "healthy"}</Badge>;
+    return <Badge className={colors[status || "healthy"] || "bg-gray-100 dark:bg-gray-800"}>{status || "healthy"}</Badge>;
   };
 
   const filtered = useMemo(() => {

@@ -18,6 +18,9 @@ import {
 import { toast } from "sonner";
 
 export default function Achievements() {
+  const achievementsQuery = trpc.platformAdvanced.getRegionConfig.useQuery({ region: "west_africa" as const }, { retry: 1 });
+  const achievementsData = achievementsQuery.data ?? null;
+
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const achievements = [

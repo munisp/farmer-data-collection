@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, Award, Target, Zap, CheckCircle2 } from "luci
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Model Benchmarking Dashboard
  * 
@@ -59,7 +60,7 @@ export default function ModelBenchmarks() {
       );
     } else {
       return (
-        <Badge variant="outline" className="bg-gray-500/10 text-gray-700 dark:text-gray-400">
+        <Badge variant="outline" className="bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
           <CheckCircle2 className="w-3 h-3 mr-1" />
           Equal
         </Badge>
@@ -83,7 +84,8 @@ export default function ModelBenchmarks() {
     : null;
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container py-8">
@@ -390,5 +392,6 @@ export default function ModelBenchmarks() {
         )}
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

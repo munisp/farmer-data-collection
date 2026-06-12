@@ -121,10 +121,10 @@ export default function RetailStoreDashboard() {
                   <p className="text-sm text-muted-foreground capitalize">{store.businessType}</p>
                   <p className="text-sm mt-1">{store.address}, {store.city}</p>
                   <div className="mt-3 flex gap-2 text-xs">
-                    <span className={`px-2 py-1 rounded ${store.verified ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                    <span className={`px-2 py-1 rounded ${store.verified ? "bg-green-100 dark:bg-green-900 text-green-800" : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800"}`}>
                       {store.verified ? "Verified" : "Pending Verification"}
                     </span>
-                    <span className="px-2 py-1 rounded bg-blue-100 text-blue-800 capitalize">{store.tier}</span>
+                    <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 capitalize">{store.tier}</span>
                   </div>
                   <div className="mt-3 text-sm">
                     <p>Payment: <span className="font-medium uppercase">{store.paymentTerms}</span></p>
@@ -137,7 +137,7 @@ export default function RetailStoreDashboard() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="cursor-pointer hover:shadow-md" onClick={() => window.location.href = "/retail/standing-orders"}>
+          <Card className="cursor-pointer hover:shadow-md dark:shadow-gray-900/30" onClick={() => window.location.href = "/retail/standing-orders"}>
             <CardContent className="pt-6 flex items-center gap-3">
               <Package className="h-8 w-8 text-blue-600" />
               <div>
@@ -146,7 +146,7 @@ export default function RetailStoreDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="cursor-pointer hover:shadow-md" onClick={() => window.location.href = "/retail/bulk-order"}>
+          <Card className="cursor-pointer hover:shadow-md dark:shadow-gray-900/30" onClick={() => window.location.href = "/retail/bulk-order"}>
             <CardContent className="pt-6 flex items-center gap-3">
               <ShoppingCart className="h-8 w-8 text-green-600" />
               <div>
@@ -155,7 +155,7 @@ export default function RetailStoreDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="cursor-pointer hover:shadow-md" onClick={() => window.location.href = "/retail/invoices"}>
+          <Card className="cursor-pointer hover:shadow-md dark:shadow-gray-900/30" onClick={() => window.location.href = "/retail/invoices"}>
             <CardContent className="pt-6 flex items-center gap-3">
               <FileText className="h-8 w-8 text-orange-600" />
               <div>
@@ -164,7 +164,7 @@ export default function RetailStoreDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="cursor-pointer hover:shadow-md" onClick={() => window.location.href = "/retail/demand"}>
+          <Card className="cursor-pointer hover:shadow-md dark:shadow-gray-900/30" onClick={() => window.location.href = "/retail/demand"}>
             <CardContent className="pt-6 flex items-center gap-3">
               <TrendingUp className="h-8 w-8 text-purple-600" />
               <div>

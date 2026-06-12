@@ -177,12 +177,12 @@ export default function MicrofinanceDashboard() {
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${
                             loan.status === 'approved' || loan.status === 'disbursed' || loan.status === 'active'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800'
                               : loan.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'
                               : loan.status === 'rejected'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-blue-100 text-blue-800'
+                              ? 'bg-red-100 dark:bg-red-900 text-red-800'
+                              : 'bg-blue-100 dark:bg-blue-900 text-blue-800'
                           }`}>
                             {loan.status}
                           </span>
@@ -541,9 +541,9 @@ export default function MicrofinanceDashboard() {
                           </p>
                         </div>
                         <span className={`text-xs px-2 py-1 rounded ${
-                          record.rating === 'low' ? 'bg-green-100 text-green-800' :
-                          record.rating === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
+                          record.rating === 'low' ? 'bg-green-100 dark:bg-green-900 text-green-800' :
+                          record.rating === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800' :
+                          'bg-red-100 dark:bg-red-900 text-red-800'
                         }`}>
                           {record.rating}
                         </span>

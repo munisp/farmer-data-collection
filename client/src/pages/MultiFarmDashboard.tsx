@@ -18,6 +18,7 @@ import { farms, crops, expenses, harvests } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 interface FarmStats {
   farmId: number;
   farmName: string;
@@ -31,6 +32,9 @@ interface FarmStats {
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"];
 
 export default function MultiFarmDashboard() {
+  const farmsListQuery = trpc.coreFarms.list.useQuery({}, { retry: 1 });
+  const farmsListData = farmsListQuery.data ?? [];
+
   const { user } = useAuth();
   const { db } = useDatabase();
   const [farmsList, setFarmsList] = useState<any[]>([]);
@@ -523,36 +527,36 @@ export default function MultiFarmDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table role="table" aria-label="Data table" className="w-full">
-                    <thead role="rowgroup">
-                      <tr className="border-b">
-                        <th className="text-left p-2">Rank</th>
-                        <th className="text-left p-2">Farm Name</th>
-                        <th className="text-right p-2">Crops</th>
-                        <th className="text-right p-2">Revenue</th>
-                        <th className="text-right p-2">Expenses</th>
-                        <th className="text-right p-2">Net Profit</th>
-                        <th className="text-right p-2">Margin %</th>
-                      </tr>
-                    </thead>
-                    <tbody role="rowgroup">
+                  <Table role="table" aria-label="Data table" className="w-full">
+                    <TableHeader role="rowgroup">
+                      <TableRow className="border-b">
+                        <TableHead className="text-left p-2">Rank</TableHead>
+                        <TableHead className="text-left p-2">Farm Name</TableHead>
+                        <TableHead className="text-right p-2">Crops</TableHead>
+                        <TableHead className="text-right p-2">Revenue</TableHead>
+                        <TableHead className="text-right p-2">Expenses</TableHead>
+                        <TableHead className="text-right p-2">Net Profit</TableHead>
+                        <TableHead className="text-right p-2">Margin %</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody role="rowgroup">
                       {farmStats
                         .sort((a, b) => b.netProfit - a.netProfit)
                         .map((farm, index) => (
-                          <tr key={farm.farmId} className="border-b">
-                            <td className="p-2">#{index + 1}</td>
-                            <td className="p-2 font-medium">{farm.farmName}</td>
-                            <td className="text-right p-2">{farm.totalCrops}</td>
-                            <td className="text-right p-2">{formatCurrency(farm.totalRevenue)}</td>
-                            <td className="text-right p-2">{formatCurrency(farm.totalExpenses)}</td>
-                            <td className={`text-right p-2 font-semibold ${farm.netProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          <TableRow key={farm.farmId} className="border-b">
+                            <TableCell className="p-2">#{index + 1}</TableCell>
+                            <TableCell className="p-2 font-medium">{farm.farmName}</TableCell>
+                            <TableCell className="text-right p-2">{farm.totalCrops}</TableCell>
+                            <TableCell className="text-right p-2">{formatCurrency(farm.totalRevenue)}</TableCell>
+                            <TableCell className="text-right p-2">{formatCurrency(farm.totalExpenses)}</TableCell>
+                            <TableCell className={`text-right p-2 font-semibold ${farm.netProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
                               {formatCurrency(farm.netProfit)}
-                            </td>
-                            <td className="text-right p-2">{farm.profitMargin.toFixed(1)}%</td>
-                          </tr>
+                            </TableCell>
+                            <TableCell className="text-right p-2">{farm.profitMargin.toFixed(1)}%</TableCell>
+                          </TableRow>
                         ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>

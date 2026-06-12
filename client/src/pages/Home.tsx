@@ -118,7 +118,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50">
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-emerald-100">
+      <header className="sticky top-0 z-50 bg-white dark:bg-gray-900/80 backdrop-blur-lg border-b border-emerald-100">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="h-10 w-10">
@@ -129,8 +129,8 @@ export default function Home() {
                 <Sprout className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-gray-900">FarmCollect</h1>
-                <p className="text-xs text-gray-500">{user.firstName || user.email || "Field Agent"}</p>
+                <h1 className="text-sm font-bold text-gray-900 dark:text-white">FarmCollect</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{user.firstName || user.email || "Field Agent"}</p>
               </div>
             </div>
           </div>
@@ -150,15 +150,15 @@ export default function Home() {
         <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 bg-white rounded-full animate-pulse"></div>
+              <div className="h-2 w-2 bg-white dark:bg-gray-900 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium">Operational Dashboard Live</span>
             </div>
             {stats.pendingSync > 0 ? (
-              <Badge variant="secondary" className="bg-white/20 text-white border-0">
+              <Badge variant="secondary" className="bg-white dark:bg-gray-900/20 text-white border-0">
                 {stats.pendingSync} pending
               </Badge>
             ) : (
-              <Badge variant="secondary" className="bg-white/20 text-white border-0">
+              <Badge variant="secondary" className="bg-white dark:bg-gray-900/20 text-white border-0">
                 Synced
               </Badge>
             )}
@@ -166,12 +166,12 @@ export default function Home() {
         </div>
 
         <div className="px-4 py-6 grid grid-cols-2 gap-3">
-          <Card className="border-emerald-100 shadow-sm">
+          <Card className="border-emerald-100 shadow-sm dark:shadow-gray-900/20">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">Tracked Farmers</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalFarmers}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Tracked Farmers</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalFarmers}</p>
                   <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
                     <TrendingUp className="h-3 w-3" />
                     {stats.farms} farms recorded
@@ -184,18 +184,18 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="border-blue-100 shadow-sm">
+          <Card className="border-blue-100 shadow-sm dark:shadow-gray-900/20">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">Recent Records</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.activeToday}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Recent Records</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.activeToday}</p>
                   <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     Harvests and expenses
                   </p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                   <Calendar className="h-5 w-5 text-blue-600" />
                 </div>
               </div>
@@ -204,7 +204,7 @@ export default function Home() {
         </div>
 
         <div className="px-4 pb-6 grid grid-cols-1 gap-3">
-          <Card className="border-purple-100 shadow-sm">
+          <Card className="border-purple-100 shadow-sm dark:shadow-gray-900/20">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Profile Coverage</CardTitle>
@@ -222,21 +222,21 @@ export default function Home() {
           </Card>
 
           <div className="grid grid-cols-3 gap-3">
-            <Card className="border-gray-100 shadow-sm">
+            <Card className="border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-gray-900/20">
               <CardContent className="p-4 text-center">
                 <Tractor className="h-5 w-5 text-emerald-600 mx-auto mb-2" />
                 <p className="text-xl font-bold">{stats.farms}</p>
                 <p className="text-xs text-muted-foreground">Farms</p>
               </CardContent>
             </Card>
-            <Card className="border-gray-100 shadow-sm">
+            <Card className="border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-gray-900/20">
               <CardContent className="p-4 text-center">
                 <Sprout className="h-5 w-5 text-green-600 mx-auto mb-2" />
                 <p className="text-xl font-bold">{stats.crops}</p>
                 <p className="text-xs text-muted-foreground">Crops</p>
               </CardContent>
             </Card>
-            <Card className="border-gray-100 shadow-sm">
+            <Card className="border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-gray-900/20">
               <CardContent className="p-4 text-center">
                 <Receipt className="h-5 w-5 text-orange-600 mx-auto mb-2" />
                 <p className="text-xl font-bold">{Math.round(stats.totalExpenses / 100)}</p>
@@ -247,18 +247,18 @@ export default function Home() {
         </div>
 
         <div className="px-4 pb-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Quick Actions</h2>
           <div className="grid grid-cols-4 gap-3">
             {quickActions.map((action) => (
               <button
                 key={action.label}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white border border-gray-100 shadow-sm active:scale-95 transition-transform"
+                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-gray-900/20 active:scale-95 transition-transform"
                 onClick={action.onClick}
               >
                 <div className={`h-12 w-12 rounded-full ${action.color} flex items-center justify-center`}>
                   <action.icon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-xs font-medium text-gray-700 text-center">{action.label}</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-200 text-center">{action.label}</span>
               </button>
             ))}
           </div>
@@ -266,24 +266,24 @@ export default function Home() {
 
         <div className="px-4 pb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-900">Recent Activity</h2>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
             <Button variant="ghost" size="sm" className="h-8 text-xs text-emerald-600" onClick={() => setLocation("/dashboard")}>
               View Full Dashboard
             </Button>
           </div>
           <div className="space-y-2">
             {recentActivity.map((activity) => (
-              <Card key={activity.id} className="border-gray-100 shadow-sm">
+              <Card key={activity.id} className="border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-gray-900/20">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0">
-                      <Users className="h-5 w-5 text-gray-600" />
+                      <Users className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{activity.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{activity.action}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{activity.action}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-gray-400">{activity.time}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">{activity.time}</span>
                         <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-0 text-xs h-5">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           {activity.type}
@@ -298,21 +298,21 @@ export default function Home() {
         </div>
       </main>
 
-      <nav role="navigation" aria-label="Navigation" className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-inset-bottom">
+      <nav role="navigation" aria-label="Navigation" className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-2 safe-area-inset-bottom">
         <div className="flex items-center justify-around max-w-md mx-auto">
           <button className="flex flex-col items-center gap-1 py-2 px-4 text-emerald-600" onClick={() => setLocation("/")}>
             <BarChart3 className="h-5 w-5" />
             <span className="text-xs font-medium">Dashboard</span>
           </button>
-          <button className="flex flex-col items-center gap-1 py-2 px-4 text-gray-400" onClick={() => setLocation("/farmers")}>
+          <button className="flex flex-col items-center gap-1 py-2 px-4 text-gray-400 dark:text-gray-500 dark:text-gray-400" onClick={() => setLocation("/farmers")}>
             <Users className="h-5 w-5" />
             <span className="text-xs font-medium">Farmers</span>
           </button>
-          <button className="flex flex-col items-center gap-1 py-2 px-4 text-gray-400" onClick={() => setLocation("/farmers-map")}>
+          <button className="flex flex-col items-center gap-1 py-2 px-4 text-gray-400 dark:text-gray-500 dark:text-gray-400" onClick={() => setLocation("/farmers-map")}>
             <MapPin className="h-5 w-5" />
             <span className="text-xs font-medium">Map</span>
           </button>
-          <button className="flex flex-col items-center gap-1 py-2 px-4 text-gray-400" onClick={() => setLocation("/reports")}>
+          <button className="flex flex-col items-center gap-1 py-2 px-4 text-gray-400 dark:text-gray-500 dark:text-gray-400" onClick={() => setLocation("/reports")}>
             <FileText className="h-5 w-5" />
             <span className="text-xs font-medium">Reports</span>
           </button>
@@ -320,7 +320,7 @@ export default function Home() {
       </nav>
 
       <button
-        className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+        className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg dark:shadow-gray-900/40 flex items-center justify-center active:scale-95 transition-transform"
         onClick={() => setLocation("/farmers")}
       >
         <Plus className="h-6 w-6 text-white" />

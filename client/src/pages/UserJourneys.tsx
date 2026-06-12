@@ -40,6 +40,7 @@ import {
   Mic,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type JourneyStatus = 'not_started' | 'in_progress' | 'completed' | 'failed' | 'blocked';
 type JourneyChannel = 'USSD' | 'SMS' | 'WhatsApp' | 'PWA' | 'Mobile' | 'Voice';
 type JourneyCategory = 'onboarding' | 'farming' | 'financial' | 'marketplace' | 'analytics' | 'compliance' | 'sustainability';
@@ -440,12 +441,12 @@ const JOURNEY_CATALOG: JourneySummary[] = [
 ];
 
 const CATEGORY_CONFIG: Record<JourneyCategory, { label: string; color: string }> = {
-  onboarding: { label: 'Onboarding', color: 'bg-blue-100 text-blue-800' },
-  farming: { label: 'Farming', color: 'bg-green-100 text-green-800' },
-  financial: { label: 'Financial', color: 'bg-yellow-100 text-yellow-800' },
+  onboarding: { label: 'Onboarding', color: 'bg-blue-100 dark:bg-blue-900 text-blue-800' },
+  farming: { label: 'Farming', color: 'bg-green-100 dark:bg-green-900 text-green-800' },
+  financial: { label: 'Financial', color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800' },
   marketplace: { label: 'Marketplace', color: 'bg-purple-100 text-purple-800' },
   analytics: { label: 'Analytics', color: 'bg-cyan-100 text-cyan-800' },
-  compliance: { label: 'Compliance', color: 'bg-gray-100 text-gray-800' },
+  compliance: { label: 'Compliance', color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100' },
   sustainability: { label: 'Sustainability', color: 'bg-emerald-100 text-emerald-800' },
 };
 
@@ -459,6 +460,9 @@ const CHANNEL_ICONS: Record<JourneyChannel, any> = {
 };
 
 export default function UserJourneys() {
+  const journeysQuery = trpc.analytics.getUserEngagement.useQuery({}, { retry: 1 });
+  const journeysData = journeysQuery.data ?? [];
+
   const [journeys, setJourneys] = useState<JourneySummary[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<JourneySummary | null>(null);
   const [activeTab, setActiveTab] = useState("all");
@@ -501,7 +505,7 @@ export default function UserJourneys() {
       case "blocked":
         return <AlertCircle className="h-5 w-5 text-red-500" />;
       default:
-        return <Clock className="h-5 w-5 text-gray-400" />;
+        return <Clock className="h-5 w-5 text-gray-400 dark:text-gray-500 dark:text-gray-400" />;
     }
   };
 
@@ -555,7 +559,8 @@ export default function UserJourneys() {
   };
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       <div className="border-b bg-card">
         <div className="container py-6">
           <h1 className="text-3xl font-bold">User Journeys</h1>
@@ -596,7 +601,7 @@ export default function UserJourneys() {
               <CardTitle className="text-sm font-medium">Not Started</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-400">{stats.notStarted}</div>
+              <div className="text-2xl font-bold text-gray-400 dark:text-gray-500 dark:text-gray-400">{stats.notStarted}</div>
             </CardContent>
           </Card>
         </div>
@@ -637,7 +642,7 @@ export default function UserJourneys() {
                 return (
                   <Card
                     key={journey.id}
-                    className="hover:shadow-lg transition-shadow cursor-pointer group"
+                    className="hover:shadow-lg dark:shadow-gray-900/40 transition-shadow cursor-pointer group"
                     onClick={() => openJourneyDetail(journey)}
                   >
                     <CardHeader className="pb-3">
@@ -692,7 +697,7 @@ export default function UserJourneys() {
                               <span className="text-muted-foreground">Progress</span>
                               <span className="font-medium">{journey.progress}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                               <div
                                 className="h-1.5 rounded-full transition-all"
                                 style={{ 
@@ -766,7 +771,7 @@ export default function UserJourneys() {
                       <span className="text-muted-foreground">Overall Progress</span>
                       <span className="font-medium">{selectedJourney.progress}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
                         className="h-2 rounded-full transition-all"
                         style={{ 
@@ -803,10 +808,10 @@ export default function UserJourneys() {
                             <div 
                               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                                 step.status === 'completed' 
-                                  ? 'bg-green-100 text-green-700' 
+                                  ? 'bg-green-100 dark:bg-green-900 text-green-700' 
                                   : step.status === 'in_progress'
-                                  ? 'bg-yellow-100 text-yellow-700'
-                                  : 'bg-gray-100 text-gray-500'
+                                  ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700'
+                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                               }`}
                             >
                               {step.status === 'completed' ? (
@@ -818,7 +823,7 @@ export default function UserJourneys() {
                             {index < selectedJourney.steps.length - 1 && (
                               <div 
                                 className={`w-0.5 h-8 mt-1 ${
-                                  step.status === 'completed' ? 'bg-green-300' : 'bg-gray-200'
+                                  step.status === 'completed' ? 'bg-green-300' : 'bg-gray-200 dark:bg-gray-700'
                                 }`}
                               />
                             )}
@@ -874,5 +879,6 @@ export default function UserJourneys() {
         </SheetContent>
       </Sheet>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

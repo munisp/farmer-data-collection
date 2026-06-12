@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Eye, Package } from "lucide-react";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function MyListings() {
   const { data: listings, isLoading, refetch } = trpc.marketplace.getMyListings.useQuery();
 
@@ -32,13 +33,13 @@ export default function MyListings() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800";
       case "sold_out":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800";
       case "expired":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100";
     }
   };
 
@@ -51,7 +52,8 @@ export default function MyListings() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container py-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">My Listings</h1>
@@ -100,7 +102,7 @@ export default function MyListings() {
                     <Badge variant="outline">{listing.category}</Badge>
                     <Badge className={getStatusColor(listing.status)}>{listing.status}</Badge>
                     {listing.organic && (
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800">
                         Organic
                       </Badge>
                     )}
@@ -162,5 +164,6 @@ export default function MyListings() {
         )}
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

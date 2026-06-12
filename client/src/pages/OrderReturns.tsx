@@ -38,12 +38,12 @@ export default function OrderReturns() {
   });
 
   const statusColors: Record<string, string> = {
-    requested: "bg-yellow-100 text-yellow-800",
-    approved: "bg-blue-100 text-blue-800",
-    rejected: "bg-red-100 text-red-800",
+    requested: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800",
+    approved: "bg-blue-100 dark:bg-blue-900 text-blue-800",
+    rejected: "bg-red-100 dark:bg-red-900 text-red-800",
     pickup_scheduled: "bg-purple-100 text-purple-800",
     received: "bg-indigo-100 text-indigo-800",
-    refunded: "bg-green-100 text-green-800",
+    refunded: "bg-green-100 dark:bg-green-900 text-green-800",
   };
 
   const statusIcons: Record<string, typeof Clock> = {

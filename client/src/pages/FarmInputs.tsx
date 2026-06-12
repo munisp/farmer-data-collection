@@ -240,7 +240,7 @@ export default function FarmInputs() {
                           <TableCell>{item.quantity} {item.unit}</TableCell>
                           <TableCell>{item.totalCost ? (item.totalCost / 100).toLocaleString() : "-"}</TableCell>
                           <TableCell>{item.supplier || "-"}</TableCell>
-                          <TableCell>{item.applicationDate ? <Badge className="bg-green-100 text-green-800">Applied</Badge> : <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>}</TableCell>
+                          <TableCell>{item.applicationDate ? <Badge className="bg-green-100 dark:bg-green-900 text-green-800">Applied</Badge> : <Badge className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800">Pending</Badge>}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}><Pencil className="w-4 h-4" /></Button>

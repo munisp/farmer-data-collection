@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Loader2, TrendingUp, CheckCircle, XCircle, Flag, Star, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Review Analytics Dashboard
  * Admin-only page showing review statistics and insights
@@ -32,7 +33,8 @@ export default function ReviewAnalytics() {
   ];
 
   return (
-    <div role="main" aria-label="Page content" className="container mx-auto py-8 space-y-8">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto py-8 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Review Analytics</h1>
         <p className="text-muted-foreground mt-2">
@@ -260,5 +262,6 @@ export default function ReviewAnalytics() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

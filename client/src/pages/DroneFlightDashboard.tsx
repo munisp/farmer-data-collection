@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { Link } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type FlightPlan = {
   id: string;
   farmId: number;
@@ -26,6 +27,11 @@ type DroneStatus = {
 };
 
 export default function DroneFlightDashboard() {
+  const flightPlansQuery = trpc.drone.getFlightHistory.useQuery({ farmId: 1, limit: 20 }, { retry: 1 });
+  const dronesQuery = trpc.drone.getFleetStatus.useQuery(undefined, { retry: 1 });
+  const flightPlansData = flightPlansQuery.data ?? [];
+  const dronesData = dronesQuery.data ?? [];
+
   const [activeTab, setActiveTab] = useState("planning");
   const [flightPlans] = useState<FlightPlan[]>([
     { id: "FP-1-001", farmId: 1, flightType: "survey", droneModel: "DJI Agras T40", estimatedAreaHa: 12.5, estimatedTimeM: 18, batteries: 1, status: "planned", waypointCount: 84 },
@@ -37,12 +43,13 @@ export default function DroneFlightDashboard() {
   ]);
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-blue-50">
-      <header className="bg-white border-b shadow-sm sticky top-0 z-10">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-blue-50">
+      <header className="bg-white dark:bg-gray-900 border-b shadow-sm dark:shadow-gray-900/20 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">🛩️ Drone Operations</h1>
-            <p className="text-sm text-gray-600">Flight planning, spray prescriptions, NDVI imagery</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Flight planning, spray prescriptions, NDVI imagery</p>
           </div>
           <Link href="/"><a className="text-blue-600">← Dashboard</a></Link>
         </div>
@@ -51,10 +58,10 @@ export default function DroneFlightDashboard() {
       <main className="container mx-auto px-4 py-8">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-blue-600">{drones.length}</div><p className="text-sm text-gray-500">Registered Drones</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{flightPlans.filter(f => f.status === "completed").length}</div><p className="text-sm text-gray-500">Completed Flights</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-purple-600">{flightPlans.reduce((s, f) => s + f.estimatedAreaHa, 0).toFixed(1)} ha</div><p className="text-sm text-gray-500">Total Area Covered</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-orange-600">{drones.filter(d => d.status === "flying" || d.status === "spraying").length}</div><p className="text-sm text-gray-500">Active Flights</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-blue-600">{drones.length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Registered Drones</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{flightPlans.filter(f => f.status === "completed").length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Completed Flights</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-purple-600">{flightPlans.reduce((s, f) => s + f.estimatedAreaHa, 0).toFixed(1)} ha</div><p className="text-sm text-gray-500 dark:text-gray-400">Total Area Covered</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-orange-600">{drones.filter(d => d.status === "flying" || d.status === "spraying").length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Active Flights</p></CardContent></Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -74,9 +81,9 @@ export default function DroneFlightDashboard() {
                     <div key={plan.id} className="border rounded-lg p-4 flex justify-between items-center">
                       <div>
                         <div className="font-semibold">{plan.id} — {plan.flightType.toUpperCase()}</div>
-                        <div className="text-sm text-gray-500">{plan.droneModel} • {plan.estimatedAreaHa} ha • {plan.estimatedTimeM} min • {plan.batteries} batteries • {plan.waypointCount} waypoints</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{plan.droneModel} • {plan.estimatedAreaHa} ha • {plan.estimatedTimeM} min • {plan.batteries} batteries • {plan.waypointCount} waypoints</div>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${plan.status === "completed" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${plan.status === "completed" ? "bg-green-100 dark:bg-green-900 text-green-800" : "bg-blue-100 dark:bg-blue-900 text-blue-800"}`}>
                         {plan.status}
                       </span>
                     </div>
@@ -95,16 +102,16 @@ export default function DroneFlightDashboard() {
                     <div key={drone.droneId} className="border rounded-lg p-4">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-semibold">{drone.droneId}</span>
-                        <span className={`px-2 py-1 rounded text-xs ${drone.status === "idle" ? "bg-gray-100" : "bg-green-100 text-green-800"}`}>{drone.status}</span>
+                        <span className={`px-2 py-1 rounded text-xs ${drone.status === "idle" ? "bg-gray-100 dark:bg-gray-800" : "bg-green-100 dark:bg-green-900 text-green-800"}`}>{drone.status}</span>
                       </div>
-                      <p className="text-sm text-gray-600">{drone.model}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{drone.model}</p>
                       <div className="mt-2 flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div className="bg-green-500 rounded-full h-2" style={{width: `${drone.batteryPct}%`}} />
                         </div>
-                        <span className="text-xs text-gray-500">{drone.batteryPct}%</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{drone.batteryPct}%</span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">📍 {drone.lat.toFixed(4)}, {drone.lon.toFixed(4)}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">📍 {drone.lat.toFixed(4)}, {drone.lon.toFixed(4)}</p>
                     </div>
                   ))}
                 </div>
@@ -116,7 +123,7 @@ export default function DroneFlightDashboard() {
             <Card>
               <CardHeader><CardTitle>NDVI Imagery</CardTitle><CardDescription>Processed drone imagery with crop health analysis</CardDescription></CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <p className="text-lg">Upload drone imagery for NDVI processing</p>
                   <p className="text-sm mt-2">Supports: RGB, Multispectral, Thermal • Engines: OpenDroneMap, Pix4D, DroneDeploy</p>
                 </div>
@@ -133,7 +140,7 @@ export default function DroneFlightDashboard() {
                   <p>• Moderate NDVI (0.3-0.5): Moderate — 10 L/ha</p>
                   <p>• Good NDVI (0.5-0.7): Light — 5 L/ha</p>
                   <p>• Healthy NDVI (&gt;0.7): Maintenance — 2 L/ha</p>
-                  <p className="mt-4 text-gray-500">Generate prescriptions from the NDVI imagery tab, then upload to DJI Agras for variable-rate spraying.</p>
+                  <p className="mt-4 text-gray-500 dark:text-gray-400">Generate prescriptions from the NDVI imagery tab, then upload to DJI Agras for variable-rate spraying.</p>
                 </div>
               </CardContent>
             </Card>
@@ -141,5 +148,6 @@ export default function DroneFlightDashboard() {
         </Tabs>
       </main>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

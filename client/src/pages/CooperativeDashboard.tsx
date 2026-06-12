@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { useLocalization } from "@/contexts/LocalizationContext";
 import { Users, MapPin, TrendingUp, Wallet, BarChart3, Wheat } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 export default function CooperativeDashboard() {
   const { formatCurrency } = useLocalization();
   const [activeTab, setActiveTab] = useState("overview");
@@ -48,10 +50,11 @@ export default function CooperativeDashboard() {
   ];
 
   return (
-    <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Cooperative Dashboard">
+    <DashboardLayout>
+      <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Cooperative Dashboard">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{coopData.name}</h1>
-        <p className="text-gray-500 dark:text-gray-400">Cooperative aggregate reporting dashboard</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Cooperative aggregate reporting dashboard</p>
       </div>
 
       {/* Summary Cards */}
@@ -60,40 +63,40 @@ export default function CooperativeDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Users className="h-5 w-5 text-blue-500" aria-hidden="true" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Members</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Members</span>
             </div>
             <p className="text-2xl font-bold dark:text-white">{coopData.members}</p>
-            <p className="text-xs text-gray-400">{coopData.totalFarms} farms</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">{coopData.totalFarms} farms</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="h-5 w-5 text-green-500" aria-hidden="true" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Total Area</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Area</span>
             </div>
             <p className="text-2xl font-bold dark:text-white">{coopData.totalHectares} ha</p>
-            <p className="text-xs text-gray-400">{coopData.regions.length} regions</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">{coopData.regions.length} regions</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-5 w-5 text-emerald-500" aria-hidden="true" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Total Sales</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Sales</span>
             </div>
             <p className="text-2xl font-bold dark:text-white">{formatCurrency(coopData.totalSales)}</p>
-            <p className="text-xs text-gray-400">This season</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">This season</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Wallet className="h-5 w-5 text-orange-500" aria-hidden="true" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Loan Portfolio</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Loan Portfolio</span>
             </div>
             <p className="text-2xl font-bold dark:text-white">{formatCurrency(coopData.activeLoanPortfolio)}</p>
-            <p className="text-xs text-gray-400">Avg score: {coopData.avgCreditScore}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">Avg score: {coopData.avgCreditScore}</p>
           </CardContent>
         </Card>
       </div>
@@ -115,28 +118,28 @@ export default function CooperativeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table role="table" aria-label="Production breakdown by crop" className="w-full">
-                  <thead role="rowgroup">
-                    <tr className="border-b dark:border-slate-600">
-                      <th className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Crop</th>
-                      <th className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Farmers</th>
-                      <th className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Hectares</th>
-                      <th className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Production</th>
-                      <th className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400" scope="col">Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody role="rowgroup">
+                <Table role="table" aria-label="Production breakdown by crop" className="w-full">
+                  <TableHeader role="rowgroup">
+                    <TableRow className="border-b dark:border-slate-600">
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Crop</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Farmers</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Hectares</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Production</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Revenue</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody role="rowgroup">
                     {memberBreakdown.map((item) => (
-                      <tr key={item.crop} className="border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-                        <td className="p-3 font-medium dark:text-white">{item.crop}</td>
-                        <td className="p-3 text-right dark:text-gray-300">{item.farmers}</td>
-                        <td className="p-3 text-right dark:text-gray-300">{item.hectares}</td>
-                        <td className="p-3 text-right dark:text-gray-300">{item.production}</td>
-                        <td className="p-3 text-right font-medium dark:text-white">{formatCurrency(item.revenue)}</td>
-                      </tr>
+                      <TableRow key={item.crop} className="border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
+                        <TableCell className="p-3 font-medium dark:text-white">{item.crop}</TableCell>
+                        <TableCell className="p-3 text-right dark:text-gray-300">{item.farmers}</TableCell>
+                        <TableCell className="p-3 text-right dark:text-gray-300">{item.hectares}</TableCell>
+                        <TableCell className="p-3 text-right dark:text-gray-300">{item.production}</TableCell>
+                        <TableCell className="p-3 text-right font-medium dark:text-white">{formatCurrency(item.revenue)}</TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
@@ -156,7 +159,7 @@ export default function CooperativeDashboard() {
                   <div key={loan.type} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-slate-700" role="listitem">
                     <div>
                       <p className="font-medium dark:text-white">{loan.type}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{loan.count} active loans</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{loan.count} active loans</p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold dark:text-white">{formatCurrency(loan.total)}</p>
@@ -182,7 +185,7 @@ export default function CooperativeDashboard() {
                   <div key={r} className="p-4 rounded-lg bg-gray-50 dark:bg-slate-700 text-center">
                     <MapPin className="h-6 w-6 mx-auto mb-2 text-green-500" aria-hidden="true" />
                     <p className="font-medium dark:text-white">{r}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{Math.floor(coopData.members / coopData.regions.length)} members</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{Math.floor(coopData.members / coopData.regions.length)} members</p>
                   </div>
                 ))}
               </div>
@@ -191,5 +194,6 @@ export default function CooperativeDashboard() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

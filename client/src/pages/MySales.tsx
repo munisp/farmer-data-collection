@@ -16,6 +16,7 @@ import {
 import { ShoppingBag, Package, Truck, CheckCircle, XCircle, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 const STATUS_OPTIONS: Record<string, string[]> = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["preparing", "cancelled"],
@@ -65,19 +66,19 @@ export default function MySales() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800";
       case "confirmed":
       case "preparing":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 dark:bg-blue-900 text-blue-800";
       case "ready":
       case "shipped":
         return "bg-orange-100 text-orange-800";
       case "delivered":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800";
       case "cancelled":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100";
     }
   };
 
@@ -127,7 +128,8 @@ export default function MySales() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-8">My Sales</h1>
 
@@ -279,5 +281,6 @@ export default function MySales() {
         )}
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

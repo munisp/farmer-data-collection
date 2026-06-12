@@ -58,6 +58,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Scissors, Link2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function TraceabilityDashboard() {
   const { formatCurrency, formatWeight } = useLocalization();
   const { toast } = useToast();
@@ -134,27 +135,27 @@ export default function TraceabilityDashboard() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; label: string }> = {
-      created: { color: 'bg-gray-100 text-gray-800', label: 'Created' },
-      at_farm: { color: 'bg-green-100 text-green-800', label: 'At Farm' },
-      in_transit: { color: 'bg-blue-100 text-blue-800', label: 'In Transit' },
-      at_collection_center: { color: 'bg-yellow-100 text-yellow-800', label: 'At Collection' },
+      created: { color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100', label: 'Created' },
+      at_farm: { color: 'bg-green-100 dark:bg-green-900 text-green-800', label: 'At Farm' },
+      in_transit: { color: 'bg-blue-100 dark:bg-blue-900 text-blue-800', label: 'In Transit' },
+      at_collection_center: { color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800', label: 'At Collection' },
       at_warehouse: { color: 'bg-purple-100 text-purple-800', label: 'At Warehouse' },
       ready_for_sale: { color: 'bg-emerald-100 text-emerald-800', label: 'Ready for Sale' },
       sold: { color: 'bg-indigo-100 text-indigo-800', label: 'Sold' },
       delivered: { color: 'bg-teal-100 text-teal-800', label: 'Delivered' },
     };
-    const config = statusConfig[status] || { color: 'bg-gray-100', label: status };
+    const config = statusConfig[status] || { color: 'bg-gray-100 dark:bg-gray-800', label: status };
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
   const getGradeBadge = (grade: string) => {
     const gradeConfig: Record<string, { color: string; label: string }> = {
       premium: { color: 'bg-amber-100 text-amber-800', label: 'Premium' },
-      grade_a: { color: 'bg-green-100 text-green-800', label: 'Grade A' },
-      grade_b: { color: 'bg-blue-100 text-blue-800', label: 'Grade B' },
-      grade_c: { color: 'bg-gray-100 text-gray-800', label: 'Grade C' },
+      grade_a: { color: 'bg-green-100 dark:bg-green-900 text-green-800', label: 'Grade A' },
+      grade_b: { color: 'bg-blue-100 dark:bg-blue-900 text-blue-800', label: 'Grade B' },
+      grade_c: { color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100', label: 'Grade C' },
     };
-    const config = gradeConfig[grade] || { color: 'bg-gray-100', label: grade };
+    const config = gradeConfig[grade] || { color: 'bg-gray-100 dark:bg-gray-800', label: grade };
     return <Badge variant="outline" className={config.color}>{config.label}</Badge>;
   };
 
@@ -182,7 +183,8 @@ export default function TraceabilityDashboard() {
   };
 
   return (
-    <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Supply Chain Traceability</h1>
@@ -364,7 +366,7 @@ export default function TraceabilityDashboard() {
                                         <div className="flex items-center gap-2">
                                           {batch.cropType}
                                           {batch.isOrganic && (
-                                            <Badge variant="outline" className="bg-green-50 text-green-700">
+                                            <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700">
                                               <Leaf className="w-3 h-3 mr-1" />
                                               Organic
                                             </Badge>
@@ -488,7 +490,7 @@ export default function TraceabilityDashboard() {
                                         <span>Capacity:</span>
                                         <span>{center.currentStock}/{center.capacity} tonnes</span>
                                       </div>
-                                      <div className="w-full bg-gray-200 rounded-full h-2">
+                                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                         <div
                                           className="bg-primary h-2 rounded-full"
                                           style={{ width: `${(center.currentStock / center.capacity) * 100}%` }}
@@ -547,7 +549,7 @@ export default function TraceabilityDashboard() {
                                         <span>Available Capacity:</span>
                                         <span>{warehouse.availableCapacity}/{warehouse.totalCapacity} tonnes</span>
                                       </div>
-                                      <div className="w-full bg-gray-200 rounded-full h-2">
+                                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                         <div
                                           className="bg-green-500 h-2 rounded-full"
                                           style={{ width: `${(warehouse.availableCapacity / warehouse.totalCapacity) * 100}%` }}
@@ -614,18 +616,18 @@ export default function TraceabilityDashboard() {
                   {(selectedBatch.events || []).map((event: { id: number; eventType: string; isVerified?: boolean; location?: string; eventTimestamp?: Date; performedBy?: number }, index: number) => (
                     <div key={event.id} className="flex gap-4">
                       <div className="flex flex-col items-center">
-                        <div className={`p-2 rounded-full ${event.isVerified ? 'bg-green-100' : 'bg-gray-100'}`}>
+                        <div className={`p-2 rounded-full ${event.isVerified ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-100 dark:bg-gray-800'}`}>
                           {getEventIcon(event.eventType)}
                         </div>
                         {index < (selectedBatch.events || []).length - 1 && (
-                          <div className="w-0.5 h-full bg-gray-200 my-1" />
+                          <div className="w-0.5 h-full bg-gray-200 dark:bg-gray-700 my-1" />
                         )}
                       </div>
                       <div className="flex-1 pb-4">
                         <div className="flex items-center gap-2">
                           <span className="font-medium capitalize">{event.eventType.replace('_', ' ')}</span>
                           {event.isVerified && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700">
+                            <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700">
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Verified
                             </Badge>
@@ -710,5 +712,6 @@ export default function TraceabilityDashboard() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

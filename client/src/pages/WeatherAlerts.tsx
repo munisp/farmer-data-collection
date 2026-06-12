@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useLocalization } from "@/contexts/LocalizationContext";
 import { Cloud, Thermometer, Wind, Droplets, AlertTriangle, Sun, CloudRain, Zap } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 const WEATHER_URL = import.meta.env.VITE_WEATHER_SERVICE_URL || "http://localhost:8107";
 
 const NIGERIAN_STATES = [
@@ -35,6 +36,9 @@ interface WeatherAlert {
 }
 
 export default function WeatherAlerts() {
+  const alertsQuery = trpc.weatherAlerts.getActiveAlerts.useQuery({}, { retry: 1 });
+  const alertsData = alertsQuery.data ?? [];
+
   const { formatCurrency } = useLocalization();
   const [region, setRegion] = useState("Oyo");
   const [crop, setCrop] = useState("cassava");
@@ -82,16 +86,17 @@ export default function WeatherAlerts() {
       case "Thunderstorm": return <Zap className="h-8 w-8 text-yellow-500" aria-hidden="true" />;
       case "Rain": case "Drizzle": return <CloudRain className="h-8 w-8 text-blue-500" aria-hidden="true" />;
       case "Clear": return <Sun className="h-8 w-8 text-yellow-400" aria-hidden="true" />;
-      default: return <Cloud className="h-8 w-8 text-gray-400" aria-hidden="true" />;
+      default: return <Cloud className="h-8 w-8 text-gray-400 dark:text-gray-500 dark:text-gray-400" aria-hidden="true" />;
     }
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Weather Alerts Dashboard">
+    <DashboardLayout>
+      <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Weather Alerts Dashboard">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Weather Alerts</h1>
-          <p className="text-gray-500 dark:text-gray-400">Proactive weather monitoring for your farms</p>
+          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Proactive weather monitoring for your farms</p>
         </div>
         <div className="flex gap-3 flex-wrap" role="group" aria-label="Filters">
           <Select value={region} onValueChange={setRegion} aria-label="Select region">
@@ -127,7 +132,7 @@ export default function WeatherAlerts() {
             <CardContent className="p-4 flex items-center gap-3">
               <Thermometer className="h-6 w-6 text-red-500" aria-hidden="true" />
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Temperature</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Temperature</p>
                 <p className="text-2xl font-bold dark:text-white" aria-label={`Temperature: ${weather.main.temp} degrees Celsius`}>{weather.main.temp.toFixed(1)}°C</p>
               </div>
             </CardContent>
@@ -136,7 +141,7 @@ export default function WeatherAlerts() {
             <CardContent className="p-4 flex items-center gap-3">
               <Droplets className="h-6 w-6 text-blue-500" aria-hidden="true" />
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Humidity</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Humidity</p>
                 <p className="text-2xl font-bold dark:text-white" aria-label={`Humidity: ${weather.main.humidity} percent`}>{weather.main.humidity}%</p>
               </div>
             </CardContent>
@@ -145,7 +150,7 @@ export default function WeatherAlerts() {
             <CardContent className="p-4 flex items-center gap-3">
               <Wind className="h-6 w-6 text-teal-500" aria-hidden="true" />
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Wind</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Wind</p>
                 <p className="text-2xl font-bold dark:text-white" aria-label={`Wind speed: ${(weather.wind.speed * 3.6).toFixed(0)} kilometers per hour`}>{(weather.wind.speed * 3.6).toFixed(0)} km/h</p>
               </div>
             </CardContent>
@@ -154,7 +159,7 @@ export default function WeatherAlerts() {
             <CardContent className="p-4 flex items-center gap-3">
               {weatherIcon(weather.weather[0]?.main || "Clouds")}
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Condition</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Condition</p>
                 <p className="text-lg font-semibold dark:text-white">{weather.weather[0]?.description || "N/A"}</p>
               </div>
             </CardContent>
@@ -172,7 +177,7 @@ export default function WeatherAlerts() {
         </CardHeader>
         <CardContent>
           {alerts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400" role="status">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" role="status">
               <Sun className="h-12 w-12 mx-auto mb-3 text-green-500" aria-hidden="true" />
               <p className="font-medium">No active weather alerts</p>
               <p className="text-sm">Conditions are favorable for {crop.replace("_", " ")} in {region} State</p>
@@ -197,5 +202,6 @@ export default function WeatherAlerts() {
         </CardContent>
       </Card>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

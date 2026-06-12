@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Volume2, Languages, ArrowRight, Home, ShoppingCart, MapPin, Cloud, DollarSign, Tractor } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 const VOICE_URL = import.meta.env.VITE_VOICE_SERVICE_URL || "http://localhost:8109";
 
 const QUICK_COMMANDS = [
@@ -28,6 +29,11 @@ interface VoiceResult {
 }
 
 export default function VoiceNavigation() {
+  const commandsQuery = trpc.voiceFirst.getVoiceCommands.useQuery(undefined, { retry: 1 });
+  const voiceStatsQuery = trpc.voiceFirst.getStats.useQuery(undefined, { retry: 1 });
+  const commandsData = commandsQuery.data ?? [];
+  const voiceStatsData = voiceStatsQuery.data ?? null;
+
   const [language, setLanguage] = useState("en");
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -110,10 +116,11 @@ export default function VoiceNavigation() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Voice Navigation">
+    <DashboardLayout>
+      <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Voice Navigation">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Voice Navigation</h1>
-        <p className="text-gray-500 dark:text-gray-400">Navigate FarmConnect using your voice in English, Yoruba, Hausa, or Igbo</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Navigate FarmConnect using your voice in English, Yoruba, Hausa, or Igbo</p>
       </div>
 
       {/* Language Selector */}
@@ -140,7 +147,7 @@ export default function VoiceNavigation() {
             listening
               ? "bg-red-500 animate-pulse scale-110"
               : "bg-green-600 hover:bg-green-700 hover:scale-105"
-          } text-white shadow-lg`}
+          } text-white shadow-lg dark:shadow-gray-900/40`}
           aria-label={listening ? "Listening for voice command" : "Start voice command"}
         >
           {listening ? (
@@ -149,7 +156,7 @@ export default function VoiceNavigation() {
             <Mic className="h-16 w-16" aria-hidden="true" />
           )}
         </button>
-        <p className="text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
+        <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" aria-live="polite">
           {listening ? "Listening... Speak now" : "Tap the microphone to speak"}
         </p>
       </div>
@@ -160,7 +167,7 @@ export default function VoiceNavigation() {
           <CardContent className="p-4 space-y-3">
             {transcript && (
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">You said:</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">You said:</p>
                 <p className="text-lg font-medium dark:text-white">&ldquo;{transcript}&rdquo;</p>
               </div>
             )}
@@ -172,10 +179,10 @@ export default function VoiceNavigation() {
                 </div>
                 {result.matched && (
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:bg-green-900 dark:text-green-200">
                       {Math.round(result.confidence * 100)}% match
                     </Badge>
-                    <ArrowRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                    <ArrowRight className="h-4 w-4 text-gray-400 dark:text-gray-500 dark:text-gray-400" aria-hidden="true" />
                     <span className="font-medium dark:text-white">{result.label}</span>
                   </div>
                 )}
@@ -222,7 +229,7 @@ export default function VoiceNavigation() {
                 <div key={i} className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-slate-700" role="listitem">
                   <span className="text-sm dark:text-gray-300">&ldquo;{h.input}&rdquo;</span>
                   {h.result.matched ? (
-                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">{h.result.label}</Badge>
+                    <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:bg-green-900 dark:text-green-200">{h.result.label}</Badge>
                   ) : (
                     <Badge variant="secondary">No match</Badge>
                   )}
@@ -233,5 +240,6 @@ export default function VoiceNavigation() {
         </Card>
       )}
     </div>
-  );
+  
+    </DashboardLayout>);
 }

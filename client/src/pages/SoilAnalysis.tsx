@@ -116,17 +116,22 @@ function getHealthBg(score: number): string {
 
 function getSuitabilityColor(suitability: string): string {
   switch (suitability) {
-    case "high": return "bg-green-100 text-green-800 border-green-200";
+    case "high": return "bg-green-100 dark:bg-green-900 text-green-800 border-green-200";
     case "moderate": return "bg-amber-100 text-amber-800 border-amber-200";
-    case "low": return "bg-red-100 text-red-800 border-red-200";
-    case "recommended": return "bg-blue-100 text-blue-800 border-blue-200";
-    default: return "bg-gray-100 text-gray-800 border-gray-200";
+    case "low": return "bg-red-100 dark:bg-red-900 text-red-800 border-red-200";
+    case "recommended": return "bg-blue-100 dark:bg-blue-900 text-blue-800 border-blue-200";
+    default: return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border-gray-200 dark:border-gray-700";
   }
 }
 
 const ML_SERVICE_URL = import.meta.env.VITE_ML_SERVICE_URL || "http://localhost:8096";
 
 export default function SoilAnalysis() {
+  const latestTestQuery = trpc.soilAnalysis.getLatestTest.useQuery({ farmId: 1 }, { retry: 1 });
+  const soilHistoryQuery = trpc.soilAnalysis.getSoilHistory.useQuery({ farmId: 1 }, { retry: 1 });
+  const latestTestData = latestTestQuery.data ?? null;
+  const soilHistoryData = soilHistoryQuery.data ?? [];
+
   const [labReadings, setLabReadings] = useState<LabReadings>(defaultLabReadings);
   const [locationData, setLocationData] = useState<LocationData>(defaultLocation);
   const [includeLocation, setIncludeLocation] = useState(false);

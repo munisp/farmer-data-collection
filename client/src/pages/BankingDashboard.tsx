@@ -268,11 +268,11 @@ export default function BankingDashboard() {
                           </div>
                           <div className="text-right">
                             {account.isVerified ? (
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                              <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 px-2 py-1 rounded">
                                 Verified
                               </span>
                             ) : (
-                              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                              <span className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 px-2 py-1 rounded">
                                 Pending
                               </span>
                             )}
@@ -471,10 +471,10 @@ export default function BankingDashboard() {
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${
                             request.status === 'paid' 
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800'
                               : request.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
                           }`}>
                             {request.status}
                           </span>
@@ -522,10 +522,10 @@ export default function BankingDashboard() {
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${
                             tx.status === 'completed' 
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800'
                               : tx.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'
+                              : 'bg-red-100 dark:bg-red-900 text-red-800'
                           }`}>
                             {tx.status}
                           </span>
@@ -575,10 +575,10 @@ export default function BankingDashboard() {
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${
                             tx.mojaloop?.status === 'completed' 
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800'
                               : tx.mojaloop?.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'
+                              : 'bg-red-100 dark:bg-red-900 text-red-800'
                           }`}>
                             {tx.mojaloop?.status || 'unknown'}
                           </span>

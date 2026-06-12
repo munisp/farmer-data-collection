@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { type AIInspectionResult, runAIInspection, checkAIHealth, fileToBase64, type AIHealthStatus } from "@/lib/ai-inspection";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 type GradeType = "A" | "B" | "C" | "D" | "reject";
 type TabType = "intake" | "grading" | "receipts" | "reports";
 
@@ -48,11 +49,11 @@ interface WarehouseReceipt {
 }
 
 const GRADE_SPECS: Record<GradeType, { label: string; color: string; priceMultiplier: number; description: string }> = {
-  A: { label: "Grade A (Premium)", color: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400", priceMultiplier: 1.2, description: "Moisture <12%, Foreign matter <1%, No broken grains" },
-  B: { label: "Grade B (Standard)", color: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400", priceMultiplier: 1.0, description: "Moisture 12-14%, Foreign matter 1-3%, Minimal defects" },
-  C: { label: "Grade C (Fair)", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400", priceMultiplier: 0.8, description: "Moisture 14-16%, Foreign matter 3-5%, Some defects" },
+  A: { label: "Grade A (Premium)", color: "bg-green-100 dark:bg-green-900 text-green-800 dark:bg-green-950 dark:text-green-400", priceMultiplier: 1.2, description: "Moisture <12%, Foreign matter <1%, No broken grains" },
+  B: { label: "Grade B (Standard)", color: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:bg-blue-950 dark:text-blue-400", priceMultiplier: 1.0, description: "Moisture 12-14%, Foreign matter 1-3%, Minimal defects" },
+  C: { label: "Grade C (Fair)", color: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400", priceMultiplier: 0.8, description: "Moisture 14-16%, Foreign matter 3-5%, Some defects" },
   D: { label: "Grade D (Low)", color: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-400", priceMultiplier: 0.6, description: "Moisture >16%, Foreign matter >5%, Significant defects" },
-  reject: { label: "Rejected", color: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400", priceMultiplier: 0, description: "Contaminated, infested, or unfit for trade" },
+  reject: { label: "Rejected", color: "bg-red-100 dark:bg-red-900 text-red-800 dark:bg-red-950 dark:text-red-400", priceMultiplier: 0, description: "Contaminated, infested, or unfit for trade" },
 };
 
 const CROP_BASE_PRICES: Record<string, number> = {
@@ -87,6 +88,9 @@ const DEMO_RECEIPTS: WarehouseReceipt[] = [
 ];
 
 export default function AggregationHub() {
+  const cooperativeStatsQuery = trpc.cooperative.list.useQuery(undefined, { retry: 1 });
+  const cooperativeStatsData = cooperativeStatsQuery.data ?? null;
+
   const { formatCurrency } = useLocalization();
   const [activeTab, setActiveTab] = useState<TabType>("intake");
   const [batches, setBatches] = useState<IntakeBatch[]>(DEMO_BATCHES);
@@ -302,45 +306,45 @@ export default function AggregationHub() {
               <Badge variant="outline">{batches.length} batches</Badge>
             </div>
             <div className="overflow-x-auto">
-              <table role="table" aria-label="Produce intake batches" className="w-full text-sm">
-                <thead role="rowgroup">
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-2 font-medium">Batch ID</th>
-                    <th className="text-left py-3 px-2 font-medium">Farmer</th>
-                    <th className="text-left py-3 px-2 font-medium">Crop</th>
-                    <th className="text-right py-3 px-2 font-medium">Quantity</th>
-                    <th className="text-center py-3 px-2 font-medium">Grade</th>
-                    <th className="text-center py-3 px-2 font-medium">Status</th>
-                    <th className="text-left py-3 px-2 font-medium">Arrival</th>
-                    <th className="text-right py-3 px-2 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody role="rowgroup">
+              <Table role="table" aria-label="Produce intake batches" className="w-full text-sm">
+                <TableHeader role="rowgroup">
+                  <TableRow className="border-b">
+                    <TableHead className="text-left py-3 px-2 font-medium">Batch ID</TableHead>
+                    <TableHead className="text-left py-3 px-2 font-medium">Farmer</TableHead>
+                    <TableHead className="text-left py-3 px-2 font-medium">Crop</TableHead>
+                    <TableHead className="text-right py-3 px-2 font-medium">Quantity</TableHead>
+                    <TableHead className="text-center py-3 px-2 font-medium">Grade</TableHead>
+                    <TableHead className="text-center py-3 px-2 font-medium">Status</TableHead>
+                    <TableHead className="text-left py-3 px-2 font-medium">Arrival</TableHead>
+                    <TableHead className="text-right py-3 px-2 font-medium">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody role="rowgroup">
                   {batches.map(batch => (
-                    <tr key={batch.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2 font-mono text-xs">{batch.id}</td>
-                      <td className="py-3 px-2">
+                    <TableRow key={batch.id} className="border-b hover:bg-muted/50">
+                      <TableCell className="py-3 px-2 font-mono text-xs">{batch.id}</TableCell>
+                      <TableCell className="py-3 px-2">
                         <div>{batch.farmerName}</div>
                         <div className="text-xs text-muted-foreground">{batch.farmerPhone}</div>
-                      </td>
-                      <td className="py-3 px-2">{batch.cropType}</td>
-                      <td className="py-3 px-2 text-right font-medium">{batch.quantityKg.toLocaleString()} kg</td>
-                      <td className="py-3 px-2 text-center">
+                      </TableCell>
+                      <TableCell className="py-3 px-2">{batch.cropType}</TableCell>
+                      <TableCell className="py-3 px-2 text-right font-medium">{batch.quantityKg.toLocaleString()} kg</TableCell>
+                      <TableCell className="py-3 px-2 text-center">
                         {batch.grade ? (
                           <Badge className={GRADE_SPECS[batch.grade].color}>{batch.grade}</Badge>
                         ) : (
                           <Badge variant="outline">Pending</Badge>
                         )}
-                      </td>
-                      <td className="py-3 px-2 text-center">
+                      </TableCell>
+                      <TableCell className="py-3 px-2 text-center">
                         <Badge variant={batch.status === "receipted" ? "default" : batch.status === "graded" ? "secondary" : "outline"}>
                           {batch.status}
                         </Badge>
-                      </td>
-                      <td className="py-3 px-2 text-xs">
+                      </TableCell>
+                      <TableCell className="py-3 px-2 text-xs">
                         {new Date(batch.arrivalTime).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
-                      </td>
-                      <td className="py-3 px-2 text-right">
+                      </TableCell>
+                      <TableCell className="py-3 px-2 text-right">
                         {batch.status === "pending" && (
                           <Button size="sm" variant="outline" onClick={() => handleGrade(batch)}>
                             <ClipboardCheck className="h-3.5 w-3.5 mr-1" /> Grade
@@ -352,15 +356,15 @@ export default function AggregationHub() {
                           </Button>
                         )}
                         {batch.status === "receipted" && (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400">
+                          <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:bg-green-950 dark:text-green-400">
                             <CheckCircle className="h-3 w-3 mr-1" /> Complete
                           </Badge>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         )}
@@ -420,7 +424,7 @@ export default function AggregationHub() {
                       </div>
                       <div className="flex items-center gap-2">
                         {aiHealth ? (
-                          <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 text-xs">
+                          <Badge className="bg-green-100 dark:bg-green-900 text-green-700 dark:bg-green-950 dark:text-green-400 text-xs">
                             <Zap className="h-3 w-3 mr-1" /> AI Online
                           </Badge>
                         ) : (
@@ -476,7 +480,7 @@ export default function AggregationHub() {
                           {capturedImage ? "Retake" : "Photo"}
                         </Button>
                         {capturedImage && (
-                          <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 self-center">
+                          <Badge className="bg-green-100 dark:bg-green-900 text-green-700 dark:bg-green-950 dark:text-green-400 self-center">
                             <ImageIcon className="h-3 w-3 mr-1" /> Captured
                           </Badge>
                         )}
@@ -545,7 +549,7 @@ export default function AggregationHub() {
                               <div>
                                 <p className="text-xs text-muted-foreground">AI Recommended Grade</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <Badge className={GRADE_SPECS[aiResult.recommended_grade as GradeType]?.color || "bg-gray-100"}>
+                                  <Badge className={GRADE_SPECS[aiResult.recommended_grade as GradeType]?.color || "bg-gray-100 dark:bg-gray-800"}>
                                     {aiResult.recommended_grade}
                                   </Badge>
                                   <span className="text-sm font-medium">{(aiResult.grade_confidence * 100).toFixed(0)}% confidence</span>
@@ -839,7 +843,7 @@ export default function AggregationHub() {
                         <span className="font-mono font-bold text-sm">{receipt.receiptNumber}</span>
                         <Badge className={GRADE_SPECS[receipt.grade].color}>{receipt.grade}</Badge>
                         {receipt.smsSent && (
-                          <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 text-xs">
+                          <Badge className="bg-green-100 dark:bg-green-900 text-green-700 dark:bg-green-950 dark:text-green-400 text-xs">
                             <Phone className="h-3 w-3 mr-1" /> SMS Sent
                           </Badge>
                         )}

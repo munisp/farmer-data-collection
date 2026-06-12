@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 
+import DashboardLayout from "@/components/DashboardLayout";
 const formatDate = (value: string | Date | null | undefined) => {
   if (!value) return "Not available";
   const date = value instanceof Date ? value : new Date(value);
@@ -69,13 +70,13 @@ const sentenceCase = (value: string | null | undefined) => {
 const statusBadgeClass = (value: string | null | undefined) => {
   const normalized = (value || "").toLowerCase();
   if (["excellent", "good", "healthy", "completed"].includes(normalized)) {
-    return "bg-green-100 text-green-800";
+    return "bg-green-100 dark:bg-green-900 text-green-800";
   }
   if (["moderate", "medium", "in progress", "in_progress", "pending"].includes(normalized)) {
-    return "bg-yellow-100 text-yellow-800";
+    return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800";
   }
   if (["critical", "high", "urgent", "cancelled"].includes(normalized)) {
-    return "bg-red-100 text-red-800";
+    return "bg-red-100 dark:bg-red-900 text-red-800";
   }
   return "bg-slate-100 text-slate-700";
 };
@@ -266,7 +267,8 @@ export default function FieldOverview() {
   }
 
   return (
-    <div className="space-y-6">
+    <DashboardLayout>
+      <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Field Overview</h1>
@@ -905,5 +907,6 @@ export default function FieldOverview() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

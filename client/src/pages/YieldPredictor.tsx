@@ -9,6 +9,7 @@ import { Loader2, TrendingUp, AlertCircle, Sparkles, CheckCircle2 } from "lucide
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function YieldPredictor() {
   const [formData, setFormData] = useState({
     crop: "",
@@ -70,22 +71,23 @@ export default function YieldPredictor() {
   };
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
             <Sparkles className="w-8 h-8 text-green-600" />
-            <h1 className="text-4xl font-bold text-gray-900">AI Yield Predictor</h1>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">AI Yield Predictor</h1>
           </div>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
             Get accurate crop yield predictions powered by machine learning
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Input Form */}
-          <Card className="shadow-lg">
+          <Card className="shadow-lg dark:shadow-gray-900/40">
             <CardHeader>
               <CardTitle>Farm Conditions</CardTitle>
               <CardDescription>
@@ -239,7 +241,7 @@ export default function YieldPredictor() {
             {prediction ? (
               <>
                 {/* Main Prediction Card */}
-                <Card className="shadow-lg border-2 border-green-200 bg-gradient-to-br from-green-50 to-white">
+                <Card className="shadow-lg dark:shadow-gray-900/40 border-2 border-green-200 bg-gradient-to-br from-green-50 to-white">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CheckCircle2 className="w-6 h-6 text-green-600" />
@@ -251,7 +253,7 @@ export default function YieldPredictor() {
                       <div className="text-5xl font-bold text-green-600">
                         {prediction.predictedYield.toLocaleString()}
                       </div>
-                      <div className="text-xl text-gray-600 mt-2">
+                      <div className="text-xl text-gray-600 dark:text-gray-300 mt-2">
                         {prediction.unit}
                       </div>
                     </div>
@@ -260,13 +262,13 @@ export default function YieldPredictor() {
                       <div className={`text-lg font-semibold ${getConfidenceColor(prediction.confidence * 100)}`}>
                         {getConfidenceLabel(prediction.confidence * 100)}
                       </div>
-                      <div className="text-gray-600">
+                      <div className="text-gray-600 dark:text-gray-300">
                         ({(prediction.confidence * 100).toFixed(1)}%)
                       </div>
                     </div>
 
                     {prediction.recommendation && (
-                      <Alert className="bg-blue-50 border-blue-200">
+                      <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200">
                         <AlertCircle className="h-4 w-4 text-blue-600" />
                         <AlertDescription className="text-blue-900">
                           {prediction.recommendation}
@@ -277,7 +279,7 @@ export default function YieldPredictor() {
                 </Card>
 
                 {/* Factor Analysis */}
-                <Card className="shadow-lg">
+                <Card className="shadow-lg dark:shadow-gray-900/40">
                   <CardHeader>
                     <CardTitle>Factor Analysis</CardTitle>
                     <CardDescription>
@@ -287,15 +289,15 @@ export default function YieldPredictor() {
                   <CardContent>
                     <div className="space-y-3">
                       {Object.entries(prediction.factors).map(([factor, status]) => (
-                        <div key={factor} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={factor} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
                           <span className="font-medium capitalize">
                             {factor.replace(/([A-Z])/g, ' $1').trim()}
                           </span>
                           <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            status === 'excellent' ? 'bg-green-100 text-green-800' :
-                            status === 'optimal' ? 'bg-blue-100 text-blue-800' :
-                            status === 'good' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
+                            status === 'excellent' ? 'bg-green-100 dark:bg-green-900 text-green-800' :
+                            status === 'optimal' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800' :
+                            status === 'good' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800' :
+                            'bg-red-100 dark:bg-red-900 text-red-800'
                           }`}>
                             {status as string}
                           </span>
@@ -306,13 +308,13 @@ export default function YieldPredictor() {
                 </Card>
               </>
             ) : (
-              <Card className="shadow-lg">
+              <Card className="shadow-lg dark:shadow-gray-900/40">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Sparkles className="w-16 h-16 text-gray-300 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                     No Prediction Yet
                   </h3>
-                  <p className="text-gray-500">
+                  <p className="text-gray-500 dark:text-gray-400">
                     Fill in the form and click "Predict Yield" to see your results
                   </p>
                 </CardContent>
@@ -322,25 +324,26 @@ export default function YieldPredictor() {
         </div>
 
         {/* Info Section */}
-        <Card className="shadow-lg bg-gradient-to-r from-blue-50 to-purple-50">
+        <Card className="shadow-lg dark:shadow-gray-900/40 bg-gradient-to-r from-blue-50 to-purple-50">
           <CardContent className="pt-6">
             <div className="grid md:grid-cols-3 gap-6 text-center">
               <div>
                 <div className="text-3xl font-bold text-blue-600 mb-2">85%</div>
-                <div className="text-gray-600">Average Accuracy</div>
+                <div className="text-gray-600 dark:text-gray-300">Average Accuracy</div>
               </div>
               <div>
                 <div className="text-3xl font-bold text-purple-600 mb-2">1000+</div>
-                <div className="text-gray-600">Training Samples</div>
+                <div className="text-gray-600 dark:text-gray-300">Training Samples</div>
               </div>
               <div>
                 <div className="text-3xl font-bold text-green-600 mb-2">7</div>
-                <div className="text-gray-600">Crop Types Supported</div>
+                <div className="text-gray-600 dark:text-gray-300">Crop Types Supported</div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -21,6 +21,7 @@ import {
   BarChart3,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type DiseaseAnalysisResult = {
   disease: string;
   confidence: number;
@@ -271,7 +272,8 @@ export default function AgriculturalModels() {
   };
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-background p-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Agricultural Models</h1>
@@ -705,5 +707,6 @@ export default function AgriculturalModels() {
         </Tabs>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

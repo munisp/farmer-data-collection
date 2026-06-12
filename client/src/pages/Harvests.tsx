@@ -180,8 +180,8 @@ export default function Harvests() {
   const getCropName = (id: number) => cropsList.find(c => c.id === id)?.cropName || "Unknown";
 
   const qualityBadge = (q: string | null) => {
-    const colors: Record<string, string> = { excellent: "bg-green-100 text-green-800", good: "bg-blue-100 text-blue-800", fair: "bg-yellow-100 text-yellow-800", poor: "bg-red-100 text-red-800" };
-    return q ? <Badge className={colors[q] || "bg-gray-100"}>{q}</Badge> : <span className="text-muted-foreground">-</span>;
+    const colors: Record<string, string> = { excellent: "bg-green-100 dark:bg-green-900 text-green-800", good: "bg-blue-100 dark:bg-blue-900 text-blue-800", fair: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800", poor: "bg-red-100 dark:bg-red-900 text-red-800" };
+    return q ? <Badge className={colors[q] || "bg-gray-100 dark:bg-gray-800"}>{q}</Badge> : <span className="text-muted-foreground">-</span>;
   };
 
   const handleExport = () => {

@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 
+import DashboardLayout from "@/components/DashboardLayout";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 interface SpeciesProfile {
   name: string;
   scientific_name: string;
@@ -52,9 +54,9 @@ const DEMO_HARVEST = [
 
 function fcrColor(fcr: number, optimal: number) {
   const ratio = fcr / optimal;
-  if (ratio <= 1.1) return "text-green-600 bg-green-50";
-  if (ratio <= 1.3) return "text-yellow-600 bg-yellow-50";
-  return "text-red-600 bg-red-50";
+  if (ratio <= 1.1) return "text-green-600 bg-green-50 dark:bg-green-950";
+  if (ratio <= 1.3) return "text-yellow-600 bg-yellow-50 dark:bg-yellow-950";
+  return "text-red-600 bg-red-50 dark:bg-red-950";
 }
 
 export default function AquacultureFeed() {
@@ -70,12 +72,13 @@ export default function AquacultureFeed() {
   const totalHarvestRevenue = DEMO_HARVEST.reduce((s, h) => s + h.total_weight_kg * h.price_per_kg, 0);
 
   return (
-    <div role="main" aria-label="Aquaculture Feed & Harvest" className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      <header className="bg-white border-b shadow-sm sticky top-0 z-10">
+    <DashboardLayout>
+      <div role="main" aria-label="Aquaculture Feed & Harvest" className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+      <header className="bg-white dark:bg-gray-900 border-b shadow-sm dark:shadow-gray-900/20 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-amber-800">Feed & Harvest Management</h1>
-            <p className="text-sm text-gray-600">Feed tracking, FCR optimization, stocking records, harvest analytics</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Feed tracking, FCR optimization, stocking records, harvest analytics</p>
           </div>
           <div className="flex gap-2">
             <Link href="/aquaculture"><a className="text-sm text-blue-600 hover:underline">Ponds</a></Link>
@@ -90,25 +93,25 @@ export default function AquacultureFeed() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-amber-600">{species.length}</div>
-              <p className="text-sm text-gray-500">Species Profiles</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Species Profiles</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-orange-600">{totalFeedToday} kg</div>
-              <p className="text-sm text-gray-500">Feed Today</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Feed Today</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-green-600">{(totalFeedCost / 1000).toFixed(0)}K</div>
-              <p className="text-sm text-gray-500">Feed Cost (NGN)</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Feed Cost (NGN)</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-blue-600">{(totalHarvestRevenue / 1_000_000).toFixed(1)}M</div>
-              <p className="text-sm text-gray-500">Harvest Revenue (NGN)</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Harvest Revenue (NGN)</p>
             </CardContent>
           </Card>
         </div>
@@ -127,29 +130,29 @@ export default function AquacultureFeed() {
                 <Card key={sp.name}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">{sp.name}</CardTitle>
-                    <p className="text-xs text-gray-500 italic">{sp.scientific_name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">{sp.scientific_name}</p>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-y-1 text-sm">
-                      <div className="text-gray-500">Market Weight</div>
+                      <div className="text-gray-500 dark:text-gray-400">Market Weight</div>
                       <div className="font-medium">{sp.market_weight_g}g</div>
-                      <div className="text-gray-500">Grow-out</div>
+                      <div className="text-gray-500 dark:text-gray-400">Grow-out</div>
                       <div className="font-medium">{sp.grow_out_days} days</div>
-                      <div className="text-gray-500">Optimal FCR</div>
+                      <div className="text-gray-500 dark:text-gray-400">Optimal FCR</div>
                       <div className="font-medium">{sp.optimal_fcr}</div>
-                      <div className="text-gray-500">Max Density</div>
+                      <div className="text-gray-500 dark:text-gray-400">Max Density</div>
                       <div className="font-medium">{sp.max_density_per_m3}/m³</div>
-                      <div className="text-gray-500">Protein</div>
+                      <div className="text-gray-500 dark:text-gray-400">Protein</div>
                       <div className="font-medium">{sp.optimal_protein_pct}%</div>
-                      <div className="text-gray-500">Feed Rate</div>
+                      <div className="text-gray-500 dark:text-gray-400">Feed Rate</div>
                       <div className="font-medium">{sp.feed_rate_pct}% BW/day</div>
-                      <div className="text-gray-500">Growth Rate</div>
+                      <div className="text-gray-500 dark:text-gray-400">Growth Rate</div>
                       <div className="font-medium">{sp.growth_rate_g_day} g/day</div>
-                      <div className="text-gray-500">Survival</div>
+                      <div className="text-gray-500 dark:text-gray-400">Survival</div>
                       <div className="font-medium">{sp.survival_rate_pct}%</div>
-                      <div className="text-gray-500">Temp Range</div>
+                      <div className="text-gray-500 dark:text-gray-400">Temp Range</div>
                       <div className="font-medium">{sp.optimal_temp_min}-{sp.optimal_temp_max}°C</div>
-                      <div className="text-gray-500">Price</div>
+                      <div className="text-gray-500 dark:text-gray-400">Price</div>
                       <div className="font-medium">{sp.market_price_per_kg.toLocaleString()} {sp.currency}/kg</div>
                     </div>
                   </CardContent>
@@ -163,32 +166,32 @@ export default function AquacultureFeed() {
               <CardHeader><CardTitle>Daily Feed Log</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-3">Date</th>
-                        <th className="text-left py-2 px-3">Pond</th>
-                        <th className="text-left py-2 px-3">Feed Type</th>
-                        <th className="text-center py-2 px-3">Protein %</th>
-                        <th className="text-center py-2 px-3">Amount (kg)</th>
-                        <th className="text-center py-2 px-3">Cost/kg</th>
-                        <th className="text-center py-2 px-3">Total Cost</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="w-full text-sm">
+                    <TableHeader>
+                      <TableRow className="border-b">
+                        <TableHead className="text-left py-2 px-3">Date</TableHead>
+                        <TableHead className="text-left py-2 px-3">Pond</TableHead>
+                        <TableHead className="text-left py-2 px-3">Feed Type</TableHead>
+                        <TableHead className="text-center py-2 px-3">Protein %</TableHead>
+                        <TableHead className="text-center py-2 px-3">Amount (kg)</TableHead>
+                        <TableHead className="text-center py-2 px-3">Cost/kg</TableHead>
+                        <TableHead className="text-center py-2 px-3">Total Cost</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {DEMO_FEED_LOG.map(f => (
-                        <tr key={f.id} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-3">{f.date}</td>
-                          <td className="py-2 px-3 font-medium">{f.pond}</td>
-                          <td className="py-2 px-3 capitalize">{f.type.replace(/_/g, " ")}</td>
-                          <td className="text-center py-2 px-3">{f.protein_pct}%</td>
-                          <td className="text-center py-2 px-3">{f.amount_kg}</td>
-                          <td className="text-center py-2 px-3">{f.cost_per_kg.toLocaleString()}</td>
-                          <td className="text-center py-2 px-3 font-medium">{(f.amount_kg * f.cost_per_kg).toLocaleString()} NGN</td>
-                        </tr>
+                        <TableRow key={f.id} className="border-b hover:bg-gray-50 dark:bg-gray-950">
+                          <TableCell className="py-2 px-3">{f.date}</TableCell>
+                          <TableCell className="py-2 px-3 font-medium">{f.pond}</TableCell>
+                          <TableCell className="py-2 px-3 capitalize">{f.type.replace(/_/g, " ")}</TableCell>
+                          <TableCell className="text-center py-2 px-3">{f.protein_pct}%</TableCell>
+                          <TableCell className="text-center py-2 px-3">{f.amount_kg}</TableCell>
+                          <TableCell className="text-center py-2 px-3">{f.cost_per_kg.toLocaleString()}</TableCell>
+                          <TableCell className="text-center py-2 px-3 font-medium">{(f.amount_kg * f.cost_per_kg).toLocaleString()} NGN</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
@@ -200,21 +203,21 @@ export default function AquacultureFeed() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {DEMO_STOCKING.map(s => (
-                    <Card key={s.id} className="bg-blue-50 border-blue-200">
+                    <Card key={s.id} className="bg-blue-50 dark:bg-blue-950 border-blue-200">
                       <CardContent className="pt-4">
                         <div className="font-semibold text-blue-800 mb-2">{s.pond}</div>
                         <div className="grid grid-cols-2 gap-1 text-sm">
-                          <div className="text-gray-500">Species</div>
+                          <div className="text-gray-500 dark:text-gray-400">Species</div>
                           <div className="capitalize font-medium">{s.species}</div>
-                          <div className="text-gray-500">Quantity</div>
+                          <div className="text-gray-500 dark:text-gray-400">Quantity</div>
                           <div className="font-medium">{s.quantity.toLocaleString()}</div>
-                          <div className="text-gray-500">Avg Weight</div>
+                          <div className="text-gray-500 dark:text-gray-400">Avg Weight</div>
                           <div className="font-medium">{s.avg_weight_g}g</div>
-                          <div className="text-gray-500">Date</div>
+                          <div className="text-gray-500 dark:text-gray-400">Date</div>
                           <div className="font-medium">{s.date}</div>
-                          <div className="text-gray-500">Supplier</div>
+                          <div className="text-gray-500 dark:text-gray-400">Supplier</div>
                           <div className="font-medium text-xs">{s.supplier}</div>
-                          <div className="text-gray-500">Batch</div>
+                          <div className="text-gray-500 dark:text-gray-400">Batch</div>
                           <div><Badge variant="outline" className="text-xs">{s.batch}</Badge></div>
                         </div>
                       </CardContent>
@@ -230,36 +233,36 @@ export default function AquacultureFeed() {
               <CardHeader><CardTitle>Harvest Records</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-3">Pond</th>
-                        <th className="text-left py-2 px-3">Species</th>
-                        <th className="text-center py-2 px-3">Count</th>
-                        <th className="text-center py-2 px-3">Total (kg)</th>
-                        <th className="text-center py-2 px-3">Avg (g)</th>
-                        <th className="text-center py-2 px-3">Grade A</th>
-                        <th className="text-center py-2 px-3">Grade B</th>
-                        <th className="text-center py-2 px-3">Grade C</th>
-                        <th className="text-center py-2 px-3">Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="w-full text-sm">
+                    <TableHeader>
+                      <TableRow className="border-b">
+                        <TableHead className="text-left py-2 px-3">Pond</TableHead>
+                        <TableHead className="text-left py-2 px-3">Species</TableHead>
+                        <TableHead className="text-center py-2 px-3">Count</TableHead>
+                        <TableHead className="text-center py-2 px-3">Total (kg)</TableHead>
+                        <TableHead className="text-center py-2 px-3">Avg (g)</TableHead>
+                        <TableHead className="text-center py-2 px-3">Grade A</TableHead>
+                        <TableHead className="text-center py-2 px-3">Grade B</TableHead>
+                        <TableHead className="text-center py-2 px-3">Grade C</TableHead>
+                        <TableHead className="text-center py-2 px-3">Revenue</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {DEMO_HARVEST.map(h => (
-                        <tr key={h.id} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-3 font-medium">{h.pond}</td>
-                          <td className="py-2 px-3 capitalize">{h.species}</td>
-                          <td className="text-center py-2 px-3">{h.quantity.toLocaleString()}</td>
-                          <td className="text-center py-2 px-3">{h.total_weight_kg.toLocaleString()}</td>
-                          <td className="text-center py-2 px-3">{h.avg_weight_g}</td>
-                          <td className="text-center py-2 px-3"><Badge className="bg-green-100 text-green-800">{h.grade_a_pct}%</Badge></td>
-                          <td className="text-center py-2 px-3"><Badge className="bg-yellow-100 text-yellow-800">{h.grade_b_pct}%</Badge></td>
-                          <td className="text-center py-2 px-3"><Badge className="bg-red-100 text-red-800">{h.grade_c_pct}%</Badge></td>
-                          <td className="text-center py-2 px-3 font-medium">{(h.total_weight_kg * h.price_per_kg / 1_000_000).toFixed(2)}M NGN</td>
-                        </tr>
+                        <TableRow key={h.id} className="border-b hover:bg-gray-50 dark:bg-gray-950">
+                          <TableCell className="py-2 px-3 font-medium">{h.pond}</TableCell>
+                          <TableCell className="py-2 px-3 capitalize">{h.species}</TableCell>
+                          <TableCell className="text-center py-2 px-3">{h.quantity.toLocaleString()}</TableCell>
+                          <TableCell className="text-center py-2 px-3">{h.total_weight_kg.toLocaleString()}</TableCell>
+                          <TableCell className="text-center py-2 px-3">{h.avg_weight_g}</TableCell>
+                          <TableCell className="text-center py-2 px-3"><Badge className="bg-green-100 dark:bg-green-900 text-green-800">{h.grade_a_pct}%</Badge></TableCell>
+                          <TableCell className="text-center py-2 px-3"><Badge className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800">{h.grade_b_pct}%</Badge></TableCell>
+                          <TableCell className="text-center py-2 px-3"><Badge className="bg-red-100 dark:bg-red-900 text-red-800">{h.grade_c_pct}%</Badge></TableCell>
+                          <TableCell className="text-center py-2 px-3 font-medium">{(h.total_weight_kg * h.price_per_kg / 1_000_000).toFixed(2)}M NGN</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
                 <div className="mt-6 p-4 bg-amber-50 rounded-lg">
                   <h3 className="font-semibold text-amber-800 mb-2">Harvest Grading</h3>
@@ -275,5 +278,6 @@ export default function AquacultureFeed() {
         </Tabs>
       </main>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

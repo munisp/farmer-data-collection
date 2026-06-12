@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Award, Clock, DollarSign, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 export default function LenderComparison() {
   const [selectedLenderIds, setSelectedLenderIds] = useState<number[]>([]);
 
@@ -205,33 +206,33 @@ export default function LenderComparison() {
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
-                      <table role="table" aria-label="Data table" className="w-full">
-                        <thead role="rowgroup">
-                          <tr className="border-b">
-                            <th className="pb-3 text-left font-medium">Metric</th>
+                      <Table role="table" aria-label="Data table" className="w-full">
+                        <TableHeader role="rowgroup">
+                          <TableRow className="border-b">
+                            <TableHead className="pb-3 text-left font-medium">Metric</TableHead>
                             {comparisonData.map((lender) => (
-                              <th key={lender.id} className="pb-3 text-left font-medium">
+                              <TableHead key={lender.id} className="pb-3 text-left font-medium">
                                 {lender.name}
-                              </th>
+                              </TableHead>
                             ))}
-                          </tr>
-                        </thead>
-                        <tbody role="rowgroup">
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody role="rowgroup">
                           {/* Lender Type */}
-                          <tr className="border-b">
-                            <td className="py-3 font-medium">Type</td>
+                          <TableRow className="border-b">
+                            <TableCell className="py-3 font-medium">Type</TableCell>
                             {comparisonData.map((lender) => (
-                              <td key={lender.id} className="py-3">
+                              <TableCell key={lender.id} className="py-3">
                                 <Badge variant="outline">{lender.type}</Badge>
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
 
                           {/* Interest Rate Range */}
-                          <tr className="border-b">
-                            <td className="py-3 font-medium">Interest Rate Range</td>
+                          <TableRow className="border-b">
+                            <TableCell className="py-3 font-medium">Interest Rate Range</TableCell>
                             {comparisonData.map((lender) => (
-                              <td key={lender.id} className="py-3">
+                              <TableCell key={lender.id} className="py-3">
                                 {lender.interestRateRange ? (
                                   <div className="flex items-center gap-2">
                                     <span>
@@ -241,15 +242,15 @@ export default function LenderComparison() {
                                 ) : (
                                   <span className="text-muted-foreground">N/A</span>
                                 )}
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
 
                           {/* Total Loans */}
-                          <tr className="border-b">
-                            <td className="py-3 font-medium">Total Loans Processed</td>
+                          <TableRow className="border-b">
+                            <TableCell className="py-3 font-medium">Total Loans Processed</TableCell>
                             {comparisonData.map((lender) => (
-                              <td key={lender.id} className="py-3">
+                              <TableCell key={lender.id} className="py-3">
                                 <div className="flex items-center gap-2">
                                   <span>{lender.totalLoans}</span>
                                   {isBestValue(lender.totalLoans, "totalLoans") && (
@@ -259,15 +260,15 @@ export default function LenderComparison() {
                                     </Badge>
                                   )}
                                 </div>
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
 
                           {/* Approval Rate */}
-                          <tr className="border-b">
-                            <td className="py-3 font-medium">Approval Rate</td>
+                          <TableRow className="border-b">
+                            <TableCell className="py-3 font-medium">Approval Rate</TableCell>
                             {comparisonData.map((lender) => (
-                              <td key={lender.id} className="py-3">
+                              <TableCell key={lender.id} className="py-3">
                                 <div className="flex items-center gap-2">
                                   <span>{lender.approvalRate}%</span>
                                   {isBestValue(lender.approvalRate, "approvalRate") && (
@@ -277,15 +278,15 @@ export default function LenderComparison() {
                                     </Badge>
                                   )}
                                 </div>
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
 
                           {/* Average Processing Time */}
-                          <tr className="border-b">
-                            <td className="py-3 font-medium">Avg. Processing Time</td>
+                          <TableRow className="border-b">
+                            <TableCell className="py-3 font-medium">Avg. Processing Time</TableCell>
                             {comparisonData.map((lender) => (
-                              <td key={lender.id} className="py-3">
+                              <TableCell key={lender.id} className="py-3">
                                 <div className="flex items-center gap-2">
                                   <span>{lender.avgProcessingTime} days</span>
                                   {isBestValue(lender.avgProcessingTime, "avgProcessingTime", true) && (
@@ -295,15 +296,15 @@ export default function LenderComparison() {
                                     </Badge>
                                   )}
                                 </div>
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
 
                           {/* Total Disbursed */}
-                          <tr className="border-b">
-                            <td className="py-3 font-medium">Total Amount Disbursed</td>
+                          <TableRow className="border-b">
+                            <TableCell className="py-3 font-medium">Total Amount Disbursed</TableCell>
                             {comparisonData.map((lender) => (
-                              <td key={lender.id} className="py-3">
+                              <TableCell key={lender.id} className="py-3">
                                 <div className="flex items-center gap-2">
                                   <span>₦{lender.totalDisbursed.toLocaleString()}</span>
                                   {isBestValue(lender.totalDisbursed, "totalDisbursed") && (
@@ -313,36 +314,36 @@ export default function LenderComparison() {
                                     </Badge>
                                   )}
                                 </div>
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
 
                           {/* Contact Information */}
-                          <tr className="border-b">
-                            <td className="py-3 font-medium">Contact</td>
+                          <TableRow className="border-b">
+                            <TableCell className="py-3 font-medium">Contact</TableCell>
                             {comparisonData.map((lender) => (
-                              <td key={lender.id} className="py-3">
+                              <TableCell key={lender.id} className="py-3">
                                 <div className="space-y-1 text-sm">
                                   {lender.email && <div>{lender.email}</div>}
                                   {lender.phoneNumber && <div>{lender.phoneNumber}</div>}
                                 </div>
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
 
                           {/* Address */}
-                          <tr>
-                            <td className="py-3 font-medium">Address</td>
+                          <TableRow>
+                            <TableCell className="py-3 font-medium">Address</TableCell>
                             {comparisonData.map((lender) => (
-                              <td key={lender.id} className="py-3">
+                              <TableCell key={lender.id} className="py-3">
                                 <div className="text-sm text-muted-foreground">
                                   {lender.address || "N/A"}
                                 </div>
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
-                        </tbody>
-                      </table>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
                     </div>
                   </CardContent>
                 </Card>

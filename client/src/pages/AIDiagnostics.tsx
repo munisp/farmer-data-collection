@@ -8,7 +8,11 @@ import { Upload, Camera, Bug, Leaf, AlertTriangle, CheckCircle, Info } from "luc
 import { Link } from "wouter";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function AIDiagnostics() {
+  const diagnosticsQuery = trpc.agriLlm.getHistory.useQuery({}, { retry: 1 });
+  const diagnosticsData = diagnosticsQuery.data ?? [];
+
   const [analyzing, setAnalyzing] = useState(false);
   const [diagnosis, setDiagnosis] = useState<any>(null);
 
@@ -93,14 +97,15 @@ export default function AIDiagnostics() {
   };
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-50">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 shadow-sm dark:shadow-gray-900/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">AI Crop Diagnostics</h1>
-              <p className="text-sm text-gray-600">Identify diseases, pests, and deficiencies with AI</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Crop Diagnostics</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Identify diseases, pests, and deficiencies with AI</p>
             </div>
             <Link href="/precision-agriculture">
               <a className="text-sm text-blue-600 hover:text-blue-800">← Back</a>
@@ -114,7 +119,7 @@ export default function AIDiagnostics() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Upload Section */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Camera className="h-5 w-5 text-red-600" />
@@ -125,12 +130,12 @@ export default function AIDiagnostics() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-red-400 transition-colors cursor-pointer">
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-sm font-medium text-gray-700 mb-2">
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center hover:border-red-400 transition-colors cursor-pointer">
+                  <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400 dark:text-gray-500 dark:text-gray-400" />
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Click to upload or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     PNG, JPG up to 10MB • Best results with close-up images
                   </p>
                   <div className="mt-4 flex gap-2 justify-center">
@@ -146,7 +151,7 @@ export default function AIDiagnostics() {
                 </div>
 
                 {/* Tips */}
-                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="mt-6 bg-blue-50 dark:bg-blue-950 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-2">
                     <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
@@ -165,7 +170,7 @@ export default function AIDiagnostics() {
 
             {/* Diagnosis Results */}
             {diagnosis && (
-              <Card className="bg-white">
+              <Card className="bg-white dark:bg-gray-900">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
@@ -183,7 +188,7 @@ export default function AIDiagnostics() {
                     {/* Issue Identified */}
                     <div>
                       <h3 className="font-semibold text-lg mb-2">{diagnosis.issue}</h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
                         <span>Type: <span className="font-medium capitalize">{diagnosis.type}</span></span>
                         <span>Confidence: <span className="font-medium">{diagnosis.confidence}%</span></span>
                         <span>Affected Area: <span className="font-medium">{diagnosis.affectedArea}%</span></span>
@@ -253,36 +258,36 @@ export default function AIDiagnostics() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Stats */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Diagnosis Statistics</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm text-gray-600">This Month</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">This Month</span>
                     <span className="text-2xl font-bold">12</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div className="bg-red-600 h-2 rounded-full" style={{ width: "60%" }}></div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                   <div>
-                    <p className="text-xs text-gray-600">Diseases</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">Diseases</p>
                     <p className="text-xl font-semibold">7</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-600">Pests</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">Pests</p>
                     <p className="text-xl font-semibold">3</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-600">Deficiencies</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">Deficiencies</p>
                     <p className="text-xl font-semibold">2</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-600">Treated</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">Treated</p>
                     <p className="text-xl font-semibold text-green-600">8</p>
                   </div>
                 </div>
@@ -290,7 +295,7 @@ export default function AIDiagnostics() {
             </Card>
 
             {/* Recent Diagnoses */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Recent Diagnoses</CardTitle>
                 <CardDescription>Last 7 days</CardDescription>
@@ -305,13 +310,13 @@ export default function AIDiagnostics() {
                           {item.severity}
                         </Badge>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-gray-600">
+                      <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
                         <span>{item.field}</span>
                         <Badge className={getStatusColor(item.status)} variant="outline">
                           {item.status.replace("_", " ")}
                         </Badge>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {new Date(item.date).toLocaleDateString()}
                       </p>
                     </div>
@@ -321,7 +326,7 @@ export default function AIDiagnostics() {
             </Card>
 
             {/* Disease Library */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Disease Library</CardTitle>
                 <CardDescription>Browse common issues</CardDescription>
@@ -347,5 +352,6 @@ export default function AIDiagnostics() {
         </div>
       </main>
     </div>
-  );
+  
+    </DashboardLayout>);
 }
