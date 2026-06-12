@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';
@@ -56,11 +57,13 @@ export default function DeliveryTrackingScreen() {
     <View style={styles.container}>
       <Header title="Delivery & Collection" />
       <ScrollView
+      accessibilityLabel="Delivery Tracking screen"
+      accessibilityRole="scrollbar"
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(true); }} />}
       >
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Active Deliveries</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Active Deliveries</Text>
           {assignments.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Text style={styles.emptyText}>No active deliveries</Text>
@@ -84,7 +87,7 @@ export default function DeliveryTrackingScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nearby Collection Points</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Nearby Collection Points</Text>
           {nearbyPoints.map((point) => (
             <Card key={point.id} style={styles.card}>
               <Text style={styles.cardTitle}>{point.name}</Text>
@@ -109,12 +112,13 @@ export default function DeliveryTrackingScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Fee Calculator</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Delivery Fee Calculator</Text>
           <Card style={styles.card}>
             <Text style={styles.cardDetail}>
               Enter pickup and delivery locations to estimate delivery costs including cold chain surcharges.
             </Text>
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity
+          accessibilityRole="button" style={styles.button}>
               <Text style={styles.buttonText}>Calculate Fee</Text>
             </TouchableOpacity>
           </Card>
@@ -138,5 +142,5 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, color: COLORS.textSecondary || '#666' },
   emptySubtext: { fontSize: 14, color: COLORS.textSecondary || '#999', marginTop: 4 },
   button: { backgroundColor: COLORS.primary, padding: 12, borderRadius: 8, marginTop: 12, alignItems: 'center' as const },
-  buttonText: { color: '#fff', fontWeight: '600' },
+  buttonText: { color: colors.white, fontWeight: '600' },
 });

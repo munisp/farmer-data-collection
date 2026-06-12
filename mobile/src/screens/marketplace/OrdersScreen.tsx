@@ -44,7 +44,8 @@ export default function OrdersScreen() {
   if (loading) return <Loading message="Loading orders..." />;
 
   return (
-    <View style={styles.container}>
+    <View
+      accessibilityLabel="Orders screen" style={styles.container}>
       <Header title="My Orders" />
       {orders.length === 0 ? (
         <EmptyState

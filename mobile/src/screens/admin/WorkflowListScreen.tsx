@@ -20,7 +20,9 @@ export default function WorkflowListScreen({ navigation }: any) {
   );
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
+    <ScrollView
+      accessibilityLabel="Workflow List screen"
+      accessibilityRole="scrollbar" className="flex-1 bg-gray-50">
       <View className="p-4">
         <Text className="text-2xl font-bold mb-4">All Workflows</Text>
 
@@ -34,6 +36,7 @@ export default function WorkflowListScreen({ navigation }: any) {
           <View className="flex-row gap-2">
             {['all', 'running', 'completed', 'failed'].map(status => (
               <TouchableOpacity
+          accessibilityRole="button"
                 key={status}
                 className={`px-4 py-2 rounded-lg ${filterStatus === status ? 'bg-blue-500' : 'bg-gray-200'}`}
                 onPress={() => setFilterStatus(status)}
@@ -48,6 +51,7 @@ export default function WorkflowListScreen({ navigation }: any) {
 
         {filteredWorkflows.map(wf => (
           <TouchableOpacity
+          accessibilityRole="button"
             key={wf.id}
             onPress={() => navigation.navigate('WorkflowDetail', { workflowId: wf.id })}
           >

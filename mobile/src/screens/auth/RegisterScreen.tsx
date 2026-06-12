@@ -25,9 +25,11 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+      accessibilityLabel="Register screen"
+      accessibilityRole="scrollbar" contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <Text style={styles.title}>Create Account</Text>
+          <Text accessibilityRole="header" style={styles.title}>Create Account</Text>
           <Input label="Name" value={name} onChangeText={setName} placeholder="Your name" />
           <Input label="Email" value={email} onChangeText={setEmail} placeholder="your@email.com" keyboardType="email-address" autoCapitalize="none" />
           <Input label="Password" value={password} onChangeText={setPassword} placeholder="At least 8 characters" secureTextEntry />

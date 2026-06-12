@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 
 type FlightPlan = {
@@ -57,14 +58,17 @@ export default function DroneControlScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Drone Operations</Text>
+    <ScrollView
+      accessibilityLabel="Drone Control screen"
+      accessibilityRole="scrollbar" style={styles.container}>
+      <Text accessibilityRole="header" style={styles.title}>Drone Operations</Text>
       <Text style={styles.subtitle}>Flight planning, spray prescriptions, NDVI imagery</Text>
 
       {/* Tab bar */}
       <View style={styles.tabBar}>
         {(['flights', 'fleet', 'spray'] as const).map(tab => (
-          <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => setActiveTab(tab)}>
+          <TouchableOpacity
+          accessibilityRole="button" key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => setActiveTab(tab)}>
             <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
           </TouchableOpacity>
         ))}
@@ -79,7 +83,8 @@ export default function DroneControlScreen() {
 
       {activeTab === 'flights' && (
         <View>
-          <TouchableOpacity style={styles.actionButton} onPress={planNewFlight}>
+          <TouchableOpacity
+          accessibilityRole="button" style={styles.actionButton} onPress={planNewFlight}>
             <Text style={styles.actionButtonText}>+ Plan New Flight</Text>
           </TouchableOpacity>
           {flights.map(flight => (
@@ -112,7 +117,8 @@ export default function DroneControlScreen() {
 
       {activeTab === 'spray' && (
         <View>
-          <TouchableOpacity style={styles.actionButton} onPress={checkDriftRisk}>
+          <TouchableOpacity
+          accessibilityRole="button" style={styles.actionButton} onPress={checkDriftRisk}>
             <Text style={styles.actionButtonText}>Check Drift Risk</Text>
           </TouchableOpacity>
           <View style={styles.card}>
@@ -136,14 +142,14 @@ const styles = StyleSheet.create({
   tab: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#e0e0e0', borderRadius: 8, marginHorizontal: 2 },
   activeTab: { backgroundColor: '#2196F3' },
   tabText: { color: '#333', fontWeight: '600' },
-  activeTabText: { color: '#fff' },
+  activeTabText: { color: colors.white },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 16 },
-  stat: { alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, flex: 1, marginHorizontal: 4 },
+  stat: { alignItems: 'center', backgroundColor: colors.white, padding: 12, borderRadius: 8, flex: 1, marginHorizontal: 4 },
   statValue: { fontSize: 20, fontWeight: 'bold', color: '#2196F3' },
   statLabel: { fontSize: 11, color: '#888' },
   actionButton: { backgroundColor: '#2196F3', padding: 14, borderRadius: 8, alignItems: 'center', marginBottom: 12 },
-  actionButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 8, elevation: 2 },
+  actionButtonText: { color: colors.white, fontWeight: '600', fontSize: 16 },
+  card: { backgroundColor: colors.white, borderRadius: 8, padding: 12, marginBottom: 8, elevation: 2 },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 16, fontWeight: '600' },
   cardDetail: { fontSize: 13, color: '#666', marginTop: 2 },

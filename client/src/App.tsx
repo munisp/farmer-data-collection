@@ -150,6 +150,10 @@ const AggregationHub = lazy(() => import("./pages/AggregationHub"));
 const AquacultureDashboard = lazy(() => import("./pages/AquacultureDashboard"));
 const AquacultureFeed = lazy(() => import("./pages/AquacultureFeed"));
 const AquacultureAI = lazy(() => import("./pages/AquacultureAI"));
+const FarmerOnboardingWizard = lazy(() => import("./pages/FarmerOnboardingWizard"));
+const HomeDashboard = lazy(() => import("./pages/Home"));
+const LoginKeycloak = lazy(() => import("./pages/LoginKeycloak"));
+const OfflineConflictResolution = lazy(() => import("./pages/OfflineConflictResolution"));
 
 function Router() {
   return (
@@ -304,6 +308,10 @@ function Router() {
         <Route path="/aquaculture" component={AquacultureDashboard} />
         <Route path="/aquaculture/feed" component={AquacultureFeed} />
         <Route path="/aquaculture/ai" component={AquacultureAI} />
+        <Route path="/farmer-onboarding" component={FarmerOnboardingWizard} />
+        <Route path="/home" component={HomeDashboard} />
+        <Route path="/login-keycloak" component={LoginKeycloak} />
+        <Route path="/offline-conflicts" component={OfflineConflictResolution} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

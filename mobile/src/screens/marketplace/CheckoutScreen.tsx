@@ -68,9 +68,11 @@ export default function CheckoutScreen() {
   return (
     <View style={styles.container}>
       <Header title="Checkout" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Checkout screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Order Summary</Text>
           {item ? (
             <>
               <View style={styles.row}>
@@ -107,7 +109,7 @@ export default function CheckoutScreen() {
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Delivery Information</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Delivery Information</Text>
           <Input
             label="Delivery Address *"
             value={deliveryAddress}

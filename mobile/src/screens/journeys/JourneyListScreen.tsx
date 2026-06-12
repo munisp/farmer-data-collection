@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { colors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -394,7 +395,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: 'calendar',
-    color: '#059669',
+    color: colors.primaryDark,
     steps: [
       { id: 'create_season', title: 'Create Season', status: 'not_started' },
       { id: 'crop_selection', title: 'Select Crops', status: 'not_started' },
@@ -485,7 +486,7 @@ export default function JourneyListScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>User Journeys</Text>
+        <Text accessibilityRole="header" style={styles.title}>User Journeys</Text>
         <Text style={styles.subtitle}>Track your farming activities</Text>
       </View>
 
@@ -519,13 +520,16 @@ export default function JourneyListScreen({ navigation }: any) {
         />
       </View>
 
-      <ScrollView 
+      <ScrollView
+      accessibilityLabel="Journey List screen"
+      accessibilityRole="scrollbar" 
         horizontal 
         showsHorizontalScrollIndicator={false} 
         style={styles.filterScroll}
         contentContainerStyle={styles.filterContainer}
       >
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.filterChip, selectedCategory === 'all' && styles.filterChipActive]}
           onPress={() => setSelectedCategory('all')}
         >
@@ -535,6 +539,7 @@ export default function JourneyListScreen({ navigation }: any) {
         </TouchableOpacity>
         {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
           <TouchableOpacity
+          accessibilityRole="button"
             key={key}
             style={[
               styles.filterChip, 
@@ -560,6 +565,7 @@ export default function JourneyListScreen({ navigation }: any) {
       >
         {filteredJourneys.map((journey) => (
           <TouchableOpacity
+          accessibilityRole="button"
             key={journey.id}
             style={styles.journeyCard}
             onPress={() => navigateToDetail(journey)}
@@ -640,14 +646,14 @@ const styles = StyleSheet.create({
   header: {
     padding: 16,
     paddingTop: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.gray900,
   },
   subtitle: {
     fontSize: 14,
@@ -658,7 +664,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   statCard: {
     flex: 1,
@@ -678,7 +684,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     marginHorizontal: 16,
     marginVertical: 12,
     paddingHorizontal: 12,
@@ -693,7 +699,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.gray900,
   },
   filterScroll: {
     maxHeight: 44,
@@ -716,21 +722,21 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.gray700,
   },
   filterTextActive: {
-    color: '#fff',
+    color: colors.white,
   },
   journeyList: {
     flex: 1,
     paddingHorizontal: 16,
   },
   journeyCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -755,7 +761,7 @@ const styles = StyleSheet.create({
   journeyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.gray900,
   },
   journeyDescription: {
     fontSize: 13,
@@ -804,7 +810,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.gray700,
     width: 36,
     textAlign: 'right',
   },
@@ -833,7 +839,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.gray700,
     marginTop: 16,
   },
   emptyText: {

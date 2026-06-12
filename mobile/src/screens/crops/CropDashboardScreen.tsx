@@ -1,4 +1,5 @@
 import React from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 
 export default function CropDashboardScreen({ route, navigation }) {
@@ -11,11 +12,13 @@ export default function CropDashboardScreen({ route, navigation }) {
   }[cropId] || { name: 'Unknown', icon: '❓', journeys: [] };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      accessibilityLabel="Crop Dashboard screen"
+      accessibilityRole="scrollbar" style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.icon}>{cropData.icon}</Text>
         <View>
-          <Text style={styles.title}>{cropData.name}</Text>
+          <Text accessibilityRole="header" style={styles.title}>{cropData.name}</Text>
           <Text style={styles.subtitle}>Dashboard</Text>
         </View>
       </View>
@@ -35,9 +38,10 @@ export default function CropDashboardScreen({ route, navigation }) {
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Available Journeys</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>Available Journeys</Text>
       {cropData.journeys.map((journey, idx) => (
         <TouchableOpacity
+          accessibilityRole="button"
           key={idx}
           style={styles.journeyCard}
           onPress={() => navigation.navigate('JourneyTracker', { cropId, journeyId: idx })}
@@ -51,7 +55,7 @@ export default function CropDashboardScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  container: { flex: 1, padding: 16, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
   icon: { fontSize: 64, marginRight: 16 },
   title: { fontSize: 28, fontWeight: 'bold' },

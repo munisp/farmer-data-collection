@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { colors } from '@/lib/theme';
 import {
   View, ScrollView, Text, StyleSheet, Alert, Platform,
   TouchableOpacity, ActivityIndicator, Dimensions,
@@ -315,6 +316,7 @@ export default function SoilAnalysisScreen() {
       <View style={styles.tabBar}>
         {(['input', 'results', 'history'] as const).map(tab => (
           <TouchableOpacity
+          accessibilityRole="button"
             key={tab}
             style={[styles.tab, activeTab === tab && styles.tabActive]}
             onPress={() => setActiveTab(tab)}
@@ -326,18 +328,21 @@ export default function SoilAnalysisScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Soil Analysis screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         {/* INPUT TAB */}
         {activeTab === 'input' && (
           <>
             {/* Photo capture */}
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Soil Photo</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Soil Photo</Text>
               <Text style={styles.hint}>
                 Take a photo of the soil surface for AI texture/color analysis.
                 Hold your phone 30cm above freshly dug soil.
               </Text>
-              <TouchableOpacity style={styles.photoButton} onPress={handleCapturePhoto}>
+              <TouchableOpacity
+          accessibilityRole="button" style={styles.photoButton} onPress={handleCapturePhoto}>
                 {photoUri ? (
                   <View style={styles.photoPreview}>
                     <Text style={styles.photoText}>Photo captured</Text>
@@ -354,7 +359,7 @@ export default function SoilAnalysisScreen() {
 
             {/* Bluetooth kit pairing */}
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Test Kit Connection</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Test Kit Connection</Text>
               <Text style={styles.hint}>
                 Connect a Bluetooth soil meter to auto-fill readings.
                 Supported: Bluelab, Hanna, Jxct NPK sensors, CEC analyzers.
@@ -367,6 +372,7 @@ export default function SoilAnalysisScreen() {
               />
               {bluetoothDevices.map(device => (
                 <TouchableOpacity
+          accessibilityRole="button"
                   key={device.id}
                   style={[styles.deviceItem, device.connected && styles.deviceConnected]}
                   onPress={() => !device.connected && connectDevice(device)}
@@ -386,7 +392,7 @@ export default function SoilAnalysisScreen() {
 
             {/* Manual lab readings */}
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Soil Test Readings</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Soil Test Readings</Text>
               <Text style={styles.hint}>
                 Enter readings from your test kit, or let Bluetooth auto-fill.
               </Text>
@@ -443,7 +449,7 @@ export default function SoilAnalysisScreen() {
 
             {/* GPS */}
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Farm Location</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Farm Location</Text>
               {gpsLoading ? (
                 <ActivityIndicator size="small" color={COLORS.primary} />
               ) : latitude && longitude ? (
@@ -478,7 +484,7 @@ export default function SoilAnalysisScreen() {
           <>
             {/* Health score */}
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Soil Health Score</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Soil Health Score</Text>
               <View style={styles.scoreContainer}>
                 <Text style={[styles.scoreValue, { color: getScoreColor(result.health_score) }]}>
                   {result.health_score}
@@ -502,7 +508,7 @@ export default function SoilAnalysisScreen() {
 
             {/* Lab interpretations */}
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Lab Reading Analysis</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Lab Reading Analysis</Text>
               {Object.entries(result.lab_interpretation).map(([key, interp]) => (
                 <View key={key} style={styles.labRow}>
                   <View style={styles.labInfo}>
@@ -526,7 +532,7 @@ export default function SoilAnalysisScreen() {
 
             {/* Recommendations */}
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Recommendations</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Recommendations</Text>
               {result.recommendations.length > 0 ? (
                 result.recommendations.map((rec, idx) => (
                   <View key={idx} style={styles.recItem}>
@@ -544,7 +550,7 @@ export default function SoilAnalysisScreen() {
 
             {/* Crop suitability */}
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Crop Suitability</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Crop Suitability</Text>
               {result.crop_suitability.map((crop, idx) => (
                 <View key={idx} style={styles.cropItem}>
                   <Text style={styles.cropName}>{crop.crop}</Text>
@@ -571,7 +577,7 @@ export default function SoilAnalysisScreen() {
         {activeTab === 'history' && (
           <>
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>Soil Test History</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>Soil Test History</Text>
               <Text style={styles.hint}>
                 Track soil health over time. Regular testing (every season) helps detect improvement or degradation.
               </Text>
@@ -580,7 +586,7 @@ export default function SoilAnalysisScreen() {
               <>
                 {/* Simple trend chart */}
                 <Card style={styles.card}>
-                  <Text style={styles.sectionTitle}>Health Trend</Text>
+                  <Text accessibilityRole="header" style={styles.sectionTitle}>Health Trend</Text>
                   <View style={styles.trendChart}>
                     {history.slice(0, 10).reverse().map((test, idx) => (
                       <View key={test.id} style={styles.trendBar}>
@@ -634,14 +640,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
   content: { flex: 1, padding: 16 },
   tabBar: {
-    flexDirection: 'row', backgroundColor: '#fff',
+    flexDirection: 'row', backgroundColor: colors.white,
     borderBottomWidth: 1, borderBottomColor: '#E0E0E0',
   },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   tabActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
   tabText: { fontSize: 14, color: '#666' },
   tabTextActive: { color: COLORS.primary, fontWeight: '600' },
-  card: { marginBottom: 16, padding: 16, borderRadius: 12, backgroundColor: '#fff' },
+  card: { marginBottom: 16, padding: 16, borderRadius: 12, backgroundColor: colors.white },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 8 },
   hint: { fontSize: 13, color: '#888', marginBottom: 12, lineHeight: 18 },
   photoButton: { borderWidth: 2, borderColor: '#DDD', borderStyle: 'dashed', borderRadius: 12, padding: 24, alignItems: 'center' },

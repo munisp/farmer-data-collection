@@ -11,7 +11,9 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       <Header title="Settings" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Settings screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Card style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.label}>Push Notifications</Text>

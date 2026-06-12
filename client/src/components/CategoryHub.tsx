@@ -7,7 +7,10 @@ import {
   Satellite, Cloud, Brain, LineChart, BarChart3, FileText, Target,
   Briefcase, ClipboardList, MessageSquare, Calculator, Globe, Shield,
   Bell, UserCheck, Thermometer, Zap, Plane, Wifi, Bot, Leaf,
-  DollarSign, ArrowUpDown, Phone, Home, Settings
+  DollarSign, ArrowUpDown, Phone, Home, Settings, Trophy, Mic,
+  Activity, Droplets, Fish, AlertTriangle, Store, RotateCcw,
+  Apple, ChevronDown, WifiOff, CheckCircle, Mail, Workflow,
+  PieChart, GanttChart, Archive, Warehouse, Scale, Landmark
 } from "lucide-react";
 
 interface FeatureCard {
@@ -40,6 +43,11 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
         { href: "/quick-farmer-registration", label: "Add Farmer", icon: Users, description: "Quick registration" },
         { href: "/crop-wizard", label: "Crop Wizard", icon: Sprout, description: "Guided crop setup" },
         { href: "/multi-farm", label: "Multi-Farm", icon: Home, description: "Manage all farms" },
+        { href: "/achievements", label: "Achievements", icon: Trophy, description: "Track milestones" },
+        { href: "/farmer-onboarding", label: "Farmer Onboard", icon: UserCheck, description: "Guided setup" },
+        { href: "/voice-navigation", label: "Voice Nav", icon: Mic, description: "Hands-free control" },
+        { href: "/notification-preferences", label: "Alert Prefs", icon: Bell, description: "Notification settings" },
+        { href: "/offline-conflicts", label: "Offline Sync", icon: WifiOff, description: "Resolve conflicts" },
       ],
     },
   ],
@@ -77,11 +85,31 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
       title: "Spatial & Weather",
       cards: [
         { href: "/weather", label: "Weather", icon: Cloud, description: "Forecasts & alerts" },
+        { href: "/weather-alerts", label: "Weather Alerts", icon: AlertTriangle, description: "Severe weather" },
         { href: "/satellite-imagery", label: "Satellite", icon: Satellite, description: "NDVI imagery" },
         { href: "/precision-agriculture", label: "Precision Ag", icon: Target, description: "Variable rate" },
         { href: "/farm-geotagging", label: "Geotag Farm", icon: MapPin, description: "GPS boundaries" },
         { href: "/gps-tracking", label: "GPS Tracking", icon: MapPin, description: "Live tracking" },
         { href: "/field-overview", label: "Field View", icon: Globe, description: "EOS overview" },
+        { href: "/land-suitability", label: "Land Suitability", icon: Leaf, description: "Soil assessment" },
+        { href: "/crop-yield", label: "Crop Yield", icon: BarChart3, description: "Yield analytics" },
+        { href: "/crops/dashboard", label: "Crop Dashboard", icon: Sprout, description: "Crop overview" },
+      ],
+    },
+    {
+      title: "Aquaculture",
+      cards: [
+        { href: "/aquaculture", label: "Aquaculture", icon: Fish, description: "Fish farming" },
+        { href: "/aquaculture/feed", label: "Feed Mgmt", icon: Droplets, description: "Feed schedules" },
+        { href: "/aquaculture/ai", label: "Aqua AI", icon: Brain, description: "AI predictions" },
+      ],
+    },
+    {
+      title: "Advanced",
+      cards: [
+        { href: "/drone-operations", label: "Drone Ops", icon: Plane, description: "Flight operations" },
+        { href: "/yield-predictor", label: "Yield Predict", icon: TrendingUp, description: "AI yield model" },
+        { href: "/agricultural-models", label: "Ag Models", icon: Brain, description: "ML model library" },
       ],
     },
   ],
@@ -120,6 +148,27 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
       cards: [
         { href: "/messages", label: "Messages", icon: MessageSquare, description: "Chat with buyers" },
         { href: "/cart", label: "Cart", icon: ShoppingCart, description: "Shopping cart" },
+        { href: "/checkout", label: "Checkout", icon: CreditCard, description: "Complete purchase" },
+      ],
+    },
+    {
+      title: "Delivery & Returns",
+      cards: [
+        { href: "/delivery/tracking", label: "Track Delivery", icon: Truck, description: "Live tracking" },
+        { href: "/returns", label: "Returns", icon: RotateCcw, description: "Return requests" },
+        { href: "/freshness", label: "Freshness", icon: Apple, description: "Freshness tracking" },
+        { href: "/seller-analytics", label: "Seller Stats", icon: PieChart, description: "Sales analytics" },
+        { href: "/aggregation-hub", label: "Aggregation", icon: Warehouse, description: "Bulk collection" },
+      ],
+    },
+    {
+      title: "Retail",
+      cards: [
+        { href: "/retail/store", label: "Retail Store", icon: Store, description: "Storefront" },
+        { href: "/retail/demand", label: "Demand Plan", icon: TrendingUp, description: "Forecast demand" },
+        { href: "/retail/standing-orders", label: "Standing Orders", icon: ClipboardList, description: "Recurring orders" },
+        { href: "/retail/invoices", label: "Invoices", icon: FileText, description: "Invoice mgmt" },
+        { href: "/retail/bulk-order", label: "Bulk Order", icon: Package, description: "Large orders" },
       ],
     },
   ],
@@ -153,9 +202,22 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
       ],
     },
     {
-      title: "Reports",
+      title: "Reports & Analytics",
       cards: [
         { href: "/financial-reports", label: "Reports", icon: FileText, description: "Financial reports" },
+        { href: "/disbursement-analytics", label: "Disbursements", icon: BarChart3, description: "Disbursement analytics" },
+        { href: "/payment-reconciliation", label: "Reconciliation", icon: CheckCircle, description: "Payment matching" },
+        { href: "/transactions", label: "Transactions", icon: ArrowUpDown, description: "Transaction history" },
+        { href: "/cooperative-dashboard", label: "Co-op Dashboard", icon: Users, description: "Co-op financials" },
+      ],
+    },
+    {
+      title: "Credit & Risk",
+      cards: [
+        { href: "/credit-score-view", label: "My Score", icon: Activity, description: "Score details" },
+        { href: "/credit-scores", label: "Credit Scores", icon: Target, description: "Score overview" },
+        { href: "/portfolio-risk", label: "Portfolio Risk", icon: AlertTriangle, description: "Risk analysis" },
+        { href: "/loan-approvals", label: "Approvals", icon: CheckCircle, description: "Pending approvals" },
       ],
     },
   ],
@@ -195,9 +257,41 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
       title: "Admin",
       cards: [
         { href: "/admin", label: "Admin", icon: Shield, description: "Administration" },
+        { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, description: "Admin dashboard" },
+        { href: "/admin/users", label: "Users", icon: Users, description: "User management" },
         { href: "/admin/kyc", label: "KYC Admin", icon: Shield, description: "Review verifications" },
+        { href: "/admin/audit-logs", label: "Audit Logs", icon: FileText, description: "Activity logs" },
+        { href: "/admin/workflows", label: "Workflows", icon: Workflow, description: "Process workflows" },
+        { href: "/admin/workflows-dashboard", label: "Workflow Stats", icon: GanttChart, description: "Workflow analytics" },
+        { href: "/admin/workflow-analytics", label: "WF Analytics", icon: PieChart, description: "Deep analysis" },
+        { href: "/admin/disbursements", label: "Disbursements", icon: DollarSign, description: "Manage payouts" },
+        { href: "/admin/risk-assessment", label: "Risk Review", icon: AlertTriangle, description: "Risk assessment" },
+        { href: "/admin/erpnext-integration", label: "ERPNext", icon: Globe, description: "ERP integration" },
         { href: "/data-quality", label: "Data Quality", icon: BarChart3, description: "Quality checks" },
         { href: "/risk-compliance", label: "Compliance", icon: Shield, description: "Risk & AML" },
+      ],
+    },
+    {
+      title: "Communication Admin",
+      cards: [
+        { href: "/admin/sms-management", label: "SMS Mgmt", icon: MessageSquare, description: "SMS campaigns" },
+        { href: "/admin/sms-templates", label: "Templates", icon: Mail, description: "SMS templates" },
+        { href: "/admin/sms-scheduling", label: "SMS Schedule", icon: Bell, description: "Schedule messages" },
+        { href: "/admin/sms-analytics", label: "SMS Analytics", icon: BarChart3, description: "Message stats" },
+        { href: "/admin/moderation-analytics", label: "Moderation", icon: Shield, description: "Content moderation" },
+        { href: "/admin/review-analytics", label: "Reviews", icon: MessageSquare, description: "Review analytics" },
+      ],
+    },
+    {
+      title: "Event & Journey",
+      cards: [
+        { href: "/event-analytics", label: "Events", icon: Activity, description: "Event analytics" },
+        { href: "/journeys", label: "Journeys", icon: MapPin, description: "User journeys" },
+        { href: "/journeys/tracker", label: "Tracker", icon: Target, description: "Journey tracker" },
+        { href: "/agent-tasks", label: "Agent Tasks", icon: Briefcase, description: "Field agent tasks" },
+        { href: "/export-scheduler", label: "Scheduler", icon: Archive, description: "Export scheduler" },
+        { href: "/hr", label: "HR", icon: Users, description: "Human resources" },
+        { href: "/inventory", label: "Inventory", icon: Package, description: "Stock management" },
       ],
     },
   ],

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 
 const CROPS = [
@@ -18,8 +19,10 @@ export default function CropWizardScreen({ navigation }) {
   const [selectedCrop, setSelectedCrop] = useState(null);
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Select Your Crop</Text>
+    <ScrollView
+      accessibilityLabel="Crop Wizard screen"
+      accessibilityRole="scrollbar" style={styles.container}>
+      <Text accessibilityRole="header" style={styles.title}>Select Your Crop</Text>
       <Text style={styles.subtitle}>
         Choose the crop you want to manage
       </Text>
@@ -27,6 +30,7 @@ export default function CropWizardScreen({ navigation }) {
       <View style={styles.grid}>
         {CROPS.map((crop) => (
           <TouchableOpacity
+          accessibilityRole="button"
             key={crop.id}
             style={[
               styles.cropCard,
@@ -42,6 +46,7 @@ export default function CropWizardScreen({ navigation }) {
 
       {selectedCrop && (
         <TouchableOpacity
+          accessibilityRole="button"
           style={styles.continueButton}
           onPress={() => navigation.navigate('CropDashboard', { cropId: selectedCrop })}
         >
@@ -53,7 +58,7 @@ export default function CropWizardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  container: { flex: 1, padding: 16, backgroundColor: colors.white },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#666', marginBottom: 24 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
@@ -74,5 +79,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 24,
   },
-  continueButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  continueButtonText: { color: colors.white, fontSize: 16, fontWeight: 'bold' },
 });

@@ -47,7 +47,9 @@ export default function MarketplaceDetailScreen() {
   return (
     <View style={styles.container}>
       <Header title="Product Details" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Marketplace Detail screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Text style={styles.name}>{item.name}</Text>
         <View style={styles.row}>
           <Badge text={item.category} variant="info" />

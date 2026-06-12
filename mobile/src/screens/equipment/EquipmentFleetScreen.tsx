@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 
 type Equipment = {
@@ -52,13 +53,16 @@ export default function EquipmentFleetScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Equipment Fleet</Text>
+    <ScrollView
+      accessibilityLabel="Equipment Fleet screen"
+      accessibilityRole="scrollbar" style={styles.container}>
+      <Text accessibilityRole="header" style={styles.title}>Equipment Fleet</Text>
       <Text style={styles.subtitle}>GPS tracking, AB guidance, predictive maintenance</Text>
 
       <View style={styles.tabBar}>
         {(['tracking', 'maintenance', 'marketplace'] as const).map(tab => (
-          <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => setActiveTab(tab)}>
+          <TouchableOpacity
+          accessibilityRole="button" key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => setActiveTab(tab)}>
             <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
           </TouchableOpacity>
         ))}
@@ -73,7 +77,8 @@ export default function EquipmentFleetScreen() {
 
       {activeTab === 'tracking' && (
         <View>
-          <TouchableOpacity style={styles.actionButton} onPress={setupGuidance}>
+          <TouchableOpacity
+          accessibilityRole="button" style={styles.actionButton} onPress={setupGuidance}>
             <Text style={styles.actionButtonText}>Setup AB Guidance</Text>
           </TouchableOpacity>
           {equipment.map(eq => (
@@ -114,11 +119,12 @@ export default function EquipmentFleetScreen() {
 
       {activeTab === 'marketplace' && (
         <View>
-          <Text style={styles.sectionTitle}>Equipment-as-a-Service</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Equipment-as-a-Service</Text>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Hire Equipment Near You</Text>
             <Text style={styles.cardDetail}>Search for tractors, sprayers, harvesters within your area. Book by hour, hectare, or day.</Text>
-            <TouchableOpacity style={[styles.actionButton, { marginTop: 8 }]} onPress={() => Alert.alert('Search', 'Uses GPS + Haversine distance to find nearby equipment')}>
+            <TouchableOpacity
+          accessibilityRole="button" style={[styles.actionButton, { marginTop: 8 }]} onPress={() => Alert.alert('Search', 'Uses GPS + Haversine distance to find nearby equipment')}>
               <Text style={styles.actionButtonText}>Search Nearby Equipment</Text>
             </TouchableOpacity>
           </View>
@@ -141,15 +147,15 @@ const styles = StyleSheet.create({
   tab: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#e0e0e0', borderRadius: 8, marginHorizontal: 2 },
   activeTab: { backgroundColor: '#ff9800' },
   tabText: { color: '#333', fontWeight: '600' },
-  activeTabText: { color: '#fff' },
+  activeTabText: { color: colors.white },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 16 },
-  stat: { alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, flex: 1, marginHorizontal: 4 },
+  stat: { alignItems: 'center', backgroundColor: colors.white, padding: 12, borderRadius: 8, flex: 1, marginHorizontal: 4 },
   statValue: { fontSize: 20, fontWeight: 'bold', color: '#ff9800' },
   statLabel: { fontSize: 11, color: '#888' },
   sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8 },
   actionButton: { backgroundColor: '#ff9800', padding: 14, borderRadius: 8, alignItems: 'center', marginBottom: 12 },
-  actionButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 8, elevation: 2 },
+  actionButtonText: { color: colors.white, fontWeight: '600', fontSize: 16 },
+  card: { backgroundColor: colors.white, borderRadius: 8, padding: 12, marginBottom: 8, elevation: 2 },
   cardHighlight: { borderLeftWidth: 3, borderLeftColor: '#f44336' },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 16, fontWeight: '600' },

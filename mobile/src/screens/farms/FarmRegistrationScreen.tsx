@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { colors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -175,16 +176,19 @@ export default function FarmRegistrationScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          accessibilityRole="button" onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Register Farm</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Register Farm</Text>
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+      accessibilityLabel="Farm Registration screen"
+      accessibilityRole="scrollbar" style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Farm Details</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Farm Details</Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Farm Name *</Text>
@@ -209,6 +213,7 @@ export default function FarmRegistrationScreen() {
               <View style={styles.unitContainer}>
                 {(['hectares', 'acres'] as const).map((unit) => (
                   <TouchableOpacity
+          accessibilityRole="button"
                     key={unit}
                     style={[
                       styles.unitButton,
@@ -236,6 +241,7 @@ export default function FarmRegistrationScreen() {
               <View style={styles.chipContainer}>
                 {SOIL_TYPES.map((type) => (
                   <TouchableOpacity
+          accessibilityRole="button"
                     key={type}
                     style={[
                       styles.chip,
@@ -263,6 +269,7 @@ export default function FarmRegistrationScreen() {
               <View style={styles.chipContainer}>
                 {IRRIGATION_METHODS.map((method) => (
                   <TouchableOpacity
+          accessibilityRole="button"
                     key={method}
                     style={[
                       styles.chip,
@@ -286,7 +293,7 @@ export default function FarmRegistrationScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Location</Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Village *</Text>
@@ -321,6 +328,7 @@ export default function FarmRegistrationScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>GPS Coordinates</Text>
             <TouchableOpacity
+          accessibilityRole="button"
               style={styles.locationButton}
               onPress={getCurrentLocation}
               disabled={gettingLocation}
@@ -345,7 +353,7 @@ export default function FarmRegistrationScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Additional Information</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Additional Information</Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Notes</Text>
@@ -365,6 +373,7 @@ export default function FarmRegistrationScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
           onPress={handleSubmit}
           disabled={loading}
@@ -391,13 +400,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
   backButton: {
     fontSize: 16,
-    color: '#166534',
+    color: colors.primaryDark,
   },
   headerTitle: {
     fontSize: 18,
@@ -411,7 +420,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     marginTop: 12,
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -419,7 +428,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#166534',
+    color: colors.primaryDark,
     marginBottom: 16,
   },
   inputGroup: {
@@ -428,13 +437,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.gray700,
     marginBottom: 6,
   },
   input: {
     backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -460,20 +469,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   unitButtonActive: {
-    borderColor: '#166534',
-    backgroundColor: '#f0fdf4',
+    borderColor: colors.primaryDark,
+    backgroundColor: colors.primaryLight,
   },
   unitButtonText: {
     fontSize: 14,
     color: '#64748b',
   },
   unitButtonTextActive: {
-    color: '#166534',
+    color: colors.primaryDark,
     fontWeight: '600',
   },
   chipContainer: {
@@ -485,63 +494,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 20,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   chipActive: {
-    borderColor: '#166534',
-    backgroundColor: '#f0fdf4',
+    borderColor: colors.primaryDark,
+    backgroundColor: colors.primaryLight,
   },
   chipText: {
     fontSize: 14,
     color: '#64748b',
   },
   chipTextActive: {
-    color: '#166534',
+    color: colors.primaryDark,
     fontWeight: '600',
   },
   locationButton: {
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
   },
   locationButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   coordinatesCard: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: colors.primaryLight,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#bbf7d0',
   },
   coordinatesLabel: {
     fontSize: 12,
-    color: '#166534',
+    color: colors.primaryDark,
     marginBottom: 4,
   },
   coordinatesValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#166534',
+    color: colors.primaryDark,
   },
   bottomPadding: {
     height: 24,
   },
   footer: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
   },
   submitBtn: {
     paddingVertical: 14,
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -551,6 +560,6 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
 });

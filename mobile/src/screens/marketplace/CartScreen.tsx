@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { colors } from '@/lib/theme';
 import { View, FlatList, Text, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
@@ -39,7 +40,8 @@ export default function CartScreen() {
 
   if (cartItems.length === 0) {
     return (
-      <View style={styles.container}>
+      <View
+      accessibilityLabel="Cart screen" style={styles.container}>
         <Header title="Cart" />
         <EmptyState 
           title="Cart is Empty" 
@@ -84,7 +86,7 @@ const styles = StyleSheet.create({
   quantity: { fontSize: 14, color: COLORS.textLight, marginBottom: 4 },
   subtotal: { fontSize: 16, fontWeight: 'bold', color: COLORS.text, marginBottom: 8 },
   removeButton: { marginTop: 8 },
-  footer: { padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: COLORS.border },
+  footer: { padding: 16, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: COLORS.border },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   totalLabel: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
   totalAmount: { fontSize: 18, fontWeight: 'bold', color: COLORS.primary },

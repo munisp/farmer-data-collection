@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Card } from '@/components/ui/Card';
@@ -51,12 +52,15 @@ export default function MobileMoneyScreen() {
   return (
     <View style={styles.container}>
       <Header title="Mobile Money" />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Mobile Money screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Provider</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Select Provider</Text>
           <View style={styles.providerRow}>
             {providers.map((p) => (
               <TouchableOpacity
+          accessibilityRole="button"
                 key={p.key}
                 style={[
                   styles.providerBtn,
@@ -73,7 +77,7 @@ export default function MobileMoneyScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Details</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Payment Details</Text>
           <Card style={styles.card}>
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
@@ -94,6 +98,7 @@ export default function MobileMoneyScreen() {
             />
 
             <TouchableOpacity
+          accessibilityRole="button"
               style={[styles.payButton, processing && styles.payButtonDisabled]}
               onPress={handlePayment}
               disabled={processing}
@@ -106,7 +111,7 @@ export default function MobileMoneyScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How It Works</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>How It Works</Text>
           <Card style={styles.card}>
             <View style={styles.step}>
               <Badge label="1" color={COLORS.primary} />
@@ -139,21 +144,21 @@ const styles = StyleSheet.create({
   providerRow: { flexDirection: 'row', gap: 10 },
   providerBtn: {
     flex: 1, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#ddd',
-    backgroundColor: '#fff', alignItems: 'center' as const,
+    backgroundColor: colors.white, alignItems: 'center' as const,
   },
   providerText: { fontSize: 14, color: COLORS.text || '#333' },
   card: { padding: 16 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 12, color: COLORS.text || '#333' },
   input: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   payButton: {
     backgroundColor: COLORS.primary, padding: 16, borderRadius: 12, marginTop: 20,
     alignItems: 'center' as const,
   },
   payButtonDisabled: { opacity: 0.6 },
-  payButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  payButtonText: { color: colors.white, fontSize: 16, fontWeight: '700' },
   step: { flexDirection: 'row', alignItems: 'center' as const, gap: 12, paddingVertical: 8 },
   stepText: { fontSize: 14, color: COLORS.text || '#333', flex: 1 },
 });

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { colors } from '@/lib/theme';
 import { View, ScrollView, Text, StyleSheet, Alert } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Input } from '@/components/ui/Input';
@@ -60,7 +61,9 @@ export default function PriceForecastScreen() {
   return (
     <View style={styles.container}>
       <Header title="Price Forecast" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Price Forecast screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Card style={styles.card}>
           <Text style={styles.description}>
             Get AI-powered price forecasts to make informed decisions about when to sell your crops.
@@ -68,7 +71,7 @@ export default function PriceForecastScreen() {
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Crop Information</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Crop Information</Text>
           <Input 
             label="Crop Type *" 
             value={cropType} 
@@ -139,16 +142,16 @@ const styles = StyleSheet.create({
   button: { marginBottom: 16 },
   resultCard: { backgroundColor: '#E3F2FD' },
   resultTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.primary, marginBottom: 16 },
-  priceCard: { backgroundColor: '#fff', padding: 16, borderRadius: 8, marginBottom: 16, alignItems: 'center' },
+  priceCard: { backgroundColor: colors.white, padding: 16, borderRadius: 8, marginBottom: 16, alignItems: 'center' },
   priceLabel: { fontSize: 14, color: COLORS.textLight, marginBottom: 8 },
   priceValue: { fontSize: 28, fontWeight: 'bold', color: COLORS.primary },
   forecastRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  forecastItem: { flex: 1, backgroundColor: '#fff', padding: 12, borderRadius: 8, marginHorizontal: 4 },
+  forecastItem: { flex: 1, backgroundColor: colors.white, padding: 12, borderRadius: 8, marginHorizontal: 4 },
   forecastLabel: { fontSize: 12, color: COLORS.textLight, marginBottom: 4 },
   forecastValue: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
   trendContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   trendLabel: { fontSize: 16, color: COLORS.text, marginRight: 8 },
   trendBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  trendText: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
+  trendText: { fontSize: 14, fontWeight: 'bold', color: colors.white },
   resultNote: { fontSize: 12, color: COLORS.textLight, marginTop: 8, fontStyle: 'italic' },
 });

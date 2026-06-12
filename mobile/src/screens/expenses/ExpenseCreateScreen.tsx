@@ -48,7 +48,9 @@ export default function ExpenseCreateScreen() {
   return (
     <View style={styles.container}>
       <Header title="Add Expense" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Expense Create screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Input label="Category *" value={category} onChangeText={setCategory} placeholder="e.g., Seeds, Fertilizer" />
         <Input label="Amount *" value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="numeric" />
         <Input label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional notes" multiline numberOfLines={4} />

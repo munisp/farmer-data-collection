@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';
@@ -46,6 +47,8 @@ export default function ChamaScreen() {
     <View style={styles.container}>
       <Header title="Chama Groups" />
       <ScrollView
+      accessibilityLabel="Chama screen"
+      accessibilityRole="scrollbar"
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadGroups(true); }} />}
       >
@@ -63,12 +66,13 @@ export default function ChamaScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Groups</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>My Groups</Text>
           {groups.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Text style={styles.emptyText}>No groups yet</Text>
               <Text style={styles.emptySubtext}>Create or join a Chama savings group</Text>
-              <TouchableOpacity style={styles.button}>
+              <TouchableOpacity
+          accessibilityRole="button" style={styles.button}>
                 <Text style={styles.buttonText}>Create Group</Text>
               </TouchableOpacity>
             </Card>
@@ -95,10 +99,12 @@ export default function ChamaScreen() {
                   </View>
                 </View>
                 <View style={styles.actions}>
-                  <TouchableOpacity style={styles.actionBtn}>
+                  <TouchableOpacity
+          accessibilityRole="button" style={styles.actionBtn}>
                     <Text style={styles.actionText}>Contribute</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecondary]}>
+                  <TouchableOpacity
+          accessibilityRole="button" style={[styles.actionBtn, styles.actionBtnSecondary]}>
                     <Text style={[styles.actionText, { color: COLORS.primary }]}>Details</Text>
                   </TouchableOpacity>
                 </View>
@@ -108,7 +114,7 @@ export default function ChamaScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How Chama Works</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>How Chama Works</Text>
           <Card style={styles.card}>
             <Text style={styles.infoText}>
               A Chama (VSLA) is a savings group of 15-30 members. Each member contributes a fixed amount regularly.
@@ -147,7 +153,7 @@ const styles = StyleSheet.create({
   actionBtnSecondary: {
     backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.primary,
   },
-  actionText: { color: '#fff', fontWeight: '600' },
+  actionText: { color: colors.white, fontWeight: '600' },
   emptyCard: { padding: 24, alignItems: 'center' as const },
   emptyText: { fontSize: 16, color: COLORS.textSecondary || '#666' },
   emptySubtext: { fontSize: 14, color: COLORS.textSecondary || '#999', marginTop: 4 },
@@ -155,6 +161,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12,
     borderRadius: 8, marginTop: 16,
   },
-  buttonText: { color: '#fff', fontWeight: '600' },
+  buttonText: { color: colors.white, fontWeight: '600' },
   infoText: { fontSize: 14, lineHeight: 20, color: COLORS.text || '#333' },
 });

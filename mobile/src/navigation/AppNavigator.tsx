@@ -2,7 +2,76 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthStore } from '@/stores/authStore';
-import { Platform, StyleSheet, View, Text } from 'react-native';
+import { Platform, StyleSheet, View, Text, useColorScheme } from 'react-native';
+import { colors, darkColors } from '@/lib/theme';
+
+// Type-safe navigation param lists
+export type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
+};
+
+export type FarmStackParamList = {
+  HarvestList: undefined;
+  HarvestDetail: { id: number };
+  HarvestCreate: undefined;
+  HarvestEdit: { id: number };
+  ExpenseList: undefined;
+  ExpenseDetail: { id: number };
+  ExpenseCreate: undefined;
+  ExpenseEdit: { id: number };
+  YieldPrediction: undefined;
+  PriceForecast: undefined;
+  FarmRegistration: undefined;
+  CropDashboard: undefined;
+  CropWizard: undefined;
+  DroneControl: undefined;
+  EquipmentFleet: undefined;
+  SoilAnalysis: undefined;
+  AIChatAdvisor: undefined;
+  CarbonCredits: undefined;
+  Traceability: undefined;
+};
+
+export type MarketStackParamList = {
+  MarketplaceBrowse: undefined;
+  MarketplaceDetail: { id: number };
+  Cart: undefined;
+  Checkout: undefined;
+  Orders: undefined;
+  PhotoInventory: undefined;
+  DeliveryTracking: undefined;
+};
+
+export type FinanceStackParamList = {
+  FarmerRegistration: undefined;
+  FarmerProfile: { id?: number };
+  LoanApplication: undefined;
+  MobileMoney: undefined;
+  Cooperative: undefined;
+  Chama: undefined;
+};
+
+export type MoreStackParamList = {
+  Profile: undefined;
+  Settings: undefined;
+  BiometricSettings: undefined;
+  JourneyList: undefined;
+  JourneyDetail: { id: number };
+  JourneyTracker: undefined;
+  Analytics: undefined;
+  AdminDashboard: undefined;
+  WorkflowList: undefined;
+  WorkflowDetail: { id: number };
+};
+
+export type RootTabParamList = {
+  Home: undefined;
+  Farm: undefined;
+  Market: undefined;
+  Finance: undefined;
+  More: undefined;
+};
 
 // Auth screens
 import LoginScreen from '@/screens/auth/LoginScreen';
@@ -195,13 +264,21 @@ function MoreStack() {
 }
 
 function MainTabs() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#166534',
-        tabBarInactiveTintColor: '#9ca3af',
+        tabBarStyle: [
+          styles.tabBar,
+          isDark && {
+            backgroundColor: darkColors.background,
+            borderTopColor: darkColors.border,
+          },
+        ],
+        tabBarActiveTintColor: colors.primaryDark,
+        tabBarInactiveTintColor: isDark ? darkColors.textMuted : colors.gray400,
         tabBarLabelStyle: styles.tabLabel,
         tabBarHideOnKeyboard: true,
       }}
@@ -247,14 +324,14 @@ function MainTabs() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.gray200,
     height: Platform.OS === 'ios' ? 88 : 64,
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
     paddingTop: 8,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -273,7 +350,7 @@ const styles = StyleSheet.create({
     top: -10,
     width: 24,
     height: 2,
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     borderRadius: 1,
   },
   tabIcon: {

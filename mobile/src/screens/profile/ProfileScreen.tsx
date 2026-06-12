@@ -15,7 +15,9 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <Header title="Profile" />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Profile screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <View style={styles.header}>
           <Avatar name={user?.name} size={80} />
           <Text style={styles.name}>{user?.name}</Text>

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { colors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -115,7 +116,7 @@ export default function BiometricSettingsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Ionicons name="shield-checkmark" size={48} color="#2E7D32" />
-        <Text style={styles.title}>Security Settings</Text>
+        <Text accessibilityRole="header" style={styles.title}>Security Settings</Text>
         <Text style={styles.subtitle}>Protect your account with biometric authentication</Text>
       </View>
 
@@ -169,7 +170,8 @@ export default function BiometricSettingsScreen() {
                   : 'Biometric authentication is not available on this device.'}
               </Text>
               {capabilities?.hasHardware && (
-                <TouchableOpacity style={styles.setupButton}>
+                <TouchableOpacity
+          accessibilityRole="button" style={styles.setupButton}>
                   <Text style={styles.setupButtonText}>Open Device Settings</Text>
                 </TouchableOpacity>
               )}
@@ -284,7 +286,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

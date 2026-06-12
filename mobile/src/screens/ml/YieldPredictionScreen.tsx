@@ -35,7 +35,9 @@ export default function YieldPredictionScreen() {
   return (
     <View style={styles.container}>
       <Header title="Yield Prediction" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Yield Prediction screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Card style={styles.card}>
           <Text style={styles.description}>
             Use AI-powered yield prediction to estimate your harvest based on field conditions and historical data.
@@ -43,7 +45,7 @@ export default function YieldPredictionScreen() {
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Field Information</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Field Information</Text>
           <Input 
             label="Crop Type *" 
             value={cropType} 

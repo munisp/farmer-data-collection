@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useRef } from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 
 type Message = {
@@ -76,16 +77,20 @@ export default function AIChatScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>AI Advisor</Text>
-        <TouchableOpacity onPress={() => setShowLangPicker(!showLangPicker)}>
+        <Text accessibilityRole="header" style={styles.title}>AI Advisor</Text>
+        <TouchableOpacity
+          accessibilityRole="button" onPress={() => setShowLangPicker(!showLangPicker)}>
           <Text style={styles.langButton}>{LANGUAGES.find(l => l.code === language)?.name || 'English'}</Text>
         </TouchableOpacity>
       </View>
 
       {showLangPicker && (
-        <ScrollView horizontal style={styles.langPicker}>
+        <ScrollView
+      accessibilityLabel="A I Chat screen"
+      accessibilityRole="scrollbar" horizontal style={styles.langPicker}>
           {LANGUAGES.map(l => (
-            <TouchableOpacity key={l.code} style={[styles.langChip, language === l.code && styles.langChipActive]} onPress={() => { setLanguage(l.code); setShowLangPicker(false); }}>
+            <TouchableOpacity
+          accessibilityRole="button" key={l.code} style={[styles.langChip, language === l.code && styles.langChipActive]} onPress={() => { setLanguage(l.code); setShowLangPicker(false); }}>
               <Text style={[styles.langChipText, language === l.code && styles.langChipTextActive]}>{l.name}</Text>
             </TouchableOpacity>
           ))}
@@ -95,7 +100,8 @@ export default function AIChatScreen() {
       {/* Quick actions */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActions}>
         {QUICK_ACTIONS.map((action, i) => (
-          <TouchableOpacity key={i} style={styles.quickChip} onPress={() => sendMessage(action.query)}>
+          <TouchableOpacity
+          accessibilityRole="button" key={i} style={styles.quickChip} onPress={() => sendMessage(action.query)}>
             <Text style={styles.quickChipText}>{action.label}</Text>
           </TouchableOpacity>
         ))}
@@ -112,7 +118,8 @@ export default function AIChatScreen() {
             {msg.suggestions && msg.suggestions.length > 0 && (
               <View style={styles.suggestionsRow}>
                 {msg.suggestions.map((s, j) => (
-                  <TouchableOpacity key={j} style={styles.suggestionChip} onPress={() => sendMessage(s)}>
+                  <TouchableOpacity
+          accessibilityRole="button" key={j} style={styles.suggestionChip} onPress={() => sendMessage(s)}>
                     <Text style={styles.suggestionText}>{s}</Text>
                   </TouchableOpacity>
                 ))}
@@ -131,7 +138,8 @@ export default function AIChatScreen() {
           placeholder="Ask about crops, soil, pests..."
           onSubmitEditing={() => sendMessage()}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={() => sendMessage()}>
+        <TouchableOpacity
+          accessibilityRole="button" style={styles.sendButton} onPress={() => sendMessage()}>
           <Text style={styles.sendText}>Send</Text>
         </TouchableOpacity>
       </View>
@@ -141,30 +149,30 @@ export default function AIChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
   title: { fontSize: 20, fontWeight: 'bold' },
   langButton: { color: '#4caf50', fontWeight: '600' },
-  langPicker: { backgroundColor: '#fff', paddingVertical: 8, paddingHorizontal: 12 },
+  langPicker: { backgroundColor: colors.white, paddingVertical: 8, paddingHorizontal: 12 },
   langChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#e0e0e0', marginRight: 8 },
   langChipActive: { backgroundColor: '#4caf50' },
   langChipText: { fontSize: 12, color: '#333' },
-  langChipTextActive: { color: '#fff' },
-  quickActions: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
+  langChipTextActive: { color: colors.white },
+  quickActions: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
   quickChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#e8f5e9', marginRight: 8 },
   quickChipText: { fontSize: 12, color: '#2e7d32' },
   messages: { flex: 1, padding: 12 },
   bubble: { maxWidth: '80%', borderRadius: 12, padding: 12, marginBottom: 8 },
   userBubble: { alignSelf: 'flex-end', backgroundColor: '#4caf50' },
-  aiBubble: { alignSelf: 'flex-start', backgroundColor: '#fff' },
+  aiBubble: { alignSelf: 'flex-start', backgroundColor: colors.white },
   bubbleText: { fontSize: 14 },
-  userText: { color: '#fff' },
+  userText: { color: colors.white },
   aiText: { color: '#333' },
   meta: { fontSize: 10, color: '#999', marginTop: 4 },
   suggestionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
   suggestionChip: { backgroundColor: '#f0f0f0', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, marginRight: 4, marginTop: 4 },
   suggestionText: { fontSize: 11, color: '#4caf50' },
-  inputRow: { flexDirection: 'row', padding: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0' },
+  inputRow: { flexDirection: 'row', padding: 12, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: '#e0e0e0' },
   input: { flex: 1, borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, fontSize: 14 },
   sendButton: { marginLeft: 8, backgroundColor: '#4caf50', borderRadius: 20, paddingHorizontal: 20, justifyContent: 'center' },
-  sendText: { color: '#fff', fontWeight: '600' },
+  sendText: { color: colors.white, fontWeight: '600' },
 });

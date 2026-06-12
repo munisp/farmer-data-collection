@@ -42,7 +42,9 @@ export default function ExpenseDetailScreen() {
   return (
     <View style={styles.container}>
       <Header title="Expense Details" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Expense Detail screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <View style={styles.row}>
           <Text style={styles.label}>Category</Text>
           <Text style={styles.value}>{expense.category}</Text>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { colors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -112,15 +113,18 @@ export default function AnalyticsDashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+      accessibilityLabel="Analytics Dashboard screen"
+      accessibilityRole="scrollbar"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Analytics Dashboard</Text>
+          <Text accessibilityRole="header" style={styles.headerTitle}>Analytics Dashboard</Text>
           <View style={styles.periodSelector}>
             {(['week', 'month', 'year'] as const).map((period) => (
               <TouchableOpacity
+          accessibilityRole="button"
                 key={period}
                 style={[
                   styles.periodButton,
@@ -149,7 +153,7 @@ export default function AnalyticsDashboard() {
         {renderSimpleChart(revenueData, 'Revenue Trend (NGN)', '#2196F3')}
 
         <View style={styles.insightsContainer}>
-          <Text style={styles.sectionTitle}>AI Insights</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>AI Insights</Text>
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>Yield Optimization</Text>
             <Text style={styles.insightText}>
@@ -184,7 +188,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   headerTitle: {
     fontSize: 24,
@@ -210,7 +214,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   periodButtonTextActive: {
-    color: '#fff',
+    color: colors.white,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -220,10 +224,10 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: (Dimensions.get('window').width - 40) / 2,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -272,11 +276,11 @@ const styles = StyleSheet.create({
     color: '#f44336',
   },
   chartContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     margin: 16,
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -316,11 +320,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   insightCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

@@ -54,7 +54,9 @@ export default function HarvestCreateScreen() {
   return (
     <View style={styles.container}>
       <Header title="Add Harvest" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Harvest Create screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Input label="Crop Type *" value={cropType} onChangeText={setCropType} placeholder="e.g., Wheat, Rice" />
         <Input label="Quantity *" value={quantity} onChangeText={setQuantity} placeholder="0" keyboardType="numeric" />
         <Input label="Unit" value={unit} onChangeText={setUnit} placeholder="kg" />

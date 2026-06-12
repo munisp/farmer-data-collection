@@ -66,7 +66,9 @@ export default function HarvestEditScreen() {
   return (
     <View style={styles.container}>
       <Header title="Edit Harvest" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Harvest Edit screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Input label="Crop Type *" value={cropType} onChangeText={setCropType} />
         <Input label="Quantity *" value={quantity} onChangeText={setQuantity} keyboardType="numeric" />
         <Input label="Unit" value={unit} onChangeText={setUnit} />

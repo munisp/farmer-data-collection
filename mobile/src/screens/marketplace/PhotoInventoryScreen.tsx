@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { colors } from '@/lib/theme';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image, ScrollView,
   TextInput, Alert, ActivityIndicator, Platform,
@@ -122,15 +123,19 @@ export default function PhotoInventoryScreen() {
   return (
     <View style={styles.container}>
       <Header title="Photo Inventory" showBack />
-      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+      accessibilityLabel="Photo Inventory screen"
+      accessibilityRole="scrollbar" style={styles.content} contentContainerStyle={styles.scrollContent}>
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>1. Take or Select Photo</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>1. Take or Select Photo</Text>
           <View style={styles.photoButtons}>
-            <TouchableOpacity style={styles.photoButton} onPress={handleTakePhoto}>
+            <TouchableOpacity
+          accessibilityRole="button" style={styles.photoButton} onPress={handleTakePhoto}>
               <Text style={styles.photoButtonIcon}>📷</Text>
               <Text style={styles.photoButtonText}>Camera</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.photoButton} onPress={handlePickFromGallery}>
+            <TouchableOpacity
+          accessibilityRole="button" style={styles.photoButton} onPress={handlePickFromGallery}>
               <Text style={styles.photoButtonIcon}>🖼️</Text>
               <Text style={styles.photoButtonText}>Gallery</Text>
             </TouchableOpacity>
@@ -141,7 +146,7 @@ export default function PhotoInventoryScreen() {
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>2. Crop Details</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>2. Crop Details</Text>
           <TextInput
             style={styles.input}
             placeholder="Crop type (e.g., maize, beans, tomatoes)"
@@ -156,6 +161,7 @@ export default function PhotoInventoryScreen() {
             keyboardType="numeric"
           />
           <TouchableOpacity
+          accessibilityRole="button"
             style={[styles.analyzeBtn, analyzing && styles.disabledBtn]}
             onPress={handleAnalyze}
             disabled={analyzing}
@@ -171,7 +177,7 @@ export default function PhotoInventoryScreen() {
         {analysis && (
           <>
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>3. AI Analysis Result</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>3. AI Analysis Result</Text>
               <View style={styles.resultRow}>
                 <Text style={styles.resultLabel}>Crop:</Text>
                 <Text style={styles.resultValue}>{analysis.cropType}</Text>
@@ -207,7 +213,7 @@ export default function PhotoInventoryScreen() {
             </Card>
 
             <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>4. Create Marketplace Listing</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>4. Create Marketplace Listing</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Listing title"
@@ -223,6 +229,7 @@ export default function PhotoInventoryScreen() {
                 numberOfLines={3}
               />
               <TouchableOpacity
+          accessibilityRole="button"
                 style={[styles.createBtn, creating && styles.disabledBtn]}
                 onPress={handleCreateListing}
                 disabled={creating}
@@ -257,7 +264,7 @@ const styles = StyleSheet.create({
   preview: { width: '100%', height: 200, borderRadius: 8, marginTop: 8 },
   input: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    padding: 12, fontSize: 15, marginBottom: 10, backgroundColor: '#fff',
+    padding: 12, fontSize: 15, marginBottom: 10, backgroundColor: colors.white,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   analyzeBtn: {
@@ -265,7 +272,7 @@ const styles = StyleSheet.create({
     padding: 14, alignItems: 'center', marginTop: 4,
   },
   disabledBtn: { opacity: 0.6 },
-  analyzeBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  analyzeBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' },
   resultRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   resultLabel: { fontSize: 14, color: '#666' },
   resultValue: { fontSize: 14, fontWeight: '600', color: COLORS.text },
@@ -275,5 +282,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a', borderRadius: 8,
     padding: 16, alignItems: 'center', marginTop: 8,
   },
-  createBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  createBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
 });

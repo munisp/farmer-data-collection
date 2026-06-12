@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { colors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -253,6 +254,7 @@ export default function FarmerRegistrationScreen() {
         <View style={styles.genderContainer}>
           {(['male', 'female', 'other'] as const).map((gender) => (
             <TouchableOpacity
+          accessibilityRole="button"
               key={gender}
               style={[
                 styles.genderButton,
@@ -325,6 +327,7 @@ export default function FarmerRegistrationScreen() {
       <View style={styles.inputGroup}>
         <Text style={styles.label}>GPS Coordinates</Text>
         <TouchableOpacity
+          accessibilityRole="button"
           style={styles.locationButton}
           onPress={getCurrentLocation}
           disabled={gettingLocation}
@@ -408,10 +411,11 @@ export default function FarmerRegistrationScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          accessibilityRole="button" onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Register Farmer</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Register Farmer</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -427,7 +431,9 @@ export default function FarmerRegistrationScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+      accessibilityLabel="Farmer Registration screen"
+      accessibilityRole="scrollbar" style={styles.content} showsVerticalScrollIndicator={false}>
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
@@ -435,12 +441,14 @@ export default function FarmerRegistrationScreen() {
 
       <View style={styles.footer}>
         {step > 1 && (
-          <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+          <TouchableOpacity
+          accessibilityRole="button" style={styles.backBtn} onPress={handleBack}>
             <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
         )}
         {step < 3 ? (
           <TouchableOpacity
+          accessibilityRole="button"
             style={[styles.nextBtn, step === 1 && styles.nextBtnFull]}
             onPress={handleNext}
           >
@@ -448,6 +456,7 @@ export default function FarmerRegistrationScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
+          accessibilityRole="button"
             style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
             onPress={handleSubmit}
             disabled={loading}
@@ -475,13 +484,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
   backButton: {
     fontSize: 16,
-    color: '#166534',
+    color: colors.primaryDark,
   },
   headerTitle: {
     fontSize: 18,
@@ -496,7 +505,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   progressStep: {
     flex: 1,
@@ -505,7 +514,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressStepActive: {
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
   },
   content: {
     flex: 1,
@@ -531,13 +540,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.gray700,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -556,31 +565,31 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   genderButtonActive: {
-    borderColor: '#166534',
-    backgroundColor: '#f0fdf4',
+    borderColor: colors.primaryDark,
+    backgroundColor: colors.primaryLight,
   },
   genderButtonText: {
     fontSize: 14,
     color: '#64748b',
   },
   genderButtonTextActive: {
-    color: '#166534',
+    color: colors.primaryDark,
     fontWeight: '600',
   },
   locationButton: {
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   locationButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -591,7 +600,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   reviewCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -601,7 +610,7 @@ const styles = StyleSheet.create({
   reviewSection: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#166534',
+    color: colors.primaryDark,
     marginBottom: 12,
   },
   reviewRow: {
@@ -624,7 +633,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
   },
@@ -632,7 +641,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -644,7 +653,7 @@ const styles = StyleSheet.create({
   nextBtn: {
     flex: 1,
     paddingVertical: 14,
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -654,12 +663,12 @@ const styles = StyleSheet.create({
   nextBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
   submitBtn: {
     flex: 1,
     paddingVertical: 14,
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -669,6 +678,6 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
 });

@@ -63,7 +63,9 @@ export default function ExpenseEditScreen() {
   return (
     <View style={styles.container}>
       <Header title="Edit Expense" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Expense Edit screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Input label="Category *" value={category} onChangeText={setCategory} />
         <Input label="Amount *" value={amount} onChangeText={setAmount} keyboardType="numeric" />
         <Input label="Notes" value={notes} onChangeText={setNotes} multiline numberOfLines={4} />

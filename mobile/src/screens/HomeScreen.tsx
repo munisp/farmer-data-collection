@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
@@ -67,7 +68,7 @@ export default function HomeScreen() {
           accessibilityHint="Navigate to record new harvest data"
           accessibilityRole="button"
         >
-          <Text style={styles.actionTitle}>Add Harvest</Text>
+          <Text style={styles.actionTitle}>🌾 Add Harvest</Text>
           <Text style={styles.actionSubtitle}>Record new harvest data</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -77,7 +78,7 @@ export default function HomeScreen() {
           accessibilityHint="Navigate to track farm expenses"
           accessibilityRole="button"
         >
-          <Text style={styles.actionTitle}>Add Expense</Text>
+          <Text style={styles.actionTitle}>💰 Add Expense</Text>
           <Text style={styles.actionSubtitle}>Track farm expenses</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -87,8 +88,38 @@ export default function HomeScreen() {
           accessibilityHint="Navigate to buy and sell products"
           accessibilityRole="button"
         >
-          <Text style={styles.actionTitle}>Browse Marketplace</Text>
+          <Text style={styles.actionTitle}>🛒 Browse Marketplace</Text>
           <Text style={styles.actionSubtitle}>Buy and sell products</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('Farm', { screen: 'CropDashboard' })}
+          accessibilityLabel="Crop Dashboard"
+          accessibilityHint="Navigate to view crop status"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionTitle}>🌱 Crop Dashboard</Text>
+          <Text style={styles.actionSubtitle}>View crop status & health</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('Farm', { screen: 'AIChatAdvisor' })}
+          accessibilityLabel="AI Advisor"
+          accessibilityHint="Navigate to chat with AI farming advisor"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionTitle}>🤖 AI Advisor</Text>
+          <Text style={styles.actionSubtitle}>Chat with AI farming expert</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('Finance', { screen: 'MobileMoney' })}
+          accessibilityLabel="Mobile Money"
+          accessibilityHint="Navigate to mobile payments"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionTitle}>📱 Mobile Money</Text>
+          <Text style={styles.actionSubtitle}>Send & receive payments</Text>
         </TouchableOpacity>
       </View>
 
@@ -109,13 +140,13 @@ const styles = StyleSheet.create({
   header: { padding: 24, paddingTop: 40 },
   title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
   subtitle: { fontSize: 16, color: COLORS.textLight, marginTop: 4 },
-  syncCard: { margin: 16, padding: 16, backgroundColor: '#f9fafb', borderRadius: 12 },
+  syncCard: { margin: 16, padding: 16, backgroundColor: colors.gray50, borderRadius: 12 },
   cardTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginBottom: 12 },
   syncInfo: { fontSize: 14, color: COLORS.textLight, marginBottom: 4 },
   syncButton: { marginTop: 12 },
   quickActions: { margin: 16 },
   sectionTitle: { fontSize: 20, fontWeight: '600', color: COLORS.text, marginBottom: 12 },
-  actionCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, minHeight: 64 },
+  actionCard: { backgroundColor: colors.white, padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, minHeight: 64 },
   actionTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text },
   actionSubtitle: { fontSize: 14, color: COLORS.textLight, marginTop: 4 },
   logoutButton: { margin: 16, marginTop: 32 },

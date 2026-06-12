@@ -32,7 +32,8 @@ export default function HarvestListScreen() {
   if (loading) return <Loading message="Loading harvests..." />;
 
   return (
-    <View style={styles.container}>
+    <View
+      accessibilityLabel="Harvest List screen" style={styles.container}>
       <Header title="Harvests" rightAction={{ label: '+ Add', onPress: () => navigation.navigate('HarvestCreate' as never) }} />
       {harvests.length === 0 ? (
         <EmptyState title="No Harvests" message="Start by recording your first harvest" actionLabel="Add Harvest" onAction={() => navigation.navigate('HarvestCreate' as never)} />
@@ -41,7 +42,8 @@ export default function HarvestListScreen() {
           data={harvests}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => navigation.navigate('HarvestDetail' as never, { id: item.id } as never)}>
+            <TouchableOpacity
+          accessibilityRole="button" onPress={() => navigation.navigate('HarvestDetail' as never, { id: item.id } as never)}>
               <Card style={styles.card}>
                 <View style={styles.row}>
                   <Text style={styles.cropType}>{item.cropType}</Text>

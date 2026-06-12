@@ -1,4 +1,5 @@
 import React from 'react';
+import { colors } from '@/lib/theme';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 
 export default function JourneyTrackerScreen({ route }) {
@@ -15,8 +16,10 @@ export default function JourneyTrackerScreen({ route }) {
   const overallProgress = steps.reduce((sum, s) => sum + s.progress, 0) / steps.length;
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Journey Progress</Text>
+    <ScrollView
+      accessibilityLabel="Journey Tracker screen"
+      accessibilityRole="scrollbar" style={styles.container}>
+      <Text accessibilityRole="header" style={styles.title}>Journey Progress</Text>
       
       <View style={styles.progressCard}>
         <Text style={styles.progressLabel}>Overall Progress</Text>
@@ -48,7 +51,7 @@ export default function JourneyTrackerScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  container: { flex: 1, padding: 16, backgroundColor: colors.white },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 16 },
   progressCard: { padding: 16, backgroundColor: '#f5f5f5', borderRadius: 8, marginBottom: 24 },
   progressLabel: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
@@ -59,8 +62,8 @@ const styles = StyleSheet.create({
   stepHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   stepName: { fontSize: 16, fontWeight: '600' },
   statusBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, backgroundColor: '#e0e0e0' },
-  completedBadge: { backgroundColor: '#d1fae5' },
-  inProgressBadge: { backgroundColor: '#dbeafe' },
+  completedBadge: { backgroundColor: colors.primaryLight },
+  inProgressBadge: { backgroundColor: colors.secondaryLight },
   statusText: { fontSize: 12, fontWeight: '600' },
   stepProgressBar: { height: 6, backgroundColor: '#e0e0e0', borderRadius: 3 },
   stepProgressFill: { height: '100%', backgroundColor: '#0284c7', borderRadius: 3 },

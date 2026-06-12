@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { colors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -140,7 +141,8 @@ export default function TraceabilityDashboard() {
   );
 
   const renderRecordItem = ({ item }: { item: TraceabilityRecord }) => (
-    <TouchableOpacity style={styles.recordCard}>
+    <TouchableOpacity
+          accessibilityRole="button" style={styles.recordCard}>
       <View style={styles.recordHeader}>
         <View>
           <Text style={styles.qrCode}>{item.qrCode}</Text>
@@ -187,10 +189,12 @@ export default function TraceabilityDashboard() {
       )}
 
       <View style={styles.recordFooter}>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity
+          accessibilityRole="button" style={styles.actionButton}>
           <Text style={styles.actionButtonText}>View QR</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.secondaryAction]}>
+        <TouchableOpacity
+          accessibilityRole="button" style={[styles.actionButton, styles.secondaryAction]}>
           <Text style={[styles.actionButtonText, styles.secondaryActionText]}>History</Text>
         </TouchableOpacity>
       </View>
@@ -245,24 +249,26 @@ export default function TraceabilityDashboard() {
         <Text style={styles.scanDescription}>
           Point your camera at a traceability QR code to view product information
         </Text>
-        <TouchableOpacity style={styles.scanButton}>
+        <TouchableOpacity
+          accessibilityRole="button" style={styles.scanButton}>
           <Text style={styles.scanButtonText}>Open Camera</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.manualEntry}>
-        <Text style={styles.sectionTitle}>Or Enter Code Manually</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Or Enter Code Manually</Text>
         <TextInput
           style={styles.codeInput}
           placeholder="Enter QR code (e.g., TRACE-2024-001234)"
         />
-        <TouchableOpacity style={styles.lookupButton}>
+        <TouchableOpacity
+          accessibilityRole="button" style={styles.lookupButton}>
           <Text style={styles.lookupButtonText}>Look Up</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.recentScans}>
-        <Text style={styles.sectionTitle}>Recent Scans</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Recent Scans</Text>
         <View style={styles.recentScanItem}>
           <Text style={styles.recentScanCode}>TRACE-2024-001234</Text>
           <Text style={styles.recentScanTime}>2 hours ago</Text>
@@ -281,14 +287,15 @@ export default function TraceabilityDashboard() {
 
   const renderCreate = () => (
     <View style={styles.createContainer}>
-      <Text style={styles.sectionTitle}>Create Traceability Record</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>Create Traceability Record</Text>
       <Text style={styles.createDescription}>
         Generate a new traceability QR code for your harvest
       </Text>
 
       <View style={styles.formGroup}>
         <Text style={styles.formLabel}>Select Harvest</Text>
-        <TouchableOpacity style={styles.selectInput}>
+        <TouchableOpacity
+          accessibilityRole="button" style={styles.selectInput}>
           <Text style={styles.selectPlaceholder}>Choose a harvest record...</Text>
         </TouchableOpacity>
       </View>
@@ -297,7 +304,8 @@ export default function TraceabilityDashboard() {
         <Text style={styles.formLabel}>Quality Grade</Text>
         <View style={styles.gradeOptions}>
           {['Premium', 'Grade A', 'Standard'].map((grade) => (
-            <TouchableOpacity key={grade} style={styles.gradeOption}>
+            <TouchableOpacity
+          accessibilityRole="button" key={grade} style={styles.gradeOption}>
               <Text style={styles.gradeOptionText}>{grade}</Text>
             </TouchableOpacity>
           ))}
@@ -308,7 +316,8 @@ export default function TraceabilityDashboard() {
         <Text style={styles.formLabel}>Certifications</Text>
         <View style={styles.certOptions}>
           {['Organic', 'Fair Trade', 'RSPO', 'Rainforest Alliance'].map((cert) => (
-            <TouchableOpacity key={cert} style={styles.certOption}>
+            <TouchableOpacity
+          accessibilityRole="button" key={cert} style={styles.certOption}>
               <Text style={styles.certOptionText}>{cert}</Text>
             </TouchableOpacity>
           ))}
@@ -325,7 +334,8 @@ export default function TraceabilityDashboard() {
         />
       </View>
 
-      <TouchableOpacity style={styles.createButton}>
+      <TouchableOpacity
+          accessibilityRole="button" style={styles.createButton}>
         <Text style={styles.createButtonText}>Generate QR Code</Text>
       </TouchableOpacity>
     </View>
@@ -334,13 +344,14 @@ export default function TraceabilityDashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Traceability</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Traceability</Text>
         <Text style={styles.headerSubtitle}>Track products from farm to table</Text>
       </View>
 
       <View style={styles.tabBar}>
         {(['records', 'scan', 'create'] as const).map((tab) => (
           <TouchableOpacity
+          accessibilityRole="button"
             key={tab}
             style={[styles.tab, activeTab === tab && styles.activeTab]}
             onPress={() => setActiveTab(tab)}
@@ -353,6 +364,8 @@ export default function TraceabilityDashboard() {
       </View>
 
       <ScrollView
+      accessibilityLabel="Traceability Dashboard screen"
+      accessibilityRole="scrollbar"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -378,7 +391,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
   },
   headerSubtitle: {
     fontSize: 14,
@@ -387,7 +400,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -421,11 +434,11 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -445,7 +458,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   searchInput: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
@@ -456,10 +469,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   recordCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -537,12 +550,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryAction: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: '#1565C0',
   },
   actionButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '500',
     fontSize: 13,
   },
@@ -553,7 +566,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   scanPlaceholder: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 32,
     alignItems: 'center',
@@ -582,12 +595,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   scanButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
     fontSize: 16,
   },
   manualEntry: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -612,11 +625,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lookupButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
   },
   recentScans: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
   },
@@ -654,7 +667,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   selectInput: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 8,
     padding: 14,
     borderWidth: 1,
@@ -670,7 +683,7 @@ const styles = StyleSheet.create({
   },
   gradeOption: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
@@ -687,7 +700,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   certOption: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -699,7 +712,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   notesInput: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
@@ -716,7 +729,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   createButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
     fontSize: 16,
   },
