@@ -88,6 +88,35 @@ export default function AquacultureAI() {
   const fungal = diseases.filter(d => d.type === "fungal").length;
   const parasitic = diseases.filter(d => d.type === "parasitic").length;
 
+  // Loading & error states
+  if (diseasesQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (diseasesQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => diseasesQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div role="main" aria-label="Aquaculture AI" className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-violet-50">
@@ -110,25 +139,25 @@ export default function AquacultureAI() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-red-600">{bacterial}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Bacterial Diseases</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Bacterial Diseases</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-purple-600">{viral}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Viral Diseases</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Viral Diseases</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-green-600">{fungal}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Fungal Diseases</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Fungal Diseases</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-blue-600">{parasitic}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Parasitic Diseases</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Parasitic Diseases</p>
             </CardContent>
           </Card>
         </div>
@@ -149,11 +178,11 @@ export default function AquacultureAI() {
                       <CardTitle className="text-lg">{disease.name}</CardTitle>
                       <Badge className={typeColor(disease.type)}>{disease.type}</Badge>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">{disease.pathogen}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 italic">{disease.pathogen}</p>
                   </CardHeader>
                   <CardContent>
                     <div className="mb-3">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Affected Species:</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 block mb-1">Affected Species:</span>
                       <div className="flex flex-wrap gap-1">
                         {disease.species.map(sp => (
                           <Badge key={sp} variant="outline" className="text-xs capitalize">{sp}</Badge>
@@ -161,7 +190,7 @@ export default function AquacultureAI() {
                       </div>
                     </div>
                     <div className="mb-3">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Symptoms:</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 block mb-1">Symptoms:</span>
                       <div className="flex flex-wrap gap-1">
                         {disease.symptoms.map(sym => (
                           <span key={sym} className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{sym}</span>
@@ -170,13 +199,13 @@ export default function AquacultureAI() {
                     </div>
                     <div className="flex gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400">Mortality: </span>
+                        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Mortality: </span>
                         <Badge className={mortalityColor(disease.mortality_rate)}>
                           {(disease.mortality_rate * 100).toFixed(0)}%
                         </Badge>
                       </div>
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400">Recovery: </span>
+                        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Recovery: </span>
                         <span className="font-medium">{disease.recovery_days > 0 ? `${disease.recovery_days} days` : "No recovery"}</span>
                       </div>
                     </div>

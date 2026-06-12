@@ -17,6 +17,7 @@ import { MapPin, User, Phone, Mail, Home, CheckCircle2, Loader2, Navigation } fr
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { useLocation } from "wouter";
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 interface FormData {
   firstName: string;
   lastName: string;
@@ -133,7 +134,7 @@ export default function QuickFarmerRegistration() {
 
           const newMarker = new maplibregl.Marker({
             draggable: true,
-            color: "#16a34a",
+            color: SEMANTIC_COLORS.success,
           })
             .setLngLat([pos.lng, pos.lat])
             .addTo(map);
@@ -165,7 +166,7 @@ export default function QuickFarmerRegistration() {
       } else {
         const newMarker = new maplibregl.Marker({
           draggable: true,
-          color: "#16a34a",
+          color: SEMANTIC_COLORS.success,
         })
           .setLngLat([lngLat.lng, lngLat.lat])
           .addTo(map);
@@ -394,7 +395,7 @@ export default function QuickFarmerRegistration() {
 
             {step === 1 && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">
                       First Name <span className="text-destructive">*</span>
@@ -503,7 +504,7 @@ export default function QuickFarmerRegistration() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="district">
                       District <span className="text-destructive">*</span>

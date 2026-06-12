@@ -101,7 +101,7 @@ export default function ModelLibrary() {
       case "minimal":
         return "bg-orange-500/10 text-orange-700 dark:text-orange-400";
       default:
-        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400";
+        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400";
     }
   };
 
@@ -116,7 +116,7 @@ export default function ModelLibrary() {
       case "price_forecasting":
         return "bg-blue-500/10 text-blue-700 dark:text-blue-400";
       default:
-        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400";
+        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400";
     }
   };
 

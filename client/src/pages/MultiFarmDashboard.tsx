@@ -19,6 +19,7 @@ import { eq, and, gte, lte } from "drizzle-orm";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 interface FarmStats {
   farmId: number;
   farmName: string;
@@ -29,7 +30,7 @@ interface FarmStats {
   profitMargin: number;
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"];
+const COLORS = [CHART_COLORS[1], CHART_COLORS[0], CHART_COLORS[2], CHART_COLORS[6], CHART_COLORS[4], CHART_COLORS[0]];
 
 export default function MultiFarmDashboard() {
   const farmsListQuery = trpc.coreFarms.list.useQuery({}, { retry: 1 });
@@ -405,9 +406,9 @@ export default function MultiFarmDashboard() {
                     <YAxis />
                     <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
                     <Legend />
-                    <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
-                    <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
-                    <Bar dataKey="profit" fill="#3b82f6" name="Net Profit" />
+                    <Bar dataKey="revenue" fill={SEMANTIC_COLORS.success} name="Revenue" />
+                    <Bar dataKey="expenses" fill={SEMANTIC_COLORS.danger} name="Expenses" />
+                    <Bar dataKey="profit" fill={SEMANTIC_COLORS.info} name="Net Profit" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -437,7 +438,7 @@ export default function MultiFarmDashboard() {
                     <Line 
                       type="monotone" 
                       dataKey="revenue" 
-                      stroke="#10b981" 
+                      stroke={SEMANTIC_COLORS.success} 
                       strokeWidth={2}
                       name="Revenue" 
                       dot={{ r: 4 }}
@@ -445,7 +446,7 @@ export default function MultiFarmDashboard() {
                     <Line 
                       type="monotone" 
                       dataKey="expenses" 
-                      stroke="#ef4444" 
+                      stroke={SEMANTIC_COLORS.danger} 
                       strokeWidth={2}
                       name="Expenses" 
                       dot={{ r: 4 }}
@@ -453,7 +454,7 @@ export default function MultiFarmDashboard() {
                     <Line 
                       type="monotone" 
                       dataKey="profit" 
-                      stroke="#3b82f6" 
+                      stroke={SEMANTIC_COLORS.info} 
                       strokeWidth={2}
                       name="Net Profit" 
                       dot={{ r: 4 }}
@@ -479,7 +480,7 @@ export default function MultiFarmDashboard() {
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-                      <Bar dataKey="margin" fill="#8b5cf6" name="Profit Margin %" />
+                      <Bar dataKey="margin" fill={CHART_COLORS[4]} name="Profit Margin %" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -503,7 +504,7 @@ export default function MultiFarmDashboard() {
                         labelLine={false}
                         label={(entry) => `${entry.name}: ${entry.value}`}
                         outerRadius={80}
-                        fill="#8884d8"
+                        fill={CHART_COLORS[4]}
                         dataKey="value"
                       >
                         {cropDistributionData.map((entry, index) => (

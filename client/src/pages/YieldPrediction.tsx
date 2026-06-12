@@ -85,6 +85,35 @@ export default function YieldPrediction() {
     }
   };
 
+  // Loading & error states
+  if (yieldPredictionQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (yieldPredictionQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => yieldPredictionQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50">
@@ -376,7 +405,7 @@ export default function YieldPrediction() {
                     <TrendingUp className="h-5 w-5 text-green-600" />
                     <p className="text-xl font-bold text-green-600">+17.7%</p>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">vs 5-year average</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">vs 5-year average</p>
                 </div>
               </CardContent>
             </Card>

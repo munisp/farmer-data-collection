@@ -8,9 +8,23 @@ import { ShoppingBasket, Calendar, Package, Pause, Play, X } from "lucide-react"
 
 export default function SubscriptionBoxes() {
   const plans = trpc.subscription.listPlans.useQuery({ active: true });
+  const isPageLoading = plans.isPending;
   const mySubscriptions = trpc.subscription.getMySubscriptions.useQuery();
   const contracts = trpc.subscription.getContracts.useQuery();
   const standingOrders = trpc.subscription.getStandingOrders.useQuery();
+
+  if (isPageLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

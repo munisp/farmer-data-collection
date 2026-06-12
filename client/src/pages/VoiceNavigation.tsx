@@ -115,12 +115,41 @@ export default function VoiceNavigation() {
     ig: "Igbo",
   };
 
+  // Loading & error states
+  if (commandsQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (commandsQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => commandsQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Voice Navigation">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Voice Navigation</h1>
-        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Navigate FarmConnect using your voice in English, Yoruba, Hausa, or Igbo</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Navigate FarmConnect using your voice in English, Yoruba, Hausa, or Igbo</p>
       </div>
 
       {/* Language Selector */}
@@ -156,7 +185,7 @@ export default function VoiceNavigation() {
             <Mic className="h-16 w-16" aria-hidden="true" />
           )}
         </button>
-        <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" aria-live="polite">
+        <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" aria-live="polite">
           {listening ? "Listening... Speak now" : "Tap the microphone to speak"}
         </p>
       </div>
@@ -167,7 +196,7 @@ export default function VoiceNavigation() {
           <CardContent className="p-4 space-y-3">
             {transcript && (
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">You said:</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">You said:</p>
                 <p className="text-lg font-medium dark:text-white">&ldquo;{transcript}&rdquo;</p>
               </div>
             )}
@@ -182,7 +211,7 @@ export default function VoiceNavigation() {
                     <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:bg-green-900 dark:text-green-200">
                       {Math.round(result.confidence * 100)}% match
                     </Badge>
-                    <ArrowRight className="h-4 w-4 text-gray-400 dark:text-gray-500 dark:text-gray-400" aria-hidden="true" />
+                    <ArrowRight className="h-4 w-4 text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" aria-hidden="true" />
                     <span className="font-medium dark:text-white">{result.label}</span>
                   </div>
                 )}

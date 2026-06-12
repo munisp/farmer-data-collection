@@ -104,9 +104,9 @@ export default function WeatherDashboard() {
       case 'drizzle':
         return <CloudRain className="h-8 w-8 text-blue-500" />;
       case 'clouds':
-        return <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400" />;
+        return <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" />;
       default:
-        return <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400" />;
+        return <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" />;
     }
   };
 

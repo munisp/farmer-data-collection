@@ -314,7 +314,7 @@ export default function YieldPredictor() {
                   <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                     No Prediction Yet
                   </h3>
-                  <p className="text-gray-500 dark:text-gray-400">
+                  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
                     Fill in the form and click "Predict Yield" to see your results
                   </p>
                 </CardContent>

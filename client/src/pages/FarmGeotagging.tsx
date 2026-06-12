@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { MapView, maplibregl } from "@/components/Map";
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 // RTK GPS Configuration
 const RTK_GPS_CONFIG = {
   RTK_FIXED_THRESHOLD: 0.05,      // 5cm - RTK fixed solution
@@ -319,7 +320,7 @@ export default function FarmGeotagging() {
     el.className = "boundary-marker";
     el.style.width = index === 0 ? "16px" : "12px";
     el.style.height = index === 0 ? "16px" : "12px";
-    el.style.backgroundColor = index === 0 ? "#16a34a" : "#22c55e";
+    el.style.backgroundColor = index === 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.success;
     el.style.borderRadius = "50%";
     el.style.border = "2px solid white";
     el.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
@@ -334,7 +335,7 @@ export default function FarmGeotagging() {
     label.style.transform = "translateX(-50%)";
     label.style.fontSize = "10px";
     label.style.fontWeight = "bold";
-    label.style.color = "#166534";
+    label.style.color = SEMANTIC_COLORS.success;
     label.style.backgroundColor = "white";
     label.style.padding = "0 3px";
     label.style.borderRadius = "2px";
@@ -637,7 +638,7 @@ export default function FarmGeotagging() {
         type: "line",
         source: "boundary-line",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#22c55e", "line-width": 3, "line-dasharray": [2, 2] },
+        paint: { "line-color": SEMANTIC_COLORS.success, "line-width": 3, "line-dasharray": [2, 2] },
       });
 
       boundaryLayerRef.current = true;
@@ -670,7 +671,7 @@ export default function FarmGeotagging() {
           id: "boundary-fill",
           type: "fill",
           source: "boundary-fill",
-          paint: { "fill-color": "#22c55e", "fill-opacity": 0.15 },
+          paint: { "fill-color": SEMANTIC_COLORS.success, "fill-opacity": 0.15 },
         }, "boundary-line");
 
         polygonLayerRef.current = true;
@@ -685,7 +686,7 @@ export default function FarmGeotagging() {
       : currentLocation.accuracy <= 30
       ? "text-yellow-500"
       : "text-red-500"
-    : "text-gray-400 dark:text-gray-500 dark:text-gray-400";
+    : "text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400";
 
   const unitInfo = AREA_CONVERSIONS[areaUnit];
 

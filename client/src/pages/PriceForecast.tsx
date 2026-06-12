@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 import DashboardLayout from "@/components/DashboardLayout";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 export default function PriceForecast() {
   const [selectedCrop, setSelectedCrop] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
@@ -275,9 +276,9 @@ export default function PriceForecast() {
                     <Line 
                       type="monotone" 
                       dataKey="price" 
-                      stroke="#3b82f6" 
+                      stroke={SEMANTIC_COLORS.info} 
                       strokeWidth={2}
-                      dot={{ fill: '#3b82f6', r: 4 }}
+                      dot={{ fill: SEMANTIC_COLORS.info, r: 4 }}
                       activeDot={{ r: 6 }}
                       name="Predicted Price (₦)"
                     />
@@ -326,7 +327,7 @@ export default function PriceForecast() {
               <h3 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 No Forecast Generated
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 max-w-md">
+              <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 max-w-md">
                 Select a crop, location, and forecast period, then click "Generate Forecast" to see price predictions
               </p>
             </CardContent>

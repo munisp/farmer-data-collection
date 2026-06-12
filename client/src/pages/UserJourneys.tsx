@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 
 import DashboardLayout from "@/components/DashboardLayout";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 type JourneyStatus = 'not_started' | 'in_progress' | 'completed' | 'failed' | 'blocked';
 type JourneyChannel = 'USSD' | 'SMS' | 'WhatsApp' | 'PWA' | 'Mobile' | 'Voice';
 type JourneyCategory = 'onboarding' | 'farming' | 'financial' | 'marketplace' | 'analytics' | 'compliance' | 'sustainability';
@@ -81,7 +82,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Users,
-    color: '#3B82F6',
+    color: SEMANTIC_COLORS.info,
     steps: [
       { id: 'create_account', title: 'Create Account', description: 'Register with phone number', status: 'not_started' },
       { id: 'verify_otp', title: 'Verify OTP', description: 'Confirm phone ownership', status: 'not_started' },
@@ -101,7 +102,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: MapPin,
-    color: '#10B981',
+    color: SEMANTIC_COLORS.success,
     steps: [
       { id: 'gps_accuracy', title: 'GPS Accuracy Check', description: 'Ensure GPS signal quality', status: 'not_started' },
       { id: 'center_point', title: 'Mark Center Point', description: 'Save farm center location', status: 'not_started' },
@@ -120,7 +121,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: DollarSign,
-    color: '#F59E0B',
+    color: SEMANTIC_COLORS.warning,
     steps: [
       { id: 'kyc_check', title: 'KYC Verification', description: 'Verify identity status', status: 'not_started' },
       { id: 'credit_score', title: 'Credit Score', description: 'ML credit assessment', status: 'not_started' },
@@ -139,7 +140,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: ShoppingCart,
-    color: '#8B5CF6',
+    color: CHART_COLORS[4],
     steps: [
       { id: 'product_info', title: 'Product Details', description: 'Enter product information', status: 'not_started' },
       { id: 'quality_grade', title: 'Quality Grading', description: 'AI quality assessment', status: 'not_started' },
@@ -157,7 +158,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: CreditCard,
-    color: '#EC4899',
+    color: CHART_COLORS[7],
     steps: [
       { id: 'verify_listing', title: 'Verify Availability', description: 'Check stock', status: 'not_started' },
       { id: 'create_order', title: 'Create Order', description: 'Place order', status: 'not_started' },
@@ -176,7 +177,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: TrendingUp,
-    color: '#06B6D4',
+    color: CHART_COLORS[5],
     steps: [
       { id: 'weather_data', title: 'Weather Data', description: 'Fetch weather forecast', status: 'not_started' },
       { id: 'soil_data', title: 'Soil Analysis', description: 'Get soil conditions', status: 'not_started' },
@@ -195,7 +196,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Layers,
-    color: '#84CC16',
+    color: SEMANTIC_COLORS.success,
     steps: [
       { id: 'soil_analysis', title: 'Soil Analysis', description: 'Analyze soil characteristics', status: 'not_started' },
       { id: 'climate_analysis', title: 'Climate Analysis', description: 'Evaluate climate data', status: 'not_started' },
@@ -213,7 +214,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Users,
-    color: '#6366F1',
+    color: CHART_COLORS[4],
     steps: [
       { id: 'member_payments', title: 'Process Payments', description: '70% member distribution', status: 'not_started' },
       { id: 'cooperative_fund', title: 'Cooperative Fund', description: '20% reserve', status: 'not_started' },
@@ -230,7 +231,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Banknote,
-    color: '#F97316',
+    color: CHART_COLORS[6],
     steps: [
       { id: 'create_loan', title: 'Create Loan Record', description: 'Initialize loan', status: 'not_started' },
       { id: 'ledger_entry', title: 'Ledger Entry', description: 'TigerBeetle record', status: 'not_started' },
@@ -249,7 +250,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Shield,
-    color: '#EF4444',
+    color: SEMANTIC_COLORS.danger,
     steps: [
       { id: 'risk_assessment', title: 'Risk Assessment', description: 'Assess farm risk', status: 'not_started' },
       { id: 'create_policy', title: 'Create Policy', description: 'Generate insurance policy', status: 'not_started' },
@@ -267,7 +268,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Package,
-    color: '#14B8A6',
+    color: CHART_COLORS[5],
     steps: [
       { id: 'eligibility', title: 'Check Eligibility', description: 'Verify farmer status', status: 'not_started' },
       { id: 'create_financing', title: 'Create Financing', description: 'Set up financing record', status: 'not_started' },
@@ -285,7 +286,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Wheat,
-    color: '#A3E635',
+    color: SEMANTIC_COLORS.success,
     steps: [
       { id: 'record_harvest', title: 'Record Harvest', description: 'Enter harvest details', status: 'not_started' },
       { id: 'quality_grade', title: 'Quality Grading', description: 'AI quality assessment', status: 'not_started' },
@@ -303,7 +304,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: ClipboardList,
-    color: '#64748B',
+    color: SEMANTIC_COLORS.secondary,
     steps: [
       { id: 'create_task', title: 'Create Task', description: 'Define task details', status: 'not_started' },
       { id: 'assign_agent', title: 'Assign Agent', description: 'Select field agent', status: 'not_started' },
@@ -321,7 +322,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: IdCard,
-    color: '#0EA5E9',
+    color: SEMANTIC_COLORS.info,
     steps: [
       { id: 'document_upload', title: 'Upload Documents', description: 'Submit ID documents', status: 'not_started' },
       { id: 'identity_verify', title: 'Identity Verification', description: 'Verify identity', status: 'not_started' },
@@ -339,7 +340,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Leaf,
-    color: '#22C55E',
+    color: SEMANTIC_COLORS.success,
     steps: [
       { id: 'register_project', title: 'Register Project', description: 'Create carbon project', status: 'not_started' },
       { id: 'estimate_credits', title: 'Estimate Credits', description: 'Calculate potential', status: 'not_started' },
@@ -357,7 +358,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: QrCode,
-    color: '#7C3AED',
+    color: CHART_COLORS[4],
     steps: [
       { id: 'create_record', title: 'Create Record', description: 'Initialize traceability', status: 'not_started' },
       { id: 'link_harvest', title: 'Link Harvest', description: 'Connect to harvest', status: 'not_started' },
@@ -375,7 +376,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: CloudRain,
-    color: '#0284C7',
+    color: SEMANTIC_COLORS.info,
     steps: [
       { id: 'create_alert', title: 'Create Alert', description: 'Generate weather alert', status: 'not_started' },
       { id: 'affected_crops', title: 'Affected Crops', description: 'Identify at-risk crops', status: 'not_started' },
@@ -393,7 +394,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Receipt,
-    color: '#DC2626',
+    color: SEMANTIC_COLORS.danger,
     steps: [
       { id: 'record_expense', title: 'Record Expense', description: 'Enter expense details', status: 'not_started' },
       { id: 'ledger_entry', title: 'Ledger Entry', description: 'TigerBeetle record', status: 'not_started' },
@@ -411,7 +412,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: BarChart3,
-    color: '#9333EA',
+    color: CHART_COLORS[4],
     steps: [
       { id: 'fetch_data', title: 'Fetch Data', description: 'Query Lakehouse', status: 'not_started' },
       { id: 'calculate_metrics', title: 'Calculate Metrics', description: 'Compute KPIs', status: 'not_started' },
@@ -429,7 +430,7 @@ const JOURNEY_CATALOG: JourneySummary[] = [
     progress: 0,
     lastUpdate: '',
     icon: Calendar,
-    color: '#059669',
+    color: SEMANTIC_COLORS.success,
     steps: [
       { id: 'create_season', title: 'Create Season', description: 'Define season period', status: 'not_started' },
       { id: 'crop_selection', title: 'Select Crops', description: 'Choose crops to plant', status: 'not_started' },
@@ -505,7 +506,7 @@ export default function UserJourneys() {
       case "blocked":
         return <AlertCircle className="h-5 w-5 text-red-500" />;
       default:
-        return <Clock className="h-5 w-5 text-gray-400 dark:text-gray-500 dark:text-gray-400" />;
+        return <Clock className="h-5 w-5 text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" />;
     }
   };
 
@@ -558,6 +559,35 @@ export default function UserJourneys() {
     });
   };
 
+  // Loading & error states
+  if (journeysQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (journeysQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => journeysQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div role="main" aria-label="Page content" className="min-h-screen bg-background">
@@ -601,7 +631,7 @@ export default function UserJourneys() {
               <CardTitle className="text-sm font-medium">Not Started</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-400 dark:text-gray-500 dark:text-gray-400">{stats.notStarted}</div>
+              <div className="text-2xl font-bold text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{stats.notStarted}</div>
             </CardContent>
           </Card>
         </div>
@@ -811,7 +841,7 @@ export default function UserJourneys() {
                                   ? 'bg-green-100 dark:bg-green-900 text-green-700' 
                                   : step.status === 'in_progress'
                                   ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700'
-                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400'
                               }`}
                             >
                               {step.status === 'completed' ? (

@@ -12,6 +12,7 @@ import { Loader2, MapPin, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 interface FarmerLocation {
   id: number;
   firstName: string;
@@ -101,7 +102,7 @@ export default function FarmersMapView() {
   const mapMarkers: MarkerOptions[] = useMemo(() => {
     return farmerLocations.map((farmer) => ({
       position: { lat: farmer.latitude, lng: farmer.longitude },
-      color: "#3b82f6",
+      color: SEMANTIC_COLORS.info,
       title: `${farmer.firstName} ${farmer.lastName}`,
       popup: `
         <div style="padding: 8px; min-width: 200px;">

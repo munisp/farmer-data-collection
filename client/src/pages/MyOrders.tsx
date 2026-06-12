@@ -130,7 +130,7 @@ export default function MyOrders() {
                   <Separator />
 
                   {/* Delivery Info */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="font-medium">Delivery Method</p>
                       <p className="text-muted-foreground capitalize">{order.deliveryMethod}</p>

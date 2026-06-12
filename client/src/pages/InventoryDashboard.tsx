@@ -25,7 +25,7 @@ export default function InventoryDashboard() {
   const { formatCurrency, getCurrencySymbol } = useLocalization();
 
   // Queries
-  const { data: stats, refetch: refetchStats } = trpc.inventory.getInventoryStats.useQuery();
+  const { data: stats, refetch: refetchStats, isPending: statsLoading } = trpc.inventory.getInventoryStats.useQuery();
   const { data: items, refetch: refetchItems } = trpc.inventory.getInventoryItems.useQuery();
   const { data: suppliers, refetch: refetchSuppliers } = trpc.inventory.getSuppliers.useQuery();
   const { data: transactions, refetch: refetchTransactions } = trpc.inventory.getInventoryTransactions.useQuery({});
@@ -188,6 +188,19 @@ export default function InventoryDashboard() {
 
     createTransaction.mutate(data);
   };
+
+  if (statsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

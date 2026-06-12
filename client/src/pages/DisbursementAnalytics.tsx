@@ -21,7 +21,8 @@ import {
 import { TrendingUp, TrendingDown, DollarSign, Clock, CheckCircle, XCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
+const COLORS = [CHART_COLORS[1], CHART_COLORS[0], CHART_COLORS[2], CHART_COLORS[6], CHART_COLORS[4]];
 
 export default function DisbursementAnalytics() {
   const { data: analytics, isLoading } = trpc.disbursement.getAnalytics.useQuery();
@@ -169,8 +170,8 @@ export default function DisbursementAnalytics() {
                       }}
                     />
                     <Legend />
-                    <Bar yAxisId="left" dataKey="count" fill="#8884d8" name="Count" />
-                    <Bar yAxisId="right" dataKey="amount" fill="#82ca9d" name="Amount (₦)" />
+                    <Bar yAxisId="left" dataKey="count" fill={CHART_COLORS[4]} name="Count" />
+                    <Bar yAxisId="right" dataKey="amount" fill={CHART_COLORS[0]} name="Amount (₦)" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -197,7 +198,7 @@ export default function DisbursementAnalytics() {
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="successRate" fill="#0088FE" name="Success Rate (%)" />
+                    <Bar dataKey="successRate" fill={CHART_COLORS[1]} name="Success Rate (%)" />
                   </BarChart>
                 </ResponsiveContainer>
                 
@@ -244,7 +245,7 @@ export default function DisbursementAnalytics() {
                     <Line 
                       type="monotone" 
                       dataKey="avgDays" 
-                      stroke="#8884d8" 
+                      stroke={CHART_COLORS[4]} 
                       strokeWidth={2}
                       name="Avg Days"
                       dot={{ r: 4 }}

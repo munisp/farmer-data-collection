@@ -71,6 +71,35 @@ export default function AquacultureFeed() {
   const totalFeedCost = DEMO_FEED_LOG.filter(f => f.date === "2025-05-27").reduce((s, f) => s + f.amount_kg * f.cost_per_kg, 0);
   const totalHarvestRevenue = DEMO_HARVEST.reduce((s, h) => s + h.total_weight_kg * h.price_per_kg, 0);
 
+  // Loading & error states
+  if (speciesQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (speciesQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => speciesQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div role="main" aria-label="Aquaculture Feed & Harvest" className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
@@ -93,25 +122,25 @@ export default function AquacultureFeed() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-amber-600">{species.length}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Species Profiles</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Species Profiles</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-orange-600">{totalFeedToday} kg</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Feed Today</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Feed Today</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-green-600">{(totalFeedCost / 1000).toFixed(0)}K</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Feed Cost (NGN)</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Feed Cost (NGN)</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-blue-600">{(totalHarvestRevenue / 1_000_000).toFixed(1)}M</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Harvest Revenue (NGN)</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Harvest Revenue (NGN)</p>
             </CardContent>
           </Card>
         </div>
@@ -130,29 +159,29 @@ export default function AquacultureFeed() {
                 <Card key={sp.name}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">{sp.name}</CardTitle>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">{sp.scientific_name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 italic">{sp.scientific_name}</p>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-y-1 text-sm">
-                      <div className="text-gray-500 dark:text-gray-400">Market Weight</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Market Weight</div>
                       <div className="font-medium">{sp.market_weight_g}g</div>
-                      <div className="text-gray-500 dark:text-gray-400">Grow-out</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Grow-out</div>
                       <div className="font-medium">{sp.grow_out_days} days</div>
-                      <div className="text-gray-500 dark:text-gray-400">Optimal FCR</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Optimal FCR</div>
                       <div className="font-medium">{sp.optimal_fcr}</div>
-                      <div className="text-gray-500 dark:text-gray-400">Max Density</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Max Density</div>
                       <div className="font-medium">{sp.max_density_per_m3}/m³</div>
-                      <div className="text-gray-500 dark:text-gray-400">Protein</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Protein</div>
                       <div className="font-medium">{sp.optimal_protein_pct}%</div>
-                      <div className="text-gray-500 dark:text-gray-400">Feed Rate</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Feed Rate</div>
                       <div className="font-medium">{sp.feed_rate_pct}% BW/day</div>
-                      <div className="text-gray-500 dark:text-gray-400">Growth Rate</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Growth Rate</div>
                       <div className="font-medium">{sp.growth_rate_g_day} g/day</div>
-                      <div className="text-gray-500 dark:text-gray-400">Survival</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Survival</div>
                       <div className="font-medium">{sp.survival_rate_pct}%</div>
-                      <div className="text-gray-500 dark:text-gray-400">Temp Range</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Temp Range</div>
                       <div className="font-medium">{sp.optimal_temp_min}-{sp.optimal_temp_max}°C</div>
-                      <div className="text-gray-500 dark:text-gray-400">Price</div>
+                      <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Price</div>
                       <div className="font-medium">{sp.market_price_per_kg.toLocaleString()} {sp.currency}/kg</div>
                     </div>
                   </CardContent>
@@ -207,17 +236,17 @@ export default function AquacultureFeed() {
                       <CardContent className="pt-4">
                         <div className="font-semibold text-blue-800 mb-2">{s.pond}</div>
                         <div className="grid grid-cols-2 gap-1 text-sm">
-                          <div className="text-gray-500 dark:text-gray-400">Species</div>
+                          <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Species</div>
                           <div className="capitalize font-medium">{s.species}</div>
-                          <div className="text-gray-500 dark:text-gray-400">Quantity</div>
+                          <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Quantity</div>
                           <div className="font-medium">{s.quantity.toLocaleString()}</div>
-                          <div className="text-gray-500 dark:text-gray-400">Avg Weight</div>
+                          <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Avg Weight</div>
                           <div className="font-medium">{s.avg_weight_g}g</div>
-                          <div className="text-gray-500 dark:text-gray-400">Date</div>
+                          <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Date</div>
                           <div className="font-medium">{s.date}</div>
-                          <div className="text-gray-500 dark:text-gray-400">Supplier</div>
+                          <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Supplier</div>
                           <div className="font-medium text-xs">{s.supplier}</div>
-                          <div className="text-gray-500 dark:text-gray-400">Batch</div>
+                          <div className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Batch</div>
                           <div><Badge variant="outline" className="text-xs">{s.batch}</Badge></div>
                         </div>
                       </CardContent>

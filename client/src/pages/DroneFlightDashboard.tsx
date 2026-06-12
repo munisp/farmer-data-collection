@@ -42,6 +42,35 @@ export default function DroneFlightDashboard() {
     { droneId: "DRONE-002", model: "DJI Mavic 3M", status: "idle", batteryPct: 92, lat: -1.29, lon: 36.83 },
   ]);
 
+  // Loading & error states
+  if (flightPlansQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (flightPlansQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => flightPlansQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-blue-50">
@@ -58,10 +87,10 @@ export default function DroneFlightDashboard() {
       <main className="container mx-auto px-4 py-8">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-blue-600">{drones.length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Registered Drones</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{flightPlans.filter(f => f.status === "completed").length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Completed Flights</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-purple-600">{flightPlans.reduce((s, f) => s + f.estimatedAreaHa, 0).toFixed(1)} ha</div><p className="text-sm text-gray-500 dark:text-gray-400">Total Area Covered</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-orange-600">{drones.filter(d => d.status === "flying" || d.status === "spraying").length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Active Flights</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-blue-600">{drones.length}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Registered Drones</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{flightPlans.filter(f => f.status === "completed").length}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Completed Flights</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-purple-600">{flightPlans.reduce((s, f) => s + f.estimatedAreaHa, 0).toFixed(1)} ha</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Area Covered</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-orange-600">{drones.filter(d => d.status === "flying" || d.status === "spraying").length}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Active Flights</p></CardContent></Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -81,7 +110,7 @@ export default function DroneFlightDashboard() {
                     <div key={plan.id} className="border rounded-lg p-4 flex justify-between items-center">
                       <div>
                         <div className="font-semibold">{plan.id} — {plan.flightType.toUpperCase()}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{plan.droneModel} • {plan.estimatedAreaHa} ha • {plan.estimatedTimeM} min • {plan.batteries} batteries • {plan.waypointCount} waypoints</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{plan.droneModel} • {plan.estimatedAreaHa} ha • {plan.estimatedTimeM} min • {plan.batteries} batteries • {plan.waypointCount} waypoints</div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${plan.status === "completed" ? "bg-green-100 dark:bg-green-900 text-green-800" : "bg-blue-100 dark:bg-blue-900 text-blue-800"}`}>
                         {plan.status}
@@ -109,9 +138,9 @@ export default function DroneFlightDashboard() {
                         <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div className="bg-green-500 rounded-full h-2" style={{width: `${drone.batteryPct}%`}} />
                         </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{drone.batteryPct}%</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{drone.batteryPct}%</span>
                       </div>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">📍 {drone.lat.toFixed(4)}, {drone.lon.toFixed(4)}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">📍 {drone.lat.toFixed(4)}, {drone.lon.toFixed(4)}</p>
                     </div>
                   ))}
                 </div>
@@ -123,7 +152,7 @@ export default function DroneFlightDashboard() {
             <Card>
               <CardHeader><CardTitle>NDVI Imagery</CardTitle><CardDescription>Processed drone imagery with crop health analysis</CardDescription></CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
                   <p className="text-lg">Upload drone imagery for NDVI processing</p>
                   <p className="text-sm mt-2">Supports: RGB, Multispectral, Thermal • Engines: OpenDroneMap, Pix4D, DroneDeploy</p>
                 </div>
@@ -140,7 +169,7 @@ export default function DroneFlightDashboard() {
                   <p>• Moderate NDVI (0.3-0.5): Moderate — 10 L/ha</p>
                   <p>• Good NDVI (0.5-0.7): Light — 5 L/ha</p>
                   <p>• Healthy NDVI (&gt;0.7): Maintenance — 2 L/ha</p>
-                  <p className="mt-4 text-gray-500 dark:text-gray-400">Generate prescriptions from the NDVI imagery tab, then upload to DJI Agras for variable-rate spraying.</p>
+                  <p className="mt-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Generate prescriptions from the NDVI imagery tab, then upload to DJI Agras for variable-rate spraying.</p>
                 </div>
               </CardContent>
             </Card>

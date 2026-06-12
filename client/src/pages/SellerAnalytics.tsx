@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 export default function SellerAnalytics() {
   const [timeRange, setTimeRange] = useState("30");
 
@@ -64,7 +65,7 @@ export default function SellerAnalytics() {
     value: value as number,
   }));
 
-  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const COLORS = CHART_COLORS.slice(0, 6);
 
   // Top performing products
   const topProducts = listings
@@ -184,9 +185,9 @@ export default function SellerAnalytics() {
                   <Line
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#10b981"
+                    stroke={SEMANTIC_COLORS.success}
                     strokeWidth={2}
-                    dot={{ fill: '#10b981', r: 4 }}
+                    dot={{ fill: SEMANTIC_COLORS.success, r: 4 }}
                     name="Revenue (₦)"
                   />
                 </LineChart>
@@ -210,7 +211,7 @@ export default function SellerAnalytics() {
                     labelLine={false}
                     label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                     outerRadius={80}
-                    fill="#8884d8"
+                    fill={CHART_COLORS[4]}
                     dataKey="value"
                   >
                     {categoryChartData.map((entry, index) => (

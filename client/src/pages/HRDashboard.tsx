@@ -22,7 +22,7 @@ export default function HRDashboard() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
 
   // Queries
-  const { data: stats, refetch: refetchStats } = trpc.hr.getHRStats.useQuery();
+  const { data: stats, refetch: refetchStats, isPending: statsLoading } = trpc.hr.getHRStats.useQuery();
   const { data: employees, refetch: refetchEmployees } = trpc.hr.getEmployees.useQuery();
   const { data: timeEntries, refetch: refetchTimeEntries } = trpc.hr.getTimeEntries.useQuery({});
   const { data: payrollRecords, refetch: refetchPayroll } = trpc.hr.getPayrollRecords.useQuery({});
@@ -158,6 +158,19 @@ export default function HRDashboard() {
       paymentMethod: "bank_transfer",
     });
   };
+
+  if (statsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

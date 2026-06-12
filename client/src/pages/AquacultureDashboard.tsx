@@ -88,25 +88,25 @@ export default function AquacultureDashboard() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-blue-600">{DEMO_PONDS.length}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Active Ponds</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Active Ponds</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-teal-600">{totalStock.toLocaleString()}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Total Stock</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Stock</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className={`text-3xl font-bold ${avgWqi >= 80 ? "text-green-600" : avgWqi >= 60 ? "text-yellow-600" : "text-red-600"}`}>{avgWqi}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Avg Water Quality Index</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Avg Water Quality Index</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold text-purple-600">{thresholds.length || 6}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Species Supported</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Species Supported</p>
             </CardContent>
           </Card>
         </div>
@@ -133,12 +133,12 @@ export default function AquacultureDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div><span className="text-gray-500 dark:text-gray-400">Type:</span> <span className="font-medium capitalize">{pond.type}</span></div>
-                        <div><span className="text-gray-500 dark:text-gray-400">Species:</span> <span className="font-medium capitalize">{pond.species}</span></div>
-                        <div><span className="text-gray-500 dark:text-gray-400">Area:</span> <span className="font-medium">{pond.area_m2} m²</span></div>
-                        <div><span className="text-gray-500 dark:text-gray-400">Depth:</span> <span className="font-medium">{pond.depth_m} m</span></div>
-                        <div><span className="text-gray-500 dark:text-gray-400">Stocked:</span> <span className="font-medium">{pond.stocked.toLocaleString()}</span></div>
-                        <div><span className="text-gray-500 dark:text-gray-400">Volume:</span> <span className="font-medium">{(pond.area_m2 * pond.depth_m).toFixed(0)} m³</span></div>
+                        <div><span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Type:</span> <span className="font-medium capitalize">{pond.type}</span></div>
+                        <div><span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Species:</span> <span className="font-medium capitalize">{pond.species}</span></div>
+                        <div><span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Area:</span> <span className="font-medium">{pond.area_m2} m²</span></div>
+                        <div><span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Depth:</span> <span className="font-medium">{pond.depth_m} m</span></div>
+                        <div><span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Stocked:</span> <span className="font-medium">{pond.stocked.toLocaleString()}</span></div>
+                        <div><span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Volume:</span> <span className="font-medium">{(pond.area_m2 * pond.depth_m).toFixed(0)} m³</span></div>
                       </div>
                       <div className="mt-3 pt-3 border-t grid grid-cols-3 gap-2 text-xs text-gray-600 dark:text-gray-300">
                         <div>pH: <span className="font-semibold text-gray-800 dark:text-gray-100">{pond.water.ph}</span></div>
@@ -212,7 +212,7 @@ export default function AquacultureDashboard() {
               <CardHeader><CardTitle>Species Water Quality Thresholds</CardTitle></CardHeader>
               <CardContent>
                 {speciesQuery.isLoading ? (
-                  <p className="text-gray-500 dark:text-gray-400">Loading species data from server...</p>
+                  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Loading species data from server...</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table className="w-full text-sm">

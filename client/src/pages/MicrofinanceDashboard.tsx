@@ -128,7 +128,7 @@ export default function MicrofinanceDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <TabsTrigger value="loans">
               <FileText className="w-4 h-4 mr-2" />
               My Loans
@@ -233,7 +233,7 @@ export default function MicrofinanceDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="loanType">Loan Type</Label>
                       <Select value={loanType} onValueChange={(value: any) => setLoanType(value)}>
@@ -290,7 +290,7 @@ export default function MicrofinanceDashboard() {
                       rows={2}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="guarantorName">Guarantor Name (Optional)</Label>
                       <Input

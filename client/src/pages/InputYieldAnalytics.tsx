@@ -103,7 +103,7 @@ export default function InputYieldAnalytics() {
       case 'down':
         return <TrendingDown className="w-4 h-4 text-red-500" />;
       default:
-        return <span className="w-4 h-4 text-gray-400 dark:text-gray-500 dark:text-gray-400">—</span>;
+        return <span className="w-4 h-4 text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">—</span>;
     }
   };
 

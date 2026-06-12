@@ -23,6 +23,35 @@ export default function IoTSensorDashboard() {
   const offline = devices.filter(d => d.status === "offline").length;
   const lowBattery = devices.filter(d => d.battery < 20).length;
 
+  // Loading & error states
+  if (devicesQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (devicesQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => devicesQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
@@ -38,10 +67,10 @@ export default function IoTSensorDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-teal-600">{devices.length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Total Devices</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{active}</div><p className="text-sm text-gray-500 dark:text-gray-400">Active</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-red-600">{offline}</div><p className="text-sm text-gray-500 dark:text-gray-400">Offline</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-yellow-600">{lowBattery}</div><p className="text-sm text-gray-500 dark:text-gray-400">Low Battery</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-teal-600">{devices.length}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Devices</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{active}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Active</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-red-600">{offline}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Offline</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-yellow-600">{lowBattery}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Low Battery</p></CardContent></Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -71,7 +100,7 @@ export default function IoTSensorDashboard() {
                         <span>📍 {device.lat.toFixed(4)}, {device.lon.toFixed(4)}</span>
                         <span>{device.type.replace("_", " ")}</span>
                       </div>
-                      <div className="mt-2 text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">
+                      <div className="mt-2 text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
                         Last: {Object.entries(device.lastReading).map(([k, v]) => `${k.replace("_", " ")}=${v}`).join(", ")}
                       </div>
                     </div>
@@ -88,9 +117,9 @@ export default function IoTSensorDashboard() {
                   <CardHeader><CardTitle className="text-lg">{device.name}</CardTitle></CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4 text-center">
-                      <div><div className="text-2xl font-bold text-blue-600">{device.lastReading.soil_moisture}%</div><p className="text-xs text-gray-500 dark:text-gray-400">Moisture</p></div>
-                      <div><div className="text-2xl font-bold text-orange-600">{device.lastReading.soil_temp}°C</div><p className="text-xs text-gray-500 dark:text-gray-400">Temperature</p></div>
-                      <div><div className="text-2xl font-bold text-green-600">{device.lastReading.soil_ec} dS/m</div><p className="text-xs text-gray-500 dark:text-gray-400">EC</p></div>
+                      <div><div className="text-2xl font-bold text-blue-600">{device.lastReading.soil_moisture}%</div><p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Moisture</p></div>
+                      <div><div className="text-2xl font-bold text-orange-600">{device.lastReading.soil_temp}°C</div><p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Temperature</p></div>
+                      <div><div className="text-2xl font-bold text-green-600">{device.lastReading.soil_ec} dS/m</div><p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">EC</p></div>
                     </div>
                     {(device.lastReading.soil_moisture ?? 100) < 35 && (
                       <div className="mt-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 rounded p-2 text-sm text-yellow-800">
@@ -109,10 +138,10 @@ export default function IoTSensorDashboard() {
               <CardContent>
                 {devices.filter(d => d.type === "weather_station").map(station => (
                   <div key={station.id} className="grid grid-cols-4 gap-4 text-center">
-                    <div><div className="text-3xl font-bold text-orange-600">{station.lastReading.temperature}°C</div><p className="text-sm text-gray-500 dark:text-gray-400">Temperature</p></div>
-                    <div><div className="text-3xl font-bold text-blue-600">{station.lastReading.humidity}%</div><p className="text-sm text-gray-500 dark:text-gray-400">Humidity</p></div>
-                    <div><div className="text-3xl font-bold text-gray-600 dark:text-gray-300">{station.lastReading.wind_speed} m/s</div><p className="text-sm text-gray-500 dark:text-gray-400">Wind Speed</p></div>
-                    <div><div className="text-3xl font-bold text-cyan-600">{station.lastReading.rainfall} mm</div><p className="text-sm text-gray-500 dark:text-gray-400">Rainfall</p></div>
+                    <div><div className="text-3xl font-bold text-orange-600">{station.lastReading.temperature}°C</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Temperature</p></div>
+                    <div><div className="text-3xl font-bold text-blue-600">{station.lastReading.humidity}%</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Humidity</p></div>
+                    <div><div className="text-3xl font-bold text-gray-600 dark:text-gray-300">{station.lastReading.wind_speed} m/s</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Wind Speed</p></div>
+                    <div><div className="text-3xl font-bold text-cyan-600">{station.lastReading.rainfall} mm</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Rainfall</p></div>
                   </div>
                 ))}
               </CardContent>

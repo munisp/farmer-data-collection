@@ -22,6 +22,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 export default function Analytics() {
   const { user, isLoading: authLoading } = useAuth();
   const [dateRange, setDateRange] = useState({
@@ -157,9 +158,9 @@ export default function Analytics() {
   }));
 
   const engagementData = [
-    { name: "DAU", value: dashboard.engagement.dau, color: "#10b981" },
-    { name: "WAU", value: dashboard.engagement.wau, color: "#3b82f6" },
-    { name: "MAU", value: dashboard.engagement.mau, color: "#8b5cf6" },
+    { name: "DAU", value: dashboard.engagement.dau, color: SEMANTIC_COLORS.success },
+    { name: "WAU", value: dashboard.engagement.wau, color: SEMANTIC_COLORS.info },
+    { name: "MAU", value: dashboard.engagement.mau, color: CHART_COLORS[4] },
   ];
 
   const featureData = dashboard.features.map(f => ({
@@ -176,7 +177,7 @@ export default function Analytics() {
     roi: c.roi * 100,
   }));
 
-  const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899'];
+  const COLORS = CHART_COLORS.slice(0, 6);
 
   return (
     <DashboardLayout>
@@ -336,8 +337,8 @@ export default function Analytics() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="messages" fill="#10b981" name="Messages" />
-                <Bar dataKey="users" fill="#3b82f6" name="Unique Users" />
+                <Bar dataKey="messages" fill={SEMANTIC_COLORS.success} name="Messages" />
+                <Bar dataKey="users" fill={SEMANTIC_COLORS.info} name="Unique Users" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -359,7 +360,7 @@ export default function Analytics() {
                   labelLine={false}
                   label={({ name, value }) => `${name}: ${value}`}
                   outerRadius={100}
-                  fill="#8884d8"
+                  fill={CHART_COLORS[4]}
                   dataKey="value"
                 >
                   {engagementData.map((entry, index) => (
@@ -400,8 +401,8 @@ export default function Analytics() {
                 <YAxis dataKey="name" type="category" width={150} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="usage" fill="#8b5cf6" name="Total Usage" />
-                <Bar dataKey="users" fill="#f59e0b" name="Unique Users" />
+                <Bar dataKey="usage" fill={CHART_COLORS[4]} name="Total Usage" />
+                <Bar dataKey="users" fill={SEMANTIC_COLORS.warning} name="Unique Users" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -422,8 +423,8 @@ export default function Analytics() {
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
                 <Legend />
-                <Bar yAxisId="left" dataKey="totalCost" fill="#ef4444" name="Total Cost ($)" />
-                <Bar yAxisId="right" dataKey="roi" fill="#10b981" name="ROI (%)" />
+                <Bar yAxisId="left" dataKey="totalCost" fill={SEMANTIC_COLORS.danger} name="Total Cost ($)" />
+                <Bar yAxisId="right" dataKey="roi" fill={SEMANTIC_COLORS.success} name="ROI (%)" />
               </BarChart>
             </ResponsiveContainer>
             <div className="mt-4">
@@ -495,7 +496,7 @@ export default function Analytics() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="value" stroke="#10b981" name="Messages" strokeWidth={2} />
+                    <Line type="monotone" dataKey="value" stroke={SEMANTIC_COLORS.success} name="Messages" strokeWidth={2} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -515,7 +516,7 @@ export default function Analytics() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="value" stroke="#3b82f6" name="New Users" strokeWidth={2} />
+                    <Line type="monotone" dataKey="value" stroke={SEMANTIC_COLORS.info} name="New Users" strokeWidth={2} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -535,7 +536,7 @@ export default function Analytics() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="value" stroke="#ef4444" name="Cost ($)" strokeWidth={2} />
+                    <Line type="monotone" dataKey="value" stroke={SEMANTIC_COLORS.danger} name="Cost ($)" strokeWidth={2} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -555,7 +556,7 @@ export default function Analytics() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="value" stroke="#8b5cf6" name="Engagement (%)" strokeWidth={2} />
+                    <Line type="monotone" dataKey="value" stroke={CHART_COLORS[4]} name="Engagement (%)" strokeWidth={2} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>

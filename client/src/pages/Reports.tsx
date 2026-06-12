@@ -12,6 +12,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import jsPDF from 'jspdf';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 interface ExpenseByCategory {
   category: string;
   total: number;
@@ -143,7 +144,7 @@ export default function Reports() {
     );
   }
 
-  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const COLORS = CHART_COLORS.slice(0, 6);
 
   return (
     <DashboardLayout>
@@ -235,7 +236,7 @@ export default function Reports() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="quantity" fill="#10b981" name="Quantity (units)" />
+                    <Bar dataKey="quantity" fill={SEMANTIC_COLORS.success} name="Quantity (units)" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

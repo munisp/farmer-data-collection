@@ -181,7 +181,7 @@ export default function BankingDashboard() {
               </CardHeader>
               <CardContent>
                 <form aria-label="Submit form" onSubmit={handleCreateAccount} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="accountName">Account Name *</Label>
                       <Input
@@ -201,7 +201,7 @@ export default function BankingDashboard() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="bankName">Bank Name *</Label>
                       <Input
@@ -317,7 +317,7 @@ export default function BankingDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="toPartyIdType">Recipient ID Type</Label>
                       <Select value={toPartyIdType} onValueChange={(value: any) => setToPartyIdType(value)}>

@@ -31,6 +31,35 @@ export default function EquipmentFleetDashboard() {
     { id: 3, type: "sprayer", brand: "Jacto", model: "Uniport 3030", hp: 200, pricePerHa: 1800, rating: 4.5, bookings: 12, distance: 25 },
   ]);
 
+  // Loading & error states
+  if (equipmentQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (equipmentQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => equipmentQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-green-50">
@@ -47,10 +76,10 @@ export default function EquipmentFleetDashboard() {
       <main className="container mx-auto px-4 py-8">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-orange-600">{equipment.length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Equipment Units</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{equipment.filter(e => e.status === "operating").length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Currently Operating</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-red-600">{maintenancePredictions.filter(m => m.priority === "high" || m.priority === "critical").length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Maintenance Alerts</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-purple-600">{marketplaceListings.length}</div><p className="text-sm text-gray-500 dark:text-gray-400">Available for Hire</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-orange-600">{equipment.length}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Equipment Units</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-green-600">{equipment.filter(e => e.status === "operating").length}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Currently Operating</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-red-600">{maintenancePredictions.filter(m => m.priority === "high" || m.priority === "critical").length}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Maintenance Alerts</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="text-3xl font-bold text-purple-600">{marketplaceListings.length}</div><p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Available for Hire</p></CardContent></Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -72,7 +101,7 @@ export default function EquipmentFleetDashboard() {
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="font-semibold">{eq.brand} {eq.model}</span>
-                          <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">({eq.type}) — {eq.hp} HP</span>
+                          <span className="ml-2 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">({eq.type}) — {eq.hp} HP</span>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           eq.status === "operating" ? "bg-green-100 dark:bg-green-900 text-green-800" :
@@ -102,7 +131,7 @@ export default function EquipmentFleetDashboard() {
                   <div className="border rounded p-3"><strong>Swath Width:</strong> 3-36m (auto from implement)</div>
                   <div className="border rounded p-3"><strong>Headland:</strong> 2-4 passes before interior</div>
                 </div>
-                <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">AgOpenGPS integration: sub-inch RTK accuracy, section control, auto turn on headlands. Works with any tractor using a $200-500 retrofit kit.</p>
+                <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">AgOpenGPS integration: sub-inch RTK accuracy, section control, auto turn on headlands. Works with any tractor using a $200-500 retrofit kit.</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -129,7 +158,7 @@ export default function EquipmentFleetDashboard() {
                         <span className="text-sm">{pred.wearPct}% wear</span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">{pred.action} — Est. {formatCurrency(pred.estimatedCost)}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">{pred.daysToFailure} days until predicted failure</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{pred.daysToFailure} days until predicted failure</p>
                     </div>
                   ))}
                 </div>
@@ -146,8 +175,8 @@ export default function EquipmentFleetDashboard() {
                     <div key={listing.id} className="border rounded-lg p-4 flex justify-between items-center">
                       <div>
                         <div className="font-semibold">{listing.brand} {listing.model}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{listing.type} {listing.hp ? `• ${listing.hp} HP` : ""} • {listing.distance}km away</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">⭐ {listing.rating} ({listing.bookings} bookings)</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{listing.type} {listing.hp ? `• ${listing.hp} HP` : ""} • {listing.distance}km away</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">⭐ {listing.rating} ({listing.bookings} bookings)</div>
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-bold text-green-600">{formatCurrency(listing.pricePerHa)}/ha</div>
@@ -170,7 +199,7 @@ export default function EquipmentFleetDashboard() {
                   <p>• <strong>Work Records:</strong> Automatic logging of what was done, where, when</p>
                   <p>• <strong>ISO-XML:</strong> Import/export task files compatible with all ISOBUS implements</p>
                   <p>• <strong>Section Control:</strong> Automatic section on/off to reduce overlap</p>
-                  <p className="mt-4 text-gray-500 dark:text-gray-400">Compatible with: John Deere, Case IH, New Holland, Fendt, Massey Ferguson, CLAAS, Amazone, Kverneland</p>
+                  <p className="mt-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Compatible with: John Deere, Case IH, New Holland, Fendt, Massey Ferguson, CLAAS, Amazone, Kverneland</p>
                 </div>
               </CardContent>
             </Card>

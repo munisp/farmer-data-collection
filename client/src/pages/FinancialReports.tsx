@@ -24,7 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658", "#FF6B9D"];
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
+const COLORS = [CHART_COLORS[1], CHART_COLORS[0], CHART_COLORS[2], CHART_COLORS[6], CHART_COLORS[4], CHART_COLORS[0], CHART_COLORS[2], CHART_COLORS[7]];
 
 export default function FinancialReports() {
   const [startDate, setStartDate] = useState("");
@@ -253,7 +254,7 @@ export default function FinancialReports() {
                 <YAxis />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend />
-                <Bar dataKey="totalAmount" fill="#8884d8" name="Total Amount" />
+                <Bar dataKey="totalAmount" fill={CHART_COLORS[4]} name="Total Amount" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -279,7 +280,7 @@ export default function FinancialReports() {
                   labelLine={false}
                   label={({ category, percent }) => `${category}: ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill={CHART_COLORS[4]}
                   dataKey="totalAmount"
                 >
                   {expenseByCategory.map((entry, index) => (
@@ -324,7 +325,7 @@ export default function FinancialReports() {
                 <Line
                   type="monotone"
                   dataKey="totalExpenses"
-                  stroke="#8884d8"
+                  stroke={CHART_COLORS[4]}
                   strokeWidth={2}
                   name="Total Expenses"
                 />
@@ -360,9 +361,9 @@ export default function FinancialReports() {
                 <YAxis />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend />
-                <Bar dataKey="Revenue" fill="#00C49F" />
-                <Bar dataKey="Expenses" fill="#FF8042" />
-                <Bar dataKey="Profit" fill="#8884D8" />
+                <Bar dataKey="Revenue" fill={CHART_COLORS[0]} />
+                <Bar dataKey="Expenses" fill={CHART_COLORS[6]} />
+                <Bar dataKey="Profit" fill={CHART_COLORS[4]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (

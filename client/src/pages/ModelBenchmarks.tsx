@@ -60,7 +60,7 @@ export default function ModelBenchmarks() {
       );
     } else {
       return (
-        <Badge variant="outline" className="bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
+        <Badge variant="outline" className="bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">
           <CheckCircle2 className="w-3 h-3 mr-1" />
           Equal
         </Badge>

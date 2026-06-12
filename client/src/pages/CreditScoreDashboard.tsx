@@ -62,7 +62,7 @@ export default function CreditScoreDashboard() {
               <p>Loading credit score...</p>
             ) : (
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4 md:gap-6">
                   <div className="text-center">
                     <div className={`text-6xl font-bold ${getScoreColor(currentScore)}`}>
                       {currentScore}

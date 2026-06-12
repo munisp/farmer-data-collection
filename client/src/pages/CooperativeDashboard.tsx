@@ -12,7 +12,7 @@ export default function CooperativeDashboard() {
   const { formatCurrency } = useLocalization();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const { data: proposals } = trpc.cooperativeGovernance.listProposals.useQuery(
+  const { data: proposals, isPending: proposalsLoading, isError: proposalsError, refetch: refetchProposals } = trpc.cooperativeGovernance.listProposals.useQuery(
     { cooperativeId: 1 },
     { retry: 1, refetchOnWindowFocus: false }
   );
@@ -49,12 +49,25 @@ export default function CooperativeDashboard() {
     { type: "Storage Facility", count: 5, total: 1_000_000, defaultRate: 0.0 },
   ];
 
+  if (proposalsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Cooperative Dashboard">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{coopData.name}</h1>
-        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Cooperative aggregate reporting dashboard</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Cooperative aggregate reporting dashboard</p>
       </div>
 
       {/* Summary Cards */}
@@ -63,40 +76,40 @@ export default function CooperativeDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Users className="h-5 w-5 text-blue-500" aria-hidden="true" />
-              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Members</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Members</span>
             </div>
             <p className="text-2xl font-bold dark:text-white">{coopData.members}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">{coopData.totalFarms} farms</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{coopData.totalFarms} farms</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="h-5 w-5 text-green-500" aria-hidden="true" />
-              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Area</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Area</span>
             </div>
             <p className="text-2xl font-bold dark:text-white">{coopData.totalHectares} ha</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">{coopData.regions.length} regions</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{coopData.regions.length} regions</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-5 w-5 text-emerald-500" aria-hidden="true" />
-              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Sales</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Sales</span>
             </div>
             <p className="text-2xl font-bold dark:text-white">{formatCurrency(coopData.totalSales)}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">This season</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">This season</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Wallet className="h-5 w-5 text-orange-500" aria-hidden="true" />
-              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Loan Portfolio</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Loan Portfolio</span>
             </div>
             <p className="text-2xl font-bold dark:text-white">{formatCurrency(coopData.activeLoanPortfolio)}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">Avg score: {coopData.avgCreditScore}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Avg score: {coopData.avgCreditScore}</p>
           </CardContent>
         </Card>
       </div>
@@ -121,11 +134,11 @@ export default function CooperativeDashboard() {
                 <Table role="table" aria-label="Production breakdown by crop" className="w-full">
                   <TableHeader role="rowgroup">
                     <TableRow className="border-b dark:border-slate-600">
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Crop</TableHead>
-                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Farmers</TableHead>
-                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Hectares</TableHead>
-                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Production</TableHead>
-                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Revenue</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Crop</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Farmers</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Hectares</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Production</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Revenue</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody role="rowgroup">
@@ -159,7 +172,7 @@ export default function CooperativeDashboard() {
                   <div key={loan.type} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-slate-700" role="listitem">
                     <div>
                       <p className="font-medium dark:text-white">{loan.type}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{loan.count} active loans</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{loan.count} active loans</p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold dark:text-white">{formatCurrency(loan.total)}</p>
@@ -185,7 +198,7 @@ export default function CooperativeDashboard() {
                   <div key={r} className="p-4 rounded-lg bg-gray-50 dark:bg-slate-700 text-center">
                     <MapPin className="h-6 w-6 mx-auto mb-2 text-green-500" aria-hidden="true" />
                     <p className="font-medium dark:text-white">{r}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{Math.floor(coopData.members / coopData.regions.length)} members</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{Math.floor(coopData.members / coopData.regions.length)} members</p>
                   </div>
                 ))}
               </div>

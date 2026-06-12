@@ -5,6 +5,7 @@ import { Loader2, TrendingUp, CheckCircle, XCircle, Flag, Star, Users } from "lu
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import DashboardLayout from "@/components/DashboardLayout";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 /**
  * Review Analytics Dashboard
  * Admin-only page showing review statistics and insights
@@ -16,7 +17,7 @@ export default function ReviewAnalytics() {
   const { data: moderationStats, isLoading: loadingModeration } = trpc.reviewAnalytics.getModerationStats.useQuery();
   const { data: topReviewers, isLoading: loadingReviewers } = trpc.reviewAnalytics.getTopReviewers.useQuery({ limit: 10 });
 
-  const COLORS = ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6'];
+  const COLORS = CHART_COLORS.slice(0, 5);
 
   if (loadingOverview) {
     return (
@@ -27,9 +28,9 @@ export default function ReviewAnalytics() {
   }
 
   const pieData = [
-    { name: 'Published', value: overview?.published || 0, color: '#22c55e' },
-    { name: 'Hidden', value: overview?.hidden || 0, color: '#ef4444' },
-    { name: 'Flagged', value: overview?.flagged || 0, color: '#f59e0b' },
+    { name: 'Published', value: overview?.published || 0, color: SEMANTIC_COLORS.success },
+    { name: 'Hidden', value: overview?.hidden || 0, color: SEMANTIC_COLORS.danger },
+    { name: 'Flagged', value: overview?.flagged || 0, color: SEMANTIC_COLORS.warning },
   ];
 
   return (
@@ -126,8 +127,8 @@ export default function ReviewAnalytics() {
                     <YAxis label={{ value: 'Number of Reviews', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="verified" fill="#22c55e" name="Verified Purchase" />
-                    <Bar dataKey="unverified" fill="#94a3b8" name="Unverified" />
+                    <Bar dataKey="verified" fill={SEMANTIC_COLORS.success} name="Verified Purchase" />
+                    <Bar dataKey="unverified" fill={SEMANTIC_COLORS.secondary} name="Unverified" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -192,7 +193,7 @@ export default function ReviewAnalytics() {
                     labelLine={false}
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     outerRadius={120}
-                    fill="#8884d8"
+                    fill={CHART_COLORS[4]}
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => (

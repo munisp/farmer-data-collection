@@ -26,6 +26,7 @@ import {
 } from "recharts";
 import { TrendingUp, Users, ShoppingCart, DollarSign, Calendar } from "lucide-react";
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 export default function AdvancedAnalytics() {
   const yieldDataQuery = trpc.analytics.getDashboardSummary.useQuery({ startDate: new Date(Date.now() - 30*24*60*60*1000).toISOString().split("T")[0], endDate: new Date().toISOString().split("T")[0] }, { retry: 1 });
   const yieldDataData = yieldDataQuery.data ?? null;
@@ -55,11 +56,11 @@ export default function AdvancedAnalytics() {
 
   // Marketplace conversion funnel
   const conversionFunnelData = [
-    { stage: "Visitors", value: 10000, fill: "#8884d8" },
-    { stage: "Product Views", value: 6500, fill: "#83a6ed" },
-    { stage: "Add to Cart", value: 3200, fill: "#8dd1e1" },
-    { stage: "Checkout", value: 1800, fill: "#82ca9d" },
-    { stage: "Purchase", value: 1200, fill: "#a4de6c" },
+    { stage: "Visitors", value: 10000, fill: CHART_COLORS[4] },
+    { stage: "Product Views", value: 6500, fill: CHART_COLORS[1] },
+    { stage: "Add to Cart", value: 3200, fill: CHART_COLORS[5] },
+    { stage: "Checkout", value: 1800, fill: CHART_COLORS[0] },
+    { stage: "Purchase", value: 1200, fill: CHART_COLORS[0] },
   ];
 
   // Seasonal pattern analysis
@@ -80,14 +81,43 @@ export default function AdvancedAnalytics() {
 
   // Revenue by category
   const revenueByCategory = [
-    { name: "Vegetables", value: 35, color: "#0088FE" },
-    { name: "Fruits", value: 25, color: "#00C49F" },
-    { name: "Grains", value: 20, color: "#FFBB28" },
-    { name: "Dairy", value: 12, color: "#FF8042" },
-    { name: "Eggs", value: 8, color: "#8884D8" },
+    { name: "Vegetables", value: 35, color: CHART_COLORS[1] },
+    { name: "Fruits", value: 25, color: CHART_COLORS[0] },
+    { name: "Grains", value: 20, color: CHART_COLORS[2] },
+    { name: "Dairy", value: 12, color: CHART_COLORS[6] },
+    { name: "Eggs", value: 8, color: CHART_COLORS[4] },
   ];
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+  const COLORS = [CHART_COLORS[1], CHART_COLORS[0], CHART_COLORS[2], CHART_COLORS[6], CHART_COLORS[4]];
+
+  // Loading & error states
+  if (yieldDataQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (yieldDataQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => yieldDataQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -178,9 +208,9 @@ export default function AdvancedAnalytics() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Area type="monotone" dataKey="activeUsers" stackId="1" stroke="#8884d8" fill="#8884d8" name="Active Users" />
-                <Area type="monotone" dataKey="newUsers" stackId="1" stroke="#82ca9d" fill="#82ca9d" name="New Users" />
-                <Area type="monotone" dataKey="sessions" stackId="2" stroke="#ffc658" fill="#ffc658" name="Sessions" />
+                <Area type="monotone" dataKey="activeUsers" stackId="1" stroke={CHART_COLORS[4]} fill={CHART_COLORS[4]} name="Active Users" />
+                <Area type="monotone" dataKey="newUsers" stackId="1" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} name="New Users" />
+                <Area type="monotone" dataKey="sessions" stackId="2" stroke={SEMANTIC_COLORS.warning} fill={SEMANTIC_COLORS.warning} name="Sessions" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -201,10 +231,10 @@ export default function AdvancedAnalytics() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="maize" fill="#8884d8" name="Maize" />
-                  <Bar dataKey="rice" fill="#82ca9d" name="Rice" />
-                  <Bar dataKey="wheat" fill="#ffc658" name="Wheat" />
-                  <Bar dataKey="sorghum" fill="#ff8042" name="Sorghum" />
+                  <Bar dataKey="maize" fill={CHART_COLORS[4]} name="Maize" />
+                  <Bar dataKey="rice" fill={CHART_COLORS[0]} name="Rice" />
+                  <Bar dataKey="wheat" fill={SEMANTIC_COLORS.warning} name="Wheat" />
+                  <Bar dataKey="sorghum" fill={CHART_COLORS[6]} name="Sorghum" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -226,7 +256,7 @@ export default function AdvancedAnalytics() {
                     labelLine={false}
                     label={({ name, value }) => `${name}: ${value}%`}
                     outerRadius={100}
-                    fill="#8884d8"
+                    fill={CHART_COLORS[4]}
                     dataKey="value"
                   >
                     {revenueByCategory.map((entry, index) => (
@@ -281,10 +311,10 @@ export default function AdvancedAnalytics() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="vegetables" stroke="#0088FE" strokeWidth={2} name="Vegetables" />
-                <Line type="monotone" dataKey="fruits" stroke="#00C49F" strokeWidth={2} name="Fruits" />
-                <Line type="monotone" dataKey="grains" stroke="#FFBB28" strokeWidth={2} name="Grains" />
-                <Line type="monotone" dataKey="dairy" stroke="#FF8042" strokeWidth={2} name="Dairy" />
+                <Line type="monotone" dataKey="vegetables" stroke={CHART_COLORS[1]} strokeWidth={2} name="Vegetables" />
+                <Line type="monotone" dataKey="fruits" stroke={CHART_COLORS[0]} strokeWidth={2} name="Fruits" />
+                <Line type="monotone" dataKey="grains" stroke={CHART_COLORS[2]} strokeWidth={2} name="Grains" />
+                <Line type="monotone" dataKey="dairy" stroke={CHART_COLORS[6]} strokeWidth={2} name="Dairy" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

@@ -54,13 +54,42 @@ export default function PaymentReconciliation() {
     }
   };
 
+  // Loading & error states
+  if (reconciliationQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (reconciliationQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => reconciliationQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6 dark:bg-slate-900 min-h-screen" role="main" aria-label="Payment Reconciliation">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Payment Reconciliation</h1>
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">TigerBeetle-powered multi-rail payment matching</p>
+          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">TigerBeetle-powered multi-rail payment matching</p>
         </div>
         <Button variant="outline" className="mt-2 md:mt-0 dark:border-slate-600 dark:text-white" aria-label="Run reconciliation">
           <ArrowRightLeft className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -72,27 +101,27 @@ export default function PaymentReconciliation() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4" role="region" aria-label="Reconciliation summary">
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Volume</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Total Volume</p>
             <p className="text-2xl font-bold dark:text-white">{formatCurrency(summary.totalVolume)}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">{summary.totalTransactions} transactions</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{summary.totalTransactions} transactions</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Reconciled</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Reconciled</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">{summary.reconciled}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">{((summary.reconciled / summary.totalTransactions) * 100).toFixed(1)}%</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{((summary.reconciled / summary.totalTransactions) * 100).toFixed(1)}%</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Pending</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Pending</p>
             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{summary.pending}</p>
           </CardContent>
         </Card>
         <Card className="dark:bg-slate-800 dark:border-slate-700">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Mismatched</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Mismatched</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">{summary.mismatched}</p>
           </CardContent>
         </Card>
@@ -104,7 +133,7 @@ export default function PaymentReconciliation() {
           <CardContent className="p-4 flex items-center gap-3">
             <CreditCard className="h-8 w-8 text-purple-500" aria-hidden="true" />
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Stripe</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Stripe</p>
               <p className="text-xl font-bold dark:text-white">{formatCurrency(summary.stripeVolume)}</p>
             </div>
           </CardContent>
@@ -113,7 +142,7 @@ export default function PaymentReconciliation() {
           <CardContent className="p-4 flex items-center gap-3">
             <Wallet className="h-8 w-8 text-green-500" aria-hidden="true" />
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">M-Pesa</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">M-Pesa</p>
               <p className="text-xl font-bold dark:text-white">{formatCurrency(summary.mpesaVolume)}</p>
             </div>
           </CardContent>
@@ -122,7 +151,7 @@ export default function PaymentReconciliation() {
           <CardContent className="p-4 flex items-center gap-3">
             <ArrowRightLeft className="h-8 w-8 text-blue-500" aria-hidden="true" />
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Bank Transfer</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">Bank Transfer</p>
               <p className="text-xl font-bold dark:text-white">{formatCurrency(summary.bankVolume)}</p>
             </div>
           </CardContent>
@@ -142,12 +171,12 @@ export default function PaymentReconciliation() {
                 <Table role="table" aria-label="Recent transactions" className="w-full">
                   <TableHeader role="rowgroup">
                     <TableRow className="border-b dark:border-slate-600">
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">ID</TableHead>
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Order</TableHead>
-                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Amount</TableHead>
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Rail</TableHead>
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Status</TableHead>
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Date</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">ID</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Order</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Amount</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Rail</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Status</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody role="rowgroup">
@@ -158,7 +187,7 @@ export default function PaymentReconciliation() {
                         <TableCell className="p-3 text-right font-medium dark:text-white">{formatCurrency(txn.amount)}</TableCell>
                         <TableCell className="p-3 dark:text-gray-300">{txn.rail}</TableCell>
                         <TableCell className="p-3">{statusBadge(txn.status)}</TableCell>
-                        <TableCell className="p-3 text-sm dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{txn.date}</TableCell>
+                        <TableCell className="p-3 text-sm dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{txn.date}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -175,11 +204,11 @@ export default function PaymentReconciliation() {
                 <Table role="table" aria-label="Seller payouts" className="w-full">
                   <TableHeader role="rowgroup">
                     <TableRow className="border-b dark:border-slate-600">
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Seller</TableHead>
-                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Amount</TableHead>
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Method</TableHead>
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Status</TableHead>
-                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Date</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Seller</TableHead>
+                      <TableHead className="text-right p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Amount</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Method</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Status</TableHead>
+                      <TableHead className="text-left p-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" scope="col">Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody role="rowgroup">
@@ -189,7 +218,7 @@ export default function PaymentReconciliation() {
                         <TableCell className="p-3 text-right font-bold dark:text-white">{formatCurrency(p.amount)}</TableCell>
                         <TableCell className="p-3 dark:text-gray-300">{p.method}</TableCell>
                         <TableCell className="p-3">{statusBadge(p.status)}</TableCell>
-                        <TableCell className="p-3 text-sm dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{p.date}</TableCell>
+                        <TableCell className="p-3 text-sm dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">{p.date}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

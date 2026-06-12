@@ -61,7 +61,7 @@ export default function PriceAlertsDashboard() {
                           ) : crop.next_month_trend === "down" ? (
                             <TrendingDown className="h-5 w-5 text-red-500" />
                           ) : (
-                            <BarChart3 className="h-5 w-5 text-gray-400 dark:text-gray-500 dark:text-gray-400" />
+                            <BarChart3 className="h-5 w-5 text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" />
                           )}
                         </div>
                         <p className="text-2xl font-bold mt-1">
