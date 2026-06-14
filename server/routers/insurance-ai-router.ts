@@ -12,6 +12,7 @@ import { eq, desc, sql, and } from "drizzle-orm";
 import { insuranceProducts, insurancePolicies, insuranceClaims } from "../../drizzle/schema-platform-extended.js";
 import { withRedisCache, publishKafkaEvent, recordLedgerEntry, indexDocument, KAFKA_TOPICS, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 import { logger } from "../logger.js";
+import { randomBytes } from "crypto";
 
 type InsuranceProduct = typeof insuranceProducts.$inferSelect;
 type InsurancePolicy = typeof insurancePolicies.$inferSelect;
@@ -153,7 +154,7 @@ export const insuranceAIRouter = router({
       if (!policy) throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found or not owned by user" });
       if (policy.status !== "active") throw new TRPCError({ code: "BAD_REQUEST", message: "Policy is not active" });
 
-      const claimNumber = `CLM-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const claimNumber = `CLM-${Date.now()}-${randomBytes(3).toString("hex").toUpperCase()}`;
       const claimAmountStr = String(input.claimAmount);
 
       const [claim] = await db.insert(insuranceClaims).values({

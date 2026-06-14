@@ -88,7 +88,7 @@ export const mobileMoneyRouter = router({
       if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
       if (account.verified) return { success: true, message: "Account already verified" };
 
-      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      const otp = String(100000 + (crypto.randomInt(900000)));
       await saveDaprState("mobile-money-otp", `otp:${input.accountId}`, {
         code: otp, expiresAt: Date.now() + 10 * 60 * 1000, attempts: 0,
       });
@@ -733,7 +733,7 @@ export const mobileMoneyRouter = router({
       const db = await requireDb();
 
       // Generate unique transaction ID
-      const transactionId = `AIRTEL-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      const transactionId = `AIRTEL-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
 
       // Country code mapping
       const countryMap: Record<string, string> = {

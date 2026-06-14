@@ -13,6 +13,7 @@ import { applyMiddleware } from "../middleware/deep-integration.js";
 import { logger } from "../logger.js";
 
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
+import { randomBytes } from "crypto";
 type ExportShipment = typeof exportShipments.$inferSelect;
 type ExportCertification = typeof exportCertifications.$inferSelect;
 
@@ -80,7 +81,7 @@ export const exportChainRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const shipmentCode = `EXP-${Date.now()}`;
-      const txHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`;
+      const txHash = `0x${randomBytes(32).toString("hex")}`;
       const [shipment] = await db.insert(exportShipments).values({
         shipmentCode,
         commodity: input.commodity,

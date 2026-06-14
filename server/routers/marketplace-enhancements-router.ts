@@ -15,6 +15,7 @@ import {
 import { eq, and, desc, sql } from "drizzle-orm";
 import { logger } from '../logger.js';
 import { withRedisCache, invalidateRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, searchDocuments, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
+import { randomBytes } from "crypto";
 
 export const marketplaceEnhancementsRouter = router({
   // ======================== NEGOTIATION / BIDDING ========================
@@ -88,7 +89,7 @@ export const marketplaceEnhancementsRouter = router({
           }).where(eq(negotiationOffers.id, input.offerId));
 
           // Auto-create marketplace order from accepted offer
-          const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+          const orderNumber = `ORD-${Date.now()}-${randomBytes(3).toString("hex").toUpperCase()}`;
           const [order] = await tx.insert(marketplaceOrders).values({
             buyerId: offer.buyerId,
             sellerId: offer.sellerId,

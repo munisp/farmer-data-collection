@@ -12,6 +12,7 @@ import { didDocuments, verifiableCredentials } from "../../drizzle/platform-exte
 
 import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
+import { randomBytes } from "crypto";
 const CredentialType = z.enum(["farmer_identity", "credit_history", "land_ownership", "crop_certification", "cooperative_membership", "training_completion"]);
 
 export const decentralizedIdentityRouter = router({
@@ -37,7 +38,7 @@ export const decentralizedIdentityRouter = router({
       if (existing) return { success: true, did: existing, message: "DID already exists" };
 
       const keyId = `${did}#key-1`;
-      const publicKey = `z6Mk${Math.random().toString(36).slice(2, 46)}`;
+      const publicKey = `z6Mk${randomBytes(32).toString("base64url")}`;
       const [created] = await db.insert(didDocuments).values({
         did, userId: input.farmerId, method: "did:web",
         publicKeyMultibase: publicKey,
@@ -123,7 +124,7 @@ export const decentralizedIdentityRouter = router({
         type: ["VerifiablePresentation"],
         holder: input.holderDid,
         verifiableCredential: selectedCreds,
-        proof: { type: "Ed25519Signature2020", created: new Date().toISOString(), verificationMethod: `${input.holderDid}#key-1`, proofPurpose: "authentication", challenge: Math.random().toString(36).slice(2) },
+        proof: { type: "Ed25519Signature2020", created: new Date().toISOString(), verificationMethod: `${input.holderDid}#key-1`, proofPurpose: "authentication", challenge: randomBytes(16).toString("hex") },
       };
       logger.info("[DID] Presentation created", { holder: input.holderDid, credentials: selectedCreds.length, verifier: input.verifierDid });
       return { success: true, presentation };
