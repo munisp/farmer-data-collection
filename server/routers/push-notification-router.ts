@@ -8,6 +8,10 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { publishKafkaEvent, saveDaprState, getDaprState, withRedisCache, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
+import { getDb } from "../db.js";
+import { notificationQueue } from "../../drizzle/schema.js";
+import { eq, desc, sql } from "drizzle-orm";
+import { logger } from "../logger.js";
 
 const notificationTopics = [
   { id: "price_alerts", name: "Price Alerts", description: "Commodity price changes above your threshold" },
@@ -70,16 +74,41 @@ export const pushNotificationRouter = router({
 
   getHistory: protectedProcedure
     .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
-    .query(async ({ ctx }) => {
-      return withRedisCache(`notif-history:${ctx.user.id}`, 60, async () => ({
-        notifications: [
-          { id: "N-001", topic: "price_alerts", title: "Maize price up 5%", body: "Nairobi market maize hit KES 4,725/bag", read: true, sentAt: new Date(Date.now() - 3600000).toISOString() },
-          { id: "N-002", topic: "weather_alerts", title: "Heavy rain expected", body: "Central Kenya: 50mm rain expected Thursday", read: false, sentAt: new Date(Date.now() - 7200000).toISOString() },
-          { id: "N-003", topic: "order_updates", title: "Order delivered", body: "Your 500kg beans order was delivered", read: true, sentAt: new Date(Date.now() - 86400000).toISOString() },
-        ],
-        total: 3,
-        unread: 1,
-      }));
+    .query(async ({ ctx, input }) => {
+      const limit = input?.limit ?? 20;
+      return withRedisCache(`notif-history:${ctx.user.id}`, 60, async () => {
+        try {
+          const db = await getDb();
+          if (!db) return { notifications: [], total: 0, unread: 0 };
+
+          const rows = await db.select().from(notificationQueue)
+            .where(eq(notificationQueue.userId, ctx.user.id))
+            .orderBy(desc(notificationQueue.createdAt))
+            .limit(limit);
+
+          const notifications = rows.map(r => ({
+            id: `N-${r.id}`,
+            topic: r.notificationType,
+            title: r.notificationType.replace(/_/g, " "),
+            body: r.messageText,
+            read: r.status === "sent",
+            sentAt: (r.sentAt || r.createdAt).toISOString(),
+          }));
+
+          const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(notificationQueue)
+            .where(eq(notificationQueue.userId, ctx.user.id));
+          const total = Number(countResult?.count ?? 0);
+
+          const [unreadResult] = await db.select({ count: sql<number>`count(*)` }).from(notificationQueue)
+            .where(sql`${notificationQueue.userId} = ${ctx.user.id} AND ${notificationQueue.status} = 'pending'`);
+          const unread = Number(unreadResult?.count ?? 0);
+
+          return { notifications, total, unread };
+        } catch (err) {
+          logger.warn("[PushNotification] DB query failed, returning empty");
+          return { notifications: [], total: 0, unread: 0 };
+        }
+      });
     }),
 
   registerDevice: protectedProcedure
@@ -103,15 +132,38 @@ export const pushNotificationRouter = router({
       return { registered: true, platform: input.platform };
     }),
 
-  getStats: protectedProcedure.query(async ({ ctx }) => ({
-    userId: ctx.user.id,
-    totalSent: 47,
-    totalRead: 38,
-    readRate: 80.9,
-    topTopics: [
-      { topic: "price_alerts", count: 18 },
-      { topic: "order_updates", count: 12 },
-      { topic: "weather_alerts", count: 9 },
-    ],
-  })),
+  getStats: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      const db = await getDb();
+      if (!db) return { userId: ctx.user.id, totalSent: 0, totalRead: 0, readRate: 0, topTopics: [] };
+
+      const [sentResult] = await db.select({ count: sql<number>`count(*)` }).from(notificationQueue)
+        .where(eq(notificationQueue.userId, ctx.user.id));
+      const totalSent = Number(sentResult?.count ?? 0);
+
+      const [readResult] = await db.select({ count: sql<number>`count(*)` }).from(notificationQueue)
+        .where(sql`${notificationQueue.userId} = ${ctx.user.id} AND ${notificationQueue.status} = 'sent'`);
+      const totalRead = Number(readResult?.count ?? 0);
+
+      const topTopics = await db.select({
+        topic: notificationQueue.notificationType,
+        count: sql<number>`count(*)`,
+      }).from(notificationQueue)
+        .where(eq(notificationQueue.userId, ctx.user.id))
+        .groupBy(notificationQueue.notificationType)
+        .orderBy(sql`count(*) desc`)
+        .limit(5);
+
+      return {
+        userId: ctx.user.id,
+        totalSent,
+        totalRead,
+        readRate: totalSent > 0 ? Math.round((totalRead / totalSent) * 1000) / 10 : 0,
+        topTopics: topTopics.map(t => ({ topic: t.topic, count: Number(t.count) })),
+      };
+    } catch (err) {
+      logger.warn("[PushNotification] Stats query failed, returning empty");
+      return { userId: ctx.user.id, totalSent: 0, totalRead: 0, readRate: 0, topTopics: [] };
+    }
+  }),
 });

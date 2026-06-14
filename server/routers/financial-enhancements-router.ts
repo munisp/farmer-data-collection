@@ -135,28 +135,53 @@ export const financialEnhancementsRouter = router({
   getVoiceLoanStatus: protectedProcedure
     .input(z.object({ phoneNumber: z.string() }))
     .query(async ({ ctx }) => {
-      return {
-        userId: ctx.user.id,
-        activeLoans: [
-          {
-            loanId: "LN-SAMPLE",
-            balance: 25000,
-            currency: "NGN",
-            nextPaymentDate: new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
-            nextPaymentAmount: 5000,
-            status: "active",
-            totalPaid: 15000,
-            totalDue: 40000,
+      try {
+        const db = await requireDb();
+        const { loanApplications } = await import("../../drizzle/loan-application-schema.js");
+
+        const activeLoans = await db.select().from(loanApplications)
+          .where(and(
+            eq(loanApplications.userId, ctx.user.id),
+            eq(loanApplications.status, "approved")
+          ))
+          .orderBy(desc(loanApplications.createdAt))
+          .limit(5);
+
+        const loans = activeLoans.map(loan => ({
+          loanId: loan.applicationNumber ?? `LN-${loan.id}`,
+          balance: Number(loan.loanAmount ?? 0),
+          currency: "KES",
+          nextPaymentDate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+          nextPaymentAmount: Math.round(Number(loan.loanAmount ?? 0) / 12),
+          status: "active",
+          totalPaid: 0,
+          totalDue: Number(loan.loanAmount ?? 0),
+        }));
+
+        const totalBalance = loans.reduce((sum, l) => sum + l.balance, 0);
+        const voiceScript = loans.length > 0
+          ? `You have ${loans.length} active loan${loans.length > 1 ? "s" : ""}. Total balance: ${totalBalance.toLocaleString()} KES. Press 1 to hear repayment history. Press 2 to make a payment now.`
+          : "You have no active loans. Press 1 to apply for a loan. Press 0 for main menu.";
+
+        return {
+          userId: ctx.user.id,
+          activeLoans: loans,
+          voiceScript,
+          ivrMenuOptions: {
+            "1": loans.length > 0 ? "repayment_history" : "apply_loan",
+            "2": "make_payment",
+            "3": "loan_details",
+            "0": "main_menu",
           },
-        ],
-        voiceScript: "You have 1 active loan. Loan balance: 25,000 KES. Next payment: 5,000 KES due in 7 days. Press 1 to hear repayment history. Press 2 to make a payment now.",
-        ivrMenuOptions: {
-          "1": "repayment_history",
-          "2": "make_payment",
-          "3": "loan_details",
-          "0": "main_menu",
-        },
-      };
+        };
+      } catch {
+        return {
+          userId: ctx.user.id,
+          activeLoans: [],
+          voiceScript: "Loan information is temporarily unavailable. Please try again later.",
+          ivrMenuOptions: { "0": "main_menu" },
+        };
+      }
     }),
 
   // ======================== GROUP INPUT PURCHASING ========================
