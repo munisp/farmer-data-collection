@@ -40,7 +40,7 @@ export const governmentSubsidyRouter = router({
       const wafScan = await scanForThreats("government_subsidy", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
-      if (ctx.user.role !== "admin") throw new Error("Only admins can create subsidy programs");
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only admins can create subsidy programs" });
       const db = await requireDb();
 
       const [program] = await db.insert(subsidyPrograms).values({
@@ -150,10 +150,10 @@ export const governmentSubsidyRouter = router({
       const db = await requireDb();
       const [farmer] = await db.select().from(farmers)
         .where(eq(farmers.userId, ctx.user.id)).limit(1);
-      if (!farmer) throw new Error("Farmer profile required. Please register first.");
+      if (!farmer) throw new TRPCError({ code: "BAD_REQUEST", message: "Farmer profile required. Please register first." });
 
       const kycVerified = farmer.verificationStatus === "verified";
-      if (!kycVerified) throw new Error("KYC verification required before applying for subsidies.");
+      if (!kycVerified) throw new TRPCError({ code: "BAD_REQUEST", message: "KYC verification required before applying for subsidies." });
 
       // Check for duplicate applications
       try {
@@ -162,7 +162,7 @@ export const governmentSubsidyRouter = router({
             eq(subsidyApplications.programId, input.programId),
             eq(subsidyApplications.userId, ctx.user.id),
           ));
-        if (existing.length > 0) throw new Error("You have already applied for this program.");
+        if (existing.length > 0) throw new TRPCError({ code: "BAD_REQUEST", message: "You have already applied for this program." });
       } catch (e) {
         if (e instanceof Error && e.message.includes("already applied")) throw e;
         // Table may not exist yet
@@ -180,10 +180,10 @@ export const governmentSubsidyRouter = router({
 
       if (program) {
         if (program.maxBeneficiaries && (program.beneficiaryCount || 0) >= program.maxBeneficiaries) {
-          throw new Error("Program has reached maximum beneficiary capacity.");
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Program has reached maximum beneficiary capacity." });
         }
         if (program.applicationDeadline && new Date(program.applicationDeadline) < new Date()) {
-          throw new Error("Application deadline has passed.");
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Application deadline has passed." });
         }
 
         // Check eligibility criteria
@@ -192,13 +192,13 @@ export const governmentSubsidyRouter = router({
 
         for (const c of criteria as Array<{ type: string; value: string; criterion: string }>) {
           if (c.type === "land_size_max" && input.landSizeAcres > Number(c.value)) {
-            throw new Error(`Ineligible: Land size exceeds ${c.value} acres limit.`);
+            throw new TRPCError({ code: "BAD_REQUEST", message: `Ineligible: Land size exceeds ${c.value} acres limit.` });
           }
           if (c.type === "land_size_min" && input.landSizeAcres < Number(c.value)) {
-            throw new Error(`Ineligible: Minimum land size is ${c.value} acres.`);
+            throw new TRPCError({ code: "BAD_REQUEST", message: `Ineligible: Minimum land size is ${c.value} acres.` });
           }
           if (c.type === "cooperative_member" && !input.cooperativeId) {
-            throw new Error("Ineligible: Must be a cooperative member.");
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Ineligible: Must be a cooperative member." });
           }
         }
       }
@@ -332,7 +332,7 @@ export const governmentSubsidyRouter = router({
       const wafScan = await scanForThreats("government_subsidy", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
-      if (ctx.user.role !== "admin") throw new Error("Only admins can review applications");
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only admins can review applications" });
       const db = await requireDb();
 
       await db.update(subsidyApplications)
@@ -364,7 +364,7 @@ export const governmentSubsidyRouter = router({
       const wafScan = await scanForThreats("government_subsidy", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
-      if (ctx.user.role !== "admin") throw new Error("Only admins can disburse");
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only admins can disburse" });
       const db = await requireDb();
 
       const [app] = await db.select().from(subsidyApplications)
@@ -372,7 +372,7 @@ export const governmentSubsidyRouter = router({
           eq(subsidyApplications.id, input.applicationId),
           eq(subsidyApplications.status, "approved"),
         ));
-      if (!app) throw new Error("Approved application not found");
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Approved application not found" });
 
       const ref = input.transactionRef || `DISB-${Date.now()}`;
 
@@ -419,7 +419,7 @@ export const governmentSubsidyRouter = router({
       try {
         const [program] = await db.select().from(subsidyPrograms)
           .where(eq(subsidyPrograms.id, input.programId));
-        if (!program) throw new Error("Program not found");
+        if (!program) throw new TRPCError({ code: "NOT_FOUND", message: "Program not found" });
 
         const apps = await db.select({
           status: subsidyApplications.status,

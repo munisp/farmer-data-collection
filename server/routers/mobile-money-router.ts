@@ -52,21 +52,23 @@ export const mobileMoneyRouter = router({
       const db = await requireDb();
       const userId = ctx.user.id;
       
-      // If setting as default, unset any existing default
-      if (input.isDefault) {
-        await db.update(mobileMoneyAccounts)
-          .set({ isDefault: false })
-          .where(eq(mobileMoneyAccounts.userId, userId));
-      }
+      // Atomic: unset existing default + insert new account
+      const [account] = await db.transaction(async (tx) => {
+        if (input.isDefault) {
+          await tx.update(mobileMoneyAccounts)
+            .set({ isDefault: false })
+            .where(eq(mobileMoneyAccounts.userId, userId));
+        }
 
-      const [account] = await db.insert(mobileMoneyAccounts).values({
-        userId,
-        provider: input.provider,
-        phoneNumber: input.phoneNumber,
-        accountName: input.accountName || null,
-        isDefault: input.isDefault ?? false,
-        verified: false,
-      }).returning();
+        return tx.insert(mobileMoneyAccounts).values({
+          userId,
+          provider: input.provider,
+          phoneNumber: input.phoneNumber,
+          accountName: input.accountName || null,
+          isDefault: input.isDefault ?? false,
+          verified: false,
+        }).returning();
+      });
 
       // Publish event for OTP dispatch
       await publishKafkaEvent("mobile_money.account.linked", String(account.id), {
@@ -516,7 +518,7 @@ export const mobileMoneyRouter = router({
       const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "mobile_money", "write");
       if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
 
-      if (ctx.user.role !== "admin") throw new Error("Only admins can run reconciliation");
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only admins can run reconciliation" });
       const db = await requireDb();
 
       const fromDate = new Date(input.dateFrom);
@@ -797,7 +799,7 @@ export const mobileMoneyRouter = router({
         };
       } catch (error) {
         logger.error("[Service] Operation failed", { error: error instanceof Error ? error.message : String(error) });
-        throw new Error("Failed to initiate Airtel Money payment");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to initiate Airtel Money payment" });
       }
     }),
 

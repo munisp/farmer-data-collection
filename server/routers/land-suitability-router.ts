@@ -73,7 +73,7 @@ export const landSuitabilityRouter = router({
     .query(({ input }) => {
       const details = getCropDetails(input.cropId);
       if (!details) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
       return details;
     }),
@@ -203,7 +203,7 @@ export const landSuitabilityRouter = router({
       const result = assessLandSuitability(input.cropId, soil, climate, topography, 1);
 
       if (!result) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
 
       return {
@@ -270,7 +270,7 @@ export const landSuitabilityRouter = router({
     .query(({ input }) => {
       const crop = getCropDetails(input.cropId);
       if (!crop) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
 
       // Use a simplified assessment to get amendments
@@ -299,7 +299,7 @@ export const landSuitabilityRouter = router({
       );
 
       if (!result) {
-        throw new Error(`Assessment failed for: ${input.cropId}`);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Assessment failed for: ${input.cropId}` });
       }
 
       return {
@@ -340,7 +340,7 @@ export const landSuitabilityRouter = router({
       );
 
       if (!result) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
 
       const crop = getCropDetails(input.cropId)!;

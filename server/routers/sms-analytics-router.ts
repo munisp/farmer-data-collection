@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
@@ -22,7 +23,7 @@ export const smsAnalyticsRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [eq(smsDeliveryLogs.userId, ctx.user.id)];
       
@@ -96,7 +97,7 @@ export const smsAnalyticsRouter = router({
     }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Build date truncation based on groupBy
       let dateTrunc;
@@ -144,7 +145,7 @@ export const smsAnalyticsRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [eq(smsDeliveryLogs.userId, ctx.user.id)];
       
@@ -180,7 +181,7 @@ export const smsAnalyticsRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [eq(smsDeliveryLogs.userId, ctx.user.id)];
       
@@ -214,7 +215,7 @@ export const smsAnalyticsRouter = router({
   getTemplateUsageStats: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const templates = await db
         .select({
@@ -235,7 +236,7 @@ export const smsAnalyticsRouter = router({
   getScheduledStats: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Pending count
       const [pendingResult] = await db
@@ -285,7 +286,7 @@ export const smsAnalyticsRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const days = input?.days || 30;
       const startDate = new Date();
@@ -332,7 +333,7 @@ export const smsAnalyticsRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [eq(smsDeliveryLogs.userId, ctx.user.id)];
       

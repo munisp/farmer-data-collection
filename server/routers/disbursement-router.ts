@@ -250,7 +250,7 @@ export const disbursementRouter = router({
    */
   getAll: adminProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     // Get all disbursements with loan, lender, and user details
     const disbursements = await db
@@ -321,7 +321,7 @@ export const disbursementRouter = router({
    */
   getAnalytics: adminProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     // Get all disbursements with timestamps
     const allDisbursements = await db

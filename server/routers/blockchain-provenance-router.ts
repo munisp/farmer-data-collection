@@ -55,7 +55,7 @@ async function callBlockchainService<T>(
 async function fetchBlockchainService<T>(path: string): Promise<T> {
   try {
     const resp = await fetch(`${BLOCKCHAIN_SERVICE_URL}${path}`);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `HTTP ${resp.status}` });
     return (await resp.json()) as T;
   } catch (err) {
     logger.warn(`[blockchain-provenance] Go service GET ${path} unavailable: ${err}`);

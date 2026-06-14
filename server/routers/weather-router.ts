@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base";
 import { getDb } from "../db";
@@ -32,7 +33,7 @@ export const weatherRouter = router({
     .query(async ({ input }: { input: { latitude: number; longitude: number } }) => {
       const data = await weatherService.getCurrentWeather(input.latitude, input.longitude);
       if (!data) {
-        throw new Error("Weather data unavailable — OPENWEATHER_API_KEY may not be configured");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Weather data unavailable — OPENWEATHER_API_KEY may not be configured" });
       }
 
       return {
@@ -66,7 +67,7 @@ export const weatherRouter = router({
     .query(async ({ input }: { input: { latitude: number; longitude: number } }) => {
       const forecasts = await weatherService.getForecast(input.latitude, input.longitude);
       if (!forecasts || forecasts.length === 0) {
-        throw new Error("Forecast data unavailable — OPENWEATHER_API_KEY may not be configured");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Forecast data unavailable — OPENWEATHER_API_KEY may not be configured" });
       }
 
       return forecasts.map(f => ({
@@ -181,7 +182,7 @@ export const weatherRouter = router({
     .query(async ({ input }: { input: { latitude: number; longitude: number } }) => {
       const weather = await weatherService.getCurrentWeather(input.latitude, input.longitude);
       if (!weather) {
-        throw new Error("Weather data unavailable — OPENWEATHER_API_KEY may not be configured");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Weather data unavailable — OPENWEATHER_API_KEY may not be configured" });
       }
 
       const temp = weather.temperature;

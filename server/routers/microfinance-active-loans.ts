@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
@@ -11,7 +12,7 @@ export const microfinanceActiveLoansRouter = router({
    */
   getActiveLoans: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const activeLoans = await db
       .select({

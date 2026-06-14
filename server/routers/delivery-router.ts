@@ -335,7 +335,7 @@ export const deliveryRouter = router({
       const [driver] = await db.select().from(drivers)
         .where(eq(drivers.userId, ctx.user.id));
       
-      if (!driver) throw new Error("Not registered as a driver");
+      if (!driver) throw new TRPCError({ code: "FORBIDDEN", message: "Not registered as a driver" });
 
       await db.update(drivers)
         .set({
@@ -373,7 +373,7 @@ export const deliveryRouter = router({
       const [driver] = await db.select().from(drivers)
         .where(eq(drivers.userId, ctx.user.id));
 
-      if (!driver) throw new Error("Not registered as a driver");
+      if (!driver) throw new TRPCError({ code: "FORBIDDEN", message: "Not registered as a driver" });
 
       await db.update(drivers)
         .set({ onlineStatus: "offline", updatedAt: new Date() })

@@ -6,6 +6,7 @@
  * and provides actionable insights for farmers.
  */
 
+import { randomInt } from "crypto";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -599,7 +600,7 @@ export const predictiveAnalyticsRouter = router({
         const date = new Date(now);
         date.setDate(date.getDate() + (i + 1) * 7);
         const monthIdx = date.getMonth();
-        const demandTons = Math.round(base * seasonal[monthIdx] * (0.9 + Math.random() * 0.2));
+        const demandTons = Math.round(base * seasonal[monthIdx] * (0.9 + (randomInt(200) / 1000)));
 
         return {
           weekNumber: i + 1,

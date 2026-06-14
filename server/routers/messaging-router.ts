@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 /**
  * Complete Messaging Router for USSD/SMS/WhatsApp
  * 
@@ -142,7 +143,7 @@ async function getOrCreateSession(
   channel: "ussd" | "sms" | "whatsapp"
 ): Promise<SessionContext> {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
   // Check for existing active session
   const [existing] = await db
@@ -197,7 +198,7 @@ async function updateSession(
   context: Record<string, any>
 ) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
   await db
     .update(messagingSessions)
@@ -218,7 +219,7 @@ async function logMessage(
   messageText: string
 ) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
   await db.insert(messageLogs).values({
     sessionId,

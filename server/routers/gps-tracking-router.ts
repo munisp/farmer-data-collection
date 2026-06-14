@@ -119,7 +119,7 @@ export const gpsTrackingRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         INSERT INTO gps_devices (
@@ -140,7 +140,7 @@ export const gpsTrackingRouter = router({
    */
   getDevices: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -162,7 +162,7 @@ export const gpsTrackingRouter = router({
     .input(z.object({ deviceId: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         SELECT 
@@ -177,7 +177,7 @@ export const gpsTrackingRouter = router({
       `);
 
       if (result.rows.length === 0) {
-        throw new Error('Device not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Device not found" });
       }
 
       return result.rows[0];
@@ -200,7 +200,7 @@ export const gpsTrackingRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       await db.execute(sql`
         UPDATE gps_devices
@@ -243,7 +243,7 @@ export const gpsTrackingRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
         const db = await getDb();
-        if (!db) throw new Error('Database not available');
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
         // Record metric
         gpsMetrics.recordTrackReceived();
@@ -256,7 +256,7 @@ export const gpsTrackingRouter = router({
         const rateLimit = await rateLimiter.checkGPSRateLimit(ctx.user.id, input.deviceId, rateLimitPerMinute);
         if (!rateLimit.allowed) {
           gpsMetrics.recordTrackRejected('rate_limit');
-          throw new Error(`Rate limit exceeded. Maximum ${rateLimitPerMinute} GPS points per minute per device.`);
+          throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Rate limit exceeded. Maximum ${rateLimitPerMinute} GPS points per minute per device.` });
         }
 
         // 2. Duplicate detection via clientId (idempotency)
@@ -290,7 +290,7 @@ export const gpsTrackingRouter = router({
         `);
         
         if (deviceCheck.rows.length === 0) {
-          throw new Error('Device not found or access denied');
+          throw new TRPCError({ code: "NOT_FOUND", message: "Device not found or access denied" });
         }
 
         const device = deviceCheck.rows[0] as any;
@@ -442,7 +442,7 @@ export const gpsTrackingRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       let query = sql`
         SELECT 
@@ -481,7 +481,7 @@ export const gpsTrackingRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       let query = sql`
         SELECT 
@@ -521,7 +521,7 @@ export const gpsTrackingRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       let whereClause = sql`user_id = ${ctx.user.id}`;
 
@@ -570,7 +570,7 @@ export const gpsTrackingRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Delete associated tracks first
       await db.execute(sql`

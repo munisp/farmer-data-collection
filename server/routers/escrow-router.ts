@@ -99,7 +99,7 @@ export const escrowRouter = router({
           eq(escrowAccounts.status, "held"),
         ));
 
-      if (!escrow) throw new Error("Escrow not found or already released");
+      if (!escrow) throw new TRPCError({ code: "NOT_FOUND", message: "Escrow not found or already released" });
 
       await db.transaction(async (tx) => {
         await tx.update(escrowAccounts)
@@ -148,7 +148,7 @@ export const escrowRouter = router({
           eq(escrowAccounts.status, "held"),
         ));
 
-      if (!escrow) throw new Error("Escrow not found or already resolved");
+      if (!escrow) throw new TRPCError({ code: "NOT_FOUND", message: "Escrow not found or already resolved" });
 
       const disputeId = crypto.randomUUID();
       await db.update(escrowAccounts)
@@ -216,7 +216,7 @@ export const escrowRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       if (ctx.user.role !== "admin") {
-        throw new Error("Only admins can resolve disputes");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only admins can resolve disputes" });
       }
 
       const [escrow] = await db.select().from(escrowAccounts)
@@ -224,7 +224,7 @@ export const escrowRouter = router({
           eq(escrowAccounts.id, input.escrowId),
           eq(escrowAccounts.status, "disputed"),
         ));
-      if (!escrow) throw new Error("Disputed escrow not found");
+      if (!escrow) throw new TRPCError({ code: "NOT_FOUND", message: "Disputed escrow not found" });
 
       let sellerAmount = 0;
       let buyerRefund = 0;
@@ -305,7 +305,7 @@ export const escrowRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       if (ctx.user.role !== "admin") {
-        throw new Error("Only admins can trigger auto-release");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only admins can trigger auto-release" });
       }
 
       const expiredEscrows = await db.select().from(escrowAccounts)
@@ -376,7 +376,7 @@ export const escrowRouter = router({
           eq(escrowAccounts.buyerId, ctx.user.id),
           eq(escrowAccounts.status, "held"),
         ));
-      if (!escrow) throw new Error("Escrow not found or not eligible for refund");
+      if (!escrow) throw new TRPCError({ code: "NOT_FOUND", message: "Escrow not found or not eligible for refund" });
 
       // Raise as dispute with refund request
       const disputeId = crypto.randomUUID();
@@ -428,9 +428,9 @@ export const escrowRouter = router({
           eq(escrowAccounts.id, input.escrowId),
           eq(escrowAccounts.status, "held"),
         ));
-      if (!escrow) throw new Error("Escrow not found or already resolved");
+      if (!escrow) throw new TRPCError({ code: "NOT_FOUND", message: "Escrow not found or already resolved" });
       if (escrow.buyerId !== ctx.user.id && escrow.sellerId !== ctx.user.id) {
-        throw new Error("Not a party to this escrow");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not a party to this escrow" });
       }
 
       const currentRelease = new Date(escrow.autoReleaseAt || Date.now());

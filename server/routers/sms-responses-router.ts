@@ -80,7 +80,7 @@ export const smsResponsesRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Classify the message
       const { category, sentiment } = classifyMessage(input.text);
@@ -189,7 +189,7 @@ export const smsResponsesRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [];
       
@@ -228,7 +228,7 @@ export const smsResponsesRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [response] = await db
         .select({
@@ -249,7 +249,7 @@ export const smsResponsesRouter = router({
         .limit(1);
 
       if (!response) {
-        throw new Error("Response not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Response not found" });
       }
 
       return response;
@@ -272,7 +272,7 @@ export const smsResponsesRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const updates: Record<string, unknown> = {
         isProcessed: input.status,
@@ -316,7 +316,7 @@ export const smsResponsesRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get the original response
       const [response] = await db
@@ -326,7 +326,7 @@ export const smsResponsesRouter = router({
         .limit(1);
 
       if (!response) {
-        throw new Error("Response not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Response not found" });
       }
 
       // Send SMS
@@ -337,7 +337,7 @@ export const smsResponsesRouter = router({
       });
 
       if (!result.success) {
-        throw new Error(`Failed to send reply: ${result.error}`);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Failed to send reply: ${result.error}` });
       }
 
       // Update response status
@@ -364,7 +364,7 @@ export const smsResponsesRouter = router({
   getStatistics: protectedProcedure
     .query(async () => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [stats] = await db
         .select({

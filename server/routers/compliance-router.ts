@@ -429,7 +429,7 @@ export const complianceRouter = router({
       const db = await requireDb();
 
       const [user] = await db.select().from(users).where(eq(users.id, input.userId));
-      if (!user) throw new Error("User not found");
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
       const accountAgeDays = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / 86400000);
 

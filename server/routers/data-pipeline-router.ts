@@ -33,7 +33,7 @@ export const dataPipelineRouter = router({
     .input(z.object({ jobId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [job] = await db.select().from(pipelineJobs).where(eq(pipelineJobs.id, input.jobId));
       if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Pipeline job not found" });
       const metrics = await db.select().from(pipelineMetrics).where(eq(pipelineMetrics.jobId, input.jobId)).orderBy(desc(pipelineMetrics.recordedAt)).limit(10);
@@ -49,7 +49,7 @@ export const dataPipelineRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [job] = await db.select().from(pipelineJobs).where(eq(pipelineJobs.id, input.jobId));
       if (!job) throw new TRPCError({ code: "NOT_FOUND", message: "Pipeline job not found" });
       if (job.status === "running") throw new TRPCError({ code: "CONFLICT", message: "Job is already running" });
@@ -73,7 +73,7 @@ export const dataPipelineRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const jobCode = `PL-${Date.now()}`;
       const [job] = await db.insert(pipelineJobs).values({
         jobCode,

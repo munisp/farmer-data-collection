@@ -99,7 +99,7 @@ export const conversationalCommerceRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const sessionCode = `CHAT-${Date.now()}`;
       const [session] = await db.insert(chatSessions).values({
         sessionCode,
@@ -122,9 +122,9 @@ export const conversationalCommerceRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, input.sessionId));
-      if (!session) throw new Error("Session not found");
+      if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
 
       const { intent, entities, confidence } = detectIntent(input.message);
       const language = detectLanguage(input.message);
@@ -159,7 +159,7 @@ export const conversationalCommerceRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       await db.update(chatSessions).set({ status: "ended", endedAt: new Date() }).where(eq(chatSessions.id, input.sessionId));
       return { status: "ended" };
     }),

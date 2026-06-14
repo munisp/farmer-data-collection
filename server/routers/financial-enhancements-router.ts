@@ -32,7 +32,7 @@ export const financialEnhancementsRouter = router({
       const maxLoanPct = 0.7;
       const maxLoanAmount = Math.round(input.estimatedValue * maxLoanPct);
       if (input.requestedAmount > maxLoanAmount) {
-        throw new Error(`Maximum loan against this receipt is KES ${maxLoanAmount} (70% of commodity value)`);
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Maximum loan against this receipt is KES ${maxLoanAmount} (70% of commodity value)` });
       }
       const interestRate = 12;
       const monthlyPayment = Math.round((input.requestedAmount * (1 + interestRate / 100)) / 6);

@@ -10,6 +10,7 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
  */
 
 import { TRPCError } from "@trpc/server";
+import { randomInt } from "crypto";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -138,16 +139,16 @@ export const chamaRouter = router({
       const db = await requireDb();
       const [group] = await db.select().from(chamaGroups)
         .where(eq(chamaGroups.id, input.groupId));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       const existingMembers = await db.select().from(chamaMembers)
         .where(and(eq(chamaMembers.chamaId, input.groupId), eq(chamaMembers.active, true)));
       if (existingMembers.length >= (group.maxMembers || 30)) {
-        throw new Error("Group is full");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Group is full" });
       }
 
       const existing = existingMembers.find(m => m.userId === ctx.user.id);
-      if (existing) throw new Error("Already a member");
+      if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "Already a member" });
 
       const [member] = await db.insert(chamaMembers).values({
         chamaId: input.groupId,
@@ -181,7 +182,7 @@ export const chamaRouter = router({
           eq(chamaMembers.userId, ctx.user.id),
           eq(chamaMembers.active, true),
         ));
-      if (!member) throw new Error("Not a member of this group");
+      if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this group" });
 
       const [contribution] = await db.insert(chamaContributions).values({
         chamaId: input.groupId,
@@ -243,11 +244,11 @@ export const chamaRouter = router({
           eq(chamaMembers.userId, ctx.user.id),
           eq(chamaMembers.active, true),
         ));
-      if (!member) throw new Error("Not a member of this group");
+      if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this group" });
 
       const [group] = await db.select().from(chamaGroups)
         .where(eq(chamaGroups.id, input.groupId));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       // Check max loan amount (multiplier × total contributions)
       const myContributions = await db.select().from(chamaContributions)
@@ -258,7 +259,7 @@ export const chamaRouter = router({
       const totalContributed = myContributions.reduce((sum, c) => sum + c.amount, 0);
       const maxLoan = totalContributed * Number(group.maxLoanMultiplier || 3);
       if (input.amount > maxLoan) {
-        throw new Error(`Maximum loan amount is ${maxLoan} (${group.maxLoanMultiplier}× your contributions)`);
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Maximum loan amount is ${maxLoan} (${group.maxLoanMultiplier}× your contributions)` });
       }
 
       const dueDate = new Date(Date.now() + input.termWeeks * 7 * 24 * 60 * 60 * 1000);
@@ -290,7 +291,7 @@ export const chamaRouter = router({
       const db = await requireDb();
       const [loan] = await db.select().from(chamaLoans)
         .where(eq(chamaLoans.id, input.loanId));
-      if (!loan) throw new Error("Loan not found");
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
 
       const [member] = await db.select().from(chamaMembers)
         .where(and(
@@ -298,7 +299,7 @@ export const chamaRouter = router({
           eq(chamaMembers.userId, ctx.user.id),
         ));
       if (!member || !["chairperson", "treasurer"].includes(member.role || "")) {
-        throw new Error("Only chairperson or treasurer can approve loans");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only chairperson or treasurer can approve loans" });
       }
 
       await db.update(chamaLoans)
@@ -347,21 +348,21 @@ export const chamaRouter = router({
           eq(chamaMembers.userId, ctx.user.id),
         ));
       if (!member || !["chairperson", "treasurer"].includes(member.role || "")) {
-        throw new Error("Only chairperson or treasurer can enable merry-go-round");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only chairperson or treasurer can enable merry-go-round" });
       }
 
       const members = await db.select().from(chamaMembers)
         .where(and(eq(chamaMembers.chamaId, input.groupId), eq(chamaMembers.active, true)))
         .orderBy(chamaMembers.joinedAt);
 
-      if (members.length < 3) throw new Error("Need at least 3 active members for merry-go-round");
+      if (members.length < 3) throw new TRPCError({ code: "BAD_REQUEST", message: "Need at least 3 active members for merry-go-round" });
 
       // Determine rotation order
       let rotationOrder: number[];
       if (input.rotationOrder === "random") {
         const shuffled = [...members];
         for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
+          const j = randomInt(i + 1);
           [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         rotationOrder = shuffled.map(m => m.id);
@@ -430,26 +431,26 @@ export const chamaRouter = router({
           eq(chamaMembers.userId, ctx.user.id),
         ));
       if (!member || !["chairperson", "treasurer"].includes(member.role || "")) {
-        throw new Error("Only chairperson or treasurer can process payouts");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only chairperson or treasurer can process payouts" });
       }
 
       const [group] = await db.select().from(chamaGroups)
         .where(eq(chamaGroups.id, input.groupId));
-      if (!group) throw new Error("Group not found");
-      if (!group.merryGoRoundEnabled) throw new Error("Merry-go-round is not enabled for this group");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+      if (!group.merryGoRoundEnabled) throw new TRPCError({ code: "BAD_REQUEST", message: "Merry-go-round is not enabled for this group" });
 
       const rotationOrder: number[] = typeof group.rotationOrder === "string"
         ? JSON.parse(group.rotationOrder) : (group.rotationOrder || []);
       const currentIndex = group.currentRotationIndex || 0;
 
       if (currentIndex >= rotationOrder.length) {
-        throw new Error("All members have received their payout. Start a new cycle.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "All members have received their payout. Start a new cycle." });
       }
 
       const recipientMemberId = rotationOrder[currentIndex];
       const recipientMember = await db.select().from(chamaMembers)
         .where(eq(chamaMembers.id, recipientMemberId));
-      if (!recipientMember[0]) throw new Error("Recipient member not found");
+      if (!recipientMember[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Recipient member not found" });
 
       // Get all active members
       const activeMembers = await db.select().from(chamaMembers)
@@ -546,7 +547,7 @@ export const chamaRouter = router({
       const db = await requireDb();
       const [group] = await db.select().from(chamaGroups)
         .where(eq(chamaGroups.id, input.groupId));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       if (!group.merryGoRoundEnabled) {
         return { enabled: false, message: "Merry-go-round is not enabled for this group" };
@@ -605,7 +606,7 @@ export const chamaRouter = router({
           eq(chamaMembers.userId, ctx.user.id),
         ));
       if (!actor || !["chairperson", "treasurer"].includes(actor.role || "")) {
-        throw new Error("Only chairperson or treasurer can apply penalties");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only chairperson or treasurer can apply penalties" });
       }
 
       await db.insert(chamaContributions).values({
@@ -635,7 +636,7 @@ export const chamaRouter = router({
       const db = await requireDb();
       const [group] = await db.select().from(chamaGroups)
         .where(eq(chamaGroups.id, input.groupId));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       const members = await db.select().from(chamaMembers)
         .where(and(eq(chamaMembers.chamaId, input.groupId), eq(chamaMembers.active, true)));

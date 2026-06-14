@@ -70,7 +70,7 @@ export const carbonCreditRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const credits = calculateCarbonFootprint(input.farmSizeHa, "mixed", input.type);
       const projectCode = `CP-${Date.now()}`;
       const [project] = await db.insert(carbonProjects).values({
@@ -105,7 +105,7 @@ export const carbonCreditRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const tradeId = `TR-${Date.now()}`;
       const total = input.quantity * input.pricePerTonne;
       const tokenId = `TK-${Date.now()}`;

@@ -126,13 +126,13 @@ export const loanDecisioningRouter = router({
       // Fetch the loan application
       const [app] = await db.select().from(loanApplications)
         .where(eq(loanApplications.id, input.applicationId));
-      if (!app) throw new Error("Application not found");
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
       if (app.status !== "pending" && app.status !== "under_review") {
-        throw new Error(`Cannot evaluate application in ${app.status} status`);
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Cannot evaluate application in ${app.status} status` });
       }
 
       const userId = app.userId;
-      if (!userId) throw new Error("Application has no associated user");
+      if (!userId) throw new TRPCError({ code: "BAD_REQUEST", message: "Application has no associated user" });
 
       // Fetch credit score
       const [score] = await db.select().from(creditScores)
@@ -458,7 +458,7 @@ export const loanDecisioningRouter = router({
 
       const [app] = await db.select().from(loanApplications)
         .where(eq(loanApplications.id, input.applicationId));
-      if (!app) throw new Error("Application not found");
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
 
       await db.update(loanApplications)
         .set({

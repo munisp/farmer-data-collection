@@ -25,7 +25,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { latitude, longitude, radiusMeters } = input;
 
@@ -67,7 +67,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { latitude, longitude, limit } = input;
 
@@ -105,7 +105,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { latitude, longitude } = input;
 
@@ -140,7 +140,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         SELECT 
@@ -172,7 +172,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         SELECT 
@@ -206,7 +206,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         SELECT 
@@ -223,7 +223,7 @@ export const spatialRouter = router({
       `);
 
       if (!result.rows[0]) {
-        throw new Error("Boundary not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Boundary not found" });
       }
 
       const row = result.rows[0];
@@ -245,7 +245,7 @@ export const spatialRouter = router({
    */
   getAllBoundariesGeoJSON: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -300,7 +300,7 @@ export const spatialRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { farmId, name, geoJSON } = input;
 
@@ -329,7 +329,7 @@ export const spatialRouter = router({
    */
   getTotalFarmArea: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -375,7 +375,7 @@ export const spatialRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const imported = [];
       const errors = [];
@@ -446,7 +446,7 @@ export const spatialRouter = router({
    */
   getFarmDensityByRegion: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -471,7 +471,7 @@ export const spatialRouter = router({
    */
   getAreaByDistrict: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -511,7 +511,7 @@ export const spatialRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Convert coordinates to WKT
       const wkt = `POLYGON((${input.coordinates.map(coord => `${coord[0]} ${coord[1]}`).join(", ")}))`;
@@ -551,7 +551,7 @@ export const spatialRouter = router({
    */
   detectOverlappingBoundaries: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -585,7 +585,7 @@ export const spatialRouter = router({
     .input(z.object({ farmId: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Note: This requires adding an audit table for boundary changes
       // For now, return the current boundary with timestamps

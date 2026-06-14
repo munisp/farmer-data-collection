@@ -111,7 +111,7 @@ export const retailStoreRouter = router({
       const db = await requireDb();
       const [store] = await db.select().from(retailStores)
         .where(and(eq(retailStores.id, input.storeId), eq(retailStores.ownerId, ctx.user.id)));
-      if (!store) throw new Error("Store not found or unauthorized");
+      if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found or unauthorized" });
 
       const updates: Record<string, unknown> = { updatedAt: new Date() };
       if (input.name) updates.name = input.name;
@@ -164,7 +164,7 @@ export const retailStoreRouter = router({
       const db = await requireDb();
       const [store] = await db.select().from(retailStores)
         .where(and(eq(retailStores.id, input.storeId), eq(retailStores.ownerId, ctx.user.id)));
-      if (!store) throw new Error("Store not found");
+      if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
 
       const invoices = await db.select().from(retailInvoices)
         .where(eq(retailInvoices.storeId, input.storeId));
@@ -219,7 +219,7 @@ export const retailStoreRouter = router({
       const db = await requireDb();
       const [store] = await db.select().from(retailStores)
         .where(and(eq(retailStores.id, input.storeId), eq(retailStores.ownerId, ctx.user.id)));
-      if (!store) throw new Error("Store not found or unauthorized");
+      if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found or unauthorized" });
 
       const [so] = await db.insert(retailStandingOrders).values({
         storeId: input.storeId,
@@ -295,11 +295,11 @@ export const retailStoreRouter = router({
       const db = await requireDb();
       const [so] = await db.select().from(retailStandingOrders)
         .where(eq(retailStandingOrders.id, input.standingOrderId));
-      if (!so) throw new Error("Standing order not found");
+      if (!so) throw new TRPCError({ code: "NOT_FOUND", message: "Standing order not found" });
 
       const [store] = await db.select().from(retailStores)
         .where(eq(retailStores.id, so.storeId));
-      if (!store) throw new Error("Store not found");
+      if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
 
       // Create marketplace order
       const orderNumber = `RSO-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
@@ -401,7 +401,7 @@ export const retailStoreRouter = router({
       const db = await requireDb();
       const [store] = await db.select().from(retailStores)
         .where(and(eq(retailStores.id, input.storeId), eq(retailStores.ownerId, ctx.user.id)));
-      if (!store) throw new Error("Store not found");
+      if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
 
       const listingIds = input.items.map(i => i.listingId);
       const listings = await db.select().from(produceListings)
@@ -411,15 +411,15 @@ export const retailStoreRouter = router({
         ));
 
       if (listings.length !== input.items.length) {
-        throw new Error("Some listings are no longer available");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Some listings are no longer available" });
       }
 
       // Group by seller
       const sellerGroups = new Map<number, { listing: typeof listings[0]; qty: number }[]>();
       for (const item of input.items) {
         const listing = listings.find(l => l.id === item.listingId);
-        if (!listing) throw new Error("Listing not found");
-        if (listing.quantity < item.quantity) throw new Error(`Insufficient quantity for ${listing.title}`);
+        if (!listing) throw new TRPCError({ code: "NOT_FOUND", message: "Listing not found" });
+        if (listing.quantity < item.quantity) throw new TRPCError({ code: "BAD_REQUEST", message: `Insufficient quantity for ${listing.title}` });
 
         const group = sellerGroups.get(listing.userId) || [];
         group.push({ listing, qty: item.quantity });

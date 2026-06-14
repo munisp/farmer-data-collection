@@ -62,7 +62,7 @@ export const marketplaceEnhancementsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [offer] = await db.select().from(negotiationOffers).where(eq(negotiationOffers.id, input.offerId)).limit(1);
-      if (!offer || offer.sellerId !== ctx.user.id) throw new Error("Not authorized");
+      if (!offer || offer.sellerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Not authorized" });
       await db.update(negotiationOffers).set({
         counterPrice: input.counterPrice,
         status: "countered",
@@ -83,9 +83,9 @@ export const marketplaceEnhancementsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [offer] = await db.select().from(negotiationOffers).where(eq(negotiationOffers.id, input.offerId)).limit(1);
-      if (!offer) throw new Error("Offer not found");
+      if (!offer) throw new TRPCError({ code: "NOT_FOUND", message: "Offer not found" });
       if (offer.sellerId !== ctx.user.id && offer.buyerId !== ctx.user.id) {
-        throw new Error("Not authorized");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not authorized" });
       }
       const newStatus = input.action === "accept" ? "accepted" : "rejected";
 
@@ -226,7 +226,7 @@ export const marketplaceEnhancementsRouter = router({
       const [goal] = await db.select().from(savingsGoals)
         .where(and(eq(savingsGoals.id, input.goalId), eq(savingsGoals.userId, ctx.user.id)))
         .limit(1);
-      if (!goal) throw new Error("Goal not found");
+      if (!goal) throw new TRPCError({ code: "NOT_FOUND", message: "Goal not found" });
       await db.update(savingsGoals).set({
         currentAmount: goal.currentAmount + input.amount,
         status: goal.currentAmount + input.amount >= goal.targetAmount ? "completed" : "active",
@@ -386,7 +386,7 @@ export const marketplaceEnhancementsRouter = router({
       };
       const key = `${input.sourceCurrency}_${input.destinationCurrency}`;
       const rate = exchangeRates[key];
-      if (!rate) throw new Error(`Exchange rate not available for ${key}`);
+      if (!rate) throw new TRPCError({ code: "BAD_REQUEST", message: `Exchange rate not available for ${key}` });
       const convertedAmount = Math.round(input.amount * rate * 100) / 100;
       const txId = `XBORDER-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
       return {

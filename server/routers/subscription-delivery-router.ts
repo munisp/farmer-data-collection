@@ -30,7 +30,7 @@ const URBAN_DELIVERY_URL = process.env.URBAN_DELIVERY_URL || "http://localhost:8
 async function callDeliveryService<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
   if (method === "GET") {
     const resp = await fetch(`${URBAN_DELIVERY_URL}${path}`);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `HTTP ${resp.status}` });
     return (await resp.json()) as T;
   }
   return await resilientPost<T>("urban-delivery", `${URBAN_DELIVERY_URL}${path}`, body || {});

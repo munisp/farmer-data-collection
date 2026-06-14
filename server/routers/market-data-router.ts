@@ -15,6 +15,7 @@
  *   - Seasonal pattern analysis
  */
 
+import { randomInt } from "crypto";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -123,7 +124,7 @@ function getFallbackPrice(commodity: string, currency: string): number {
   const seasonalFactor = factors ? factors[month] : 1.0;
 
   // Add random market noise (±3%)
-  const noise = 0.97 + Math.random() * 0.06;
+  const noise = 0.97 + (randomInt(600) / 10000);
 
   return Math.round(basePrice * seasonalFactor * noise);
 }

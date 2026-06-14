@@ -61,8 +61,8 @@ export const exchangeRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const filters = input || { active: true };
       
       let query = db.select().from(exchangeCommodities);
@@ -90,7 +90,7 @@ export const exchangeRouter = router({
     .input(z.object({ symbol: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [commodity] = await db
         .select()
         .from(exchangeCommodities)
@@ -98,7 +98,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!commodity) {
-        throw new Error("Commodity not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Commodity not found" });
       }
       
       return commodity;
@@ -124,7 +124,7 @@ export const exchangeRouter = router({
       const wafScan = await scanForThreats("exchange", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       
       const [commodity] = await db
         .insert(exchangeCommodities)
@@ -153,7 +153,7 @@ export const exchangeRouter = router({
   getMyTraderProfile: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       // Check if trader profile exists
@@ -198,7 +198,7 @@ export const exchangeRouter = router({
   getMyPositions: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       const [trader] = await db
@@ -238,7 +238,7 @@ export const exchangeRouter = router({
       const wafScan = await scanForThreats("exchange", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       // Get or create trader
@@ -315,13 +315,13 @@ export const exchangeRouter = router({
       const wafScan = await scanForThreats("exchange", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const userId = ctx.user.id;
       
         // Enforce KYC requirements before deposit
         const kycCheck = await checkWalletKyc(userId, 'deposit', input.amount);
         if (!kycCheck.allowed) {
-          throw new Error(kycCheck.reason || "KYC verification required for deposits");
+          throw new TRPCError({ code: "BAD_REQUEST", message: kycCheck.reason || "KYC verification required for deposits" });
         }
       
         // Get trader
@@ -332,7 +332,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!trader) {
-        throw new Error("Trader profile not found. Please create one first.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Trader profile not found. Please create one first." });
       }
       
       // Get account
@@ -343,7 +343,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!account) {
-        throw new Error("Exchange account not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Exchange account not found." });
       }
       
       const updatedAccount = await db.transaction(async (tx) => {
@@ -385,13 +385,13 @@ export const exchangeRouter = router({
       const wafScan = await scanForThreats("exchange", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const userId = ctx.user.id;
       
         // Enforce KYC requirements before withdrawal
         const kycCheck = await checkWalletKyc(userId, 'withdraw', input.amount);
         if (!kycCheck.allowed) {
-          throw new Error(kycCheck.reason || "KYC verification required for withdrawals");
+          throw new TRPCError({ code: "BAD_REQUEST", message: kycCheck.reason || "KYC verification required for withdrawals" });
         }
       
         // Get trader
@@ -402,7 +402,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!trader) {
-        throw new Error("Trader profile not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Trader profile not found." });
       }
       
       // Get account
@@ -413,11 +413,11 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!account) {
-        throw new Error("Exchange account not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Exchange account not found." });
       }
       
       if (account.cashAvailable < input.amount) {
-        throw new Error("Insufficient available balance.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient available balance." });
       }
       
       const updatedAccount = await db.transaction(async (tx) => {
@@ -459,7 +459,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       
       // Get buy orders (bids) - highest price first
       const bids = await db
@@ -508,7 +508,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       
       const trades = await db
         .select()
@@ -537,7 +537,7 @@ export const exchangeRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const userId = ctx.user.id;
         const rateCheck = await checkRateLimit("exchange-order", String(userId), 20, 60);
         if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for exchange orders" });
@@ -550,12 +550,12 @@ export const exchangeRouter = router({
         const estimatedAmount = (input.price || 0) * input.quantity;
         const kycCheck = await checkTradingKyc(userId, tradeType, estimatedAmount);
         if (!kycCheck.allowed) {
-          throw new Error(kycCheck.reason || "KYC verification required for trading");
+          throw new TRPCError({ code: "BAD_REQUEST", message: kycCheck.reason || "KYC verification required for trading" });
         }
       
         // Validate limit order has price
       if (input.orderType === "limit" && !input.price) {
-        throw new Error("Limit orders require a price.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Limit orders require a price" });
       }
       
       // Get trader
@@ -566,11 +566,11 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!trader) {
-        throw new Error("Trader profile not found. Please create one first.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Trader profile not found. Please create one first." });
       }
       
       if (trader.verificationStatus === "suspended") {
-        throw new Error("Your trading account is suspended.");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Your trading account is suspended" });
       }
       
       // Get account
@@ -581,7 +581,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!account) {
-        throw new Error("Exchange account not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Exchange account not found." });
       }
       
       // Get commodity
@@ -592,7 +592,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!commodity || !commodity.active) {
-        throw new Error("Commodity not found or not active.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Commodity not found or not active." });
       }
       
       let cashReserved = 0;
@@ -602,13 +602,13 @@ export const exchangeRouter = router({
         // Calculate required cash
         const orderPrice = input.price || commodity.bestAskPrice || commodity.lastTradePrice || 0;
         if (orderPrice === 0 && input.orderType === "market") {
-          throw new Error("Cannot place market order: no price available.");
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot place market order: no price available." });
         }
         
         cashReserved = orderPrice * input.quantity;
         
         if (account.cashAvailable < cashReserved) {
-          throw new Error(`Insufficient funds. Required: ${cashReserved}, Available: ${account.cashAvailable}`);
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Insufficient funds. Required: ${cashReserved}, Available: ${account.cashAvailable}` });
         }
         
         // Reserve cash
@@ -633,7 +633,7 @@ export const exchangeRouter = router({
           .limit(1);
         
         if (!position || position.quantityAvailable < input.quantity) {
-          throw new Error(`Insufficient position. Required: ${input.quantity}, Available: ${position?.quantityAvailable || 0}`);
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Insufficient position. Required: ${input.quantity}, Available: ${position?.quantityAvailable || 0}` });
         }
         
         positionReserved = input.quantity;
@@ -699,7 +699,7 @@ export const exchangeRouter = router({
       const wafScan = await scanForThreats("exchange", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       // Get trader
@@ -710,7 +710,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!trader) {
-        throw new Error("Trader profile not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Trader profile not found." });
       }
       
       // Get order
@@ -724,11 +724,11 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!order) {
-        throw new Error("Order not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Order not found." });
       }
       
       if (order.status !== "open" && order.status !== "partially_filled") {
-        throw new Error("Order cannot be cancelled.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Order cannot be cancelled." });
       }
       
       const remainingQuantity = order.quantity - order.quantityFilled;
@@ -805,7 +805,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       const [trader] = await db
@@ -850,7 +850,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       const [trader] = await db
@@ -906,7 +906,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       
       const conditions = [
         eq(exchangePriceCandles.commodityId, input.commodityId),
@@ -942,7 +942,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       const [trader] = await db
@@ -1006,7 +1006,7 @@ async function matchOrder(
   trader: typeof exchangeTraders.$inferSelect,
   commodity: typeof exchangeCommodities.$inferSelect
 ) {
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
   const trades = await db.transaction(async (tx) => {
     const matched: (typeof exchangeTrades.$inferSelect)[] = [];
@@ -1315,7 +1315,7 @@ async function matchOrder(
 }
 
 async function updateBestPrices(db: Awaited<ReturnType<typeof getDb>>, commodityId: number) {
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
   // Get best bid (highest buy price)
   const [bestBid] = await db
     .select({ price: exchangeOrders.price })

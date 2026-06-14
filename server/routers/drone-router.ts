@@ -47,7 +47,7 @@ export const droneRouter = router({
           overlap_pct: input.overlapPct,
         }),
       }, { maxRetries: 2 });
-      if (!res.ok) throw new Error(`Drone service error: ${res.status}`);
+      if (!res.ok) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Drone service error: ${res.status}` });
       return res.json() as Promise<Record<string, unknown>>;
     }),
 

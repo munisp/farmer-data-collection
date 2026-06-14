@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc-base";
 import { getDb } from "../db";
@@ -51,7 +52,7 @@ export const healthRouter = router({
       try {
         const dbStart = Date.now();
         const db = await getDb();
-        if (!db) throw new Error("Database not initialized");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not initialized" });
         await db.select({ count: sql<number>`count(*)` }).from(users).limit(1);
         checks.database = {
           status: "up",
@@ -107,7 +108,7 @@ export const healthRouter = router({
       
       try {
         const db = await getDb();
-        if (!db) throw new Error("Database not initialized");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not initialized" });
         
         // Test basic query
         await db.select({ count: sql<number>`count(*)` }).from(users).limit(1);
@@ -148,7 +149,7 @@ export const healthRouter = router({
     .query(async () => {
       try {
         const db = await getDb();
-        if (!db) throw new Error("Database not initialized");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not initialized" });
         
         // Check if database is accessible
         await db.select({ count: sql<number>`count(*)` }).from(users).limit(1);

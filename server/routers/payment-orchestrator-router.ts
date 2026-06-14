@@ -189,7 +189,7 @@ export const paymentOrchestratorRouter = router({
       // Select optimal provider
       const selection = selectOptimalProvider(input.amount, input.currency, input.country, input.preferredProvider);
       if (!selection) {
-        throw new Error(`No payment provider available for ${input.amount} ${input.currency} in ${input.country}`);
+        throw new TRPCError({ code: "BAD_REQUEST", message: `No payment provider available for ${input.amount} ${input.currency} in ${input.country}` });
       }
 
       const providerConfig = PROVIDERS[selection.provider];
@@ -387,7 +387,7 @@ export const paymentOrchestratorRouter = router({
       const idempotencyKey = crypto.randomUUID();
 
       const selection = selectOptimalProvider(input.amount, input.currency, input.country, input.preferredProvider);
-      if (!selection) throw new Error("No provider available for disbursement");
+      if (!selection) throw new TRPCError({ code: "BAD_REQUEST", message: "No provider available for disbursement" });
 
       const [tx] = await db.insert(mobileMoneyTransactions).values({
         userId: ctx.user.id,
@@ -476,7 +476,7 @@ export const paymentOrchestratorRouter = router({
           eq(mobileMoneyTransactions.userId, ctx.user.id),
         ));
 
-      if (!tx) throw new Error("Transaction not found");
+      if (!tx) throw new TRPCError({ code: "NOT_FOUND", message: "Transaction not found" });
 
       // If still pending/processing, query provider
       if (tx.status === "pending" || tx.status === "processing") {

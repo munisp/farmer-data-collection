@@ -38,9 +38,9 @@ export const federatedLearningRouter = router({
     .input(z.object({ modelId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [model] = await db.select().from(federatedModels).where(eq(federatedModels.id, input.modelId));
-      if (!model) throw new Error("Model not found");
+      if (!model) throw new TRPCError({ code: "NOT_FOUND", message: "Model not found" });
       const participants = await db.select().from(federatedParticipants).where(eq(federatedParticipants.modelId, input.modelId));
       const accuracy = Number(model.globalAccuracy ?? 0);
       return {
@@ -79,7 +79,7 @@ export const federatedLearningRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [participant] = await db.insert(federatedParticipants).values({
         modelId: input.modelId,
         farmerId: ctx.user.id,
@@ -113,7 +113,7 @@ export const federatedLearningRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       await db.update(federatedParticipants).set({
         localAccuracy: String(input.localAccuracy),
         dataPoints: input.samplesUsed,

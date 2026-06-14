@@ -295,7 +295,7 @@ export const equipmentFleetRouter = router({
         .where(eq(equipmentListings.id, input.listingId))
         .limit(1);
 
-      if (!listing.length) throw new Error("Listing not found");
+      if (!listing.length) throw new TRPCError({ code: "NOT_FOUND", message: "Listing not found" });
 
       const pricePerHour = parseFloat(listing[0].pricePerHour?.toString() || "0");
       const hours = input.totalHours || 8;

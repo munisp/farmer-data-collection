@@ -53,9 +53,9 @@ export const insuranceAIRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [product] = await db.select().from(insuranceProducts).where(eq(insuranceProducts.id, input.productId));
-      if (!product) throw new Error("Insurance product not found");
+      if (!product) throw new TRPCError({ code: "NOT_FOUND", message: "Insurance product not found" });
       const riskScore = calculateRiskScore(input.location, input.cropType, input.farmSizeHa);
       const premium = calculatePremium(input.sumInsured, riskScore, Number(product.minPremium) / input.sumInsured * 100 || 5.5);
       return {
@@ -86,9 +86,9 @@ export const insuranceAIRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [product] = await db.select().from(insuranceProducts).where(eq(insuranceProducts.id, input.productId));
-      if (!product) throw new Error("Insurance product not found");
+      if (!product) throw new TRPCError({ code: "NOT_FOUND", message: "Insurance product not found" });
       const riskScore = calculateRiskScore(input.location, input.cropType, input.farmSizeHa);
       const premium = calculatePremium(input.sumInsured, riskScore, 5.5);
       const policyNumber = `POL-${Date.now()}`;
@@ -147,7 +147,7 @@ export const insuranceAIRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [policy] = await db.select().from(insurancePolicies)
         .where(and(eq(insurancePolicies.id, input.policyId), eq(insurancePolicies.farmerId, ctx.user.id)));
@@ -186,7 +186,7 @@ export const insuranceAIRouter = router({
       if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [claim] = await db.select().from(insuranceClaims).where(eq(insuranceClaims.id, input.claimId));
       if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "Claim not found" });

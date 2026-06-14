@@ -54,9 +54,9 @@ export const chamaSavingsRouter = router({
     .input(z.object({ chamaId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [chama] = await db.select().from(chamaGroups).where(eq(chamaGroups.id, input.chamaId));
-      if (!chama) throw new Error("Chama not found");
+      if (!chama) throw new TRPCError({ code: "NOT_FOUND", message: "Chama not found" });
       const credit = assessGroupCreditScore(chama);
       const txns = await db.select().from(chamaTransactions).where(eq(chamaTransactions.chamaId, input.chamaId)).orderBy(desc(chamaTransactions.createdAt)).limit(5);
       return { ...chama, creditAssessment: credit, recentActivity: txns };
@@ -73,11 +73,11 @@ export const chamaSavingsRouter = router({
       if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: chama contribution" });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.transaction(async (tx) => {
         const [chama] = await tx.select().from(chamaGroups).where(eq(chamaGroups.id, input.chamaId));
-        if (!chama) throw new Error("Chama not found");
+        if (!chama) throw new TRPCError({ code: "NOT_FOUND", message: "Chama not found" });
 
         const newBalance = Number(chama.totalSavings) + input.amount;
         await tx.update(chamaGroups).set({ totalSavings: String(newBalance) }).where(eq(chamaGroups.id, input.chamaId));
@@ -106,11 +106,11 @@ export const chamaSavingsRouter = router({
       if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: chama group loan" });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [chama] = await db.select().from(chamaGroups).where(eq(chamaGroups.id, input.chamaId));
-      if (!chama) throw new Error("Chama not found");
+      if (!chama) throw new TRPCError({ code: "NOT_FOUND", message: "Chama not found" });
       const credit = assessGroupCreditScore(chama);
-      if (input.amount > credit.maxLoan) throw new Error(`Amount exceeds max loan of ${credit.maxLoan}`);
+      if (input.amount > credit.maxLoan) throw new TRPCError({ code: "BAD_REQUEST", message: `Amount exceeds max loan of ${credit.maxLoan}` });
       const loanId = `CL-${Date.now()}`;
       const interestRate = credit.grade === "A" ? 8.0 : credit.grade === "B" ? 12.0 : 15.0;
 
@@ -129,9 +129,9 @@ export const chamaSavingsRouter = router({
     .input(z.object({ chamaId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [chama] = await db.select().from(chamaGroups).where(eq(chamaGroups.id, input.chamaId));
-      if (!chama) throw new Error("Chama not found");
+      if (!chama) throw new TRPCError({ code: "NOT_FOUND", message: "Chama not found" });
       const savings = Number(chama.totalSavings);
       const riskLevel = savings > 2000000 ? "moderate" : "conservative";
       return {

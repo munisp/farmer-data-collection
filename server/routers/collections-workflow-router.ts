@@ -260,42 +260,42 @@ export const collectionsWorkflowRouter = router({
       const stage = getCollectionsStage(daysOverdue);
       const balance = loan.outstandingBalance || loan.principalAmount;
 
-      // Apply late fee if transitioning to demand_letter or beyond
+      // Atomic: apply late fee + update loan status + record audit log
       let feeApplied = 0;
-      if (stage !== "early_warning" && input.action === "formal_demand_letter") {
-        feeApplied = calculateLateFee(balance, stage);
-        if (feeApplied > 0) {
-          await db.update(loans).set({
-            outstandingBalance: balance + feeApplied,
-            updatedAt: new Date(),
-          }).where(eq(loans.id, input.loanId));
+      await db.transaction(async (tx) => {
+        if (stage !== "early_warning" && input.action === "formal_demand_letter") {
+          feeApplied = calculateLateFee(balance, stage);
+          if (feeApplied > 0) {
+            await tx.update(loans).set({
+              outstandingBalance: balance + feeApplied,
+              updatedAt: new Date(),
+            }).where(eq(loans.id, input.loanId));
+          }
         }
-      }
 
-      // Update loan status if in collections or write-off stage
-      if (stage === "collections_escalation" && loan.status !== "defaulted") {
-        await db.update(loans).set({ status: "defaulted", updatedAt: new Date() }).where(eq(loans.id, input.loanId));
-      }
+        if (stage === "collections_escalation" && loan.status !== "defaulted") {
+          await tx.update(loans).set({ status: "defaulted", updatedAt: new Date() }).where(eq(loans.id, input.loanId));
+        }
 
-      // Record action in audit log
-      await db.insert(auditLogs).values({
-        userId: userId || loan.userId,
-        eventId: `collections_${Date.now()}_${input.loanId}`,
-        eventType: "collections_action",
-        entityType: "loan",
-        entityId: String(input.loanId),
-        timestamp: new Date(),
-        data: {
-          action: input.action,
-          stage,
-          daysOverdue,
-          feeApplied,
-          notes: input.notes,
-          agentId: input.agentId,
-          externalPartnerId: input.externalPartnerId,
-          outstandingBalance: balance,
-          provisionAmount: calculateProvision(balance, stage),
-        },
+        await tx.insert(auditLogs).values({
+          userId: userId || loan.userId,
+          eventId: `collections_${Date.now()}_${input.loanId}`,
+          eventType: "collections_action",
+          entityType: "loan",
+          entityId: String(input.loanId),
+          timestamp: new Date(),
+          data: {
+            action: input.action,
+            stage,
+            daysOverdue,
+            feeApplied,
+            notes: input.notes,
+            agentId: input.agentId,
+            externalPartnerId: input.externalPartnerId,
+            outstandingBalance: balance,
+            provisionAmount: calculateProvision(balance, stage),
+          },
+        });
       });
 
       // Publish Kafka event
@@ -514,25 +514,28 @@ export const collectionsWorkflowRouter = router({
 
       const writtenOffAmount = loan.outstandingBalance || loan.principalAmount;
 
-      await db.update(loans).set({
-        status: "defaulted", // stays defaulted but flagged
-        updatedAt: new Date(),
-      }).where(eq(loans.id, input.loanId));
+      // Atomic: update loan + record audit log
+      await db.transaction(async (tx) => {
+        await tx.update(loans).set({
+          status: "defaulted", // stays defaulted but flagged
+          updatedAt: new Date(),
+        }).where(eq(loans.id, input.loanId));
 
-      await db.insert(auditLogs).values({
-        userId: userId || loan.userId,
-        eventId: `writeoff_${Date.now()}_${input.loanId}`,
-        eventType: "loan_write_off",
-        entityType: "loan",
-        entityId: String(input.loanId),
-        timestamp: new Date(),
-        data: {
-          writtenOffAmount,
-          approvedBy: input.approvedBy,
-          reason: input.reason,
-          boardResolutionRef: input.boardResolutionRef,
-          previousBalance: loan.outstandingBalance,
-        },
+        await tx.insert(auditLogs).values({
+          userId: userId || loan.userId,
+          eventId: `writeoff_${Date.now()}_${input.loanId}`,
+          eventType: "loan_write_off",
+          entityType: "loan",
+          entityId: String(input.loanId),
+          timestamp: new Date(),
+          data: {
+            writtenOffAmount,
+            approvedBy: input.approvedBy,
+            reason: input.reason,
+            boardResolutionRef: input.boardResolutionRef,
+            previousBalance: loan.outstandingBalance,
+          },
+        });
       });
 
       const producer = await getProducer();

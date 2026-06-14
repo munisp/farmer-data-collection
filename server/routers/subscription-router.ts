@@ -101,7 +101,7 @@ export const subscriptionRouter = router({
       const db = await requireDb();
       const [plan] = await db.select().from(subscriptionPlans)
         .where(eq(subscriptionPlans.id, input.planId));
-      if (!plan) throw new Error("Plan not found");
+      if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
 
       const [sub] = await db.insert(subscriptions).values({
         userId: ctx.user.id,
@@ -194,7 +194,7 @@ export const subscriptionRouter = router({
       const db = await requireDb();
       const [sub] = await db.select().from(subscriptions)
         .where(and(eq(subscriptions.id, input.subscriptionId), eq(subscriptions.userId, ctx.user.id)));
-      if (!sub) throw new Error("Subscription not found");
+      if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
 
       // Calculate prorated refund if mid-cycle
       const now = new Date();
@@ -254,11 +254,11 @@ export const subscriptionRouter = router({
           eq(subscriptions.id, input.subscriptionId),
           eq(subscriptions.status, "active"),
         ));
-      if (!sub) throw new Error("Active subscription not found");
+      if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Active subscription not found" });
 
       const plan = await db.select().from(subscriptionPlans)
         .where(eq(subscriptionPlans.id, sub.planId));
-      if (!plan[0]) throw new Error("Subscription plan not found");
+      if (!plan[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription plan not found" });
 
       const amount = plan[0].pricePerDelivery;
       const paymentMethod = sub.paymentMethod || "mpesa";
@@ -422,13 +422,13 @@ export const subscriptionRouter = router({
           eq(subscriptions.id, input.subscriptionId),
           eq(subscriptions.userId, ctx.user.id),
         ));
-      if (!sub) throw new Error("Subscription not found");
+      if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
 
       const [oldPlan] = await db.select().from(subscriptionPlans)
         .where(eq(subscriptionPlans.id, sub.planId));
       const [newPlan] = await db.select().from(subscriptionPlans)
         .where(eq(subscriptionPlans.id, input.newPlanId));
-      if (!newPlan) throw new Error("New plan not found");
+      if (!newPlan) throw new TRPCError({ code: "NOT_FOUND", message: "New plan not found" });
 
       // Calculate prorated difference
       const oldPrice = oldPlan?.pricePerDelivery || 0;
@@ -493,7 +493,7 @@ export const subscriptionRouter = router({
       const existingSubs = await db.select().from(subscriptions)
         .where(eq(subscriptions.userId, ctx.user.id));
       const hadTrial = existingSubs.some(s => s.isTrial);
-      if (hadTrial) throw new Error("Trial already used. Each user gets one free trial.");
+      if (hadTrial) throw new TRPCError({ code: "BAD_REQUEST", message: "Trial already used. Each user gets one free trial." });
 
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + input.trialDays);

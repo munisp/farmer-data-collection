@@ -46,7 +46,7 @@ export const reportGenerationRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const template = reportTemplates.find((t) => t.id === input.templateId);
-      if (!template) throw new Error("Report template not found");
+      if (!template) throw new TRPCError({ code: "NOT_FOUND", message: "Report template not found" });
 
       const reportId = `RPT-${Date.now()}-${input.templateId}`;
       const report = {

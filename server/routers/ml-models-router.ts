@@ -133,7 +133,7 @@ export const mlModelsRouter = router({
     }).optional())
     .query(async ({ input }: { input?: { type?: string; variant?: string; targetDevice?: string; cropName?: string } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       let query = db
         .select()
@@ -165,7 +165,7 @@ export const mlModelsRouter = router({
     .input(z.object({ modelId: z.number() }))
     .query(async ({ input }: { input: { modelId: number } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [model] = await db
         .select()
@@ -174,7 +174,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Get download stats
@@ -197,7 +197,7 @@ export const mlModelsRouter = router({
     .input(z.object({ limit: z.number().default(10) }))
     .query(async ({ input }: { input: { limit: number } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const models = await db
         .select()
@@ -216,7 +216,7 @@ export const mlModelsRouter = router({
     .input(z.object({ cropName: z.string() }))
     .query(async ({ input }: { input: { cropName: string } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const models = await db
         .select()
@@ -243,7 +243,7 @@ export const mlModelsRouter = router({
       return response.data;
     } catch (error) {
       logger.error("Failed to fetch model packs:", error);
-      throw new Error("Failed to fetch model packs from ML service");
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch model packs from ML service" });
     }
   }),
 
@@ -263,7 +263,7 @@ export const mlModelsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Check if model exists
       const [model] = await db
@@ -273,7 +273,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Track download
@@ -311,7 +311,7 @@ export const mlModelsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       await db
         .update(modelDownloads)
@@ -329,7 +329,7 @@ export const mlModelsRouter = router({
    */
   getUserDownloads: protectedProcedure.query(async ({ ctx }: { ctx: { user: { id: number } } }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const downloads = await db
       .select({
@@ -360,7 +360,7 @@ export const mlModelsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get model from database
       const [model] = await db
@@ -370,7 +370,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Call Python ML Service for inference
@@ -404,7 +404,7 @@ export const mlModelsRouter = router({
         return response.data;
       } catch (error) {
         logger.error("Inference failed:", error);
-        throw new Error("Inference failed");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Inference failed" });
       }
     }),
 
@@ -577,7 +577,7 @@ export const mlModelsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get model
       const [model] = await db
@@ -587,7 +587,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Call Go Model Serving for optimization
@@ -602,7 +602,7 @@ export const mlModelsRouter = router({
         return response.data;
       } catch (error) {
         logger.error("Optimization failed:", error);
-        throw new Error("Optimization failed");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Optimization failed" });
       }
     }),
 
@@ -647,7 +647,7 @@ export const mlModelsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get model
       const [model] = await db
@@ -657,7 +657,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Call Python ML Service for benchmarking
@@ -699,7 +699,7 @@ export const mlModelsRouter = router({
         return { benchmark, benchmarkData };
       } catch (error) {
         logger.error("Benchmarking failed:", error);
-        throw new Error("Benchmarking failed");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Benchmarking failed" });
       }
     }),
 
@@ -710,7 +710,7 @@ export const mlModelsRouter = router({
     .input(z.object({ modelId: z.number() }))
     .query(async ({ input }: { input: { modelId: number } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const benchmarks = await db
         .select()
@@ -738,7 +738,7 @@ export const mlModelsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Check if user already rated this model
       const [existingRating] = await db
@@ -813,7 +813,7 @@ export const mlModelsRouter = router({
     .input(z.object({ modelId: z.number(), limit: z.number().default(10) }))
     .query(async ({ input }: { input: { modelId: number; limit: number } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const ratings = await db
         .select()

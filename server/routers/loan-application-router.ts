@@ -86,14 +86,14 @@ export const loanApplicationRouter = router({
           if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: loan application" });
 
           const db = await getDb();
-          if (!db) throw new Error("Database not available");
+          if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
           const userId = ctx.token ? parseInt(ctx.token) : null;
-          if (!userId) throw new Error("User not authenticated");
+          if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
           const kycCheck = await checkLoanApplicationKyc(userId, input.loanAmount);
           if (!kycCheck.allowed) {
-            throw new Error(kycCheck.reason || "KYC verification required for loan applications");
+            throw new TRPCError({ code: "BAD_REQUEST", message: kycCheck.reason || "KYC verification required for loan applications" });
           }
 
           // Generate application number
@@ -182,10 +182,10 @@ export const loanApplicationRouter = router({
       const wafScan = await scanForThreats("loan_application", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userId = ctx.token ? parseInt(ctx.token) : null;
-      if (!userId) throw new Error("User not authenticated");
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
       // Verify application belongs to user
       const [application] = await db
@@ -199,7 +199,7 @@ export const loanApplicationRouter = router({
         );
 
       if (!application) {
-        throw new Error("Application not found or access denied");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Application not found or access denied" });
       }
 
       // Decode base64 file data
@@ -216,7 +216,7 @@ export const loanApplicationRouter = router({
       });
 
       if (!validation.valid) {
-        throw new Error(validation.error || "Invalid upload");
+        throw new TRPCError({ code: "BAD_REQUEST", message: validation.error || "Invalid upload" });
       }
 
       // Upload to S3
@@ -256,10 +256,10 @@ export const loanApplicationRouter = router({
    */
   getMyApplications: protectedProcedure.query(async ({ ctx }: { ctx: any }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const userId = ctx.token ? parseInt(ctx.token) : null;
-    if (!userId) throw new Error("User not authenticated");
+    if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
     const applications = await db
       .select()
@@ -277,10 +277,10 @@ export const loanApplicationRouter = router({
     .input(z.object({ applicationId: z.number() }))
     .query(async ({ input, ctx }: { input: any; ctx: any }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userId = ctx.token ? parseInt(ctx.token) : null;
-      if (!userId) throw new Error("User not authenticated");
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
       // Get application
       const [application] = await db
@@ -294,7 +294,7 @@ export const loanApplicationRouter = router({
         );
 
       if (!application) {
-        throw new Error("Application not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
       }
 
       // Get documents
@@ -323,15 +323,15 @@ export const loanApplicationRouter = router({
    */
   getAllApplications: protectedProcedure.query(async ({ ctx }: { ctx: any }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const userId = ctx.token ? parseInt(ctx.token) : null;
-    if (!userId) throw new Error("User not authenticated");
+    if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
     // Admin role check
     const isAdmin = await checkAdminRole(userId);
     if (!isAdmin) {
-      throw new Error("Access denied: Admin role required");
+      throw new TRPCError({ code: "FORBIDDEN", message: "Access denied: Admin role required" });
     }
 
     const applications = await db
@@ -363,15 +363,15 @@ export const loanApplicationRouter = router({
       const wafScan = await scanForThreats("loan_application", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userId = ctx.token ? parseInt(ctx.token) : null;
-      if (!userId) throw new Error("User not authenticated");
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
       // Admin role check
       const isAdmin = await checkAdminRole(userId);
       if (!isAdmin) {
-        throw new Error("Access denied: Admin role required");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied: Admin role required" });
       }
 
       // Get current application
@@ -381,7 +381,7 @@ export const loanApplicationRouter = router({
         .where(eq(loanApplications.id, input.applicationId));
 
       if (!currentApp) {
-        throw new Error("Application not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
       }
 
       await db.transaction(async (tx) => {
@@ -431,15 +431,15 @@ export const loanApplicationRouter = router({
       const wafScan = await scanForThreats("loan_application", input);
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userId = ctx.token ? parseInt(ctx.token) : null;
-      if (!userId) throw new Error("User not authenticated");
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
       // Admin role check
       const isAdmin = await checkAdminRole(userId);
       if (!isAdmin) {
-        throw new Error("Access denied: Admin role required");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied: Admin role required" });
       }
 
       await db

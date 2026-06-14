@@ -58,13 +58,13 @@ export const orderFulfillmentRouter = router({
           eq(marketplaceOrders.buyerId, ctx.user.id),
         ));
 
-      if (!order) throw new Error("Order not found");
-      if (order.status !== "delivered") throw new Error("Can only return delivered orders");
+      if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+      if (order.status !== "delivered") throw new TRPCError({ code: "BAD_REQUEST", message: "Can only return delivered orders" });
 
       // Check return window (7 days for fresh produce, 14 for others)
       const deliveredAt = order.deliveredAt || order.updatedAt;
       const daysSinceDelivery = (Date.now() - new Date(deliveredAt).getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceDelivery > 14) throw new Error("Return window has expired (14 days)");
+      if (daysSinceDelivery > 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Return window has expired (14 days)" });
 
       // Calculate refund amount
       const items = await db.select().from(orderItems)
@@ -113,8 +113,8 @@ export const orderFulfillmentRouter = router({
           eq(orderReturns.sellerId, ctx.user.id),
         ));
 
-      if (!returnReq) throw new Error("Return not found or unauthorized");
-      if (returnReq.status !== "requested") throw new Error("Return already processed");
+      if (!returnReq) throw new TRPCError({ code: "NOT_FOUND", message: "Return not found or unauthorized" });
+      if (returnReq.status !== "requested") throw new TRPCError({ code: "BAD_REQUEST", message: "Return already processed" });
 
       await db.update(orderReturns).set({
         status: "approved",
@@ -141,7 +141,7 @@ export const orderFulfillmentRouter = router({
       const db = await requireDb();
       const [returnReq] = await db.select().from(orderReturns)
         .where(and(eq(orderReturns.id, input.returnId), eq(orderReturns.sellerId, ctx.user.id)));
-      if (!returnReq) throw new Error("Return not found");
+      if (!returnReq) throw new TRPCError({ code: "NOT_FOUND", message: "Return not found" });
 
       await db.update(orderReturns).set({
         status: "rejected",
@@ -167,9 +167,9 @@ export const orderFulfillmentRouter = router({
       const [returnReq] = await db.select().from(orderReturns)
         .where(eq(orderReturns.id, input.returnId));
 
-      if (!returnReq) throw new Error("Return not found");
+      if (!returnReq) throw new TRPCError({ code: "NOT_FOUND", message: "Return not found" });
       if (returnReq.status !== "received" && returnReq.status !== "approved") {
-        throw new Error("Return must be approved or received before refund");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Return must be approved or received before refund" });
       }
 
       await db.transaction(async (tx) => {
@@ -408,7 +408,7 @@ export const orderFulfillmentRouter = router({
           eq(marketplaceOrders.id, input.orderId),
           eq(marketplaceOrders.sellerId, ctx.user.id),
         ));
-      if (!order) throw new Error("Order not found or unauthorized");
+      if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Order not found or unauthorized" });
 
       const deliveryAddress = order.deliveryAddress
         ? (typeof order.deliveryAddress === "string" ? JSON.parse(order.deliveryAddress) : order.deliveryAddress)
@@ -449,7 +449,7 @@ export const orderFulfillmentRouter = router({
           eq(marketplaceOrders.id, input.orderId),
           eq(marketplaceOrders.buyerId, ctx.user.id),
         ));
-      if (!order) throw new Error("Order not found");
+      if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
 
       // Trigger the full orchestration: escrow release + payout + freshness report + notifications
       await onDeliveryConfirmed(input.orderId, input.assignmentId);

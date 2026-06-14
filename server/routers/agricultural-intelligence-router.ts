@@ -53,7 +53,7 @@ export const agriculturalIntelligenceRouter = router({
   listUserCrops: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userCrops = await db
         .select({
@@ -91,7 +91,7 @@ export const agriculturalIntelligenceRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get farm location
       const farm = await db
@@ -101,13 +101,13 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (farm.length === 0) {
-        throw new Error('Farm not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Farm not found" });
       }
 
       const { latitude, longitude } = farm[0];
 
       if (!latitude || !longitude) {
-        throw new Error('Farm location not set');
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Farm location not set" });
       }
 
       const soilMoisture = await getSoilMoisture(Number(latitude), Number(longitude));
@@ -129,7 +129,7 @@ export const agriculturalIntelligenceRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get farm location
       const farm = await db
@@ -139,13 +139,13 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (farm.length === 0) {
-        throw new Error('Farm not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Farm not found" });
       }
 
       const { latitude, longitude } = farm[0];
 
       if (!latitude || !longitude) {
-        throw new Error('Farm location not set');
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Farm location not set" });
       }
 
       const result = await getIrrigationRecommendation(
@@ -172,7 +172,7 @@ export const agriculturalIntelligenceRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get farm area
       const farm = await db
@@ -182,7 +182,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (farm.length === 0) {
-        throw new Error('Farm not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Farm not found" });
       }
 
       const fieldAreaHa = farm[0].farmSize ? Number(farm[0].farmSize) : 1; // Default to 1 hectare if not set
@@ -211,7 +211,7 @@ export const agriculturalIntelligenceRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get crop and calendar data
       const crop = await db
@@ -221,7 +221,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (crop.length === 0) {
-        throw new Error('Crop not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Crop not found" });
       }
 
       const calendar = await db
@@ -231,7 +231,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (calendar.length === 0 || !calendar[0].plantingDate) {
-        throw new Error('Crop calendar not found or planting date not set');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Crop calendar not found or planting date not set" });
       }
 
       // For now, generate simulated weather data
@@ -298,7 +298,7 @@ export const agriculturalIntelligenceRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Verify crop ownership
       const crop = await db
@@ -308,7 +308,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (crop.length === 0) {
-        throw new Error('Crop not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Crop not found" });
       }
 
       const cropType = crop[0].cropName.toLowerCase() as CropTypeGDD;
@@ -358,7 +358,7 @@ export const agriculturalIntelligenceRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get crop and calendar data
       const crop = await db
@@ -368,7 +368,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (crop.length === 0) {
-        throw new Error('Crop not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Crop not found" });
       }
 
       const calendar = await db
@@ -378,7 +378,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (calendar.length === 0 || !calendar[0].plantingDate || !calendar[0].cumulativeGDD) {
-        throw new Error('Crop calendar data incomplete');
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Crop calendar data incomplete" });
       }
 
       const plantingDate = new Date(calendar[0].plantingDate);
@@ -418,7 +418,7 @@ export const agriculturalIntelligenceRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get crop
       const crop = await db
@@ -428,7 +428,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (crop.length === 0) {
-        throw new Error('Crop not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Crop not found" });
       }
 
       const cropType = crop[0].cropName.toLowerCase();
@@ -506,7 +506,7 @@ export const agriculturalIntelligenceRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Verify crop ownership
       const crop = await db
@@ -516,7 +516,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (crop.length === 0) {
-        throw new Error('Crop not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Crop not found" });
       }
 
       let conditions = [eq(pestDiseaseRisks.cropId, input.cropId)];
@@ -556,7 +556,7 @@ export const agriculturalIntelligenceRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get crop
       const crop = await db
@@ -566,7 +566,7 @@ export const agriculturalIntelligenceRouter = router({
         .limit(1);
 
       if (crop.length === 0) {
-        throw new Error('Crop not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Crop not found" });
       }
 
       const cropType = crop[0].cropName.toLowerCase();

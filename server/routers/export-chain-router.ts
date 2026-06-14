@@ -43,7 +43,7 @@ export const exportChainRouter = router({
     .input(z.object({ shipmentId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [shipment] = await db.select().from(exportShipments).where(eq(exportShipments.id, input.shipmentId));
       if (!shipment) throw new TRPCError({ code: "NOT_FOUND", message: "Shipment not found" });
       const certs = await db.select().from(exportCertifications).where(eq(exportCertifications.shipmentId, input.shipmentId));
@@ -54,7 +54,7 @@ export const exportChainRouter = router({
     .input(z.object({ txHash: z.string().min(10) }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [shipment] = await db.select().from(exportShipments).where(eq(exportShipments.blockchainTxHash, input.txHash));
       if (!shipment) return { verified: false, error: "Transaction hash not found in ledger" };
       return {
@@ -79,7 +79,7 @@ export const exportChainRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const shipmentCode = `EXP-${Date.now()}`;
       const txHash = `0x${randomBytes(32).toString("hex")}`;
       const [shipment] = await db.insert(exportShipments).values({
@@ -111,7 +111,7 @@ export const exportChainRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [cert] = await db.insert(exportCertifications).values({
         shipmentId: input.shipmentId,
         certType: input.certType,
