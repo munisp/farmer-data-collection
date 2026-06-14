@@ -114,6 +114,7 @@ import { federatedLearningRouter } from "./routers/federated-learning-router.js"
 import { chamaSavingsRouter } from "./routers/chama-savings-router.js";
 import { exportChainRouter } from "./routers/export-chain-router.js";
 import { dataPipelineRouter } from "./routers/data-pipeline-router.js";
+import { distributorNetworkRouter } from "./routers/distributor-network-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -266,6 +267,7 @@ export const appRouter = router({
   chamaSavings: chamaSavingsRouter,
   exportChain: exportChainRouter,
   dataPipeline: dataPipelineRouter,
+  distributorNetwork: distributorNetworkRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)
