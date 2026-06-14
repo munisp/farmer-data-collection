@@ -17,6 +17,7 @@ import {
   warehouseReceipts,
 } from '../../drizzle/traceability-schema.js';
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const traceabilityRouter = router({
   // Get all batches

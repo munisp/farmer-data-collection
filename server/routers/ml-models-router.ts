@@ -257,6 +257,11 @@ export const mlModelsRouter = router({
   downloadModel: protectedProcedure
     .input(z.object({ modelId: z.number(), deviceInfo: z.record(z.string(), z.any()).optional() }))
     .mutation(async ({ input, ctx }: { input: { modelId: number; deviceInfo?: Record<string, unknown> }; ctx: { user: { id: number } } }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -299,7 +304,12 @@ export const mlModelsRouter = router({
    */
   markAsInstalled: protectedProcedure
     .input(z.object({ downloadId: z.number() }))
-    .mutation(async ({ input }: { input: { downloadId: number } }) => {
+    .mutation(async ({ input, ctx }: { input: { downloadId: number }; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String(ctx?.user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -344,6 +354,11 @@ export const mlModelsRouter = router({
   runInference: protectedProcedure
     .input(inferenceRequestSchema)
     .mutation(async ({ input, ctx }: { input: z.infer<typeof inferenceRequestSchema>; ctx: { user: { id: number } } }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -395,7 +410,12 @@ export const mlModelsRouter = router({
 
   estimateBiomass: protectedProcedure
     .input(biomassRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof biomassRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof biomassRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const stageFactors: Record<string, number> = {
         seedling: 0.45,
         vegetative: 0.85,
@@ -437,7 +457,12 @@ export const mlModelsRouter = router({
 
   estimateCanopyHeight: protectedProcedure
     .input(canopyHeightRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof canopyHeightRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof canopyHeightRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const cropDailyGrowth: Record<string, number> = {
         maize: 0.031,
         rice: 0.018,
@@ -475,7 +500,12 @@ export const mlModelsRouter = router({
 
   analyzeLST: protectedProcedure
     .input(lstAnalysisRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof lstAnalysisRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof lstAnalysisRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const thermalGap = input.temperature - input.airTemperature;
       const cwsi = Number(Math.max(0, Math.min(1, (thermalGap / 12) * (1.15 - input.ndvi))).toFixed(3));
       const soilMoistureIndex = Number(Math.max(0, Math.min(100, (1 - cwsi) * 100)).toFixed(1));
@@ -499,7 +529,12 @@ export const mlModelsRouter = router({
 
   calculateNDVI: protectedProcedure
     .input(ndviCalculationRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof ndviCalculationRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof ndviCalculationRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const denominator = input.nir + input.red;
       const ndvi = denominator === 0 ? 0 : Number(((input.nir - input.red) / denominator).toFixed(3));
       const interpretation = ndvi >= 0.7
@@ -535,7 +570,12 @@ export const mlModelsRouter = router({
    */
   optimizeModel: protectedProcedure
     .input(optimizationRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof optimizationRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof optimizationRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -601,6 +641,11 @@ export const mlModelsRouter = router({
   benchmarkModel: protectedProcedure
     .input(benchmarkRequestSchema)
     .mutation(async ({ input, ctx }: { input: z.infer<typeof benchmarkRequestSchema>; ctx: { user: { id: number } } }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -687,6 +732,11 @@ export const mlModelsRouter = router({
   rateModel: protectedProcedure
     .input(ratingSchema)
     .mutation(async ({ input, ctx }: { input: z.infer<typeof ratingSchema>; ctx: { user: { id: number } } }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 

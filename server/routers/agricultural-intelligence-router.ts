@@ -40,6 +40,7 @@ import {
   type WeatherConditions,
 } from '../services/pest-disease-risk-service.js';
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const agriculturalIntelligenceRouter = router({
   // ============================================================================

@@ -16,6 +16,7 @@ import {
   cooperativeLoans,
   cooperativeMeetings,
 } from '../../drizzle/cooperative-schema.js';
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const cooperativeRouter = router({

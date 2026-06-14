@@ -15,6 +15,7 @@ import { iotReadings, iotDevices } from "../../drizzle/supply-chain-schema.js";
 import { resilientFetch } from "../services/resilient-http.js";
 import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8093";
 const WEATHER_SERVICE_URL = process.env.WEATHER_SERVICE_URL || "http://localhost:8094";

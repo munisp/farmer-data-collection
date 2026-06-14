@@ -23,7 +23,8 @@ import { mobileMoneyTransactions } from "../../drizzle/supply-chain-schema.js";
 import { auditLogs } from "../../drizzle/schema.js";
 import { TRPCError } from "@trpc/server";
 import { getProducer } from "../kafka.js";
-import { logger } from "../logger.js";
+import { logger } from '../logger.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 // ============================================================================
 // REGULATORY THRESHOLDS

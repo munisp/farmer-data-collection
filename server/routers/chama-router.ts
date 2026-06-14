@@ -19,6 +19,7 @@ import {
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const chamaRouter = router({
   // Create a new chama group

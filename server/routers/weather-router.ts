@@ -4,6 +4,7 @@ import { getDb } from "../db";
 import { sql } from "drizzle-orm";
 import { weatherService } from "../services/weather-service.js";
 import { logger } from "../logger.js";
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 /**
  * Weather Router

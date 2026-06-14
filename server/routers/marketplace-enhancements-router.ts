@@ -13,6 +13,7 @@ import {
   produceListings,
 } from "../../drizzle/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { logger } from '../logger.js';
 import { withRedisCache, invalidateRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, searchDocuments, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const marketplaceEnhancementsRouter = router({

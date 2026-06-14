@@ -15,6 +15,7 @@ import {
   agentPerformanceMetrics,
   agentTerritories,
 } from '../../drizzle/agent-productivity-schema.js';
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const agentProductivityRouter = router({

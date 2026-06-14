@@ -6,12 +6,12 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
-import { logger } from "../logger.js";
 import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc, sql, count } from "drizzle-orm";
 import { farmingContracts, offtakers } from "../../drizzle/platform-extensions-schema.js";
 import { PENALTY_TIERS } from "../config/business-rules.js";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const ContractStatus = z.enum(["draft", "proposed", "negotiating", "active", "fulfilled", "breached", "expired", "terminated"]);
 const QualityGrade = z.enum(["A", "B", "C", "D", "reject"]);

@@ -20,6 +20,7 @@ import { eq, and, desc, sql, gte, lte, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { createEscrowForOrder, estimateDeliveryFee, geocodeAddress } from "../services/order-orchestration.js";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const retailStoreRouter = router({
   // ========================================================================

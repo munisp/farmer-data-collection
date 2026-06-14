@@ -5,11 +5,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
-import { logger } from "../logger.js";
 import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { p2pLoans, savingsCircles } from "../../drizzle/platform-extensions-schema.js";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 export const p2pLendingRouter = router({
   listLoans: protectedProcedure

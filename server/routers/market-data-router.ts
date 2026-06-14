@@ -25,6 +25,7 @@ import { TRPCError } from "@trpc/server";
 import { resilientFetch } from "../services/resilient-http.js";
 import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 // ============================================================================
 // EXCHANGE CONFIGURATIONS

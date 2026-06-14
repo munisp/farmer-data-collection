@@ -11,6 +11,7 @@ import { requireDb } from "../utils/require-db.js";
 import { eq, desc, and } from "drizzle-orm";
 import { iotDevices, iotReadings } from "../../drizzle/supply-chain-schema.js";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const iotGatewayRouter = router({
   registerDevice: protectedProcedure

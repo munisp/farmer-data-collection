@@ -10,6 +10,7 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { logger } from '../logger.js';
 import { checkPermission, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
@@ -41,22 +42,25 @@ export const escrowRouter = router({
       const tigerBeetleTransferId = crypto.randomUUID();
       const autoReleaseAt = new Date(Date.now() + AUTO_RELEASE_HOURS * 60 * 60 * 1000);
 
-      const [escrow] = await db.insert(escrowAccounts).values({
-        orderId: input.orderId,
-        buyerId: ctx.user.id,
-        sellerId: input.sellerId,
-        amount: input.amount,
-        currency: input.currency,
-        status: "held",
-        tigerBeetleTransferId,
-        releaseCondition: "buyer_confirmation",
-        autoReleaseAt,
-      }).returning();
+      const escrow = await db.transaction(async (tx) => {
+        const [created] = await tx.insert(escrowAccounts).values({
+          orderId: input.orderId,
+          buyerId: ctx.user.id,
+          sellerId: input.sellerId,
+          amount: input.amount,
+          currency: input.currency,
+          status: "held",
+          tigerBeetleTransferId,
+          releaseCondition: "buyer_confirmation",
+          autoReleaseAt,
+        }).returning();
 
-      // Update order payment status
-      await db.update(marketplaceOrders)
-        .set({ paymentStatus: "escrowed" })
-        .where(eq(marketplaceOrders.id, input.orderId));
+        await tx.update(marketplaceOrders)
+          .set({ paymentStatus: "escrowed" })
+          .where(eq(marketplaceOrders.id, input.orderId));
+
+        return created;
+      });
 
       // Publish escrow event
       const producer = await getProducer();
@@ -93,14 +97,15 @@ export const escrowRouter = router({
 
       if (!escrow) throw new Error("Escrow not found or already released");
 
-      await db.update(escrowAccounts)
-        .set({ status: "released", releasedAt: new Date(), updatedAt: new Date() })
-        .where(eq(escrowAccounts.id, input.escrowId));
+      await db.transaction(async (tx) => {
+        await tx.update(escrowAccounts)
+          .set({ status: "released", releasedAt: new Date(), updatedAt: new Date() })
+          .where(eq(escrowAccounts.id, input.escrowId));
 
-      // Update order status
-      await db.update(marketplaceOrders)
-        .set({ paymentStatus: "released", status: "completed" })
-        .where(eq(marketplaceOrders.id, escrow.orderId));
+        await tx.update(marketplaceOrders)
+          .set({ paymentStatus: "released", status: "completed" })
+          .where(eq(marketplaceOrders.id, escrow.orderId));
+      });
 
       const producer = await getProducer();
       if (producer) {
@@ -233,21 +238,22 @@ export const escrowRouter = router({
         }
       }
 
-      await db.update(escrowAccounts)
-        .set({
-          status: newStatus,
-          releasedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(escrowAccounts.id, input.escrowId));
+      await db.transaction(async (tx) => {
+        await tx.update(escrowAccounts)
+          .set({
+            status: newStatus,
+            releasedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(escrowAccounts.id, input.escrowId));
 
-      // Update order status
-      await db.update(marketplaceOrders)
-        .set({
-          paymentStatus: newStatus === "refunded" ? "refunded" : "released",
-          status: newStatus === "refunded" ? "cancelled" : "completed",
-        })
-        .where(eq(marketplaceOrders.id, escrow.orderId));
+        await tx.update(marketplaceOrders)
+          .set({
+            paymentStatus: newStatus === "refunded" ? "refunded" : "released",
+            status: newStatus === "refunded" ? "cancelled" : "completed",
+          })
+          .where(eq(marketplaceOrders.id, escrow.orderId));
+      });
 
       const producer = await getProducer();
       if (producer) {
@@ -294,13 +300,15 @@ export const escrowRouter = router({
 
       const results = [];
       for (const escrow of expiredEscrows) {
-        await db.update(escrowAccounts)
-          .set({ status: "released", releasedAt: new Date(), updatedAt: new Date() })
-          .where(eq(escrowAccounts.id, escrow.id));
+        await db.transaction(async (tx) => {
+          await tx.update(escrowAccounts)
+            .set({ status: "released", releasedAt: new Date(), updatedAt: new Date() })
+            .where(eq(escrowAccounts.id, escrow.id));
 
-        await db.update(marketplaceOrders)
-          .set({ paymentStatus: "released", status: "completed" })
-          .where(eq(marketplaceOrders.id, escrow.orderId));
+          await tx.update(marketplaceOrders)
+            .set({ paymentStatus: "released", status: "completed" })
+            .where(eq(marketplaceOrders.id, escrow.orderId));
+        });
 
         const producer = await getProducer();
         if (producer) {

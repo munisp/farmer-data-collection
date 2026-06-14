@@ -6,11 +6,11 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
-import { logger } from "../logger.js";
 import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { warehouseReceipts, warehouses } from "../../drizzle/traceability-schema.js";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const warehouseReceiptRouter = router({
   listReceipts: protectedProcedure

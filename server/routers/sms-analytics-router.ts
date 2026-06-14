@@ -4,6 +4,8 @@ import { getDb } from "../db.js";
 import { smsDeliveryLogs } from "../../drizzle/sms-logs-schema";
 import { smsScheduledMessages, smsTemplates } from "../../drizzle/schema";
 import { eq, desc, and, sql, gte, lte, count } from "drizzle-orm";
+import { logger } from '../logger.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 /**
  * SMS Analytics Router

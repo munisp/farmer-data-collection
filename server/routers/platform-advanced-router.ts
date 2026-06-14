@@ -6,6 +6,7 @@ import { users, farmers } from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // ============================================================================
 // DECENTRALIZED IDENTITY (DID) — Self-sovereign identity for unbanked farmers

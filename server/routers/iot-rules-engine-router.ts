@@ -14,8 +14,8 @@ import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 import { iotDevices, iotReadings } from "../../drizzle/supply-chain-schema.js";
 import { alertThresholds, alertHistory } from "../../drizzle/schema.js";
 import { getProducer } from "../kafka.js";
-import { logger } from "../logger.js";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // Anomaly detection thresholds by sensor type
 const SENSOR_RANGES: Record<string, { min: number; max: number; unit: string; spikeThreshold: number }> = {

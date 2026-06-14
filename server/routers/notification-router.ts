@@ -16,6 +16,7 @@ import {
   weatherAlerts,
   notificationTemplates,
 } from '../../drizzle/notification-schema.js';
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const notificationRouter = router({

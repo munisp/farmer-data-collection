@@ -12,6 +12,7 @@ import { productBatches, traceabilityEvents, collectionCenters, warehouses, ware
 import { eq, desc, asc, sql, and, gte, lte, like, or, count, sum, avg, max, min, inArray, type SQL } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 async function requireDb() {
   const db = await getDb();

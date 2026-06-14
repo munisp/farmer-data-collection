@@ -22,7 +22,6 @@ import { users } from "../../drizzle/schema.js";
 import { auditLogs } from "../../drizzle/schema.js";
 import { TRPCError } from "@trpc/server";
 import { getProducer } from "../kafka.js";
-import { logger } from "../logger.js";
 
 // ============================================================================
 // COLLECTIONS STAGE CONFIGURATION
@@ -75,6 +74,7 @@ type CollectionsStage = keyof typeof COLLECTIONS_STAGES;
 
 // Provision rates loaded from centralized config (env-overridable)
 import { PROVISION_RATES as CONFIG_PROVISION_RATES } from '../config/business-rules.js';
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats, checkPermission, publishKafkaEvent } from "../integrations/middleware-router-hooks.js";
 const PROVISION_RATES: Record<CollectionsStage, number> = CONFIG_PROVISION_RATES as Record<CollectionsStage, number>;
 

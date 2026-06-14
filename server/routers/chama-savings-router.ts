@@ -74,20 +74,25 @@ export const chamaSavingsRouter = router({
 
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const [chama] = await db.select().from(chamaGroups).where(eq(chamaGroups.id, input.chamaId));
-      if (!chama) throw new Error("Chama not found");
 
-      const newBalance = Number(chama.totalSavings) + input.amount;
-      await db.update(chamaGroups).set({ totalSavings: String(newBalance) }).where(eq(chamaGroups.id, input.chamaId));
-      await db.insert(chamaTransactions).values({
-        chamaId: input.chamaId, type: "contribution", amount: String(input.amount),
-        description: `Contribution by user ${ctx.user.id}`, balanceAfter: String(newBalance),
+      const result = await db.transaction(async (tx) => {
+        const [chama] = await tx.select().from(chamaGroups).where(eq(chamaGroups.id, input.chamaId));
+        if (!chama) throw new Error("Chama not found");
+
+        const newBalance = Number(chama.totalSavings) + input.amount;
+        await tx.update(chamaGroups).set({ totalSavings: String(newBalance) }).where(eq(chamaGroups.id, input.chamaId));
+        await tx.insert(chamaTransactions).values({
+          chamaId: input.chamaId, type: "contribution", amount: String(input.amount),
+          description: `Contribution by user ${ctx.user.id}`, balanceAfter: String(newBalance),
+        });
+
+        return { chamaName: chama.name, currency: chama.currency, newBalance };
       });
 
-      await recordLedgerEntry(String(ctx.user.id), String(input.chamaId), input.amount, chama.currency, `Chama contribution to ${chama.name}`);
+      await recordLedgerEntry(String(ctx.user.id), String(input.chamaId), input.amount, result.currency, `Chama contribution to ${result.chamaName}`);
       await publishKafkaEvent("chama.contribution", String(input.chamaId), { userId: ctx.user.id, amount: input.amount });
-      logger.info(`Chama contribution: ${input.amount} to ${chama.name}`);
-      return { status: "recorded", amount: input.amount, chamaId: input.chamaId, newBalance };
+      logger.info(`Chama contribution: ${input.amount} to ${result.chamaName}`);
+      return { status: "recorded", amount: input.amount, chamaId: input.chamaId, newBalance: result.newBalance };
     }),
 
   requestGroupLoan: protectedProcedure

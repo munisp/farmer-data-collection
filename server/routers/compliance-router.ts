@@ -16,7 +16,6 @@ import { mobileMoneyTransactions } from "../../drizzle/supply-chain-schema.js";
 import { users, auditLogs } from "../../drizzle/schema.js";
 import { loans } from "../../drizzle/financial-schema.js";
 import { getProducer } from "../kafka.js";
-import { logger } from "../logger.js";
 
 // AML thresholds loaded from centralized config (env-overridable)
 import { AML_THRESHOLDS as AML_CONFIG } from '../config/business-rules.js';
@@ -34,6 +33,7 @@ const RISK_WEIGHTS = {
 // High-risk jurisdictions loaded from centralized config (env-overridable)
 import { HIGH_RISK_JURISDICTIONS, MEDIUM_RISK_JURISDICTIONS } from '../config/business-rules.js';
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 type RiskLevel = "low" | "medium" | "high" | "critical";
 type AlertType = "large_transaction" | "structuring" | "rapid_movement" | "velocity_breach" | "high_risk_country" | "behavioral_anomaly" | "pep_transaction" | "dormant_reactivation";

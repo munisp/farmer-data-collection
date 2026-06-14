@@ -93,7 +93,12 @@ export const landSuitabilityRouter = router({
         fieldAreaHa: z.number().min(0.01).default(1),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("land_suitability", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("land_suitability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const result = assessLandSuitability(
         input.cropId,
         input.soil as SoilData,
@@ -103,7 +108,7 @@ export const landSuitabilityRouter = router({
       );
 
       if (!result) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
 
       return result;
@@ -125,7 +130,11 @@ export const landSuitabilityRouter = router({
         category: z.string().optional(),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("land_suitability", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("land_suitability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       let results = findSuitableCrops(
         input.soil as SoilData,
         input.climate as ClimateData,
@@ -216,7 +225,12 @@ export const landSuitabilityRouter = router({
         fieldAreaHa: z.number().min(0.01).default(1),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("land_suitability", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("land_suitability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const results = input.cropIds.map((cropId) => {
         const result = assessLandSuitability(
           cropId,

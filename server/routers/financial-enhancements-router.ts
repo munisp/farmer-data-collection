@@ -6,6 +6,7 @@ import { requireDb } from "../utils/require-db.js";
 import { users } from "../../drizzle/schema.js";
 import { eq, desc, and, sql } from "drizzle-orm";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 export const financialEnhancementsRouter = router({
   // ======================== CROP RECEIPT FINANCING ========================

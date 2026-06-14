@@ -14,6 +14,7 @@ import {
 import { workOrders } from '../../drizzle/financial-schema.js';
 import { protectedProcedure, router } from '../_core/trpc-base.js';
 import { getDb } from '../db.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 const fieldSelectorInput = z.object({
   farmId: z.number(),

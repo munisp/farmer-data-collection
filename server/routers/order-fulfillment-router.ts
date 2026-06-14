@@ -27,6 +27,7 @@ import {
   requestDeliveryForOrder,
 } from "../services/order-orchestration.js";
 import { getProducer } from "../kafka.js";
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const orderFulfillmentRouter = router({
@@ -171,37 +172,39 @@ export const orderFulfillmentRouter = router({
         throw new Error("Return must be approved or received before refund");
       }
 
-      // Update escrow status to refunded
-      await db.update(escrowAccounts)
-        .set({ status: "refunded", updatedAt: new Date() })
-        .where(and(
-          eq(escrowAccounts.orderId, returnReq.orderId),
-          eq(escrowAccounts.status, "held"),
-        ));
+      await db.transaction(async (tx) => {
+        // Update escrow status to refunded
+        await tx.update(escrowAccounts)
+          .set({ status: "refunded", updatedAt: new Date() })
+          .where(and(
+            eq(escrowAccounts.orderId, returnReq.orderId),
+            eq(escrowAccounts.status, "held"),
+          ));
 
-      await db.update(orderReturns).set({
-        status: "refunded",
-        refundMethod: input.refundMethod,
-        refundedAt: new Date(),
-        updatedAt: new Date(),
-      }).where(eq(orderReturns.id, input.returnId));
+        await tx.update(orderReturns).set({
+          status: "refunded",
+          refundMethod: input.refundMethod,
+          refundedAt: new Date(),
+          updatedAt: new Date(),
+        }).where(eq(orderReturns.id, input.returnId));
 
-      await db.update(marketplaceOrders)
-        .set({ paymentStatus: "refunded", status: "refunded" as any, updatedAt: new Date() })
-        .where(eq(marketplaceOrders.id, returnReq.orderId));
+        await tx.update(marketplaceOrders)
+          .set({ paymentStatus: "refunded", status: "refunded" as any, updatedAt: new Date() })
+          .where(eq(marketplaceOrders.id, returnReq.orderId));
 
-      // Restore inventory
-      const items = await db.select().from(orderItems)
-        .where(eq(orderItems.orderId, returnReq.orderId));
-      for (const item of items) {
-        await db.update(produceListings)
-          .set({
-            quantity: sql`${produceListings.quantity} + ${item.quantity}`,
-            status: "active",
-            updatedAt: new Date(),
-          })
-          .where(eq(produceListings.id, item.listingId));
-      }
+        // Restore inventory
+        const items = await tx.select().from(orderItems)
+          .where(eq(orderItems.orderId, returnReq.orderId));
+        for (const item of items) {
+          await tx.update(produceListings)
+            .set({
+              quantity: sql`${produceListings.quantity} + ${item.quantity}`,
+              status: "active",
+              updatedAt: new Date(),
+            })
+            .where(eq(produceListings.id, item.listingId));
+        }
+      });
 
       await notifyOrderStatusChange(returnReq.orderId, "refund_processed");
 

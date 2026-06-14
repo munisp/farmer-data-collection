@@ -17,7 +17,8 @@ import { loans, loanRepayments, creditScores } from "../../drizzle/financial-sch
 import { auditLogs } from "../../drizzle/schema.js";
 import { TRPCError } from "@trpc/server";
 import { getProducer } from "../kafka.js";
-import { logger } from "../logger.js";
+import { logger } from '../logger.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 // ============================================================================
 // YIELD CURVE & RATE MODELS

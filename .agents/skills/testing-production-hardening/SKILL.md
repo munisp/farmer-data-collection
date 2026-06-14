@@ -1,9 +1,9 @@
 ---
 name: testing-production-hardening
-description: Test production hardening across 25 dimensions — resilient HTTP, security (JWT), DB integration, gRPC, mTLS, integration tests, Docker healthchecks, Prometheus alerting, pool monitoring, CI pipeline, Dockerfiles, Grafana dashboards, Vault TLS, test suites, Detox mobile, CI workflow, Loki/Promtail log aggregation, client code quality, mobile CI, code coverage config. Use when verifying inter-service communication, circuit breakers, authentication, infrastructure changes, or production readiness gaps.
+description: Test production hardening across 30 dimensions — resilient HTTP, security (JWT), DB integration, gRPC, mTLS, integration tests, Docker healthchecks, Prometheus alerting, pool monitoring, CI pipeline, Dockerfiles, Grafana dashboards, Vault TLS, test suites, Detox mobile, CI workflow, Loki/Promtail log aggregation, client code quality, mobile CI, code coverage config, transaction atomicity, voice-first DB-backed, disconnected flow verification, mobile-money OTP, QR code URL config. Use when verifying inter-service communication, circuit breakers, authentication, infrastructure changes, production readiness gaps, or stakeholder workflow validation.
 ---
 
-# Testing Production Hardening (25-Dimension Audit)
+# Testing Production Hardening (30-Dimension Audit)
 
 ## Overview
 Production hardening covers 10 dimensions across the TypeScript backend and infrastructure:
@@ -368,6 +368,75 @@ grep -A5 "thresholds:" vitest.config.ts
 # Verify coverage provider installed:
 npm ls @vitest/coverage-v8
 # Expect: @vitest/coverage-v8@2.x.x (must match vitest version)
+```
+
+### 26. Transaction Atomicity Verification
+```bash
+# All financial mutations must wrap multi-step DB operations in db.transaction():
+echo "--- Exchange deposit/withdraw ---"
+grep -c "db.transaction" server/routers/exchange-router.ts  # Expect: >=3 (matchOrder + deposit + withdraw)
+
+echo "--- Loan application submit + update ---"
+grep -c "db.transaction" server/routers/loan-application-router.ts  # Expect: >=2
+
+echo "--- Insurance processClaimPayout ---"
+grep -c "db.transaction" server/routers/insurance-ai-router.ts  # Expect: >=1
+
+echo "--- Escrow (createEscrow, confirmReceipt, resolveDispute, processAutoRelease) ---"
+grep -c "db.transaction" server/routers/escrow-router.ts  # Expect: >=4
+
+echo "--- Chama savings contribute ---"
+grep -c "db.transaction" server/routers/chama-savings-router.ts  # Expect: >=1
+
+echo "--- Order fulfillment refund ---"
+grep -c "db.transaction" server/routers/order-fulfillment-router.ts  # Expect: >=1
+
+echo "--- Marketplace offer accept ---"
+grep -c "db.transaction" server/routers/marketplace-enhancements-router.ts  # Expect: >=1
+```
+
+### 27. Voice-First Router DB-Backed Verification
+```bash
+# Old hardcoded responses must NOT exist:
+grep -c "Maize is currently KES 4,500" server/routers/voice-first-router.ts  # Expect: 0
+grep -c "Your outstanding loan balance is KES 15,000" server/routers/voice-first-router.ts  # Expect: 0
+
+# Must import and query real DB tables:
+grep -c "marketPrices" server/routers/voice-first-router.ts    # Expect: >=3
+grep -c "auditLogs" server/routers/voice-first-router.ts       # Expect: >=3
+
+# Session persistence to auditLogs:
+grep -A10 "insert.*auditLogs" server/routers/voice-first-router.ts | grep -c "voice_interaction"  # Expect: 1
+```
+
+### 28. Disconnected Flow Verification
+```bash
+# Insurance claim → payout → disbursement:
+grep -c "fileClaim: protectedProcedure" server/routers/insurance-ai-router.ts           # Expect: 1
+grep -c "processClaimPayout: protectedProcedure" server/routers/insurance-ai-router.ts  # Expect: 1
+grep -c "disbursement.initiate" server/routers/insurance-ai-router.ts                   # Expect: 1
+
+# Marketplace offer → order auto-creation:
+grep -c "marketplace.offer.accepted" server/routers/marketplace-enhancements-router.ts  # Expect: 1
+
+# Collections → notification dispatch:
+grep -c "notifications.sms" server/routers/collections-workflow-router.ts    # Expect: 1
+grep -c "notifications.push" server/routers/collections-workflow-router.ts   # Expect: 1
+grep -c "notifications.email" server/routers/collections-workflow-router.ts  # Expect: 1
+```
+
+### 29. Mobile-Money OTP Verification
+```bash
+grep -c "requestVerification: protectedProcedure" server/routers/mobile-money-router.ts  # Expect: 1
+grep -c "verifyAccount: protectedProcedure" server/routers/mobile-money-router.ts        # Expect: 1
+grep -c "attempts >= 3" server/routers/mobile-money-router.ts                            # Expect: 1 (rate limiting)
+grep -c "10 \* 60 \* 1000" server/routers/mobile-money-router.ts                         # Expect: 1 (10-min expiry)
+```
+
+### 30. QR Code URL Configuration
+```bash
+grep -c "app.example.com" server/routers/traceability-router.ts  # Expect: 0 (old hardcoded URL removed)
+grep -c "APP_BASE_URL" server/routers/traceability-router.ts     # Expect: 1 (env var used)
 ```
 
 ## Key Behaviors

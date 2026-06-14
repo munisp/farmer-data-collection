@@ -2,6 +2,7 @@
  * Credit Scoring Router
  * Transparent, explainable credit scoring for smallholder farmers
  */
+import { logger } from '../logger.js';
 import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
 import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';

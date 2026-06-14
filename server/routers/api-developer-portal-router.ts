@@ -6,12 +6,12 @@ import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddle
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
-import { logger } from "../logger.js";
 import { requireDb } from "../utils/require-db.js";
 import { eq, and, desc } from "drizzle-orm";
 import { apiKeys, apiWebhooks } from "../../drizzle/platform-extensions-schema.js";
 import { randomBytes, createHash } from "crypto";
 
+import { logger } from '../logger.js';
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 function hashKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
