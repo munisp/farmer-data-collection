@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("ollama-service")
+
 """
 Ollama AI Service
 Replaces GPT-4 and GPT-4 Vision with local Ollama models
@@ -21,6 +26,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Ollama AI Service")
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[ollama-service] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[ollama-service] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[ollama-service] Shutdown complete")
+
 
 # CORS
 app.add_middleware(

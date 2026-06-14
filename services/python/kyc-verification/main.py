@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("kyc-verification")
+
 """
 KYC/KYB Verification Service
 Open-source document verification using PaddleOCR, VLM, DocLin, and DeepL.
@@ -39,6 +44,19 @@ app = FastAPI(
     description="Open-source identity verification with PaddleOCR, VLM, DocLin, DeepL",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[kyc-verification] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[kyc-verification] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[kyc-verification] Shutdown complete")
+
 
 app.add_middleware(
     CORSMiddleware,

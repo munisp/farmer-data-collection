@@ -457,9 +457,19 @@ fn main() {
     }));
 
     let listener = TcpListener::bind(&addr).expect("Failed to bind");
+    listener.set_nonblocking(false).ok();
     eprintln!("[Tokenization] Server starting on port {}", port);
 
+    // Handle SIGTERM/SIGINT for graceful shutdown
+    let running = Arc::new(std::sync::atomic::AtomicBool::new(true));
+    let running_clone = running.clone();
+    ctrlc_handler(running_clone);
+
     for stream in listener.incoming() {
+        if !running.load(std::sync::atomic::Ordering::Relaxed) {
+            eprintln!("[Tokenization] Shutdown signal received, stopping...");
+            break;
+        }
         let stream = match stream {
             Ok(s) => s,
             Err(_) => continue,
@@ -470,6 +480,27 @@ fn main() {
             handle_connection(stream, &state);
         });
     }
+    eprintln!("[Tokenization] Server stopped gracefully");
+}
+
+fn ctrlc_handler(running: Arc<std::sync::atomic::AtomicBool>) {
+    std::thread::spawn(move || {
+        use std::io::Read;
+        // Register for SIGTERM via signal pipe
+        unsafe {
+            libc::signal(libc::SIGTERM, handle_signal as libc::sighandler_t);
+            libc::signal(libc::SIGINT, handle_signal as libc::sighandler_t);
+        }
+        SHUTDOWN_FLAG.store(true, std::sync::atomic::Ordering::Relaxed);
+        running.store(false, std::sync::atomic::Ordering::Relaxed);
+    });
+}
+
+static SHUTDOWN_FLAG: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+extern "C" fn handle_signal(_: libc::c_int) {
+    SHUTDOWN_FLAG.store(true, std::sync::atomic::Ordering::Relaxed);
+    eprintln!("[Tokenization] Received shutdown signal");
 }
 
 fn handle_connection(mut stream: std::net::TcpStream, state: &Arc<Mutex<AppState>>) {

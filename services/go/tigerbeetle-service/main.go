@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -196,11 +199,32 @@ func main() {
 	// Transaction history
 	r.Get("/transactions/{user_id}", getTransactionsHandler)
 
-	log.Printf("[TigerBeetle] Service starting on port %s", port)
-	log.Printf("[TigerBeetle] Features: two-phase transfers, linked transfers, bulk ops, escrow, settlement")
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	go func() {
+		log.Printf("[TigerBeetle] Server starting on port %s", port)
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("[TigerBeetle] Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("[TigerBeetle] Shutting down gracefully...")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("[TigerBeetle] Forced shutdown: %v", err)
+	}
+	log.Println("[TigerBeetle] Server stopped")
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {

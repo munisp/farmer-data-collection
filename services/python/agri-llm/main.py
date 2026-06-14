@@ -747,16 +747,28 @@ class AgriLLMHandler(BaseHTTPRequestHandler):
 
 
 def main():
+    import signal
+
     port = int(os.environ.get("PORT", "8103"))
     server = HTTPServer(("0.0.0.0", port), AgriLLMHandler)
     print(f"[agri-llm] Agricultural LLM Advisory Service starting on :{port}")
     print(f"[agri-llm] Knowledge: {len(CROP_KNOWLEDGE)} crops, {len(DISEASE_TREATMENTS)} diseases, {len(TRANSLATIONS)} languages")
     print(f"[agri-llm] Endpoints: /api/v1/chat, /api/v1/diagnose, /api/v1/soil-interpret, /api/v1/feedback")
+
+    def graceful_shutdown(signum, frame):
+        print(f"[agri-llm] Received signal {signum}, shutting down gracefully...")
+        server.shutdown()
+
+    signal.signal(signal.SIGTERM, graceful_shutdown)
+    signal.signal(signal.SIGINT, graceful_shutdown)
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("[agri-llm] Shutting down...")
+        pass
+    finally:
         server.server_close()
+        print("[agri-llm] Server stopped")
 
 
 if __name__ == "__main__":

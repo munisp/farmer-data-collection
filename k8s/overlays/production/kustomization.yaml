@@ -12,10 +12,13 @@ resources:
   - ../../monitoring/fluentd-config.yaml
   - ../../hardening/hpa.yaml
   - ../../hardening/backup-cronjobs.yaml
+  - ../../hardening/pod-disruption-budgets.yaml
+  - ../../hardening/keda-scaled-objects.yaml
   - ../../istio/service-mesh.yaml
 
 patchesStrategicMerge:
   - app-patch.yaml
+  - ../../hardening/graceful-shutdown-patch.yaml
 
 commonLabels:
   environment: production

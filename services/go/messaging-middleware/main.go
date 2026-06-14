@@ -9,8 +9,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -1055,16 +1057,32 @@ func main() {
 	router.HandleFunc("/health", handleHealth)
 	router.HandleFunc("/metrics", handleMetrics)
 
-	// Start server
+	// Start server with graceful shutdown
 	addr := fmt.Sprintf(":%s", config.Port)
-	log.Printf("[MessagingMiddleware] Starting server on %s", addr)
-	log.Printf("[MessagingMiddleware] SMS events: POST http://localhost%s/api/messaging/sms/event", addr)
-	log.Printf("[MessagingMiddleware] WhatsApp events: POST http://localhost%s/api/messaging/whatsapp/event", addr)
-	log.Printf("[MessagingMiddleware] USSD events: POST http://localhost%s/api/messaging/ussd/event", addr)
-	log.Printf("[MessagingMiddleware] WebSocket: ws://localhost%s/ws/messaging", addr)
-	log.Printf("[MessagingMiddleware] Health: http://localhost%s/health", addr)
-
-	if err := http.ListenAndServe(addr, router); err != nil {
-		log.Fatalf("[MessagingMiddleware] Server failed: %v", err)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	go func() {
+		log.Printf("[MessagingMiddleware] Server starting on %s", addr)
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("[MessagingMiddleware] Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("[MessagingMiddleware] Shutting down gracefully...")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("[MessagingMiddleware] Forced shutdown: %v", err)
+	}
+	log.Println("[MessagingMiddleware] Server stopped")
 }

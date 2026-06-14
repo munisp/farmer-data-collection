@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // ─── Domain Models ──────────────────────────────────────────────────
@@ -179,12 +180,32 @@ fn main() {
     let state: SharedState = Arc::new(RwLock::new(AppState::new()));
 
     println!("Warehouse Receipt service starting on {}", addr);
-    let server = match tiny_http::Server::http(&addr) {
+    let server = Arc::new(match tiny_http::Server::http(&addr) {
         Ok(s) => s,
         Err(e) => { eprintln!("Failed to start server: {}", e); return; }
-    };
+    });
+
+    // Graceful shutdown on SIGTERM/SIGINT
+    let running = Arc::new(AtomicBool::new(true));
+    let running_clone = running.clone();
+    let server_clone = server.clone();
+    std::thread::spawn(move || {
+        unsafe {
+            libc::signal(libc::SIGTERM, signal_handler as libc::sighandler_t);
+            libc::signal(libc::SIGINT, signal_handler as libc::sighandler_t);
+        }
+        while !SHUTDOWN.load(Ordering::Relaxed) {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        running_clone.store(false, Ordering::Relaxed);
+        server_clone.unblock();
+        eprintln!("[WarehouseReceipt] Shutdown signal received");
+    });
 
     for request in server.incoming_requests() {
+        if !running.load(Ordering::Relaxed) {
+            break;
+        }
         let path = request.url().split('?').next().unwrap_or("/").to_string();
         let method = request.method().as_str().to_uppercase();
 
@@ -245,4 +266,11 @@ fn main() {
             }
         }
     }
+    eprintln!("[WarehouseReceipt] Server stopped gracefully");
+}
+
+static SHUTDOWN: AtomicBool = AtomicBool::new(false);
+
+extern "C" fn signal_handler(_: libc::c_int) {
+    SHUTDOWN.store(true, Ordering::Relaxed);
 }

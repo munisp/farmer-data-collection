@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	dapr "github.com/dapr/go-sdk/client"
@@ -78,11 +80,23 @@ func main() {
 	// Start HTTP API server in goroutine
 	go startHTTPAPI()
 
-	// Start Dapr service
-	log.Printf("[Dapr Service] Listening on port %s", port)
-	if err := s.Start(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("[Dapr Service] Failed to start: %v", err)
+	// Start Dapr service in goroutine
+	go func() {
+		log.Printf("[DaprService] Listening on port %s", port)
+		if err := s.Start(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("[DaprService] Failed to start: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("[DaprService] Shutting down gracefully...")
+	if daprClient != nil {
+		daprClient.Close()
 	}
+	log.Println("[DaprService] Server stopped")
 }
 
 // startHTTPAPI starts the HTTP API for state management
@@ -109,9 +123,17 @@ func startHTTPAPI() {
 		apiPort = "8083"
 	}
 
-	log.Printf("[Dapr Service] HTTP API listening on port %s", apiPort)
-	if err := http.ListenAndServe(":"+apiPort, router); err != nil {
-		log.Fatalf("[Dapr Service] HTTP API failed: %v", err)
+	srv := &http.Server{
+		Addr:         ":" + apiPort,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	log.Printf("[DaprService] HTTP API listening on port %s", apiPort)
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("[DaprService] HTTP API error: %v", err)
 	}
 }
 

@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("indoor-farming-ai")
+
 """
 Indoor Farming AI Service — Controlled Environment Agriculture (CEA)
 
@@ -30,6 +35,19 @@ app = FastAPI(
     description="AI/ML for urban vertical farming and controlled environment agriculture",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[indoor-farming-ai] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[indoor-farming-ai] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[indoor-farming-ai] Shutdown complete")
+
 
 app.add_middleware(
     CORSMiddleware,

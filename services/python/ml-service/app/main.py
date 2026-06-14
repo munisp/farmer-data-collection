@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("ml-service")
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -18,6 +23,19 @@ app = FastAPI(
     description="Machine Learning service for crop yield prediction and price forecasting",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[ml-service] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[ml-service] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[ml-service] Shutdown complete")
+
 
 # CORS middleware
 app.add_middleware(

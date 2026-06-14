@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("aquaculture-ai")
+
 """
 Aquaculture AI Service — Fish Disease Diagnosis & Species Growth Models
 
@@ -33,6 +38,19 @@ app = FastAPI(
     description="AI/ML for fish farming: disease diagnosis, growth prediction, hatchery management",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[aquaculture-ai] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[aquaculture-ai] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[aquaculture-ai] Shutdown complete")
+
 
 app.add_middleware(
     CORSMiddleware,

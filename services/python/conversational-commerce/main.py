@@ -424,10 +424,26 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    import signal
+
     port = int(os.environ.get("PORT", "8118"))
     server = HTTPServer(("0.0.0.0", port), Handler)
-    print(f"Conversational Commerce service starting on :{port}")
-    server.serve_forever()
+    print(f"[ConversationalCommerce] Service starting on :{port}")
+
+    def graceful_shutdown(signum, frame):
+        print(f"[ConversationalCommerce] Received signal {signum}, shutting down gracefully...")
+        server.shutdown()
+
+    signal.signal(signal.SIGTERM, graceful_shutdown)
+    signal.signal(signal.SIGINT, graceful_shutdown)
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+        print("[ConversationalCommerce] Server stopped")
 
 
 if __name__ == "__main__":
