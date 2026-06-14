@@ -131,6 +131,7 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
       cards: [
         { href: "/delivery", label: "Delivery", icon: Truck, description: "Track shipments", badge: "NEW" },
         { href: "/distributor-network", label: "Distributors", icon: Warehouse, description: "Profit-sharing network", badge: "NEW" },
+        { href: "/distributor-map", label: "Distributor Map", icon: MapPin, description: "Geospatial view", badge: "NEW" },
         { href: "/cold-chain", label: "Cold Chain", icon: Thermometer, description: "Temperature monitoring", badge: "NEW" },
         { href: "/traceability", label: "Traceability", icon: Target, description: "QR trace" },
         { href: "/subscriptions", label: "Subscriptions", icon: Package, description: "Produce boxes", badge: "NEW" },

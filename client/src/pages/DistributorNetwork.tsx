@@ -1,12 +1,114 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MapView, type MarkerOptions } from "@/components/Map";
 import { trpc } from "@/lib/trpc";
-import { Truck, Warehouse, Handshake, DollarSign, Package, Users, BarChart3, Plus } from "lucide-react";
+import { Truck, Warehouse, Handshake, DollarSign, Package, Users, BarChart3, Plus, MapPin } from "lucide-react";
+
+interface DistributorData {
+  id: number;
+  businessName: string;
+  warehouseAddress: string;
+  latitude: string | null;
+  longitude: string | null;
+  status: string;
+  coverageRegions: unknown;
+  warehouseCapacityKg: string | null;
+  totalSalesCount: number | null;
+  averageRating: string | null;
+  contactPerson: string;
+  phoneNumber: string;
+}
+
+function DistributorMap({ distributors }: { distributors: DistributorData[] }) {
+  const markers: MarkerOptions[] = useMemo(() => {
+    return distributors
+      .filter(d => d.latitude && d.longitude)
+      .map(d => {
+        const color = d.status === "approved" ? "#22c55e" :
+                     d.status === "pending" ? "#eab308" :
+                     d.status === "suspended" ? "#ef4444" : "#3b82f6";
+
+        return {
+          position: {
+            lat: Number(d.latitude),
+            lng: Number(d.longitude),
+          },
+          color,
+          title: d.businessName,
+          popup: `
+            <div style="min-width: 200px; font-family: system-ui, sans-serif;">
+              <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 600;">${d.businessName}</h3>
+              <p style="margin: 0 0 4px; font-size: 12px; color: #666;">${d.warehouseAddress}</p>
+              <p style="margin: 0 0 4px; font-size: 12px;">
+                <strong>Contact:</strong> ${d.contactPerson} (${d.phoneNumber})
+              </p>
+              ${d.warehouseCapacityKg ? `<p style="margin: 0 0 4px; font-size: 12px;"><strong>Capacity:</strong> ${Number(d.warehouseCapacityKg).toLocaleString()} kg</p>` : ""}
+              <p style="margin: 0 0 4px; font-size: 12px;">
+                <strong>Status:</strong> <span style="color: ${color}; font-weight: 500;">${d.status}</span>
+              </p>
+              ${d.totalSalesCount ? `<p style="margin: 0; font-size: 12px;"><strong>Sales:</strong> ${d.totalSalesCount}</p>` : ""}
+              ${d.averageRating ? `<p style="margin: 0; font-size: 12px;"><strong>Rating:</strong> ★ ${Number(d.averageRating).toFixed(1)}</p>` : ""}
+              ${(d.coverageRegions as string[] | null)?.length ? `<p style="margin: 4px 0 0; font-size: 11px; color: #888;">Covers: ${(d.coverageRegions as string[]).join(", ")}</p>` : ""}
+            </div>
+          `,
+        };
+      });
+  }, [distributors]);
+
+  const center = useMemo(() => {
+    const withCoords = distributors.filter(d => d.latitude && d.longitude);
+    if (withCoords.length === 0) return { lat: 9.082, lng: 8.6753 }; // Nigeria center
+    const avgLat = withCoords.reduce((sum, d) => sum + Number(d.latitude), 0) / withCoords.length;
+    const avgLng = withCoords.reduce((sum, d) => sum + Number(d.longitude), 0) / withCoords.length;
+    return { lat: avgLat, lng: avgLng };
+  }, [distributors]);
+
+  if (distributors.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground dark:text-gray-400">
+        <MapPin className="h-16 w-16 mb-4 opacity-30" />
+        <p className="text-lg font-medium">No distributors registered yet</p>
+        <p className="text-sm">Distributors will appear on the map once they register with warehouse coordinates.</p>
+      </div>
+    );
+  }
+
+  const geoDistributors = distributors.filter(d => d.latitude && d.longitude);
+  if (geoDistributors.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground dark:text-gray-400">
+        <MapPin className="h-16 w-16 mb-4 opacity-30" />
+        <p className="text-lg font-medium">No location data available</p>
+        <p className="text-sm">{distributors.length} distributor(s) registered but none have coordinates set.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-sm text-muted-foreground dark:text-gray-400">
+        <span>{geoDistributors.length} of {distributors.length} distributors shown on map</span>
+        <span>Click markers for details</span>
+      </div>
+      <MapView
+        className="h-[500px] w-full rounded-lg border dark:border-gray-600"
+        initialCenter={center}
+        initialZoom={distributors.length === 1 ? 12 : 6}
+        mapStyle="osm"
+        markers={markers}
+        showControls={true}
+        showScale={true}
+        showFullscreen={true}
+        showGeolocate={true}
+      />
+    </div>
+  );
+}
 
 export default function DistributorNetwork() {
   const [activeTab, setActiveTab] = useState("partnerships");
@@ -93,6 +195,7 @@ export default function DistributorNetwork() {
             <TabsTrigger value="partnerships">Partnerships</TabsTrigger>
             <TabsTrigger value="consignments">Consignments</TabsTrigger>
             <TabsTrigger value="earnings">Earnings & Splits</TabsTrigger>
+            <TabsTrigger value="map">Map</TabsTrigger>
             <TabsTrigger value="distributors">Browse Distributors</TabsTrigger>
           </TabsList>
 
@@ -310,6 +413,45 @@ export default function DistributorNetwork() {
                     </TableBody>
                   </Table>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Map Tab */}
+          <TabsContent value="map" className="space-y-4">
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
+              <CardHeader>
+                <CardTitle className="dark:text-white">Distributor Locations</CardTitle>
+                <CardDescription className="dark:text-gray-400">
+                  All verified distributor warehouses across the network
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DistributorMap distributors={distributors.data || []} />
+              </CardContent>
+            </Card>
+
+            {/* Legend */}
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-green-500" />
+                    <span className="text-muted-foreground dark:text-gray-400">Approved & Active</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-yellow-500" />
+                    <span className="text-muted-foreground dark:text-gray-400">Pending Verification</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-red-500" />
+                    <span className="text-muted-foreground dark:text-gray-400">Suspended</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-blue-500" />
+                    <span className="text-muted-foreground dark:text-gray-400">My Partners</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

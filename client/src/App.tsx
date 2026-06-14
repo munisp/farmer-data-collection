@@ -131,6 +131,7 @@ const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
 const MobileMoneyDashboard = lazy(() => import("./pages/MobileMoneyDashboard"));
 const ChamaGroupLending = lazy(() => import("./pages/ChamaGroupLending"));
 const DistributorNetwork = lazy(() => import("./pages/DistributorNetwork"));
+const DistributorMap = lazy(() => import("./pages/DistributorMap"));
 const ColdChainMonitoring = lazy(() => import("./pages/ColdChainMonitoring"));
 const PriceAlertsDashboard = lazy(() => import("./pages/PriceAlertsDashboard"));
 const SubscriptionBoxes = lazy(() => import("./pages/SubscriptionBoxes"));
@@ -281,6 +282,7 @@ function Router() {
         <Route path="/mobile-money" component={MobileMoneyDashboard} />
         <Route path="/chama" component={ChamaGroupLending} />
         <Route path="/distributor-network" component={DistributorNetwork} />
+        <Route path="/distributor-map" component={DistributorMap} />
         <Route path="/cold-chain" component={ColdChainMonitoring} />
         <Route path="/price-alerts" component={PriceAlertsDashboard} />
         <Route path="/subscriptions" component={SubscriptionBoxes} />

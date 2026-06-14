@@ -868,4 +868,377 @@ export const distributorNetworkRouter = router({
 
       return config;
     }),
+
+  // ==========================================================================
+  // POSTGIS SPATIAL QUERIES
+  // ==========================================================================
+
+  /**
+   * Find distributors near a location using PostGIS ST_DWithin (geography-aware)
+   */
+  findNearby: protectedProcedure
+    .input(z.object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      radiusKm: z.number().min(1).max(500).default(50),
+      statusFilter: z.string().optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const rateCheck = await checkRateLimit("distributor-spatial", String(ctx.user.id), 30, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      const results = await db.execute(sql`
+        SELECT
+          d.id, d.business_name, d.warehouse_address,
+          d.phone_number, d.contact_person, d.status,
+          d.warehouse_capacity_kg, d.total_sales_count,
+          d.average_rating, d.coverage_regions,
+          ST_X(d.location) AS lng, ST_Y(d.location) AS lat,
+          ST_Distance(
+            d.location::geography,
+            ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography
+          ) / 1000 AS distance_km
+        FROM distributors d
+        WHERE d.location IS NOT NULL
+          AND ST_DWithin(
+            d.location::geography,
+            ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography,
+            ${input.radiusKm * 1000}
+          )
+          ${input.statusFilter ? sql`AND d.status = ${input.statusFilter}` : sql``}
+        ORDER BY distance_km ASC
+      `);
+
+      return {
+        type: "FeatureCollection" as const,
+        features: (results.rows as any[]).map(row => ({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [row.lng, row.lat] },
+          properties: {
+            id: row.id,
+            businessName: row.business_name,
+            warehouseAddress: row.warehouse_address,
+            contactPerson: row.contact_person,
+            phoneNumber: row.phone_number,
+            status: row.status,
+            capacityKg: row.warehouse_capacity_kg ? Number(row.warehouse_capacity_kg) : null,
+            totalSales: row.total_sales_count,
+            rating: row.average_rating ? Number(row.average_rating) : null,
+            coverageRegions: row.coverage_regions,
+            distanceKm: Math.round(Number(row.distance_km) * 100) / 100,
+          },
+        })),
+      };
+    }),
+
+  /**
+   * Get all distributors as GeoJSON with coverage polygons for MapLibre GL rendering
+   */
+  getGeoJSON: protectedProcedure
+    .input(z.object({
+      statusFilter: z.string().optional(),
+      includeCoverage: z.boolean().default(true),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const rateCheck = await checkRateLimit("distributor-geojson", String(ctx.user.id), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      const results = await db.execute(sql`
+        SELECT
+          d.id, d.business_name, d.warehouse_address,
+          d.phone_number, d.contact_person, d.status,
+          d.warehouse_capacity_kg, d.total_sales_count,
+          d.average_rating, d.coverage_regions,
+          ST_X(d.location) AS lng, ST_Y(d.location) AS lat,
+          ${input.includeCoverage ? sql`ST_AsGeoJSON(d.coverage_area)::json AS coverage_geojson` : sql`NULL AS coverage_geojson`}
+        FROM distributors d
+        WHERE d.location IS NOT NULL
+          ${input.statusFilter ? sql`AND d.status = ${input.statusFilter}` : sql``}
+        ORDER BY d.business_name
+      `);
+
+      const features: any[] = [];
+      for (const row of results.rows as any[]) {
+        // Warehouse point marker
+        features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [row.lng, row.lat] },
+          properties: {
+            id: row.id,
+            businessName: row.business_name,
+            warehouseAddress: row.warehouse_address,
+            status: row.status,
+            capacityKg: row.warehouse_capacity_kg ? Number(row.warehouse_capacity_kg) : null,
+            totalSales: row.total_sales_count,
+            rating: row.average_rating ? Number(row.average_rating) : null,
+            coverageRegions: row.coverage_regions,
+            featureType: "warehouse",
+          },
+        });
+
+        // Coverage polygon
+        if (row.coverage_geojson) {
+          features.push({
+            type: "Feature",
+            geometry: row.coverage_geojson,
+            properties: {
+              id: row.id,
+              businessName: row.business_name,
+              status: row.status,
+              featureType: "coverage",
+            },
+          });
+        }
+      }
+
+      return { type: "FeatureCollection" as const, features };
+    }),
+
+  /**
+   * PostGIS spatial heatmap data for distributor density/capacity/sales
+   */
+  getHeatmap: protectedProcedure
+    .input(z.object({
+      gridSizeDegrees: z.number().min(0.01).max(5).default(0.25),
+      metric: z.enum(["count", "capacity", "sales"]).default("count"),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const rateCheck = await checkRateLimit("distributor-heatmap", String(ctx.user.id), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      const metricExpr = input.metric === "capacity"
+        ? sql`COALESCE(SUM(CAST(warehouse_capacity_kg AS NUMERIC)), 0)`
+        : input.metric === "sales"
+        ? sql`COALESCE(SUM(total_sales_count), 0)`
+        : sql`COUNT(*)`;
+
+      const results = await db.execute(sql`
+        SELECT
+          ST_X(ST_SnapToGrid(location, ${input.gridSizeDegrees})) AS grid_lng,
+          ST_Y(ST_SnapToGrid(location, ${input.gridSizeDegrees})) AS grid_lat,
+          ${metricExpr} AS value,
+          COUNT(*) AS count
+        FROM distributors
+        WHERE location IS NOT NULL AND status = 'approved'
+        GROUP BY ST_SnapToGrid(location, ${input.gridSizeDegrees})
+        ORDER BY value DESC
+      `);
+
+      const rows = results.rows as any[];
+      const maxValue = rows.length > 0 ? Math.max(...rows.map(r => Number(r.value))) : 1;
+
+      return {
+        type: "FeatureCollection" as const,
+        features: rows.map(row => ({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [row.grid_lng, row.grid_lat] },
+          properties: {
+            value: Number(row.value),
+            count: Number(row.count),
+            intensity: Number(row.value) / maxValue,
+            metric: input.metric,
+          },
+        })),
+        metadata: {
+          metric: input.metric,
+          gridSizeDegrees: input.gridSizeDegrees,
+          totalCells: rows.length,
+          maxValue,
+        },
+      };
+    }),
+
+  /**
+   * Spatial cluster analysis using PostGIS ST_ClusterDBSCAN
+   */
+  getClusters: protectedProcedure
+    .input(z.object({
+      minClusterSize: z.number().min(2).default(3),
+      maxDistanceKm: z.number().min(1).default(30),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const rateCheck = await checkRateLimit("distributor-clusters", String(ctx.user.id), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      // Convert km to approximate degrees for DBSCAN epsilon
+      const epsDegrees = input.maxDistanceKm / 111.0;
+
+      const results = await db.execute(sql`
+        SELECT
+          id, business_name, status,
+          ST_X(location) AS lng, ST_Y(location) AS lat,
+          warehouse_capacity_kg, total_sales_count,
+          ST_ClusterDBSCAN(location, eps := ${epsDegrees}, minpoints := ${input.minClusterSize})
+            OVER() AS cluster_id
+        FROM distributors
+        WHERE location IS NOT NULL AND status = 'approved'
+      `);
+
+      const clusters: Record<number, { id: number; members: any[]; centroid: any; totalCapacityKg: number; totalSales: number }> = {};
+      const noise: any[] = [];
+
+      for (const row of results.rows as any[]) {
+        const item = {
+          id: row.id,
+          businessName: row.business_name,
+          lng: Number(row.lng),
+          lat: Number(row.lat),
+          capacityKg: row.warehouse_capacity_kg ? Number(row.warehouse_capacity_kg) : null,
+          totalSales: row.total_sales_count || 0,
+        };
+
+        if (row.cluster_id === null) {
+          noise.push(item);
+        } else {
+          if (!clusters[row.cluster_id]) {
+            clusters[row.cluster_id] = { id: row.cluster_id, members: [], centroid: null, totalCapacityKg: 0, totalSales: 0 };
+          }
+          clusters[row.cluster_id].members.push(item);
+        }
+      }
+
+      // Compute centroids
+      for (const cluster of Object.values(clusters)) {
+        const members = cluster.members;
+        cluster.centroid = {
+          lat: members.reduce((s, m) => s + m.lat, 0) / members.length,
+          lng: members.reduce((s, m) => s + m.lng, 0) / members.length,
+        };
+        cluster.totalCapacityKg = members.reduce((s, m) => s + (m.capacityKg || 0), 0);
+        cluster.totalSales = members.reduce((s, m) => s + m.totalSales, 0);
+      }
+
+      return {
+        clusters: Object.values(clusters),
+        noise,
+        statistics: {
+          totalDistributors: (results.rows as any[]).length,
+          clusteredCount: Object.values(clusters).reduce((s, c) => s + c.members.length, 0),
+          noiseCount: noise.length,
+          clusterCount: Object.keys(clusters).length,
+        },
+      };
+    }),
+
+  /**
+   * Coverage analysis — overlap detection and gap identification
+   */
+  getCoverageAnalysis: protectedProcedure
+    .input(z.object({
+      includeGaps: z.boolean().default(true),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const rateCheck = await checkRateLimit("distributor-coverage", String(ctx.user.id), 5, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      // Coverage statistics
+      const statsResult = await db.execute(sql`
+        SELECT
+          COUNT(*) AS total_distributors,
+          COUNT(CASE WHEN location IS NOT NULL THEN 1 END) AS with_location,
+          COUNT(CASE WHEN coverage_area IS NOT NULL THEN 1 END) AS with_coverage,
+          COALESCE(SUM(ST_Area(ST_Transform(coverage_area, 3857)) / 1000000), 0) AS total_coverage_km2,
+          COALESCE(ST_Area(ST_Transform(ST_Union(coverage_area), 3857)) / 1000000, 0) AS unique_coverage_km2
+        FROM distributors
+        WHERE status = 'approved'
+      `);
+
+      const stats = (statsResult.rows as any[])[0];
+
+      const result: any = {
+        statistics: {
+          totalDistributors: Number(stats.total_distributors),
+          withLocation: Number(stats.with_location),
+          withCoverage: Number(stats.with_coverage),
+          totalCoverageKm2: Math.round(Number(stats.total_coverage_km2) * 100) / 100,
+          uniqueCoverageKm2: Math.round(Number(stats.unique_coverage_km2) * 100) / 100,
+          overlapKm2: Math.round((Number(stats.total_coverage_km2) - Number(stats.unique_coverage_km2)) * 100) / 100,
+        },
+      };
+
+      // Gap analysis
+      if (input.includeGaps) {
+        const gapResult = await db.execute(sql`
+          SELECT
+            ST_AsGeoJSON(
+              ST_Difference(
+                ST_Envelope(ST_Union(coverage_area)),
+                ST_Union(coverage_area)
+              )
+            )::json AS gap_geojson,
+            ST_Area(ST_Transform(
+              ST_Difference(ST_Envelope(ST_Union(coverage_area)), ST_Union(coverage_area)),
+              3857
+            )) / 1000000 AS gap_area_km2
+          FROM distributors
+          WHERE coverage_area IS NOT NULL AND status = 'approved'
+        `);
+
+        const gapRow = (gapResult.rows as any[])[0];
+        if (gapRow?.gap_geojson) {
+          result.gaps = {
+            geometry: gapRow.gap_geojson,
+            areaKm2: Math.round(Number(gapRow.gap_area_km2) * 100) / 100,
+          };
+        }
+      }
+
+      return result;
+    }),
+
+  /**
+   * Find optimal distributor for a farm — PostGIS distance + rating scoring
+   */
+  findOptimalMatch: protectedProcedure
+    .input(z.object({
+      farmLat: z.number().min(-90).max(90),
+      farmLng: z.number().min(-180).max(180),
+      commodity: z.string().optional(),
+      quantityKg: z.number().min(0).default(0),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await requireDb();
+      const rateCheck = await checkRateLimit("distributor-match", String(ctx.user.id), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      const results = await db.execute(sql`
+        SELECT
+          d.id AS distributor_id,
+          d.business_name,
+          ST_Distance(
+            ST_Transform(d.location, 3857),
+            ST_Transform(ST_SetSRID(ST_MakePoint(${input.farmLng}, ${input.farmLat}), 4326), 3857)
+          ) / 1000 AS distance_km,
+          CAST(d.warehouse_capacity_kg AS NUMERIC) AS available_capacity_kg,
+          d.average_rating,
+          (1.0 / GREATEST(
+            ST_Distance(
+              ST_Transform(d.location, 3857),
+              ST_Transform(ST_SetSRID(ST_MakePoint(${input.farmLng}, ${input.farmLat}), 4326), 3857)
+            ) / 1000, 0.1
+          )) * COALESCE(CAST(d.average_rating AS DOUBLE PRECISION), 3.0) AS score
+        FROM distributors d
+        WHERE d.location IS NOT NULL
+          AND d.status = 'approved'
+          ${input.quantityKg > 0 ? sql`AND CAST(d.warehouse_capacity_kg AS NUMERIC) >= ${input.quantityKg}` : sql``}
+        ORDER BY score DESC
+        LIMIT 10
+      `);
+
+      return {
+        recommendations: (results.rows as any[]).map(row => ({
+          distributorId: row.distributor_id,
+          businessName: row.business_name,
+          distanceKm: Math.round(Number(row.distance_km) * 100) / 100,
+          availableCapacityKg: row.available_capacity_kg ? Number(row.available_capacity_kg) : null,
+          rating: row.average_rating ? Number(row.average_rating) : null,
+          score: Math.round(Number(row.score) * 10000) / 10000,
+        })),
+      };
+    }),
 });
