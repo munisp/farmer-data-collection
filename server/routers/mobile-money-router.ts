@@ -20,7 +20,7 @@ import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { resilientPost } from "../services/resilient-http.js";
 
-import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
+import { checkRateLimit, scanForThreats, checkPermission, publishKafkaEvent, saveDaprState, getDaprState } from "../integrations/middleware-router-hooks.js";
 const MOBILE_MONEY_SERVICE_URL = process.env.MOBILE_MONEY_SERVICE_URL || "http://localhost:8090";
 
 async function callMobileMoneyService(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -68,7 +68,69 @@ export const mobileMoneyRouter = router({
         verified: false,
       }).returning();
 
+      // Publish event for OTP dispatch
+      await publishKafkaEvent("mobile_money.account.linked", String(account.id), {
+        userId, provider: input.provider, phoneNumber: input.phoneNumber,
+      });
+
       return account;
+    }),
+
+  requestVerification: protectedProcedure
+    .input(z.object({ accountId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("mobile_money", String(ctx.user?.id ?? "anon"), 5, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      const db = await requireDb();
+      const [account] = await db.select().from(mobileMoneyAccounts)
+        .where(and(eq(mobileMoneyAccounts.id, input.accountId), eq(mobileMoneyAccounts.userId, ctx.user.id)));
+      if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+      if (account.verified) return { success: true, message: "Account already verified" };
+
+      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      await saveDaprState("mobile-money-otp", `otp:${input.accountId}`, {
+        code: otp, expiresAt: Date.now() + 10 * 60 * 1000, attempts: 0,
+      });
+
+      await publishKafkaEvent("notifications.sms", String(ctx.user.id), {
+        userId: ctx.user.id, phoneNumber: account.phoneNumber,
+        message: `Your FarmConnect verification code is: ${otp}. Valid for 10 minutes.`,
+      });
+
+      return { success: true, message: "Verification code sent" };
+    }),
+
+  verifyAccount: protectedProcedure
+    .input(z.object({ accountId: z.number(), code: z.string().length(6) }))
+    .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("mobile_money", String(ctx.user?.id ?? "anon"), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      const db = await requireDb();
+      const [account] = await db.select().from(mobileMoneyAccounts)
+        .where(and(eq(mobileMoneyAccounts.id, input.accountId), eq(mobileMoneyAccounts.userId, ctx.user.id)));
+      if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+      if (account.verified) return { success: true, message: "Already verified" };
+
+      const raw = await getDaprState("mobile-money-otp", `otp:${input.accountId}`);
+      const stored = raw as { code: string; expiresAt: number; attempts: number } | null;
+      if (!stored || !stored.code) throw new TRPCError({ code: "BAD_REQUEST", message: "No verification pending. Request a new code." });
+      if (stored.expiresAt < Date.now()) throw new TRPCError({ code: "BAD_REQUEST", message: "Code expired. Request a new one." });
+      if (stored.attempts >= 3) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Request a new code." });
+
+      if (stored.code !== input.code) {
+        await saveDaprState("mobile-money-otp", `otp:${input.accountId}`, {
+          ...stored, attempts: stored.attempts + 1,
+        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid code" });
+      }
+
+      await db.update(mobileMoneyAccounts)
+        .set({ verified: true })
+        .where(eq(mobileMoneyAccounts.id, input.accountId));
+
+      return { success: true, message: "Account verified" };
     }),
 
   getAccounts: protectedProcedure

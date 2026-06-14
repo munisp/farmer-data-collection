@@ -334,28 +334,30 @@ export const exchangeRouter = router({
         throw new Error("Exchange account not found.");
       }
       
-      // Update account balance
-      const [updatedAccount] = await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: account.cashBalance + input.amount,
-          cashAvailable: account.cashAvailable + input.amount,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, account.id))
-        .returning();
-      
-      // Record transaction
-      await db.insert(exchangeTransactions).values({
-        accountId: account.id,
-        traderId: trader.id,
-        transactionType: "deposit",
-        amount: input.amount,
-        currency: "NGN",
-        status: "completed",
-        reference: input.reference,
+      const updatedAccount = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: account.cashBalance + input.amount,
+            cashAvailable: account.cashAvailable + input.amount,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, account.id))
+          .returning();
+
+        await tx.insert(exchangeTransactions).values({
+          accountId: account.id,
+          traderId: trader.id,
+          transactionType: "deposit",
+          amount: input.amount,
+          currency: "NGN",
+          status: "completed",
+          reference: input.reference,
+        });
+
+        return updated;
       });
-      
+
       return updatedAccount;
     }),
 
@@ -402,28 +404,30 @@ export const exchangeRouter = router({
         throw new Error("Insufficient available balance.");
       }
       
-      // Update account balance
-      const [updatedAccount] = await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: account.cashBalance - input.amount,
-          cashAvailable: account.cashAvailable - input.amount,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, account.id))
-        .returning();
-      
-      // Record transaction
-      await db.insert(exchangeTransactions).values({
-        accountId: account.id,
-        traderId: trader.id,
-        transactionType: "withdrawal",
-        amount: input.amount,
-        currency: "NGN",
-        status: "completed",
-        reference: input.reference,
+      const updatedAccount = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: account.cashBalance - input.amount,
+            cashAvailable: account.cashAvailable - input.amount,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, account.id))
+          .returning();
+
+        await tx.insert(exchangeTransactions).values({
+          accountId: account.id,
+          traderId: trader.id,
+          transactionType: "withdrawal",
+          amount: input.amount,
+          currency: "NGN",
+          status: "completed",
+          reference: input.reference,
+        });
+
+        return updated;
       });
-      
+
       return updatedAccount;
     }),
 
@@ -983,323 +987,310 @@ async function matchOrder(
   commodity: typeof exchangeCommodities.$inferSelect
 ) {
   if (!db) throw new Error("Database not available");
-  const trades: (typeof exchangeTrades.$inferSelect)[] = [];
-  
-  if (order.side === "buy") {
-    // Match against sell orders (asks)
-    const matchingOrders = await db
-      .select()
-      .from(exchangeOrders)
-      .where(and(
-        eq(exchangeOrders.commodityId, order.commodityId),
-        eq(exchangeOrders.side, "sell"),
-        eq(exchangeOrders.status, "open"),
-        order.orderType === "limit" && order.price
-          ? lte(exchangeOrders.price, order.price)
-          : sql`TRUE`
-      ))
-      .orderBy(asc(exchangeOrders.price), asc(exchangeOrders.createdAt));
-    
-    let remainingQuantity = order.quantity - order.quantityFilled;
-    
-    for (const sellOrder of matchingOrders) {
-      if (remainingQuantity <= 0) break;
-      
-      const sellRemaining = sellOrder.quantity - sellOrder.quantityFilled;
-      const matchQuantity = Math.min(remainingQuantity, sellRemaining);
-      const matchPrice = sellOrder.price!; // Sell order price
-      const tradeValue = matchPrice * matchQuantity;
-      
-      // Create trade
-      const [trade] = await db
-        .insert(exchangeTrades)
-        .values({
-          commodityId: order.commodityId,
-          buyOrderId: order.id,
-          sellOrderId: sellOrder.id,
-          price: matchPrice,
-          quantity: matchQuantity,
-          tradeValue,
-          buyerTraderId: order.traderId,
-          sellerTraderId: sellOrder.traderId,
-          settlementStatus: "pending",
-          tradeTime: new Date(),
-        })
-        .returning();
-      
-      trades.push(trade);
-      
-      // Update buy order
-      await db
-        .update(exchangeOrders)
-        .set({
-          quantityFilled: order.quantityFilled + matchQuantity,
-          status: order.quantityFilled + matchQuantity >= order.quantity ? "filled" : "partially_filled",
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeOrders.id, order.id));
-      
-      // Update sell order
-      await db
-        .update(exchangeOrders)
-        .set({
-          quantityFilled: sellOrder.quantityFilled + matchQuantity,
-          status: sellOrder.quantityFilled + matchQuantity >= sellOrder.quantity ? "filled" : "partially_filled",
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeOrders.id, sellOrder.id));
-      
-      // Get accounts
-      const [buyerAccount] = await db
-        .select()
-        .from(exchangeAccounts)
-        .where(eq(exchangeAccounts.traderId, order.traderId))
-        .limit(1);
-      
-      const [sellerAccount] = await db
-        .select()
-        .from(exchangeAccounts)
-        .where(eq(exchangeAccounts.traderId, sellOrder.traderId))
-        .limit(1);
-      
-      // Create settlement
-      const feeRate = 0.01; // 1% fee
-      const feesBuyer = Math.floor(tradeValue * feeRate);
-      const feesSeller = Math.floor(tradeValue * feeRate);
-      
-      await db.insert(exchangeSettlements).values({
-        tradeId: trade.id,
-        buyerAccountId: buyerAccount.id,
-        sellerAccountId: sellerAccount.id,
-        grossAmount: tradeValue,
-        feesBuyer,
-        feesSeller,
-        netBuyerDebit: tradeValue + feesBuyer,
-        netSellerCredit: tradeValue - feesSeller,
-        status: "pending",
-      });
 
-      // Initiate cross-FSP settlement via Mojaloop switch
-      await initiatePaymentSettlement(
-        `fsp-buyer-${buyerAccount.id}`,
-        `fsp-seller-${sellerAccount.id}`,
-        tradeValue,
-        "KES",
-      );
-      
-      // Update buyer account (release reserved, deduct actual)
-      const buyerCashUsed = tradeValue + feesBuyer;
-      await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: buyerAccount.cashBalance - buyerCashUsed,
-          cashReserved: buyerAccount.cashReserved - tradeValue,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, buyerAccount.id));
-      
-      // Update seller account (credit proceeds)
-      await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: sellerAccount.cashBalance + (tradeValue - feesSeller),
-          cashAvailable: sellerAccount.cashAvailable + (tradeValue - feesSeller),
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, sellerAccount.id));
-      
-      // Update seller position (reduce reserved)
-      const [sellerPosition] = await db
+  const trades = await db.transaction(async (tx) => {
+    const matched: (typeof exchangeTrades.$inferSelect)[] = [];
+
+    if (order.side === "buy") {
+      const matchingOrders = await tx
         .select()
-        .from(exchangePositions)
+        .from(exchangeOrders)
         .where(and(
-          eq(exchangePositions.traderId, sellOrder.traderId),
-          eq(exchangePositions.commodityId, order.commodityId)
+          eq(exchangeOrders.commodityId, order.commodityId),
+          eq(exchangeOrders.side, "sell"),
+          eq(exchangeOrders.status, "open"),
+          order.orderType === "limit" && order.price
+            ? lte(exchangeOrders.price, order.price)
+            : sql`TRUE`
         ))
-        .limit(1);
-      
-      if (sellerPosition) {
-        await db
-          .update(exchangePositions)
+        .orderBy(asc(exchangeOrders.price), asc(exchangeOrders.createdAt));
+
+      let remainingQuantity = order.quantity - order.quantityFilled;
+
+      for (const sellOrder of matchingOrders) {
+        if (remainingQuantity <= 0) break;
+
+        const sellRemaining = sellOrder.quantity - sellOrder.quantityFilled;
+        const matchQuantity = Math.min(remainingQuantity, sellRemaining);
+        const matchPrice = sellOrder.price!;
+        const tradeValue = matchPrice * matchQuantity;
+
+        const [trade] = await tx
+          .insert(exchangeTrades)
+          .values({
+            commodityId: order.commodityId,
+            buyOrderId: order.id,
+            sellOrderId: sellOrder.id,
+            price: matchPrice,
+            quantity: matchQuantity,
+            tradeValue,
+            buyerTraderId: order.traderId,
+            sellerTraderId: sellOrder.traderId,
+            settlementStatus: "pending",
+            tradeTime: new Date(),
+          })
+          .returning();
+
+        matched.push(trade);
+
+        await tx
+          .update(exchangeOrders)
           .set({
-            quantityTotal: sellerPosition.quantityTotal - matchQuantity,
-            quantityReserved: sellerPosition.quantityReserved - matchQuantity,
+            quantityFilled: order.quantityFilled + matchQuantity,
+            status: order.quantityFilled + matchQuantity >= order.quantity ? "filled" : "partially_filled",
             updatedAt: new Date(),
           })
-          .where(eq(exchangePositions.id, sellerPosition.id));
-      }
-      
-      // Update commodity price
-      await db
-        .update(exchangeCommodities)
-        .set({
-          lastTradePrice: matchPrice,
-          lastTradeAt: new Date(),
-          dailyVolume: (commodity.dailyVolume || 0) + matchQuantity,
-          dailyHigh: Math.max(commodity.dailyHigh || 0, matchPrice),
-          dailyLow: commodity.dailyLow ? Math.min(commodity.dailyLow, matchPrice) : matchPrice,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeCommodities.id, commodity.id));
-      
-      remainingQuantity -= matchQuantity;
-    }
-  } else {
-    // Match against buy orders (bids)
-    const matchingOrders = await db
-      .select()
-      .from(exchangeOrders)
-      .where(and(
-        eq(exchangeOrders.commodityId, order.commodityId),
-        eq(exchangeOrders.side, "buy"),
-        eq(exchangeOrders.status, "open"),
-        order.orderType === "limit" && order.price
-          ? gte(exchangeOrders.price, order.price)
-          : sql`TRUE`
-      ))
-      .orderBy(desc(exchangeOrders.price), asc(exchangeOrders.createdAt));
-    
-    let remainingQuantity = order.quantity - order.quantityFilled;
-    
-    for (const buyOrder of matchingOrders) {
-      if (remainingQuantity <= 0) break;
-      
-      const buyRemaining = buyOrder.quantity - buyOrder.quantityFilled;
-      const matchQuantity = Math.min(remainingQuantity, buyRemaining);
-      const matchPrice = buyOrder.price!; // Buy order price
-      const tradeValue = matchPrice * matchQuantity;
-      
-      // Create trade
-      const [trade] = await db
-        .insert(exchangeTrades)
-        .values({
-          commodityId: order.commodityId,
-          buyOrderId: buyOrder.id,
-          sellOrderId: order.id,
-          price: matchPrice,
-          quantity: matchQuantity,
-          tradeValue,
-          buyerTraderId: buyOrder.traderId,
-          sellerTraderId: order.traderId,
-          settlementStatus: "pending",
-          tradeTime: new Date(),
-        })
-        .returning();
-      
-      trades.push(trade);
-      
-      // Update sell order (current order)
-      await db
-        .update(exchangeOrders)
-        .set({
-          quantityFilled: order.quantityFilled + matchQuantity,
-          status: order.quantityFilled + matchQuantity >= order.quantity ? "filled" : "partially_filled",
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeOrders.id, order.id));
-      
-      // Update buy order
-      await db
-        .update(exchangeOrders)
-        .set({
-          quantityFilled: buyOrder.quantityFilled + matchQuantity,
-          status: buyOrder.quantityFilled + matchQuantity >= buyOrder.quantity ? "filled" : "partially_filled",
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeOrders.id, buyOrder.id));
-      
-      // Get accounts
-      const [buyerAccount] = await db
-        .select()
-        .from(exchangeAccounts)
-        .where(eq(exchangeAccounts.traderId, buyOrder.traderId))
-        .limit(1);
-      
-      const [sellerAccount] = await db
-        .select()
-        .from(exchangeAccounts)
-        .where(eq(exchangeAccounts.traderId, order.traderId))
-        .limit(1);
-      
-      // Create settlement
-      const feeRate = 0.01; // 1% fee
-      const feesBuyer = Math.floor(tradeValue * feeRate);
-      const feesSeller = Math.floor(tradeValue * feeRate);
-      
-      await db.insert(exchangeSettlements).values({
-        tradeId: trade.id,
-        buyerAccountId: buyerAccount.id,
-        sellerAccountId: sellerAccount.id,
-        grossAmount: tradeValue,
-        feesBuyer,
-        feesSeller,
-        netBuyerDebit: tradeValue + feesBuyer,
-        netSellerCredit: tradeValue - feesSeller,
-        status: "pending",
-      });
-      
-      // Update buyer account
-      const buyerCashUsed = tradeValue + feesBuyer;
-      await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: buyerAccount.cashBalance - buyerCashUsed,
-          cashReserved: buyerAccount.cashReserved - tradeValue,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, buyerAccount.id));
-      
-      // Update seller account
-      await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: sellerAccount.cashBalance + (tradeValue - feesSeller),
-          cashAvailable: sellerAccount.cashAvailable + (tradeValue - feesSeller),
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, sellerAccount.id));
-      
-      // Update seller position
-      const [sellerPosition] = await db
-        .select()
-        .from(exchangePositions)
-        .where(and(
-          eq(exchangePositions.traderId, order.traderId),
-          eq(exchangePositions.commodityId, order.commodityId)
-        ))
-        .limit(1);
-      
-      if (sellerPosition) {
-        await db
-          .update(exchangePositions)
+          .where(eq(exchangeOrders.id, order.id));
+
+        await tx
+          .update(exchangeOrders)
           .set({
-            quantityTotal: sellerPosition.quantityTotal - matchQuantity,
-            quantityReserved: sellerPosition.quantityReserved - matchQuantity,
+            quantityFilled: sellOrder.quantityFilled + matchQuantity,
+            status: sellOrder.quantityFilled + matchQuantity >= sellOrder.quantity ? "filled" : "partially_filled",
             updatedAt: new Date(),
           })
-          .where(eq(exchangePositions.id, sellerPosition.id));
+          .where(eq(exchangeOrders.id, sellOrder.id));
+
+        const [buyerAccount] = await tx
+          .select()
+          .from(exchangeAccounts)
+          .where(eq(exchangeAccounts.traderId, order.traderId))
+          .limit(1);
+
+        const [sellerAccount] = await tx
+          .select()
+          .from(exchangeAccounts)
+          .where(eq(exchangeAccounts.traderId, sellOrder.traderId))
+          .limit(1);
+
+        const feeRate = 0.01;
+        const feesBuyer = Math.floor(tradeValue * feeRate);
+        const feesSeller = Math.floor(tradeValue * feeRate);
+
+        await tx.insert(exchangeSettlements).values({
+          tradeId: trade.id,
+          buyerAccountId: buyerAccount.id,
+          sellerAccountId: sellerAccount.id,
+          grossAmount: tradeValue,
+          feesBuyer,
+          feesSeller,
+          netBuyerDebit: tradeValue + feesBuyer,
+          netSellerCredit: tradeValue - feesSeller,
+          status: "pending",
+        });
+
+        const buyerCashUsed = tradeValue + feesBuyer;
+        await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: buyerAccount.cashBalance - buyerCashUsed,
+            cashReserved: buyerAccount.cashReserved - tradeValue,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, buyerAccount.id));
+
+        await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: sellerAccount.cashBalance + (tradeValue - feesSeller),
+            cashAvailable: sellerAccount.cashAvailable + (tradeValue - feesSeller),
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, sellerAccount.id));
+
+        const [sellerPosition] = await tx
+          .select()
+          .from(exchangePositions)
+          .where(and(
+            eq(exchangePositions.traderId, sellOrder.traderId),
+            eq(exchangePositions.commodityId, order.commodityId)
+          ))
+          .limit(1);
+
+        if (sellerPosition) {
+          await tx
+            .update(exchangePositions)
+            .set({
+              quantityTotal: sellerPosition.quantityTotal - matchQuantity,
+              quantityReserved: sellerPosition.quantityReserved - matchQuantity,
+              updatedAt: new Date(),
+            })
+            .where(eq(exchangePositions.id, sellerPosition.id));
+        }
+
+        await tx
+          .update(exchangeCommodities)
+          .set({
+            lastTradePrice: matchPrice,
+            lastTradeAt: new Date(),
+            dailyVolume: (commodity.dailyVolume || 0) + matchQuantity,
+            dailyHigh: Math.max(commodity.dailyHigh || 0, matchPrice),
+            dailyLow: commodity.dailyLow ? Math.min(commodity.dailyLow, matchPrice) : matchPrice,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeCommodities.id, commodity.id));
+
+        remainingQuantity -= matchQuantity;
       }
-      
-      // Update commodity price
-      await db
-        .update(exchangeCommodities)
-        .set({
-          lastTradePrice: matchPrice,
-          lastTradeAt: new Date(),
-          dailyVolume: (commodity.dailyVolume || 0) + matchQuantity,
-          dailyHigh: Math.max(commodity.dailyHigh || 0, matchPrice),
-          dailyLow: commodity.dailyLow ? Math.min(commodity.dailyLow, matchPrice) : matchPrice,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeCommodities.id, commodity.id));
-      
-      remainingQuantity -= matchQuantity;
+    } else {
+      const matchingOrders = await tx
+        .select()
+        .from(exchangeOrders)
+        .where(and(
+          eq(exchangeOrders.commodityId, order.commodityId),
+          eq(exchangeOrders.side, "buy"),
+          eq(exchangeOrders.status, "open"),
+          order.orderType === "limit" && order.price
+            ? gte(exchangeOrders.price, order.price)
+            : sql`TRUE`
+        ))
+        .orderBy(desc(exchangeOrders.price), asc(exchangeOrders.createdAt));
+
+      let remainingQuantity = order.quantity - order.quantityFilled;
+
+      for (const buyOrder of matchingOrders) {
+        if (remainingQuantity <= 0) break;
+
+        const buyRemaining = buyOrder.quantity - buyOrder.quantityFilled;
+        const matchQuantity = Math.min(remainingQuantity, buyRemaining);
+        const matchPrice = buyOrder.price!;
+        const tradeValue = matchPrice * matchQuantity;
+
+        const [trade] = await tx
+          .insert(exchangeTrades)
+          .values({
+            commodityId: order.commodityId,
+            buyOrderId: buyOrder.id,
+            sellOrderId: order.id,
+            price: matchPrice,
+            quantity: matchQuantity,
+            tradeValue,
+            buyerTraderId: buyOrder.traderId,
+            sellerTraderId: order.traderId,
+            settlementStatus: "pending",
+            tradeTime: new Date(),
+          })
+          .returning();
+
+        matched.push(trade);
+
+        await tx
+          .update(exchangeOrders)
+          .set({
+            quantityFilled: order.quantityFilled + matchQuantity,
+            status: order.quantityFilled + matchQuantity >= order.quantity ? "filled" : "partially_filled",
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeOrders.id, order.id));
+
+        await tx
+          .update(exchangeOrders)
+          .set({
+            quantityFilled: buyOrder.quantityFilled + matchQuantity,
+            status: buyOrder.quantityFilled + matchQuantity >= buyOrder.quantity ? "filled" : "partially_filled",
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeOrders.id, buyOrder.id));
+
+        const [buyerAccount] = await tx
+          .select()
+          .from(exchangeAccounts)
+          .where(eq(exchangeAccounts.traderId, buyOrder.traderId))
+          .limit(1);
+
+        const [sellerAccount] = await tx
+          .select()
+          .from(exchangeAccounts)
+          .where(eq(exchangeAccounts.traderId, order.traderId))
+          .limit(1);
+
+        const feeRate = 0.01;
+        const feesBuyer = Math.floor(tradeValue * feeRate);
+        const feesSeller = Math.floor(tradeValue * feeRate);
+
+        await tx.insert(exchangeSettlements).values({
+          tradeId: trade.id,
+          buyerAccountId: buyerAccount.id,
+          sellerAccountId: sellerAccount.id,
+          grossAmount: tradeValue,
+          feesBuyer,
+          feesSeller,
+          netBuyerDebit: tradeValue + feesBuyer,
+          netSellerCredit: tradeValue - feesSeller,
+          status: "pending",
+        });
+
+        const buyerCashUsed = tradeValue + feesBuyer;
+        await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: buyerAccount.cashBalance - buyerCashUsed,
+            cashReserved: buyerAccount.cashReserved - tradeValue,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, buyerAccount.id));
+
+        await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: sellerAccount.cashBalance + (tradeValue - feesSeller),
+            cashAvailable: sellerAccount.cashAvailable + (tradeValue - feesSeller),
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, sellerAccount.id));
+
+        const [sellerPosition] = await tx
+          .select()
+          .from(exchangePositions)
+          .where(and(
+            eq(exchangePositions.traderId, order.traderId),
+            eq(exchangePositions.commodityId, order.commodityId)
+          ))
+          .limit(1);
+
+        if (sellerPosition) {
+          await tx
+            .update(exchangePositions)
+            .set({
+              quantityTotal: sellerPosition.quantityTotal - matchQuantity,
+              quantityReserved: sellerPosition.quantityReserved - matchQuantity,
+              updatedAt: new Date(),
+            })
+            .where(eq(exchangePositions.id, sellerPosition.id));
+        }
+
+        await tx
+          .update(exchangeCommodities)
+          .set({
+            lastTradePrice: matchPrice,
+            lastTradeAt: new Date(),
+            dailyVolume: (commodity.dailyVolume || 0) + matchQuantity,
+            dailyHigh: Math.max(commodity.dailyHigh || 0, matchPrice),
+            dailyLow: commodity.dailyLow ? Math.min(commodity.dailyLow, matchPrice) : matchPrice,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeCommodities.id, commodity.id));
+
+        remainingQuantity -= matchQuantity;
+      }
     }
-  }
-  
-  // Update best bid/ask after matching
+
+    return matched;
+  });
+
+  // Update best bid/ask after matching (outside transaction — read-only)
   await updateBestPrices(db, order.commodityId);
-  
+
+  // Initiate cross-FSP settlement via Mojaloop (outside transaction — external call)
+  for (const trade of trades) {
+    await initiatePaymentSettlement(
+      `fsp-buyer-${trade.buyerTraderId}`,
+      `fsp-seller-${trade.sellerTraderId}`,
+      trade.tradeValue,
+      "KES",
+    );
+  }
+
   return trades;
 }
 
