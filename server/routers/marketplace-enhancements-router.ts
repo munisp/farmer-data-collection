@@ -9,6 +9,8 @@ import {
   savingsGoals,
   equipmentBookings,
   insuranceClaims,
+  marketplaceOrders,
+  produceListings,
 } from "../../drizzle/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { withRedisCache, invalidateRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, searchDocuments, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
@@ -75,8 +77,38 @@ export const marketplaceEnhancementsRouter = router({
       if (offer.sellerId !== ctx.user.id && offer.buyerId !== ctx.user.id) {
         throw new Error("Not authorized");
       }
+      const newStatus = input.action === "accept" ? "accepted" : "rejected";
+
+      if (input.action === "accept") {
+        const result = await db.transaction(async (tx) => {
+          await tx.update(negotiationOffers).set({
+            status: "accepted",
+            updatedAt: new Date(),
+          }).where(eq(negotiationOffers.id, input.offerId));
+
+          // Auto-create marketplace order from accepted offer
+          const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+          const [order] = await tx.insert(marketplaceOrders).values({
+            buyerId: offer.buyerId,
+            sellerId: offer.sellerId,
+            orderNumber,
+            totalAmount: offer.offerPricePerUnit * offer.quantity,
+            status: "pending",
+            paymentStatus: "pending",
+          }).returning();
+
+          return { orderId: order.id, orderNumber };
+        });
+
+        await publishKafkaEvent("marketplace.offer.accepted", String(input.offerId), {
+          offerId: input.offerId, orderId: result.orderId, orderNumber: result.orderNumber,
+        });
+
+        return { success: true, orderId: result.orderId, orderNumber: result.orderNumber };
+      }
+
       await db.update(negotiationOffers).set({
-        status: input.action === "accept" ? "accepted" : "rejected",
+        status: "rejected",
         updatedAt: new Date(),
       }).where(eq(negotiationOffers.id, input.offerId));
       return { success: true };

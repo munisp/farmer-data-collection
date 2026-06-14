@@ -132,6 +132,95 @@ export const insuranceAIRouter = router({
     return { claims: userClaims, total: userClaims.length, totalPaid };
   }),
 
+  fileClaim: protectedProcedure
+    .input(z.object({
+      policyId: z.number(),
+      claimAmount: z.number().min(1),
+      reason: z.string().min(5),
+      evidence: z.any().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("insurance_ai", String(ctx.user?.id ?? "anon"), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("insurance_ai", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const [policy] = await db.select().from(insurancePolicies)
+        .where(and(eq(insurancePolicies.id, input.policyId), eq(insurancePolicies.farmerId, ctx.user.id)));
+      if (!policy) throw new TRPCError({ code: "NOT_FOUND", message: "Policy not found or not owned by user" });
+      if (policy.status !== "active") throw new TRPCError({ code: "BAD_REQUEST", message: "Policy is not active" });
+
+      const claimNumber = `CLM-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const claimAmountStr = String(input.claimAmount);
+
+      const [claim] = await db.insert(insuranceClaims).values({
+        claimNumber,
+        policyId: input.policyId,
+        claimAmount: claimAmountStr,
+        reason: input.reason,
+        evidence: input.evidence ?? null,
+        status: "submitted",
+      }).returning();
+
+      await publishKafkaEvent("insurance.claim.filed", claimNumber, {
+        userId: ctx.user.id, policyId: input.policyId, claimAmount: input.claimAmount,
+      });
+
+      logger.info(`Insurance claim filed: ${claimNumber} for policy ${policy.policyNumber}`);
+      return { claimId: claim.id, claimNumber, status: "submitted" };
+    }),
+
+  processClaimPayout: protectedProcedure
+    .input(z.object({
+      claimId: z.number(),
+      approved: z.boolean(),
+      approvedAmount: z.number().optional(),
+      rejectionReason: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("insurance_ai", String(ctx.user?.id ?? "anon"), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const [claim] = await db.select().from(insuranceClaims).where(eq(insuranceClaims.id, input.claimId));
+      if (!claim) throw new TRPCError({ code: "NOT_FOUND", message: "Claim not found" });
+      if (claim.status !== "submitted") throw new TRPCError({ code: "BAD_REQUEST", message: "Claim already processed" });
+
+      const newStatus = input.approved ? "paid" : "rejected";
+      const payoutAmount = input.approved ? (input.approvedAmount ?? Number(claim.claimAmount)) : 0;
+
+      await db.transaction(async (tx) => {
+        await tx.update(insuranceClaims).set({
+          status: newStatus,
+          reviewedBy: ctx.user.id,
+          resolvedAt: new Date(),
+        }).where(eq(insuranceClaims.id, input.claimId));
+
+        if (input.approved && payoutAmount > 0) {
+          await recordLedgerEntry("insurance-pool", String(claim.policyId), payoutAmount, "KES",
+            `Insurance claim payout: ${claim.claimNumber}`);
+        }
+      });
+
+      if (input.approved) {
+        await publishKafkaEvent("insurance.claim.paid", claim.claimNumber, {
+          claimId: input.claimId, payoutAmount, policyId: claim.policyId,
+        });
+        await publishKafkaEvent("disbursement.initiate", claim.claimNumber, {
+          userId: claim.policyId, amount: payoutAmount, type: "insurance_payout",
+          reference: claim.claimNumber,
+        });
+      }
+
+      logger.info(`Insurance claim ${claim.claimNumber} ${newStatus}: ${payoutAmount}`);
+      return { claimId: input.claimId, status: newStatus, payoutAmount };
+    }),
+
   getStats: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { totalPolicies: 0, activePolicies: 0, totalPremiumsCollected: 0, totalClaimsPaid: 0, claimRatio: 0, avgRiskScore: 0, topProducts: [] };

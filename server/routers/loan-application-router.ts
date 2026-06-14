@@ -99,37 +99,39 @@ export const loanApplicationRouter = router({
           // Generate application number
       const applicationNumber = `APP-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
-      // Insert application
-      const [application] = await db
-        .insert(loanApplications)
-        .values({
-          userId,
-          applicationNumber,
-          loanAmount: input.loanAmount,
-          purpose: input.purpose,
-          termMonths: input.termMonths,
-          fullName: input.fullName,
-          email: input.email,
-          phone: input.phone,
-          address: input.address,
-          employmentStatus: input.employmentStatus || null,
-          monthlyIncome: input.monthlyIncome || null,
-          incomeSource: input.incomeSource || null,
-          farmSize: input.farmSize || null,
-          cropTypes: input.cropTypes || null,
-          yearsOfFarming: input.yearsOfFarming || null,
-          status: "pending",
-          submittedAt: new Date(),
-        })
-        .returning();
+      const application = await db.transaction(async (tx) => {
+        const [app] = await tx
+          .insert(loanApplications)
+          .values({
+            userId,
+            applicationNumber,
+            loanAmount: input.loanAmount,
+            purpose: input.purpose,
+            termMonths: input.termMonths,
+            fullName: input.fullName,
+            email: input.email,
+            phone: input.phone,
+            address: input.address,
+            employmentStatus: input.employmentStatus || null,
+            monthlyIncome: input.monthlyIncome || null,
+            incomeSource: input.incomeSource || null,
+            farmSize: input.farmSize || null,
+            cropTypes: input.cropTypes || null,
+            yearsOfFarming: input.yearsOfFarming || null,
+            status: "pending",
+            submittedAt: new Date(),
+          })
+          .returning();
 
-      // Record status change
-      await db.insert(applicationStatusHistory).values({
-        applicationId: application.id,
-        fromStatus: null,
-        toStatus: "pending",
-        changedBy: userId,
-        notes: "Application submitted",
+        await tx.insert(applicationStatusHistory).values({
+          applicationId: app.id,
+          fromStatus: null,
+          toStatus: "pending",
+          changedBy: userId,
+          notes: "Application submitted",
+        });
+
+        return app;
       });
 
       // Start Temporal workflow for loan processing (async, non-blocking)
@@ -374,29 +376,29 @@ export const loanApplicationRouter = router({
         throw new Error("Application not found");
       }
 
-      // Update application
-      await db
-        .update(loanApplications)
-        .set({
-          status: input.status,
-          reviewedBy: userId,
-          reviewedAt: new Date(),
-          reviewNotes: input.reviewNotes || null,
-          rejectionReason: input.rejectionReason || null,
-          approvedAmount: input.approvedAmount || null,
-          approvedTermMonths: input.approvedTermMonths || null,
-          approvedInterestRate: input.approvedInterestRate || null,
-          updatedAt: new Date(),
-        })
-        .where(eq(loanApplications.id, input.applicationId));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(loanApplications)
+          .set({
+            status: input.status,
+            reviewedBy: userId,
+            reviewedAt: new Date(),
+            reviewNotes: input.reviewNotes || null,
+            rejectionReason: input.rejectionReason || null,
+            approvedAmount: input.approvedAmount || null,
+            approvedTermMonths: input.approvedTermMonths || null,
+            approvedInterestRate: input.approvedInterestRate || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(loanApplications.id, input.applicationId));
 
-      // Record status change
-      await db.insert(applicationStatusHistory).values({
-        applicationId: input.applicationId,
-        fromStatus: currentApp.status,
-        toStatus: input.status,
-        changedBy: userId,
-        notes: input.reviewNotes || null,
+        await tx.insert(applicationStatusHistory).values({
+          applicationId: input.applicationId,
+          fromStatus: currentApp.status,
+          toStatus: input.status,
+          changedBy: userId,
+          notes: input.reviewNotes || null,
+        });
       });
 
       logger.info(`[LoanApplication] Status updated: ${currentApp.applicationNumber} -> ${input.status}`);

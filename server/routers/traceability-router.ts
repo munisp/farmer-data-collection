@@ -124,7 +124,8 @@ export const traceabilityRouter = router({
       const batchCode = `BATCH-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
       
       // Generate QR code data (URL to traceability page)
-      const qrCode = `https://app.example.com/trace/${batchCode}`;
+      const baseUrl = process.env.APP_BASE_URL || "https://farmconnect.app";
+      const qrCode = `${baseUrl}/trace/${batchCode}`;
       
       const [batch] = await db
         .insert(productBatches)

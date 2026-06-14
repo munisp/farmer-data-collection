@@ -75,7 +75,7 @@ type CollectionsStage = keyof typeof COLLECTIONS_STAGES;
 
 // Provision rates loaded from centralized config (env-overridable)
 import { PROVISION_RATES as CONFIG_PROVISION_RATES } from '../config/business-rules.js';
-import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
+import { checkRateLimit, scanForThreats, checkPermission, publishKafkaEvent } from "../integrations/middleware-router-hooks.js";
 const PROVISION_RATES: Record<CollectionsStage, number> = CONFIG_PROVISION_RATES as Record<CollectionsStage, number>;
 
 function getCollectionsStage(daysOverdue: number): CollectionsStage {
@@ -315,6 +315,35 @@ export const collectionsWorkflowRouter = router({
             outstandingBalance: balance,
             timestamp: new Date().toISOString(),
           })}],
+        });
+      }
+
+      // Dispatch notification for SMS/push/email actions
+      if (["sms_reminder", "sms_final_notice"].includes(input.action)) {
+        await publishKafkaEvent("notifications.sms", String(loan.userId), {
+          userId: loan.userId,
+          template: input.action === "sms_reminder" ? "collections_reminder" : "collections_final_notice",
+          loanNumber: loan.loanNumber,
+          outstandingBalance: balance,
+          daysOverdue,
+          stage,
+        });
+      }
+      if (input.action === "push_notification") {
+        await publishKafkaEvent("notifications.push", String(loan.userId), {
+          userId: loan.userId,
+          title: "Payment Reminder",
+          body: `Your loan ${loan.loanNumber} has a balance of ${balance}. Payment is ${daysOverdue} days overdue.`,
+        });
+      }
+      if (input.action === "email_reminder" || input.action === "formal_demand_letter") {
+        await publishKafkaEvent("notifications.email", String(loan.userId), {
+          userId: loan.userId,
+          template: input.action === "formal_demand_letter" ? "demand_letter" : "payment_reminder",
+          loanNumber: loan.loanNumber,
+          outstandingBalance: balance,
+          daysOverdue,
+          feeApplied,
         });
       }
 
