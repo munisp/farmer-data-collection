@@ -78,24 +78,28 @@ export const iotGatewayRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await requireDb();
-      const records = [];
-      for (const reading of input.readings) {
-        const [record] = await db.insert(iotReadings).values({
-          deviceId: input.deviceId,
-          readingType: reading.readingType,
-          value: reading.value.toString(),
-          unit: reading.unit,
-          quality: reading.quality,
-          rawValue: reading.rawValue?.toString(),
-          rssi: reading.rssi,
-          snr: reading.snr?.toString(),
-        }).returning();
-        records.push(record);
-      }
+      const records = await db.transaction(async (tx) => {
+        const inserted = [];
+        for (const reading of input.readings) {
+          const [record] = await tx.insert(iotReadings).values({
+            deviceId: input.deviceId,
+            readingType: reading.readingType,
+            value: reading.value.toString(),
+            unit: reading.unit,
+            quality: reading.quality,
+            rawValue: reading.rawValue?.toString(),
+            rssi: reading.rssi,
+            snr: reading.snr?.toString(),
+          }).returning();
+          inserted.push(record);
+        }
 
-      await db.update(iotDevices)
-        .set({ lastSeenAt: new Date() })
-        .where(eq(iotDevices.id, input.deviceId));
+        await tx.update(iotDevices)
+          .set({ lastSeenAt: new Date() })
+          .where(eq(iotDevices.id, input.deviceId));
+
+        return inserted;
+      });
 
       const device = await db.select().from(iotDevices).where(eq(iotDevices.id, input.deviceId)).limit(1);
       const alerts: Array<Record<string, unknown>> = [];

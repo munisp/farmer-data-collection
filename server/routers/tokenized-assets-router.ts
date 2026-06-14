@@ -47,23 +47,31 @@ export const tokenizedAssetsRouter = router({
       if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
 
       const db = await requireDb();
-      const [asset] = await db.select().from(tokenizedAssets).where(eq(tokenizedAssets.id, input.assetId));
-      if (!asset) return { success: false, error: "Asset not found" };
-      if (asset.availableSupply < input.quantity) return { success: false, error: `Only ${asset.availableSupply} tokens available` };
+      const result = await db.transaction(async (tx) => {
+        const [asset] = await tx.select().from(tokenizedAssets).where(eq(tokenizedAssets.id, input.assetId));
+        if (!asset) throw new TRPCError({ code: "NOT_FOUND", message: "Asset not found" });
+        if (asset.availableSupply < input.quantity) throw new TRPCError({ code: "BAD_REQUEST", message: `Only ${asset.availableSupply} tokens available` });
 
-      const price = Number(asset.pricePerToken);
-      const totalCost = price * input.quantity;
+        const price = Number(asset.pricePerToken);
+        const totalCost = price * input.quantity;
 
-      const existing = await db.select().from(tokenHoldings).where(and(eq(tokenHoldings.tokenId, input.assetId), eq(tokenHoldings.userId, input.userId)));
-      if (existing.length > 0) {
-        await db.update(tokenHoldings).set({ quantity: existing[0].quantity + input.quantity }).where(eq(tokenHoldings.id, existing[0].id));
-      } else {
-        await db.insert(tokenHoldings).values({ tokenId: input.assetId, userId: input.userId, quantity: input.quantity, purchasePrice: String(price) });
-      }
+        const existing = await tx.select().from(tokenHoldings).where(and(eq(tokenHoldings.tokenId, input.assetId), eq(tokenHoldings.userId, input.userId)));
+        let newBalance: number;
+        if (existing.length > 0) {
+          newBalance = existing[0].quantity + input.quantity;
+          await tx.update(tokenHoldings).set({ quantity: newBalance }).where(eq(tokenHoldings.id, existing[0].id));
+        } else {
+          newBalance = input.quantity;
+          await tx.insert(tokenHoldings).values({ tokenId: input.assetId, userId: input.userId, quantity: input.quantity, purchasePrice: String(price) });
+        }
 
-      await db.update(tokenizedAssets).set({ availableSupply: asset.availableSupply - input.quantity, updatedAt: new Date() }).where(eq(tokenizedAssets.id, input.assetId));
-      logger.info("[TokenizedAssets] Purchase", { assetId: input.assetId, userId: input.userId, quantity: input.quantity, totalCost });
-      return { success: true, tokensPurchased: input.quantity, totalCost, newBalance: (existing[0]?.quantity ?? 0) + input.quantity };
+        await tx.update(tokenizedAssets).set({ availableSupply: asset.availableSupply - input.quantity, updatedAt: new Date() }).where(eq(tokenizedAssets.id, input.assetId));
+
+        return { tokensPurchased: input.quantity, totalCost, newBalance };
+      });
+
+      logger.info("[TokenizedAssets] Purchase", { assetId: input.assetId, userId: input.userId, quantity: input.quantity, totalCost: result.totalCost });
+      return { success: true, ...result };
     }),
 
   getHoldings: protectedProcedure

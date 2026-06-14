@@ -176,78 +176,82 @@ export const creditScoringRouter = router({
       
       const band = getBandFromScore(totalScore);
       
-      // Deactivate previous scores
-      await db
-        .update(creditScores)
-        .set({ isActive: false })
-        .where(eq(creditScores.userId, input.userId));
-      
-      // Create new score
-      const [newScore] = await db
-        .insert(creditScores)
-        .values({
+      const result = await db.transaction(async (tx) => {
+        // Deactivate previous scores
+        await tx
+          .update(creditScores)
+          .set({ isActive: false })
+          .where(eq(creditScores.userId, input.userId));
+        
+        // Create new score
+        const [newScore] = await tx
+          .insert(creditScores)
+          .values({
+            userId: input.userId,
+            score: totalScore,
+            band,
+            repaymentScore,
+            incomeScore,
+            yieldScore,
+            cooperativeScore,
+            assetScore,
+            behaviorScore,
+            probabilityOfDefault: String((100 - totalScore / 10) / 100),
+            recommendedLoanLimit: calculateLoanLimit(totalScore),
+            recommendedTermMonths: calculateTermMonths(band),
+            recommendedInterestRate: String(calculateInterestRate(band)),
+            dataCompleteness: Math.min(100, repayments.length * 10 + incomes.length * 10),
+            confidenceLevel: repayments.length >= 6 ? 'high' : repayments.length >= 3 ? 'medium' : 'low',
+            modelVersion: '1.0.0',
+            isActive: true,
+          })
+          .returning();
+        
+        // Create factor explanations
+        const factorData = [
+          {
+            creditScoreId: newScore.id,
+            factorType: 'repayment_history' as const,
+            factorName: 'Repayment History',
+            rawValue: `${repayments.length} payments`,
+            normalizedScore: repaymentScore,
+            weight: String(DEFAULT_FACTOR_WEIGHTS.repayment_history),
+            contribution: Math.round(repaymentScore * DEFAULT_FACTOR_WEIGHTS.repayment_history * 10),
+            impact: repaymentScore >= 70 ? 'positive' : repaymentScore >= 50 ? 'neutral' : 'negative',
+            explanation: `Based on ${repayments.length} recorded payments.`,
+            recommendation: repaymentScore < 70 ? 'Make payments on time to improve this score.' : 'Keep up the good payment habits.',
+          },
+          {
+            creditScoreId: newScore.id,
+            factorType: 'income_stability' as const,
+            factorName: 'Income Stability',
+            rawValue: `${incomes.length} income records`,
+            normalizedScore: incomeScore,
+            weight: String(DEFAULT_FACTOR_WEIGHTS.income_stability),
+            contribution: Math.round(incomeScore * DEFAULT_FACTOR_WEIGHTS.income_stability * 10),
+            impact: incomeScore >= 70 ? 'positive' : incomeScore >= 50 ? 'neutral' : 'negative',
+            explanation: `Based on ${incomes.length} recorded income sources.`,
+            recommendation: incomeScore < 70 ? 'Record more harvest sales and income sources.' : 'Keep recording income consistently.',
+          },
+        ];
+        
+        await tx.insert(creditScoreFactors).values(factorData);
+        
+        // Record in history
+        await tx.insert(creditScoreHistory).values({
           userId: input.userId,
           score: totalScore,
           band,
-          repaymentScore,
-          incomeScore,
-          yieldScore,
-          cooperativeScore,
-          assetScore,
-          behaviorScore,
-          probabilityOfDefault: String((100 - totalScore / 10) / 100),
-          recommendedLoanLimit: calculateLoanLimit(totalScore),
-          recommendedTermMonths: calculateTermMonths(band),
-          recommendedInterestRate: String(calculateInterestRate(band)),
-          dataCompleteness: Math.min(100, repayments.length * 10 + incomes.length * 10),
-          confidenceLevel: repayments.length >= 6 ? 'high' : repayments.length >= 3 ? 'medium' : 'low',
-          modelVersion: '1.0.0',
-          isActive: true,
-        })
-        .returning();
-      
-      // Create factor explanations
-      const factorData = [
-        {
-          creditScoreId: newScore.id,
-          factorType: 'repayment_history' as const,
-          factorName: 'Repayment History',
-          rawValue: `${repayments.length} payments`,
-          normalizedScore: repaymentScore,
-          weight: String(DEFAULT_FACTOR_WEIGHTS.repayment_history),
-          contribution: Math.round(repaymentScore * DEFAULT_FACTOR_WEIGHTS.repayment_history * 10),
-          impact: repaymentScore >= 70 ? 'positive' : repaymentScore >= 50 ? 'neutral' : 'negative',
-          explanation: `Based on ${repayments.length} recorded payments.`,
-          recommendation: repaymentScore < 70 ? 'Make payments on time to improve this score.' : 'Keep up the good payment habits.',
-        },
-        {
-          creditScoreId: newScore.id,
-          factorType: 'income_stability' as const,
-          factorName: 'Income Stability',
-          rawValue: `${incomes.length} income records`,
-          normalizedScore: incomeScore,
-          weight: String(DEFAULT_FACTOR_WEIGHTS.income_stability),
-          contribution: Math.round(incomeScore * DEFAULT_FACTOR_WEIGHTS.income_stability * 10),
-          impact: incomeScore >= 70 ? 'positive' : incomeScore >= 50 ? 'neutral' : 'negative',
-          explanation: `Based on ${incomes.length} recorded income sources.`,
-          recommendation: incomeScore < 70 ? 'Record more harvest sales and income sources.' : 'Keep recording income consistently.',
-        },
-      ];
-      
-      await db.insert(creditScoreFactors).values(factorData);
-      
-      // Record in history
-      await db.insert(creditScoreHistory).values({
-        userId: input.userId,
-        score: totalScore,
-        band,
-        triggerEvent: 'manual_calculation',
-        changeReason: 'Credit score calculated',
+          triggerEvent: 'manual_calculation',
+          changeReason: 'Credit score calculated',
+        });
+        
+        return { newScore, factorData };
       });
-      
+
       return {
-        ...newScore,
-        factors: factorData,
+        ...result.newScore,
+        factors: result.factorData,
       };
     }),
 

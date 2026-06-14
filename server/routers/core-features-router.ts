@@ -1559,36 +1559,37 @@ export const inventoryEnhancementsRouter = router({
       if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
       const db = await requireDb();
-      const results = [];
-      for (const item of input.items) {
-        const [current] = await db.select().from(inventoryItems).where(eq(inventoryItems.id, item.itemId));
-        if (current) {
-          const variance = item.physicalCount - current.quantityOnHand;
-          if (variance !== 0) {
-            // Record adjustment transaction
-            await db.insert(inventoryTransactions).values({
-              userId: current.userId,
+      const results = await db.transaction(async (tx) => {
+        const adjusted = [];
+        for (const item of input.items) {
+          const [current] = await tx.select().from(inventoryItems).where(eq(inventoryItems.id, item.itemId));
+          if (current) {
+            const variance = item.physicalCount - current.quantityOnHand;
+            if (variance !== 0) {
+              await tx.insert(inventoryTransactions).values({
+                userId: current.userId,
+                itemId: item.itemId,
+                transactionType: "adjustment",
+                quantity: variance,
+                transactionDate: new Date(),
+                notes: `Stock take adjustment: system=${current.quantityOnHand}, physical=${item.physicalCount}`,
+              });
+              await tx.update(inventoryItems).set({
+                quantityOnHand: item.physicalCount,
+                updatedAt: new Date(),
+              }).where(eq(inventoryItems.id, item.itemId));
+            }
+            adjusted.push({
               itemId: item.itemId,
-              transactionType: "adjustment",
-              quantity: variance,
-              transactionDate: new Date(),
-              notes: `Stock take adjustment: system=${current.quantityOnHand}, physical=${item.physicalCount}`,
+              itemName: current.itemName,
+              systemCount: current.quantityOnHand,
+              physicalCount: item.physicalCount,
+              variance,
             });
-            // Update inventory count
-            await db.update(inventoryItems).set({
-              quantityOnHand: item.physicalCount,
-              updatedAt: new Date(),
-            }).where(eq(inventoryItems.id, item.itemId));
           }
-          results.push({
-            itemId: item.itemId,
-            itemName: current.itemName,
-            systemCount: current.quantityOnHand,
-            physicalCount: item.physicalCount,
-            variance,
-          });
         }
-      }
+        return adjusted;
+      });
       return { results, adjustedCount: results.filter(r => r.variance !== 0).length };
     }),
 
@@ -1741,58 +1742,60 @@ export const traceabilityEnhancementsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Split quantities exceed available batch quantity" });
       }
 
-      const newBatches = [];
-      for (let i = 0; i < input.splits.length; i++) {
-        const split = input.splits[i];
-        const newBatchCode = `${parentBatch.batchCode}-${String(i + 1).padStart(2, "0")}`;
-        const [newBatch] = await db.insert(productBatches).values({
-          batchCode: newBatchCode,
-          cropType: parentBatch.cropType,
-          variety: parentBatch.variety,
-          quantity: String(split.quantity),
-          currentQuantity: String(split.quantity),
-          unit: parentBatch.unit,
-          qualityGrade: parentBatch.qualityGrade,
-          moistureContent: parentBatch.moistureContent,
-          foreignMatter: parentBatch.foreignMatter,
-          farmId: parentBatch.farmId,
-          farmerId: parentBatch.farmerId,
-          cooperativeId: parentBatch.cooperativeId,
-          originVillage: parentBatch.originVillage,
-          originDistrict: parentBatch.originDistrict,
-          originRegion: parentBatch.originRegion,
-          originLatitude: parentBatch.originLatitude,
-          originLongitude: parentBatch.originLongitude,
-          currentLocation: split.destination || parentBatch.currentLocation,
-          harvestDate: parentBatch.harvestDate,
-          isOrganic: parentBatch.isOrganic,
-          certifications: parentBatch.certifications,
-          status: "created",
-        }).returning();
-        newBatches.push(newBatch);
+      const result = await db.transaction(async (tx) => {
+        const newBatches = [];
+        for (let i = 0; i < input.splits.length; i++) {
+          const split = input.splits[i];
+          const newBatchCode = `${parentBatch.batchCode}-${String(i + 1).padStart(2, "0")}`;
+          const [newBatch] = await tx.insert(productBatches).values({
+            batchCode: newBatchCode,
+            cropType: parentBatch.cropType,
+            variety: parentBatch.variety,
+            quantity: String(split.quantity),
+            currentQuantity: String(split.quantity),
+            unit: parentBatch.unit,
+            qualityGrade: parentBatch.qualityGrade,
+            moistureContent: parentBatch.moistureContent,
+            foreignMatter: parentBatch.foreignMatter,
+            farmId: parentBatch.farmId,
+            farmerId: parentBatch.farmerId,
+            cooperativeId: parentBatch.cooperativeId,
+            originVillage: parentBatch.originVillage,
+            originDistrict: parentBatch.originDistrict,
+            originRegion: parentBatch.originRegion,
+            originLatitude: parentBatch.originLatitude,
+            originLongitude: parentBatch.originLongitude,
+            currentLocation: split.destination || parentBatch.currentLocation,
+            harvestDate: parentBatch.harvestDate,
+            isOrganic: parentBatch.isOrganic,
+            certifications: parentBatch.certifications,
+            status: "created",
+          }).returning();
+          newBatches.push(newBatch);
 
-        // Record split event
-        await db.insert(traceabilityEvents).values({
-          batchId: newBatch.id,
-          eventType: "collection",
-          eventDescription: `Split from parent batch ${parentBatch.batchCode}`,
-          location: split.destination || parentBatch.currentLocation || undefined,
-          quantityAfter: String(split.quantity),
-          eventTimestamp: new Date(),
-        });
-      }
+          await tx.insert(traceabilityEvents).values({
+            batchId: newBatch.id,
+            eventType: "collection",
+            eventDescription: `Split from parent batch ${parentBatch.batchCode}`,
+            location: split.destination || parentBatch.currentLocation || undefined,
+            quantityAfter: String(split.quantity),
+            eventTimestamp: new Date(),
+          });
+        }
 
-      // Update parent batch remaining quantity
-      const remaining = currentQty - totalSplitQty;
-      await db.update(productBatches).set({
-        currentQuantity: String(remaining),
-        updatedAt: new Date(),
-      }).where(eq(productBatches.id, input.batchId));
+        const remaining = currentQty - totalSplitQty;
+        await tx.update(productBatches).set({
+          currentQuantity: String(remaining),
+          updatedAt: new Date(),
+        }).where(eq(productBatches.id, input.batchId));
+
+        return { newBatches, remaining };
+      });
 
       return {
         parentBatchCode: parentBatch.batchCode,
-        remainingQuantity: remaining,
-        newBatches: newBatches.map(b => ({
+        remainingQuantity: result.remaining,
+        newBatches: result.newBatches.map(b => ({
           id: b.id,
           batchCode: b.batchCode,
           quantity: b.quantity,
