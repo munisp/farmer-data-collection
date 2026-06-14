@@ -56,6 +56,10 @@ export const marketplaceEnhancementsRouter = router({
       counterPrice: z.number().min(1),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("marketplace", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("marketplace", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [offer] = await db.select().from(negotiationOffers).where(eq(negotiationOffers.id, input.offerId)).limit(1);
       if (!offer || offer.sellerId !== ctx.user.id) throw new Error("Not authorized");
@@ -73,6 +77,10 @@ export const marketplaceEnhancementsRouter = router({
       action: z.enum(["accept", "reject"]),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("marketplace", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("marketplace", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [offer] = await db.select().from(negotiationOffers).where(eq(negotiationOffers.id, input.offerId)).limit(1);
       if (!offer) throw new Error("Offer not found");
@@ -143,6 +151,10 @@ export const marketplaceEnhancementsRouter = router({
       })),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("marketplace", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("marketplace", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       await db.delete(bulkDiscountTiers).where(eq(bulkDiscountTiers.listingId, input.listingId));
       const rows = input.tiers.map(t => ({
@@ -177,6 +189,10 @@ export const marketplaceEnhancementsRouter = router({
       deadline: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("marketplace", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("marketplace", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [goal] = await db.insert(savingsGoals).values({
         userId: ctx.user.id,
@@ -202,6 +218,10 @@ export const marketplaceEnhancementsRouter = router({
   contributToGoal: protectedProcedure
     .input(z.object({ goalId: z.number(), amount: z.number().min(1) }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("marketplace", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("marketplace", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [goal] = await db.select().from(savingsGoals)
         .where(and(eq(savingsGoals.id, input.goalId), eq(savingsGoals.userId, ctx.user.id)))
@@ -227,6 +247,10 @@ export const marketplaceEnhancementsRouter = router({
       dailyRate: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("marketplace", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("marketplace", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const start = new Date(input.startDate);
       const end = new Date(input.endDate);
@@ -267,6 +291,10 @@ export const marketplaceEnhancementsRouter = router({
       weatherDataRef: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("marketplace", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("marketplace", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [claim] = await db.insert(insuranceClaims).values({
         policyId: input.policyId,
@@ -348,6 +376,10 @@ export const marketplaceEnhancementsRouter = router({
       recipientCountry: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("marketplace", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("marketplace", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const exchangeRates: Record<string, number> = {
         "KES_UGX": 28.5, "KES_TZS": 18.2, "KES_NGN": 3.4,
         "UGX_KES": 0.035, "TZS_KES": 0.055, "NGN_KES": 0.29,

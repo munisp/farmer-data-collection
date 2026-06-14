@@ -208,6 +208,10 @@ export const kycRouter = router({
       code: z.string().length(6),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -237,6 +241,10 @@ export const kycRouter = router({
       email: z.string().email(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -262,6 +270,10 @@ export const kycRouter = router({
       code: z.string().length(6),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -295,6 +307,10 @@ export const kycRouter = router({
       expiryDate: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       await verifyKeycloakToken(ctx.token ?? "");
       const docWafScan = await scanForThreats("kyc-document-upload", input);
       if (!docWafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${docWafScan.threats.join(", ")}` });
@@ -357,6 +373,10 @@ export const kycRouter = router({
       }).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -430,6 +450,10 @@ export const kycRouter = router({
       dateOfBirth: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -460,6 +484,10 @@ export const kycRouter = router({
       phoneNumber: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -489,6 +517,10 @@ export const kycRouter = router({
       dateOfBirth: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -517,6 +549,10 @@ export const kycRouter = router({
       documentUrl: z.string().url(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -547,6 +583,10 @@ export const kycRouter = router({
       }),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -575,6 +615,10 @@ export const kycRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       // Only admins can run sanctions screening
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'compliance_officer') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
       }
@@ -598,6 +642,10 @@ export const kycRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       // Only admins can run PEP screening
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'compliance_officer') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
       }
@@ -619,6 +667,10 @@ export const kycRouter = router({
       targetTier: kycTierSchema,
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) {
         throw new TRPCError({ code: 'UNAUTHORIZED' });
@@ -719,6 +771,10 @@ export const kycRouter = router({
       newTier: kycTierSchema.optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'compliance_officer') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
       }
@@ -777,6 +833,10 @@ export const kycRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'compliance_officer') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
       }
@@ -831,6 +891,10 @@ export const kycRouter = router({
       reason: z.string().min(10),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'compliance_officer') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
       }
@@ -1011,6 +1075,10 @@ export const kycRouter = router({
       challengeType: z.enum(['blink', 'head_turn', 'smile']).default('blink'),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
@@ -1069,6 +1137,10 @@ export const kycRouter = router({
       businessType: z.enum(['sole_proprietor', 'partnership', 'limited_company', 'cooperative', 'ngo']).default('limited_company'),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("kyc", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const userId = ctx.user?.id;
       if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
@@ -1128,6 +1200,10 @@ export const kycRouter = router({
       targetLang: z.string().default('en'),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("kyc", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const kycServiceUrl = process.env.KYC_SERVICE_URL || 'http://localhost:8104';
 
       try {

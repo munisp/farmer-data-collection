@@ -87,6 +87,10 @@ export const escrowRouter = router({
   confirmReceipt: protectedProcedure
     .input(z.object({ escrowId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("escrow", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("escrow", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [escrow] = await db.select().from(escrowAccounts)
         .where(and(
@@ -132,6 +136,10 @@ export const escrowRouter = router({
       reason: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("escrow", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("escrow", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [escrow] = await db.select().from(escrowAccounts)
         .where(and(
@@ -202,6 +210,10 @@ export const escrowRouter = router({
       evidenceUrls: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("escrow", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("escrow", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       if (ctx.user.role !== "admin") {
         throw new Error("Only admins can resolve disputes");
@@ -287,6 +299,10 @@ export const escrowRouter = router({
    */
   processAutoRelease: protectedProcedure
     .mutation(async ({ ctx }) => {
+      const rateCheck = await checkRateLimit("escrow", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("escrow", {});
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       if (ctx.user.role !== "admin") {
         throw new Error("Only admins can trigger auto-release");
@@ -349,6 +365,10 @@ export const escrowRouter = router({
       evidenceUrls: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("escrow", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("escrow", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [escrow] = await db.select().from(escrowAccounts)
         .where(and(
@@ -398,6 +418,10 @@ export const escrowRouter = router({
       reason: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("escrow", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("escrow", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await requireDb();
       const [escrow] = await db.select().from(escrowAccounts)
         .where(and(

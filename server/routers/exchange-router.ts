@@ -119,6 +119,10 @@ export const exchangeRouter = router({
       description: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("exchange", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       
@@ -229,6 +233,10 @@ export const exchangeRouter = router({
       sourceId: z.number().int().positive().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("exchange", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const userId = ctx.user.id;
@@ -302,6 +310,10 @@ export const exchangeRouter = router({
         reference: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("exchange", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const userId = ctx.user.id;
@@ -368,6 +380,10 @@ export const exchangeRouter = router({
         reference: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("exchange", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const userId = ctx.user.id;
@@ -678,6 +694,10 @@ export const exchangeRouter = router({
       orderId: z.number().int().positive(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("exchange", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const userId = ctx.user.id;

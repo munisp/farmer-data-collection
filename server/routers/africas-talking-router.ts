@@ -100,6 +100,10 @@ export const africasTalkingRouter = router({
     }))
     .mutation(async ({ input, ctx }: { input: { sessionId: string; serviceCode: string; phoneNumber: string; text: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
+      const rateCheck = await checkRateLimit("africas_talking", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       verifyWebhookRequest(ctx);
       
       const correlationId = generateCorrelationId();
@@ -135,6 +139,10 @@ export const africasTalkingRouter = router({
     }))
     .mutation(async ({ input, ctx }: { input: { from: string; text: string; date: string; id?: string; linkId?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
+      const rateCheck = await checkRateLimit("africas_talking", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       verifyWebhookRequest(ctx);
       
       const correlationId = generateCorrelationId();
@@ -175,6 +183,10 @@ export const africasTalkingRouter = router({
     }))
     .mutation(async ({ input, ctx }: { input: { from: string; text: string; timestamp: string; id?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
+      const rateCheck = await checkRateLimit("africas_talking", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       verifyWebhookRequest(ctx);
       
       const correlationId = generateCorrelationId();
@@ -217,6 +229,10 @@ export const africasTalkingRouter = router({
     }))
     .mutation(async ({ input, ctx }: { input: { id: string; status: string; phoneNumber: string; networkCode?: string; retryCount?: number; failureReason?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
+      const rateCheck = await checkRateLimit("africas_talking", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       verifyWebhookRequest(ctx);
       
       const correlationId = generateCorrelationId();
@@ -318,6 +334,10 @@ export const africasTalkingRouter = router({
       from: z.string().optional()
     }))
     .mutation(async ({ input }: { input: { to: string[]; message: string; from?: string } }) => {
+      const rateCheck = await checkRateLimit("africas_talking", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const result = await sendSMS(input);
       return result;
     }),
@@ -352,6 +372,10 @@ export const africasTalkingRouter = router({
       channel: z.enum(['sms', 'whatsapp']).default('sms')
     }))
     .mutation(async ({ input }: { input: { phoneNumber: string; message: string; channel: 'sms' | 'whatsapp' } }) => {
+      const rateCheck = await checkRateLimit("africas_talking", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       await notifyFarmer(input.phoneNumber, input.message, input.channel);
       return {
         success: true,

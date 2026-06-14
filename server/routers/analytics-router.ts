@@ -300,6 +300,10 @@ export const analyticsRouter = router({
    */
   runETLPipelines: protectedProcedure
     .mutation(async () => {
+      const rateCheck = await checkRateLimit("analytics", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("analytics", {});
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       try {
         const results = await runAllETLPipelines();
         return {
