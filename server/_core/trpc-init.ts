@@ -22,6 +22,20 @@ export type AuthenticatedContext = Context & {
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
+  errorFormatter({ shape, error }) {
+    const isDbError = error.cause?.message?.includes("relation") ||
+      error.cause?.message?.includes("column") ||
+      error.cause?.message?.includes("does not exist") ||
+      error.cause?.message?.includes("ECONNREFUSED");
+
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        dbError: isDbError,
+      },
+    };
+  },
 });
 
 export const router = t.router;

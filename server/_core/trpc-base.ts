@@ -80,8 +80,26 @@ export const createContext = async ({ req }: CreateExpressContextOptions): Promi
   return { token, keycloakUser };
 };
 
+// Global error-handling middleware: catches raw DB errors and converts to proper TRPCError
+const dbErrorHandler = middleware(async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    if (error instanceof TRPCError) throw error;
+    const msg = (error as Error)?.message ?? String(error);
+    const isDbError = msg.includes("relation") || msg.includes("does not exist") ||
+      msg.includes("ECONNREFUSED") || msg.includes("column") || msg.includes("no such table");
+    if (isDbError) {
+      logger.warn("[DB] Query failed", { error: msg });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Service temporarily unavailable" });
+    }
+    throw error;
+  }
+});
+
 // Public procedure with strict rate limiting(Redis or in-memory fallback) + cache + mutation invalidation
 export const publicProcedure = baseProcedure
+  .use(dbErrorHandler)
   .use(async ({ ctx, next }) => {
     const identifier = ctx.token || "anonymous";
     await rateLimit(identifier, RateLimitPresets.strict);
@@ -92,6 +110,7 @@ export const publicProcedure = baseProcedure
 
 // Protected procedure - requires authentication with moderate rate limiting (Redis or in-memory fallback) + cache
 export const protectedProcedure = baseProcedure
+  .use(dbErrorHandler)
   .use(async ({ ctx, next }) => {
     const identifier = ctx.token || "anonymous";
     await rateLimit(identifier, RateLimitPresets.moderate);
