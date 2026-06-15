@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MapView, type MarkerOptions } from "@/components/Map";
 import { trpc } from "@/lib/trpc";
-import { Truck, Warehouse, Handshake, DollarSign, Package, Users, BarChart3, Plus, MapPin } from "lucide-react";
+import { Truck, Warehouse, Handshake, DollarSign, Package, Users, BarChart3, Plus, MapPin, User } from "lucide-react";
 
 interface DistributorData {
   id: number;
@@ -131,10 +131,18 @@ export default function DistributorNetwork() {
               Partner with distributors to reach more buyers. All payments flow through the platform.
             </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Find Distributors
-          </Button>
+          <div className="flex gap-2">
+            <a href="/distributor-onboarding">
+              <Button variant="outline" className="gap-2 dark:border-gray-600 dark:text-gray-300">
+                <User className="h-4 w-4" />
+                Become a Distributor
+              </Button>
+            </a>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Find Distributors
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}

@@ -22,12 +22,60 @@ export const distributors = pgTable("distributors", {
   coverageRegions: json("coverage_regions").$type<string[]>(), // regions they serve
   latitude: decimal("latitude", { precision: 10, scale: 7 }),
   longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  // KYC — Personal Identity
+  ninNumber: varchar("nin_number", { length: 11 }), // National Identification Number
+  bvnNumber: varchar("bvn_number", { length: 11 }), // Bank Verification Number
+  dateOfBirth: varchar("date_of_birth", { length: 10 }), // YYYY-MM-DD
+  gender: varchar("gender", { length: 10 }),
+  nationality: varchar("nationality", { length: 50 }).default("Nigerian"),
+  idDocumentType: varchar("id_document_type", { length: 30 }), // passport, drivers_license, voters_card, nin_slip
+  idDocumentNumber: varchar("id_document_number", { length: 50 }),
+  idDocumentExpiry: varchar("id_document_expiry", { length: 10 }),
+  // KYC — Business Verification
+  cacNumber: varchar("cac_number", { length: 50 }), // Corporate Affairs Commission registration
+  tinNumber: varchar("tin_number", { length: 20 }), // Tax Identification Number
+  businessType: varchar("business_type", { length: 30 }), // sole_proprietorship, partnership, limited_company
+  yearEstablished: integer("year_established"),
+  numberOfEmployees: integer("number_of_employees"),
+  annualRevenueRange: varchar("annual_revenue_range", { length: 30 }), // under_1m, 1m_10m, 10m_50m, 50m_100m, above_100m
+  directors: json("directors").$type<Array<{ name: string; nin?: string; phone?: string; role: string }>>(),
+  // KYC — Bank Account Details (for profit disbursement)
+  bankName: varchar("bank_name", { length: 100 }),
+  bankCode: varchar("bank_code", { length: 10 }),
+  accountNumber: varchar("account_number", { length: 10 }),
+  accountName: varchar("account_name", { length: 200 }),
+  accountBvn: varchar("account_bvn", { length: 11 }), // BVN linked to bank account
+  bankVerified: boolean("bank_verified").default(false),
+  bankVerifiedAt: timestamp("bank_verified_at"),
+  // KYC — Address Verification
+  residentialAddress: text("residential_address"),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  lgaDistrict: varchar("lga_district", { length: 100 }), // Local Government Area
+  postalCode: varchar("postal_code", { length: 10 }),
+  // KYC — Document Uploads
+  kycDocuments: json("kyc_documents").$type<Array<{
+    type: string; // id_front, id_back, cac_certificate, tin_certificate, utility_bill, warehouse_proof, passport_photo, bank_statement
+    url: string;
+    uploadedAt: string;
+    verified: boolean;
+    verifiedBy?: number;
+    verifiedAt?: string;
+    rejectionReason?: string;
+  }>>(),
+  // KYC Status
+  kycStatus: varchar("kyc_status", { length: 30 }).default("not_started"), // not_started, in_progress, submitted, under_review, approved, rejected
+  kycSubmittedAt: timestamp("kyc_submitted_at"),
+  kycReviewedAt: timestamp("kyc_reviewed_at"),
+  kycReviewedBy: integer("kyc_reviewed_by"),
+  kycRejectionReasons: json("kyc_rejection_reasons").$type<string[]>(),
+  kycLevel: integer("kyc_level").default(0), // 0=none, 1=basic, 2=enhanced, 3=full
   // Verification
-  status: varchar("status", { length: 30 }).default("pending").notNull(), // pending, approved, rejected, suspended
+  status: varchar("status", { length: 30 }).default("pending").notNull(), // pending, kyc_required, approved, rejected, suspended
   verifiedAt: timestamp("verified_at"),
   verifiedBy: integer("verified_by"),
   rejectionReason: text("rejection_reason"),
-  // Documents for verification
+  // Documents for verification (legacy — use kycDocuments for new uploads)
   documents: json("documents").$type<Array<{ type: string; url: string; uploadedAt: string }>>(),
   // Performance metrics
   totalSalesCount: integer("total_sales_count").default(0),
@@ -39,6 +87,7 @@ export const distributors = pgTable("distributors", {
 }, (table) => ({
   userIdx: index("idx_distributors_user_id").on(table.userId),
   statusIdx: index("idx_distributors_status").on(table.status),
+  kycStatusIdx: index("idx_distributors_kyc_status").on(table.kycStatus),
 }));
 
 // Partnership between a farmer and a distributor with profit-split terms

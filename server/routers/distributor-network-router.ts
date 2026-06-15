@@ -100,6 +100,260 @@ export const distributorNetworkRouter = router({
     }),
 
   /**
+   * Submit KYC information (personal identity, business, bank account)
+   * Called after initial registration to complete the onboarding
+   */
+  submitKyc: protectedProcedure
+    .input(z.object({
+      // Personal identity
+      ninNumber: z.string().length(11).optional(),
+      bvnNumber: z.string().length(11).optional(),
+      dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      gender: z.enum(["male", "female", "other"]).optional(),
+      nationality: z.string().optional(),
+      idDocumentType: z.enum(["passport", "drivers_license", "voters_card", "nin_slip"]).optional(),
+      idDocumentNumber: z.string().optional(),
+      idDocumentExpiry: z.string().optional(),
+      // Business verification
+      cacNumber: z.string().optional(),
+      tinNumber: z.string().optional(),
+      businessType: z.enum(["sole_proprietorship", "partnership", "limited_company"]).optional(),
+      yearEstablished: z.number().min(1900).max(2030).optional(),
+      numberOfEmployees: z.number().min(1).optional(),
+      annualRevenueRange: z.enum(["under_1m", "1m_10m", "10m_50m", "50m_100m", "above_100m"]).optional(),
+      directors: z.array(z.object({
+        name: z.string(),
+        nin: z.string().optional(),
+        phone: z.string().optional(),
+        role: z.string(),
+      })).optional(),
+      // Bank account
+      bankName: z.string().optional(),
+      bankCode: z.string().optional(),
+      accountNumber: z.string().length(10).optional(),
+      accountName: z.string().optional(),
+      accountBvn: z.string().length(11).optional(),
+      // Address
+      residentialAddress: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      lgaDistrict: z.string().optional(),
+      postalCode: z.string().optional(),
+      // Documents
+      kycDocuments: z.array(z.object({
+        type: z.enum(["id_front", "id_back", "cac_certificate", "tin_certificate", "utility_bill", "warehouse_proof", "passport_photo", "bank_statement"]),
+        url: z.string().url(),
+      })).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("distributor-kyc", String(ctx.user?.id ?? "anon"), 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("distributor-kyc", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
+      const db = await requireDb();
+
+      const [dist] = await db.select().from(distributors)
+        .where(eq(distributors.userId, ctx.user.id));
+      if (!dist) throw new TRPCError({ code: "NOT_FOUND", message: "Register as a distributor first" });
+
+      // Calculate KYC level based on what's provided
+      let kycLevel = 0;
+      if (input.ninNumber || input.bvnNumber) kycLevel = 1; // Basic identity
+      if (kycLevel >= 1 && input.cacNumber && input.bankName && input.accountNumber) kycLevel = 2; // Enhanced
+      if (kycLevel >= 2 && input.kycDocuments && input.kycDocuments.length >= 3) kycLevel = 3; // Full
+
+      const kycDocs = input.kycDocuments?.map(d => ({
+        ...d,
+        uploadedAt: new Date().toISOString(),
+        verified: false,
+      }));
+
+      const [updated] = await db.update(distributors).set({
+        ninNumber: input.ninNumber || dist.ninNumber,
+        bvnNumber: input.bvnNumber || dist.bvnNumber,
+        dateOfBirth: input.dateOfBirth || dist.dateOfBirth,
+        gender: input.gender || dist.gender,
+        nationality: input.nationality || dist.nationality,
+        idDocumentType: input.idDocumentType || dist.idDocumentType,
+        idDocumentNumber: input.idDocumentNumber || dist.idDocumentNumber,
+        idDocumentExpiry: input.idDocumentExpiry || dist.idDocumentExpiry,
+        cacNumber: input.cacNumber || dist.cacNumber,
+        tinNumber: input.tinNumber || dist.tinNumber,
+        businessType: input.businessType || dist.businessType,
+        yearEstablished: input.yearEstablished || dist.yearEstablished,
+        numberOfEmployees: input.numberOfEmployees || dist.numberOfEmployees,
+        annualRevenueRange: input.annualRevenueRange || dist.annualRevenueRange,
+        directors: input.directors || dist.directors,
+        bankName: input.bankName || dist.bankName,
+        bankCode: input.bankCode || dist.bankCode,
+        accountNumber: input.accountNumber || dist.accountNumber,
+        accountName: input.accountName || dist.accountName,
+        accountBvn: input.accountBvn || dist.accountBvn,
+        residentialAddress: input.residentialAddress || dist.residentialAddress,
+        city: input.city || dist.city,
+        state: input.state || dist.state,
+        lgaDistrict: input.lgaDistrict || dist.lgaDistrict,
+        postalCode: input.postalCode || dist.postalCode,
+        kycDocuments: kycDocs || dist.kycDocuments,
+        kycStatus: "in_progress",
+        kycLevel,
+        updatedAt: new Date(),
+      }).where(eq(distributors.userId, ctx.user.id)).returning();
+
+      logger.info(`[Distributor KYC] Updated for ${dist.businessName} (level: ${kycLevel})`);
+      return { distributor: updated, kycLevel };
+    }),
+
+  /**
+   * Submit KYC for review (marks status as submitted, triggers admin review)
+   */
+  submitKycForReview: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const rateCheck = await checkRateLimit("distributor-kyc-submit", String(ctx.user?.id ?? "anon"), 3, 300);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
+      const db = await requireDb();
+      const [dist] = await db.select().from(distributors)
+        .where(eq(distributors.userId, ctx.user.id));
+      if (!dist) throw new TRPCError({ code: "NOT_FOUND", message: "Distributor profile not found" });
+
+      // Validate minimum requirements for submission
+      if (!dist.ninNumber && !dist.bvnNumber) throw new TRPCError({ code: "BAD_REQUEST", message: "At least NIN or BVN is required" });
+      if (!dist.bankName || !dist.accountNumber) throw new TRPCError({ code: "BAD_REQUEST", message: "Bank account details are required" });
+      if (!dist.cacNumber) throw new TRPCError({ code: "BAD_REQUEST", message: "CAC registration number is required" });
+
+      const [updated] = await db.update(distributors).set({
+        kycStatus: "submitted",
+        kycSubmittedAt: new Date(),
+        status: "pending",
+        updatedAt: new Date(),
+      }).where(eq(distributors.userId, ctx.user.id)).returning();
+
+      // Publish for admin review
+      const producer = await getProducer();
+      if (producer) {
+        await producer.send({
+          topic: "distributor-events",
+          messages: [{ value: JSON.stringify({
+            type: "distributor.kyc_submitted",
+            distributorId: dist.id,
+            businessName: dist.businessName,
+            kycLevel: dist.kycLevel,
+            timestamp: new Date().toISOString(),
+          }) }],
+        });
+      }
+
+      logger.info(`[Distributor KYC] Submitted for review: ${dist.businessName}`);
+      return updated;
+    }),
+
+  /**
+   * Admin: Review and approve/reject KYC submission
+   */
+  reviewKyc: protectedProcedure
+    .input(z.object({
+      distributorId: z.number(),
+      action: z.enum(["approve", "reject"]),
+      rejectionReasons: z.array(z.string()).optional(),
+      kycLevel: z.number().min(1).max(3).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("distributor-admin", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "distributor", "admin");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Admin permission required" });
+
+      const db = await requireDb();
+      const [dist] = await db.select().from(distributors)
+        .where(eq(distributors.id, input.distributorId));
+      if (!dist) throw new TRPCError({ code: "NOT_FOUND", message: "Distributor not found" });
+
+      if (input.action === "approve") {
+        const [updated] = await db.update(distributors).set({
+          kycStatus: "approved",
+          kycReviewedAt: new Date(),
+          kycReviewedBy: ctx.user.id,
+          kycLevel: input.kycLevel || dist.kycLevel,
+          status: "approved",
+          verifiedAt: new Date(),
+          verifiedBy: ctx.user.id,
+          bankVerified: true,
+          bankVerifiedAt: new Date(),
+          updatedAt: new Date(),
+        }).where(eq(distributors.id, input.distributorId)).returning();
+
+        const producer = await getProducer();
+        if (producer) {
+          await producer.send({
+            topic: "distributor-events",
+            messages: [{ value: JSON.stringify({
+              type: "distributor.kyc_approved",
+              distributorId: input.distributorId,
+              kycLevel: input.kycLevel || dist.kycLevel,
+              approvedBy: ctx.user.id,
+              timestamp: new Date().toISOString(),
+            }) }],
+          });
+        }
+        logger.info(`[Distributor KYC] Approved: ${dist.businessName}`);
+        return updated;
+      } else {
+        const [updated] = await db.update(distributors).set({
+          kycStatus: "rejected",
+          kycReviewedAt: new Date(),
+          kycReviewedBy: ctx.user.id,
+          kycRejectionReasons: input.rejectionReasons || [],
+          status: "rejected",
+          rejectionReason: input.rejectionReasons?.join("; ") || "KYC verification failed",
+          updatedAt: new Date(),
+        }).where(eq(distributors.id, input.distributorId)).returning();
+
+        logger.info(`[Distributor KYC] Rejected: ${dist.businessName}`);
+        return updated;
+      }
+    }),
+
+  /**
+   * Get KYC status and completion progress
+   */
+  getKycStatus: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await requireDb();
+      const [dist] = await db.select().from(distributors)
+        .where(eq(distributors.userId, ctx.user.id));
+      if (!dist) return { registered: false, kycStatus: "not_started", kycLevel: 0, completionPercent: 0, missingFields: [] };
+
+      const missingFields: string[] = [];
+      if (!dist.ninNumber && !dist.bvnNumber) missingFields.push("NIN or BVN");
+      if (!dist.cacNumber) missingFields.push("CAC Number");
+      if (!dist.tinNumber) missingFields.push("TIN");
+      if (!dist.bankName) missingFields.push("Bank Name");
+      if (!dist.accountNumber) missingFields.push("Account Number");
+      if (!dist.accountName) missingFields.push("Account Name");
+      if (!dist.residentialAddress) missingFields.push("Residential Address");
+      if (!dist.idDocumentType) missingFields.push("ID Document");
+      if (!dist.businessType) missingFields.push("Business Type");
+
+      const totalFields = 9;
+      const completedFields = totalFields - missingFields.length;
+      const completionPercent = Math.round((completedFields / totalFields) * 100);
+
+      return {
+        registered: true,
+        kycStatus: dist.kycStatus,
+        kycLevel: dist.kycLevel,
+        completionPercent,
+        missingFields,
+        bankVerified: dist.bankVerified,
+        kycSubmittedAt: dist.kycSubmittedAt,
+        kycReviewedAt: dist.kycReviewedAt,
+        rejectionReasons: dist.kycRejectionReasons,
+      };
+    }),
+
+  /**
    * Admin: Approve or reject a distributor application
    */
   verifyDistributor: protectedProcedure
