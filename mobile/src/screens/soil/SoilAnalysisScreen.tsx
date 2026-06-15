@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { colors } from '@/lib/theme';
+import { colors, darkColors, darkColors } from '@/lib/theme';
 import {
   View, ScrollView, Text, StyleSheet, Alert, Platform,
   TouchableOpacity, ActivityIndicator, Dimensions,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';

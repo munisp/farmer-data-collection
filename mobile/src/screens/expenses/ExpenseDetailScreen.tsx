@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { database } from '@/services/database';
 import type { Expense } from '@/types/models';

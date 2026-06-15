@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, FlatList, TouchableOpacity, Text, StyleSheet ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { database } from '@/services/database';
 import { useSyncStore } from '@/stores/syncStore';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { colors } from '@/lib/theme';
+import { colors, darkColors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { database } from '@/services/database';

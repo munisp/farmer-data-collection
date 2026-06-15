@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { database } from '@/services/database';
 import { Header } from '@/components/shared/Header';

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Text, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, FlatList, TouchableOpacity, Text, StyleSheet, RefreshControl, Alert ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';

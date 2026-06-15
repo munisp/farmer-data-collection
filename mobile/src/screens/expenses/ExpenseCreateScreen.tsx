@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { database } from '@/services/database';
 import { useCamera } from '@/hooks/useCamera';

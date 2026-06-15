@@ -1,6 +1,6 @@
 import React from 'react';
-import { colors } from '@/lib/theme';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, Text, ScrollView, StyleSheet ,useColorScheme } from 'react-native';
 
 export default function JourneyTrackerScreen({ route }) {
   const { cropId, journeyId } = route.params;

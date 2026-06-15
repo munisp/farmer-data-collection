@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { colors } from '@/lib/theme';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert ,useColorScheme } from 'react-native';
 
 type Equipment = {
   id: number;

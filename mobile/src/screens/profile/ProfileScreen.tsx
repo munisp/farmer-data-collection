@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet ,useColorScheme } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
 import { Header } from '@/components/shared/Header';
 import { Avatar } from '@/components/ui/Avatar';

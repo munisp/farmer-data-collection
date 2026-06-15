@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch ,useColorScheme } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Card } from '@/components/ui/Card';
 import { COLORS } from '@/utils/constants';

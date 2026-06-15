@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { colors } from '@/lib/theme';
+import { colors, darkColors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 type JourneyStatus = 'not_started' | 'in_progress' | 'completed' | 'failed' | 'blocked';

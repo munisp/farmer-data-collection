@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl ,useColorScheme } from 'react-native';
 import { Card } from '../../components/ui/Card';
 
 export default function AdminDashboardScreen({ navigation }: any) {

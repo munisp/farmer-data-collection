@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { colors } from '@/lib/theme';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { colors, darkColors } from '@/lib/theme';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
 import { useSyncStore } from '@/stores/syncStore';
@@ -120,6 +120,46 @@ export default function HomeScreen() {
         >
           <Text style={styles.actionTitle}>📱 Mobile Money</Text>
           <Text style={styles.actionSubtitle}>Send & receive payments</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('Market', { screen: 'DistributorNetwork' })}
+          accessibilityLabel="Distributor Network"
+          accessibilityHint="Navigate to distributor partnerships"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionTitle}>🚚 Distributor Network</Text>
+          <Text style={styles.actionSubtitle}>Ship produce to warehouses</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('Finance', { screen: 'Exchange' })}
+          accessibilityLabel="Exchange"
+          accessibilityHint="Navigate to commodity exchange"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionTitle}>📊 Commodity Exchange</Text>
+          <Text style={styles.actionSubtitle}>Trade commodities</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('More', { screen: 'Weather' })}
+          accessibilityLabel="Weather"
+          accessibilityHint="Navigate to weather forecast"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionTitle}>🌤️ Weather</Text>
+          <Text style={styles.actionSubtitle}>Forecast & farming advisories</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('Finance', { screen: 'Insurance' })}
+          accessibilityLabel="Insurance"
+          accessibilityHint="Navigate to crop insurance"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionTitle}>🛡️ Crop Insurance</Text>
+          <Text style={styles.actionSubtitle}>Protect your harvest</Text>
         </TouchableOpacity>
       </View>
 

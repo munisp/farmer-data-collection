@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { colors } from '@/lib/theme';
-import { View, FlatList, TouchableOpacity, Text, StyleSheet, TextInput, RefreshControl, Alert } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, FlatList, TouchableOpacity, Text, StyleSheet, TextInput, RefreshControl, Alert ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';

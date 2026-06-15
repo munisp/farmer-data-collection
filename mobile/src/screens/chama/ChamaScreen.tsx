@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { colors } from '@/lib/theme';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert ,useColorScheme } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';
 import { Card } from '@/components/ui/Card';

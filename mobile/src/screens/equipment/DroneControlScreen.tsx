@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { colors } from '@/lib/theme';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator ,useColorScheme } from 'react-native';
 
 type FlightPlan = {
   id: string;

@@ -41,6 +41,9 @@ export type MarketStackParamList = {
   Orders: undefined;
   PhotoInventory: undefined;
   DeliveryTracking: undefined;
+  DistributorNetwork: undefined;
+  DistributorMap: undefined;
+  ColdChain: undefined;
 };
 
 export type FinanceStackParamList = {
@@ -50,6 +53,10 @@ export type FinanceStackParamList = {
   MobileMoney: undefined;
   Cooperative: undefined;
   Chama: undefined;
+  Exchange: undefined;
+  Insurance: undefined;
+  Escrow: undefined;
+  Collections: undefined;
 };
 
 export type MoreStackParamList = {
@@ -63,6 +70,8 @@ export type MoreStackParamList = {
   AdminDashboard: undefined;
   WorkflowList: undefined;
   WorkflowDetail: { id: number };
+  Weather: undefined;
+  VoiceAdvisor: undefined;
 };
 
 export type RootTabParamList = {
@@ -149,6 +158,17 @@ import SoilAnalysisScreen from '@/screens/soil/SoilAnalysisScreen';
 import TraceabilityDashboard from '@/screens/traceability/TraceabilityDashboard';
 import AnalyticsDashboard from '@/screens/analytics/AnalyticsDashboard';
 
+// New feature screens
+import DistributorNetworkScreen from '@/screens/distributor/DistributorNetworkScreen';
+import DistributorMapScreen from '@/screens/maps/DistributorMapScreen';
+import ExchangeScreen from '@/screens/exchange/ExchangeScreen';
+import InsuranceScreen from '@/screens/insurance/InsuranceScreen';
+import CollectionsScreen from '@/screens/finance/CollectionsScreen';
+import EscrowScreen from '@/screens/finance/EscrowScreen';
+import VoiceAdvisorScreen from '@/screens/ai/VoiceAdvisorScreen';
+import WeatherScreen from '@/screens/analytics/WeatherScreen';
+import ColdChainScreen from '@/screens/analytics/ColdChainScreen';
+
 // Admin screens
 import AdminDashboardScreen from '@/screens/admin/AdminDashboardScreen';
 import WorkflowListScreen from '@/screens/admin/WorkflowListScreen';
@@ -227,6 +247,9 @@ function MarketStack() {
       <Stack.Screen name="Orders" component={OrdersScreen} />
       <Stack.Screen name="PhotoInventory" component={PhotoInventoryScreen} />
       <Stack.Screen name="DeliveryTracking" component={DeliveryTrackingScreen} />
+      <Stack.Screen name="DistributorNetwork" component={DistributorNetworkScreen} />
+      <Stack.Screen name="DistributorMap" component={DistributorMapScreen} />
+      <Stack.Screen name="ColdChain" component={ColdChainScreen} />
     </Stack.Navigator>
   );
 }
@@ -241,6 +264,10 @@ function FinanceStack() {
       <Stack.Screen name="MobileMoney" component={MobileMoneyScreen} />
       <Stack.Screen name="Cooperative" component={CooperativeManagement} />
       <Stack.Screen name="Chama" component={ChamaScreen} />
+      <Stack.Screen name="Exchange" component={ExchangeScreen} />
+      <Stack.Screen name="Insurance" component={InsuranceScreen} />
+      <Stack.Screen name="Escrow" component={EscrowScreen} />
+      <Stack.Screen name="Collections" component={CollectionsScreen} />
     </Stack.Navigator>
   );
 }
@@ -259,6 +286,8 @@ function MoreStack() {
       <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
       <Stack.Screen name="WorkflowList" component={WorkflowListScreen} />
       <Stack.Screen name="WorkflowDetail" component={WorkflowDetailScreen} />
+      <Stack.Screen name="Weather" component={WeatherScreen} />
+      <Stack.Screen name="VoiceAdvisor" component={VoiceAdvisorScreen} />
     </Stack.Navigator>
   );
 }

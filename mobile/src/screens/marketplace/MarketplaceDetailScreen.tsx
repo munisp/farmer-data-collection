@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';

@@ -5,8 +5,8 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { colors } from '@/lib/theme';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform ,useColorScheme } from 'react-native';
 
 type Message = {
   id: string;

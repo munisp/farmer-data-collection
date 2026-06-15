@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { colors } from '@/lib/theme';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert ,useColorScheme } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';

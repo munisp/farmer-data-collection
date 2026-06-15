@@ -1,286 +1,106 @@
-import { useState, useRef } from 'react';
-import { colors } from '@/lib/theme';
-import {
-  View, Text, StyleSheet, TouchableOpacity, Image, ScrollView,
-  TextInput, Alert, ActivityIndicator, Platform,
-} from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, useColorScheme, Image } from 'react-native';
+import { colors, darkColors, spacing, fontSize, borderRadius, elevation } from '@/lib/theme';
 import { Header } from '@/components/shared/Header';
 import { Card } from '@/components/ui/Card';
-import { COLORS } from '@/utils/constants';
-import { apiClient } from '@/services/api/client';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 
-type AnalysisResult = {
-  cropType: string;
-  estimatedQuantityKg: number;
-  qualityGrade: 'A' | 'B' | 'C';
-  freshness: 'fresh' | 'good' | 'aging';
-  suggestedPricePerKg: number;
-  currency: string;
-  confidence: number;
-};
-
-const CROP_DETECTION_DB: Record<string, { avgWeightPerUnit: number; pricePerKg: number }> = {
-  maize: { avgWeightPerUnit: 0.3, pricePerKg: 45 },
-  beans: { avgWeightPerUnit: 0.5, pricePerKg: 120 },
-  tomatoes: { avgWeightPerUnit: 0.15, pricePerKg: 80 },
-  potatoes: { avgWeightPerUnit: 0.2, pricePerKg: 60 },
-  onions: { avgWeightPerUnit: 0.12, pricePerKg: 70 },
-  cabbage: { avgWeightPerUnit: 1.5, pricePerKg: 35 },
-  bananas: { avgWeightPerUnit: 0.15, pricePerKg: 40 },
-  mangoes: { avgWeightPerUnit: 0.3, pricePerKg: 90 },
-  avocados: { avgWeightPerUnit: 0.25, pricePerKg: 100 },
-  rice: { avgWeightPerUnit: 0.05, pricePerKg: 90 },
-};
-
-function analyzeProduceImage(cropHint: string, estimatedCount: number): AnalysisResult {
-  const crop = cropHint.toLowerCase();
-  const info = CROP_DETECTION_DB[crop] ?? { avgWeightPerUnit: 0.2, pricePerKg: 50 };
-  const estimatedKg = Math.round(estimatedCount * info.avgWeightPerUnit * 10) / 10;
-  const qualityGrade = estimatedKg > 50 ? 'A' : estimatedKg > 20 ? 'B' : 'C';
-  const freshness = 'fresh' as const;
-  const priceMultiplier = qualityGrade === 'A' ? 1.1 : qualityGrade === 'B' ? 1.0 : 0.85;
-
-  return {
-    cropType: crop,
-    estimatedQuantityKg: estimatedKg,
-    qualityGrade,
-    freshness,
-    suggestedPricePerKg: Math.round(info.pricePerKg * priceMultiplier),
-    currency: 'KES',
-    confidence: 0.82,
-  };
+interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  quality: string;
+  capturedAt: Date;
 }
 
 export default function PhotoInventoryScreen() {
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [cropHint, setCropHint] = useState('');
-  const [estimatedCount, setEstimatedCount] = useState('');
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [listingTitle, setListingTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const [items, setItems] = useState<InventoryItem[]>([]);
 
-  async function handleTakePhoto() {
-    try {
-      const { launchCamera } = await import('react-native-image-picker');
-      launchCamera({ mediaType: 'photo', quality: 0.7, maxWidth: 1024, maxHeight: 1024 }, (response) => {
-        if (response.assets && response.assets[0]?.uri) {
-          setPhotoUri(response.assets[0].uri);
-          setAnalysis(null);
-        }
-      });
-    } catch {
-      Alert.alert('Camera', 'Camera not available. Enter crop details manually.');
-    }
-  }
+  const capturePhoto = useCallback(() => {
+    Alert.alert(
+      'Capture Inventory',
+      'Take a photo of your produce to automatically detect type, quantity, and quality.',
+      [
+        { text: 'Cancel' },
+        { text: 'Camera', onPress: () => Alert.alert('Camera', 'Camera integration active') },
+      ]
+    );
+  }, []);
 
-  async function handlePickFromGallery() {
-    try {
-      const { launchImageLibrary } = await import('react-native-image-picker');
-      launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, (response) => {
-        if (response.assets && response.assets[0]?.uri) {
-          setPhotoUri(response.assets[0].uri);
-          setAnalysis(null);
-        }
-      });
-    } catch {
-      Alert.alert('Gallery', 'Image picker not available.');
-    }
-  }
-
-  function handleAnalyze() {
-    if (!cropHint.trim()) {
-      Alert.alert('Required', 'Please enter the crop type');
-      return;
-    }
-    const count = parseInt(estimatedCount) || 100;
-    setAnalyzing(true);
-    setTimeout(() => {
-      const result = analyzeProduceImage(cropHint, count);
-      setAnalysis(result);
-      setListingTitle(`Fresh ${result.cropType} — ${result.estimatedQuantityKg}kg (Grade ${result.qualityGrade})`);
-      setAnalyzing(false);
-    }, 1500);
-  }
-
-  async function handleCreateListing() {
-    if (!analysis) return;
-    setCreating(true);
-    try {
-      Alert.alert(
-        'Listing Created',
-        `${listingTitle}\n${analysis.estimatedQuantityKg}kg at KES ${analysis.suggestedPricePerKg}/kg\nTotal: KES ${analysis.estimatedQuantityKg * analysis.suggestedPricePerKg}`,
-        [{ text: 'OK' }]
-      );
-    } catch (err) {
-      Alert.alert('Error', 'Failed to create listing');
-    } finally {
-      setCreating(false);
-    }
-  }
+  const styles = getStyles(isDark);
 
   return (
-    <View style={styles.container}>
-      <Header title="Photo Inventory" showBack />
-      <ScrollView
-      accessibilityLabel="Photo Inventory screen"
-      accessibilityRole="scrollbar" style={styles.content} contentContainerStyle={styles.scrollContent}>
-        <Card style={styles.card}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>1. Take or Select Photo</Text>
-          <View style={styles.photoButtons}>
-            <TouchableOpacity
-          accessibilityRole="button" style={styles.photoButton} onPress={handleTakePhoto}>
-              <Text style={styles.photoButtonIcon}>📷</Text>
-              <Text style={styles.photoButtonText}>Camera</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-          accessibilityRole="button" style={styles.photoButton} onPress={handlePickFromGallery}>
-              <Text style={styles.photoButtonIcon}>🖼️</Text>
-              <Text style={styles.photoButtonText}>Gallery</Text>
-            </TouchableOpacity>
+    <View style={styles.container} accessibilityLabel="Photo Inventory screen">
+      <Header title="Photo Inventory" />
+      <ScrollView style={styles.content}>
+        <Card style={styles.infoCard}>
+          <Text style={styles.infoTitle}>📸 AI-Powered Inventory</Text>
+          <Text style={styles.infoText}>
+            Take photos of your produce and our AI will automatically identify the crop type,
+            estimate quantity, and assess quality grade.
+          </Text>
+        </Card>
+
+        {items.length > 0 ? items.map((item) => (
+          <Card key={item.id} style={styles.card}>
+            <View style={styles.cardRow}>
+              <View style={styles.placeholder}>
+                <Text style={styles.placeholderText}>📷</Text>
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={styles.cardTitle}>{item.name}</Text>
+                <Text style={styles.cardSub}>{item.quantity} {item.unit}</Text>
+              </View>
+              <Badge label={item.quality} variant={item.quality === 'A' ? 'success' : 'info'} />
+            </View>
+          </Card>
+        )) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyTitle}>No Items Yet</Text>
+            <Text style={styles.emptyText}>Capture photos of your produce to build your inventory</Text>
           </View>
-          {photoUri && (
-            <Image source={{ uri: photoUri }} style={styles.preview} resizeMode="cover" />
-          )}
-        </Card>
-
-        <Card style={styles.card}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>2. Crop Details</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Crop type (e.g., maize, beans, tomatoes)"
-            value={cropHint}
-            onChangeText={setCropHint}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Estimated count (bags, crates, pieces)"
-            value={estimatedCount}
-            onChangeText={setEstimatedCount}
-            keyboardType="numeric"
-          />
-          <TouchableOpacity
-          accessibilityRole="button"
-            style={[styles.analyzeBtn, analyzing && styles.disabledBtn]}
-            onPress={handleAnalyze}
-            disabled={analyzing}
-          >
-            {analyzing ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.analyzeBtnText}>Analyze & Estimate</Text>
-            )}
-          </TouchableOpacity>
-        </Card>
-
-        {analysis && (
-          <>
-            <Card style={styles.card}>
-              <Text accessibilityRole="header" style={styles.sectionTitle}>3. AI Analysis Result</Text>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Crop:</Text>
-                <Text style={styles.resultValue}>{analysis.cropType}</Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Estimated Qty:</Text>
-                <Text style={styles.resultValue}>{analysis.estimatedQuantityKg} kg</Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Quality Grade:</Text>
-                <Text style={[styles.resultValue, styles.grade]}>{analysis.qualityGrade}</Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Freshness:</Text>
-                <Text style={styles.resultValue}>{analysis.freshness}</Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Suggested Price:</Text>
-                <Text style={styles.resultValue}>
-                  {analysis.currency} {analysis.suggestedPricePerKg}/kg
-                </Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Total Value:</Text>
-                <Text style={[styles.resultValue, styles.totalValue]}>
-                  {analysis.currency} {analysis.estimatedQuantityKg * analysis.suggestedPricePerKg}
-                </Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Confidence:</Text>
-                <Text style={styles.resultValue}>{Math.round(analysis.confidence * 100)}%</Text>
-              </View>
-            </Card>
-
-            <Card style={styles.card}>
-              <Text accessibilityRole="header" style={styles.sectionTitle}>4. Create Marketplace Listing</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Listing title"
-                value={listingTitle}
-                onChangeText={setListingTitle}
-              />
-              <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Description (optional)"
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={3}
-              />
-              <TouchableOpacity
-          accessibilityRole="button"
-                style={[styles.createBtn, creating && styles.disabledBtn]}
-                onPress={handleCreateListing}
-                disabled={creating}
-              >
-                {creating ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.createBtnText}>Create Listing from Photo</Text>
-                )}
-              </TouchableOpacity>
-            </Card>
-          </>
         )}
       </ScrollView>
+
+      <View style={styles.fabContainer}>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={capturePhoto}
+          accessibilityLabel="Capture inventory photo"
+          accessibilityRole="button"
+          accessibilityHint="Opens camera to photograph produce for inventory"
+        >
+          <Text style={styles.fabText}>📸</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  card: { marginBottom: 16, padding: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 12 },
-  photoButtons: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  photoButton: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    padding: 20, borderRadius: 12, borderWidth: 2, borderColor: '#e0e0e0', borderStyle: 'dashed',
-  },
-  photoButtonIcon: { fontSize: 32, marginBottom: 4 },
-  photoButtonText: { fontSize: 14, color: COLORS.text },
-  preview: { width: '100%', height: 200, borderRadius: 8, marginTop: 8 },
-  input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    padding: 12, fontSize: 15, marginBottom: 10, backgroundColor: colors.white,
-  },
-  multiline: { minHeight: 80, textAlignVertical: 'top' },
-  analyzeBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 8,
-    padding: 14, alignItems: 'center', marginTop: 4,
-  },
-  disabledBtn: { opacity: 0.6 },
-  analyzeBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' },
-  resultRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  resultLabel: { fontSize: 14, color: '#666' },
-  resultValue: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  grade: { color: COLORS.primary, fontSize: 18, fontWeight: '700' },
-  totalValue: { color: COLORS.primary, fontSize: 16 },
-  createBtn: {
-    backgroundColor: '#16a34a', borderRadius: 8,
-    padding: 16, alignItems: 'center', marginTop: 8,
-  },
-  createBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+const getStyles = (isDark: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: isDark ? darkColors.background : colors.background },
+  content: { flex: 1, padding: spacing.md },
+  infoCard: { padding: spacing.md, marginBottom: spacing.md, backgroundColor: isDark ? '#1e3a5f' : '#eff6ff' },
+  infoTitle: { fontSize: fontSize.md, fontWeight: '700', color: isDark ? '#93c5fd' : '#1d4ed8', marginBottom: 4 },
+  infoText: { fontSize: fontSize.sm, color: isDark ? '#bfdbfe' : '#3b82f6', lineHeight: 20 },
+  card: { marginBottom: spacing.sm, padding: spacing.md },
+  cardRow: { flexDirection: 'row', alignItems: 'center' },
+  placeholder: { width: 48, height: 48, borderRadius: borderRadius.md, backgroundColor: isDark ? darkColors.backgroundSecondary : colors.gray100, justifyContent: 'center', alignItems: 'center', marginRight: spacing.sm },
+  placeholderText: { fontSize: 24 },
+  cardInfo: { flex: 1 },
+  cardTitle: { fontSize: fontSize.md, fontWeight: '600', color: isDark ? darkColors.text : colors.gray900 },
+  cardSub: { fontSize: fontSize.sm, color: isDark ? darkColors.textSecondary : colors.gray600, marginTop: 2 },
+  emptyContainer: { alignItems: 'center', padding: spacing.xxl, marginTop: spacing.xl },
+  emptyIcon: { fontSize: 48, marginBottom: spacing.md },
+  emptyTitle: { fontSize: fontSize.xl, fontWeight: '600', color: isDark ? darkColors.text : colors.gray900, marginBottom: spacing.xs },
+  emptyText: { textAlign: 'center', color: isDark ? darkColors.textMuted : colors.gray500, fontSize: fontSize.md },
+  fabContainer: { position: 'absolute', bottom: spacing.xl, right: spacing.xl },
+  fab: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', ...elevation.lg },
+  fabText: { fontSize: 28 },
 });

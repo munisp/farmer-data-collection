@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { colors } from '@/lib/theme';
+import { colors, darkColors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface TraceabilityRecord {

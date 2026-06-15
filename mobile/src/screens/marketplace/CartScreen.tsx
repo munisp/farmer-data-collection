@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { colors } from '@/lib/theme';
-import { View, FlatList, Text, StyleSheet, Alert } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, FlatList, Text, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
 import { EmptyState } from '@/components/shared/EmptyState';

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, ScrollView, Text, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
 import { Input } from '@/components/ui/Input';

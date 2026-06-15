@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { colors } from '@/lib/theme';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { colors, darkColors, darkColors } from '@/lib/theme';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet ,useColorScheme } from 'react-native';
 
 const CROPS = [
   { id: 'ginger', name: 'Ginger', icon: '🫚' },
