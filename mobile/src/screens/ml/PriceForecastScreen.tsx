@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import { View, ScrollView, Text, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Input } from '@/components/ui/Input';

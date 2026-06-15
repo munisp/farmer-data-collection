@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert ,useColorScheme } from 'react-native';
 
 type Equipment = {

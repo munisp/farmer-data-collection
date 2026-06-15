@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import { View, Text, ScrollView, StyleSheet ,useColorScheme } from 'react-native';
 
 export default function JourneyTrackerScreen({ route }) {

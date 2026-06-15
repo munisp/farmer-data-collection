@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import { View, FlatList, TouchableOpacity, Text, StyleSheet, TextInput, RefreshControl, Alert ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';

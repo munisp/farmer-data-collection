@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform ,useColorScheme } from 'react-native';
 
 type Message = {

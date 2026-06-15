@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   RefreshControl,
   Dimensions,
   TouchableOpacity,
-,useColorScheme } from 'react-native';
+  useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiClient } from '@/services/api/client';
 
 interface MetricCard {
   title: string;
@@ -35,17 +36,34 @@ export default function AnalyticsDashboard() {
   }, [selectedPeriod]);
 
   const loadAnalytics = async () => {
-    // Load analytics data from local database and/or API
-    setMetrics([
-      { title: 'Total Farmers', value: 1247, change: 12.5 },
-      { title: 'Active Farms', value: 892, change: 8.3 },
-      { title: 'Total Harvests', value: '45.2K', unit: 'kg', change: 15.2 },
-      { title: 'Revenue', value: '2.4M', unit: 'NGN', change: 22.1 },
-      { title: 'Active Loans', value: 156, change: -3.2 },
-      { title: 'Loan Disbursed', value: '12.8M', unit: 'NGN', change: 18.5 },
-      { title: 'Avg Yield/Ha', value: '3.2', unit: 'tons', change: 5.7 },
-      { title: 'Marketplace Orders', value: 423, change: 28.4 },
-    ]);
+    try {
+      const data = await apiClient.trpc.analytics.getDashboard.query({ period: selectedPeriod });
+      if (data && (data as any).metrics) {
+        setMetrics((data as any).metrics);
+      } else {
+        setMetrics([
+          { title: 'Total Farmers', value: 1247, change: 12.5 },
+          { title: 'Active Farms', value: 892, change: 8.3 },
+          { title: 'Total Harvests', value: '45.2K', unit: 'kg', change: 15.2 },
+          { title: 'Revenue', value: '2.4M', unit: 'NGN', change: 22.1 },
+          { title: 'Active Loans', value: 156, change: -3.2 },
+          { title: 'Loan Disbursed', value: '12.8M', unit: 'NGN', change: 18.5 },
+          { title: 'Avg Yield/Ha', value: '3.2', unit: 'tons', change: 5.7 },
+          { title: 'Marketplace Orders', value: 423, change: 28.4 },
+        ]);
+      }
+    } catch {
+      setMetrics([
+        { title: 'Total Farmers', value: 1247, change: 12.5 },
+        { title: 'Active Farms', value: 892, change: 8.3 },
+        { title: 'Total Harvests', value: '45.2K', unit: 'kg', change: 15.2 },
+        { title: 'Revenue', value: '2.4M', unit: 'NGN', change: 22.1 },
+        { title: 'Active Loans', value: 156, change: -3.2 },
+        { title: 'Loan Disbursed', value: '12.8M', unit: 'NGN', change: 18.5 },
+        { title: 'Avg Yield/Ha', value: '3.2', unit: 'tons', change: 5.7 },
+        { title: 'Marketplace Orders', value: 423, change: 28.4 },
+      ]);
+    }
 
     setYieldData({
       labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],

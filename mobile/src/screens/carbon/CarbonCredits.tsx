@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   RefreshControl,
   TouchableOpacity,
   FlatList,
-,useColorScheme } from 'react-native';
+  useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiClient } from '@/services/api/client';
 
 interface CarbonProject {
   id: string;

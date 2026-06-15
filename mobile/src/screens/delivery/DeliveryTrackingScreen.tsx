@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity ,useColorScheme } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';

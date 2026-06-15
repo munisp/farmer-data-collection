@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert ,useColorScheme } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Card } from '@/components/ui/Card';

@@ -31,6 +31,10 @@ export type FarmStackParamList = {
   AIChatAdvisor: undefined;
   CarbonCredits: undefined;
   Traceability: undefined;
+  IoTDashboard: undefined;
+  Aquaculture: undefined;
+  PrecisionAg: undefined;
+  DroneFlights: undefined;
 };
 
 export type MarketStackParamList = {
@@ -44,6 +48,7 @@ export type MarketStackParamList = {
   DistributorNetwork: undefined;
   DistributorMap: undefined;
   ColdChain: undefined;
+  SupplyChain: undefined;
 };
 
 export type FinanceStackParamList = {
@@ -72,6 +77,7 @@ export type MoreStackParamList = {
   WorkflowDetail: { id: number };
   Weather: undefined;
   VoiceAdvisor: undefined;
+  CreditScore: undefined;
 };
 
 export type RootTabParamList = {
@@ -168,6 +174,12 @@ import EscrowScreen from '@/screens/finance/EscrowScreen';
 import VoiceAdvisorScreen from '@/screens/ai/VoiceAdvisorScreen';
 import WeatherScreen from '@/screens/analytics/WeatherScreen';
 import ColdChainScreen from '@/screens/analytics/ColdChainScreen';
+import IoTDashboardScreen from '@/screens/iot/IoTDashboardScreen';
+import AquacultureScreen from '@/screens/aquaculture/AquacultureScreen';
+import PrecisionAgScreen from '@/screens/analytics/PrecisionAgScreen';
+import DroneFlightScreen from '@/screens/analytics/DroneFlightScreen';
+import SupplyChainScreen from '@/screens/supply-chain/SupplyChainScreen';
+import CreditScoreScreen from '@/screens/credit/CreditScoreScreen';
 
 // Admin screens
 import AdminDashboardScreen from '@/screens/admin/AdminDashboardScreen';
@@ -232,6 +244,10 @@ function FarmStack() {
       <Stack.Screen name="AIChatAdvisor" component={AIChatScreen} />
       <Stack.Screen name="CarbonCredits" component={CarbonCredits} />
       <Stack.Screen name="Traceability" component={TraceabilityDashboard} />
+      <Stack.Screen name="IoTDashboard" component={IoTDashboardScreen} />
+      <Stack.Screen name="Aquaculture" component={AquacultureScreen} />
+      <Stack.Screen name="PrecisionAg" component={PrecisionAgScreen} />
+      <Stack.Screen name="DroneFlights" component={DroneFlightScreen} />
     </Stack.Navigator>
   );
 }
@@ -250,6 +266,7 @@ function MarketStack() {
       <Stack.Screen name="DistributorNetwork" component={DistributorNetworkScreen} />
       <Stack.Screen name="DistributorMap" component={DistributorMapScreen} />
       <Stack.Screen name="ColdChain" component={ColdChainScreen} />
+      <Stack.Screen name="SupplyChain" component={SupplyChainScreen} />
     </Stack.Navigator>
   );
 }
@@ -288,6 +305,7 @@ function MoreStack() {
       <Stack.Screen name="WorkflowDetail" component={WorkflowDetailScreen} />
       <Stack.Screen name="Weather" component={WeatherScreen} />
       <Stack.Screen name="VoiceAdvisor" component={VoiceAdvisorScreen} />
+      <Stack.Screen name="CreditScore" component={CreditScoreScreen} />
     </Stack.Navigator>
   );
 }

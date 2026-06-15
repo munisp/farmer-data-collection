@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { colors, darkColors, darkColors } from '@/lib/theme';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View, ScrollView, Text, StyleSheet, Alert, Platform,
   TouchableOpacity, ActivityIndicator, Dimensions,
