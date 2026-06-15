@@ -21,7 +21,7 @@ import {
   profitSplits,
   distributorFeeConfig,
 } from "../../drizzle/distributor-schema.js";
-import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte, inArray } from "drizzle-orm";
 import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
@@ -759,7 +759,7 @@ export const distributorNetworkRouter = router({
         if (saleIds.length === 0) return { totalEarnings: 0, totalSales: 0, splits: [], pendingDisbursement: 0 };
 
         splits = await db.select().from(profitSplits)
-          .where(sql`${profitSplits.saleId} = ANY(${saleIds})`)
+          .where(inArray(profitSplits.saleId, saleIds))
           .orderBy(desc(profitSplits.createdAt));
 
         const totalEarnings = splits.reduce((sum, s) => sum + Number(s.distributorAmount), 0);
@@ -781,7 +781,7 @@ export const distributorNetworkRouter = router({
         if (consignmentIds.length === 0) return { totalEarnings: 0, totalSales: 0, splits: [], pendingDisbursement: 0 };
 
         splits = await db.select().from(profitSplits)
-          .where(sql`${profitSplits.consignmentId} = ANY(${consignmentIds})`)
+          .where(inArray(profitSplits.consignmentId, consignmentIds))
           .orderBy(desc(profitSplits.createdAt));
 
         const totalEarnings = splits.reduce((sum, s) => sum + Number(s.farmerAmount), 0);
