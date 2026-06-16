@@ -8,6 +8,25 @@
 
 const TILE_CACHE_NAME = "farmconnect-tile-cache-v1";
 const METADATA_CACHE_NAME = "farmconnect-tile-meta-v1";
+const OSM_SUBDOMAINS = ["a", "b", "c"];
+let tileUrlTemplate = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+/**
+ * Configure the tile server URL template. Use `{s}` for subdomain rotation,
+ * `{z}`, `{x}`, `{y}` for tile coordinates.
+ */
+export function setTileUrlTemplate(template: string): void {
+  tileUrlTemplate = template;
+}
+
+function getTileUrl(z: number, x: number, y: number): string {
+  const subdomain = OSM_SUBDOMAINS[(x + y) % OSM_SUBDOMAINS.length];
+  return tileUrlTemplate
+    .replace("{s}", subdomain)
+    .replace("{z}", String(z))
+    .replace("{x}", String(x))
+    .replace("{y}", String(y));
+}
 
 export interface CachedArea {
   id: string;
@@ -123,7 +142,7 @@ export async function downloadOfflineArea(
     const batch = allTiles.slice(i, i + BATCH_SIZE);
     const results = await Promise.allSettled(
       batch.map(async (tile) => {
-        const url = `https://a.tile.openstreetmap.org/${tile.z}/${tile.x}/${tile.y}.png`;
+        const url = getTileUrl(tile.z, tile.x, tile.y);
         try {
           const response = await fetch(url);
           if (response.ok) {

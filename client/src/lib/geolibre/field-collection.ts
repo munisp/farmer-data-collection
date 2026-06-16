@@ -95,7 +95,7 @@ export async function capturePointFromGPS(
 ): Promise<CollectedFeature> {
   const position = await captureGPSPosition();
   return {
-    id: `fc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: crypto.randomUUID(),
     type: "Feature",
     geometry: {
       type: "Point",
@@ -125,7 +125,7 @@ export function capturePointFromMapTap(
   properties: Record<string, unknown>
 ): CollectedFeature {
   return {
-    id: `fc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: crypto.randomUUID(),
     type: "Feature",
     geometry: {
       type: "Point",
@@ -160,7 +160,7 @@ export function buildPolygonFromPoints(
   }
 
   return {
-    id: `fc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: crypto.randomUUID(),
     type: "Feature",
     geometry: {
       type: "Polygon",

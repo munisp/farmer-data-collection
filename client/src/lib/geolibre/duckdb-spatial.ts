@@ -10,6 +10,19 @@
 let dbInstance: unknown | null = null;
 let connInstance: unknown | null = null;
 
+const VALID_TABLE_NAME = /^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/;
+
+function sanitizeTableName(name: string): string {
+  if (!VALID_TABLE_NAME.test(name)) {
+    throw new Error(`Invalid table name: ${name}`);
+  }
+  return name;
+}
+
+function escapeString(value: string): string {
+  return value.replace(/'/g, "''").replace(/\\/g, "\\\\");
+}
+
 interface DuckDBModule {
   selectBundle: (config: Record<string, string>) => Promise<{ mainModule: string; mainWorker: string }>;
   ConsoleLogger: new () => unknown;
@@ -59,11 +72,31 @@ export async function initDuckDBSpatial(): Promise<{ db: DuckDB; conn: DuckDBCon
     return { db: dbInstance as DuckDB, conn: connInstance as DuckDBConnection };
   }
 
-  // Use fallback in-memory engine (DuckDB-WASM loaded dynamically when available)
-  console.info("[DuckDB-WASM] Using fallback in-memory spatial engine");
-  const fallbackConn = createFallbackConnection();
-  connInstance = fallbackConn;
-  return { db: {} as DuckDB, conn: fallbackConn };
+  // Attempt dynamic DuckDB-WASM load (optional dependency)
+  try {
+    // Dynamic import — @duckdb/duckdb-wasm is an optional peer dependency.
+    // Using variable to bypass static module resolution (package may not be installed).
+    const DUCKDB_PKG = "@duckdb/duckdb-wasm";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const duckdbModule: any = await import(/* @vite-ignore */ DUCKDB_PKG);
+    const allBundles = await duckdbModule.selectBundle(duckdbModule.getJsDelivrBundles());
+    const loggerInstance = new duckdbModule.ConsoleLogger();
+    const worker = await duckdbModule.createWorker(allBundles.mainWorker);
+    const db = new duckdbModule.AsyncDuckDB(loggerInstance, worker);
+    await db.instantiate(allBundles.mainModule, allBundles.pthreadWorker);
+    await db.open({});
+    const conn = await db.connect();
+    await conn.query("INSTALL spatial; LOAD spatial;");
+    dbInstance = db;
+    connInstance = conn as DuckDBConnection;
+    console.info("[DuckDB-WASM] Spatial engine initialized");
+    return { db: db as DuckDB, conn: conn as DuckDBConnection };
+  } catch {
+    console.warn("[DuckDB-WASM] Not available, using in-memory fallback. Install @duckdb/duckdb-wasm for full spatial SQL.");
+    const fallbackConn = createFallbackConnection();
+    connInstance = fallbackConn;
+    return { db: {} as DuckDB, conn: fallbackConn };
+  }
 }
 
 /**
@@ -99,7 +132,8 @@ export async function loadGeoJSONTable(
   });
 
   // Build CREATE TABLE and INSERT statements
-  await conn.query(`DROP TABLE IF EXISTS ${tableName}`);
+  const safeTable = sanitizeTableName(tableName);
+  await conn.query(`DROP TABLE IF EXISTS ${safeTable}`);
 
   const rows = geojson.features.map(f => {
     const geom = JSON.stringify(f.geometry);
@@ -111,18 +145,19 @@ export async function loadGeoJSONTable(
 
   if (rows.length === 0) return;
 
-  // Create table with geometry column
-  const colDefs = Array.from(columns).map(c => `"${c}" VARCHAR`).join(", ");
-  await conn.query(`CREATE TABLE ${tableName} (geom GEOMETRY, ${colDefs})`);
+  // Create table with geometry column — column names sanitized
+  const safeCols = Array.from(columns).map(c => sanitizeTableName(c));
+  const colDefs = safeCols.map(c => `"${c}" VARCHAR`).join(", ");
+  await conn.query(`CREATE TABLE ${safeTable} (geom GEOMETRY, ${colDefs})`);
 
-  // Insert rows
+  // Insert rows with escaped values
   for (const row of rows) {
-    const vals = Array.from(columns).map(c => {
+    const vals = safeCols.map(c => {
       const v = (row as Record<string, unknown>)[c];
-      return v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
+      return v === null || v === undefined ? "NULL" : `'${escapeString(String(v))}'`;
     });
     await conn.query(
-      `INSERT INTO ${tableName} VALUES (ST_GeomFromGeoJSON('${row.geom}'), ${vals.join(", ")})`
+      `INSERT INTO ${safeTable} VALUES (ST_GeomFromGeoJSON('${escapeString(row.geom)}'), ${vals.join(", ")})`
     );
   }
 }
@@ -136,13 +171,14 @@ export async function findNearby(
   lng: number,
   radiusMeters: number
 ): Promise<SpatialQueryResult> {
+  const safeTable = sanitizeTableName(tableName);
   return executeSpatialQuery(`
     SELECT *, ST_Distance(
       geom,
-      ST_Point(${lng}, ${lat})
+      ST_Point(${Number(lng)}, ${Number(lat)})
     ) * 111319.9 AS distance_m
-    FROM ${tableName}
-    WHERE ST_Distance(geom, ST_Point(${lng}, ${lat})) * 111319.9 < ${radiusMeters}
+    FROM ${safeTable}
+    WHERE ST_Distance(geom, ST_Point(${Number(lng)}, ${Number(lat)})) * 111319.9 < ${Number(radiusMeters)}
     ORDER BY distance_m
   `);
 }
@@ -151,9 +187,10 @@ export async function findNearby(
  * Calculate area of polygon features in square meters.
  */
 export async function calculateAreas(tableName: string): Promise<SpatialQueryResult> {
+  const safeTable = sanitizeTableName(tableName);
   return executeSpatialQuery(`
     SELECT *, ST_Area(geom) * 12321000000 AS area_sq_m
-    FROM ${tableName}
+    FROM ${safeTable}
     WHERE ST_GeometryType(geom) IN ('POLYGON', 'MULTIPOLYGON')
   `);
 }
@@ -163,14 +200,14 @@ export async function calculateAreas(tableName: string): Promise<SpatialQueryRes
  */
 export const FARM_SPATIAL_QUERIES = {
   farmsByRegion: (region: string) => `
-    SELECT * FROM farms WHERE state = '${region}' ORDER BY area_sq_m DESC
+    SELECT * FROM farms WHERE state = '${escapeString(region)}' ORDER BY area_sq_m DESC
   `,
   distributorCoverage: (radiusKm: number) => `
-    SELECT d.*, ST_Buffer(d.geom, ${radiusKm / 111.32}) AS coverage_area
+    SELECT d.*, ST_Buffer(d.geom, ${Number(radiusKm) / 111.32}) AS coverage_area
     FROM distributors d WHERE d.status = 'approved'
   `,
   nearestDistributor: (lat: number, lng: number) => `
-    SELECT *, ST_Distance(geom, ST_Point(${lng}, ${lat})) * 111.32 AS distance_km
+    SELECT *, ST_Distance(geom, ST_Point(${Number(lng)}, ${Number(lat)})) * 111.32 AS distance_km
     FROM distributors ORDER BY distance_km LIMIT 5
   `,
   cropDensityGrid: () => `

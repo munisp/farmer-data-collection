@@ -13,7 +13,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { requireDb } from "../utils/require-db.js";
-import { sql } from "drizzle-orm";
+import { sql, eq, and, desc } from "drizzle-orm";
+import { fieldCollections, spectralAnalyses, cachedTileAreas } from "../../drizzle/schema-spatial-analysis.js";
 import { getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
@@ -25,8 +26,8 @@ export const spatialAnalysisRouter = router({
 
   syncFieldCollection: protectedProcedure
     .input(z.object({
-      collectionId: z.string(),
-      collectionName: z.string(),
+      collectionId: z.string().max(100),
+      collectionName: z.string().max(200),
       features: z.array(z.object({
         id: z.string(),
         geometryType: z.enum(["Point", "LineString", "Polygon"]),
@@ -36,7 +37,7 @@ export const spatialAnalysisRouter = router({
         accuracy: z.number().nullable(),
         altitude: z.number().nullable(),
         photos: z.array(z.string()).optional(),
-      })),
+      })).max(500),
     }))
     .mutation(async ({ input, ctx }) => {
       const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
@@ -49,19 +50,6 @@ export const spatialAnalysisRouter = router({
       const db = await requireDb();
       const numUserId = (ctx as { user?: { id: number } }).user?.id;
       if (!numUserId) throw new TRPCError({ code: "UNAUTHORIZED" });
-
-      // Store in field_collections table (create if not exists)
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS field_collections (
-          id VARCHAR(100) PRIMARY KEY,
-          user_id INTEGER NOT NULL,
-          name VARCHAR(200) NOT NULL,
-          feature_count INTEGER DEFAULT 0,
-          geojson JSONB,
-          synced_at TIMESTAMP DEFAULT NOW(),
-          created_at TIMESTAMP DEFAULT NOW()
-        )
-      `);
 
       const geojson = {
         type: "FeatureCollection",
@@ -77,14 +65,23 @@ export const spatialAnalysisRouter = router({
         })),
       };
 
-      await db.execute(sql`
-        INSERT INTO field_collections (id, user_id, name, feature_count, geojson, synced_at)
-        VALUES (${input.collectionId}, ${numUserId}, ${input.collectionName}, ${input.features.length}, ${JSON.stringify(geojson)}::jsonb, NOW())
-        ON CONFLICT (id) DO UPDATE SET
-          geojson = ${JSON.stringify(geojson)}::jsonb,
-          feature_count = ${input.features.length},
-          synced_at = NOW()
-      `);
+      await db.insert(fieldCollections)
+        .values({
+          id: input.collectionId,
+          userId: numUserId,
+          name: input.collectionName,
+          featureCount: input.features.length,
+          geojson,
+          syncedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: fieldCollections.id,
+          set: {
+            geojson,
+            featureCount: input.features.length,
+            syncedAt: new Date(),
+          },
+        });
 
       // Publish sync event
       try {
@@ -117,37 +114,50 @@ export const spatialAnalysisRouter = router({
 
   getFieldCollections: protectedProcedure
     .query(async ({ ctx }) => {
+      const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
+      const rateCheck = await checkRateLimit("spatial-list", userId, 30, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
       const db = await requireDb();
-      const userId = (ctx as { user?: { id: number } }).user?.id;
-      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const numUserId = (ctx as { user?: { id: number } }).user?.id;
+      if (!numUserId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
       try {
-        const result = await db.execute(sql`
-          SELECT id, name, feature_count, synced_at, created_at
-          FROM field_collections
-          WHERE user_id = ${userId}
-          ORDER BY synced_at DESC
-        `);
-        return { collections: result.rows || [] };
+        const result = await db.select({
+          id: fieldCollections.id,
+          name: fieldCollections.name,
+          featureCount: fieldCollections.featureCount,
+          syncedAt: fieldCollections.syncedAt,
+          createdAt: fieldCollections.createdAt,
+        })
+          .from(fieldCollections)
+          .where(eq(fieldCollections.userId, numUserId))
+          .orderBy(desc(fieldCollections.syncedAt));
+        return { collections: result };
       } catch {
         return { collections: [] };
       }
     }),
 
   getFieldCollectionGeoJSON: protectedProcedure
-    .input(z.object({ collectionId: z.string() }))
+    .input(z.object({ collectionId: z.string().max(100) }))
     .query(async ({ input, ctx }) => {
-      const db = await requireDb();
-      const userId = (ctx as { user?: { id: number } }).user?.id;
-      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
+      const rateCheck = await checkRateLimit("spatial-geojson", userId, 30, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
 
-      const result = await db.execute(sql`
-        SELECT geojson FROM field_collections
-        WHERE id = ${input.collectionId} AND user_id = ${userId}
-      `);
-      const rows = result.rows || [];
-      if (rows.length === 0) throw new TRPCError({ code: "NOT_FOUND", message: "Collection not found" });
-      return { geojson: (rows[0] as Record<string, unknown>).geojson };
+      const db = await requireDb();
+      const numUserId = (ctx as { user?: { id: number } }).user?.id;
+      if (!numUserId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const result = await db.select({ geojson: fieldCollections.geojson })
+        .from(fieldCollections)
+        .where(and(
+          eq(fieldCollections.id, input.collectionId),
+          eq(fieldCollections.userId, numUserId),
+        ));
+      if (result.length === 0) throw new TRPCError({ code: "NOT_FOUND", message: "Collection not found" });
+      return { geojson: result[0].geojson };
     }),
 
   // ============================================================================
@@ -161,7 +171,11 @@ export const spatialAnalysisRouter = router({
       radiusKm: z.number().min(1).max(500),
       limit: z.number().min(1).max(50).default(10),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
+      const rateCheck = await checkRateLimit("spatial-nearby", userId, 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
       const db = await requireDb();
 
       const result = await db.execute(sql`
@@ -189,7 +203,11 @@ export const spatialAnalysisRouter = router({
     }),
 
   getDistributorCoverageGeoJSON: protectedProcedure
-    .query(async () => {
+    .query(async ({ ctx }) => {
+      const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
+      const rateCheck = await checkRateLimit("spatial-coverage", userId, 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
       const db = await requireDb();
 
       const result = await db.execute(sql`
@@ -229,7 +247,11 @@ export const spatialAnalysisRouter = router({
     .input(z.object({
       resolution: z.number().min(1).max(10).default(5),
     }))
-    .query(async () => {
+    .query(async ({ ctx }) => {
+      const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
+      const rateCheck = await checkRateLimit("spatial-h3", userId, 10, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
       const db = await requireDb();
 
       const distResult = await db.execute(sql`
@@ -264,7 +286,7 @@ export const spatialAnalysisRouter = router({
       stdDev: z.number(),
       healthDistribution: z.record(z.string(), z.number()).optional(),
       bbox: z.array(z.number()).length(4).optional(),
-      sourceUrl: z.string().optional(),
+      sourceUrl: z.string().max(2000).optional(),
       analysisDate: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -276,32 +298,18 @@ export const spatialAnalysisRouter = router({
       const numUserId = (ctx as { user?: { id: number } }).user?.id;
       if (!numUserId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS spectral_analyses (
-          id SERIAL PRIMARY KEY,
-          user_id INTEGER NOT NULL,
-          farm_id INTEGER,
-          index_type VARCHAR(10) NOT NULL,
-          mean_value DOUBLE PRECISION,
-          min_value DOUBLE PRECISION,
-          max_value DOUBLE PRECISION,
-          std_dev DOUBLE PRECISION,
-          health_distribution JSONB,
-          source_url TEXT,
-          analysis_date DATE,
-          created_at TIMESTAMP DEFAULT NOW()
-        )
-      `);
-
-      await db.execute(sql`
-        INSERT INTO spectral_analyses
-          (user_id, farm_id, index_type, mean_value, min_value, max_value, std_dev,
-           health_distribution, source_url, analysis_date)
-        VALUES (${numUserId}, ${input.farmId ?? null}, ${input.indexType},
-                ${input.mean}, ${input.min}, ${input.max}, ${input.stdDev},
-                ${JSON.stringify(input.healthDistribution || {})}::jsonb,
-                ${input.sourceUrl ?? null}, ${input.analysisDate})
-      `);
+      await db.insert(spectralAnalyses).values({
+        userId: numUserId,
+        farmId: input.farmId ?? null,
+        indexType: input.indexType,
+        meanValue: input.mean,
+        minValue: input.min,
+        maxValue: input.max,
+        stdDev: input.stdDev,
+        healthDistribution: input.healthDistribution || {},
+        sourceUrl: input.sourceUrl ?? null,
+        analysisDate: new Date(input.analysisDate),
+      });
 
       return { success: true };
     }),
@@ -313,41 +321,25 @@ export const spatialAnalysisRouter = router({
       limit: z.number().min(1).max(100).default(20),
     }))
     .query(async ({ input, ctx }) => {
+      const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
+      const rateCheck = await checkRateLimit("spectral-history", userId, 30, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
       const db = await requireDb();
-      const userId = (ctx as { user?: { id: number } }).user?.id;
-      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const numUserId = (ctx as { user?: { id: number } }).user?.id;
+      if (!numUserId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
       try {
-        // Build query dynamically based on optional filters
-        if (input.farmId && input.indexType) {
-          const result = await db.execute(sql`
-            SELECT * FROM spectral_analyses
-            WHERE user_id = ${userId} AND farm_id = ${input.farmId} AND index_type = ${input.indexType}
-            ORDER BY analysis_date DESC LIMIT ${input.limit}
-          `);
-          return { analyses: result.rows || [] };
-        } else if (input.indexType) {
-          const result = await db.execute(sql`
-            SELECT * FROM spectral_analyses
-            WHERE user_id = ${userId} AND index_type = ${input.indexType}
-            ORDER BY analysis_date DESC LIMIT ${input.limit}
-          `);
-          return { analyses: result.rows || [] };
-        } else if (input.farmId) {
-          const result = await db.execute(sql`
-            SELECT * FROM spectral_analyses
-            WHERE user_id = ${userId} AND farm_id = ${input.farmId}
-            ORDER BY analysis_date DESC LIMIT ${input.limit}
-          `);
-          return { analyses: result.rows || [] };
-        } else {
-          const result = await db.execute(sql`
-            SELECT * FROM spectral_analyses
-            WHERE user_id = ${userId}
-            ORDER BY analysis_date DESC LIMIT ${input.limit}
-          `);
-          return { analyses: result.rows || [] };
-        }
+        const conditions = [eq(spectralAnalyses.userId, numUserId)];
+        if (input.farmId) conditions.push(eq(spectralAnalyses.farmId, input.farmId));
+        if (input.indexType) conditions.push(eq(spectralAnalyses.indexType, input.indexType));
+
+        const result = await db.select()
+          .from(spectralAnalyses)
+          .where(and(...conditions))
+          .orderBy(desc(spectralAnalyses.analysisDate))
+          .limit(input.limit);
+        return { analyses: result };
       } catch {
         return { analyses: [] };
       }
@@ -359,16 +351,16 @@ export const spatialAnalysisRouter = router({
 
   registerCachedArea: protectedProcedure
     .input(z.object({
-      areaId: z.string(),
-      name: z.string(),
-      boundsNorth: z.number(),
-      boundsSouth: z.number(),
-      boundsEast: z.number(),
-      boundsWest: z.number(),
-      minZoom: z.number(),
-      maxZoom: z.number(),
-      tileCount: z.number(),
-      sizeBytes: z.number(),
+      areaId: z.string().max(100),
+      name: z.string().max(200),
+      boundsNorth: z.number().min(-90).max(90),
+      boundsSouth: z.number().min(-90).max(90),
+      boundsEast: z.number().min(-180).max(180),
+      boundsWest: z.number().min(-180).max(180),
+      minZoom: z.number().min(0).max(22),
+      maxZoom: z.number().min(0).max(22),
+      tileCount: z.number().min(0),
+      sizeBytes: z.number().min(0),
     }))
     .mutation(async ({ input, ctx }) => {
       const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
@@ -379,34 +371,28 @@ export const spatialAnalysisRouter = router({
       const numUserId = (ctx as { user?: { id: number } }).user?.id;
       if (!numUserId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS cached_tile_areas (
-          id VARCHAR(100) PRIMARY KEY,
-          user_id INTEGER NOT NULL,
-          name VARCHAR(200) NOT NULL,
-          bounds_north DOUBLE PRECISION,
-          bounds_south DOUBLE PRECISION,
-          bounds_east DOUBLE PRECISION,
-          bounds_west DOUBLE PRECISION,
-          min_zoom INTEGER,
-          max_zoom INTEGER,
-          tile_count INTEGER,
-          size_bytes BIGINT,
-          created_at TIMESTAMP DEFAULT NOW(),
-          expires_at TIMESTAMP DEFAULT NOW() + INTERVAL '30 days'
-        )
-      `);
-
-      await db.execute(sql`
-        INSERT INTO cached_tile_areas
-          (id, user_id, name, bounds_north, bounds_south, bounds_east, bounds_west,
-           min_zoom, max_zoom, tile_count, size_bytes)
-        VALUES (${input.areaId}, ${numUserId}, ${input.name},
-                ${input.boundsNorth}, ${input.boundsSouth}, ${input.boundsEast}, ${input.boundsWest},
-                ${input.minZoom}, ${input.maxZoom}, ${input.tileCount}, ${input.sizeBytes})
-        ON CONFLICT (id) DO UPDATE SET
-          tile_count = ${input.tileCount}, size_bytes = ${input.sizeBytes}
-      `);
+      await db.insert(cachedTileAreas)
+        .values({
+          id: input.areaId,
+          userId: numUserId,
+          name: input.name,
+          boundsNorth: input.boundsNorth,
+          boundsSouth: input.boundsSouth,
+          boundsEast: input.boundsEast,
+          boundsWest: input.boundsWest,
+          minZoom: input.minZoom,
+          maxZoom: input.maxZoom,
+          tileCount: input.tileCount,
+          sizeBytes: input.sizeBytes,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        })
+        .onConflictDoUpdate({
+          target: cachedTileAreas.id,
+          set: {
+            tileCount: input.tileCount,
+            sizeBytes: input.sizeBytes,
+          },
+        });
 
       return { success: true };
     }),
@@ -418,6 +404,9 @@ export const spatialAnalysisRouter = router({
   getGISWorkspaceConfig: protectedProcedure
     .query(async ({ ctx }) => {
       const userId = String((ctx as { user?: { id: number } }).user?.id ?? "anon");
+      const rateCheck = await checkRateLimit("gis-config", userId, 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+
       await checkPermission(userId, "spatial-analysis", "admin");
 
       return {

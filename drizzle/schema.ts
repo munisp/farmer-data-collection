@@ -720,3 +720,6 @@ export * from './supply-chain-schema';
 
 // Export subsidy & extension worker schema
 export * from './schema-subsidy';
+
+// Export spatial analysis schema (GeoLibre integration)
+export * from './schema-spatial-analysis';
