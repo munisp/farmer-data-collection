@@ -10,6 +10,7 @@
 import { getFeatureStore, CREDIT_SCORING_FEATURES, YIELD_PREDICTION_FEATURES, DEFAULT_PREDICTION_FEATURES } from './feature-store.js';
 import { getLakehouseClient } from './lakehouse-client.js';
 import { MLCreditScoringService } from '../ml-credit-scoring.js';
+import { logger } from '../../logger.js';
 
 // ============================================================================
 // Types
@@ -61,7 +62,7 @@ export class MLFeatureIntegrationService {
       source = 'computed';
     }
 
-    console.log(`[MLFeatureIntegration] Got credit scoring features for farmer ${farmerId} from ${source} in ${Date.now() - startTime}ms`);
+    logger.info(`[MLFeatureIntegration] Got credit scoring features for farmer ${farmerId} from ${source} in ${Date.now() - startTime}ms`);
 
     return {
       entityId: farmerId,
@@ -85,7 +86,7 @@ export class MLFeatureIntegrationService {
       source = 'computed';
     }
 
-    console.log(`[MLFeatureIntegration] Got yield prediction features for crop ${cropId} from ${source} in ${Date.now() - startTime}ms`);
+    logger.info(`[MLFeatureIntegration] Got yield prediction features for crop ${cropId} from ${source} in ${Date.now() - startTime}ms`);
 
     return {
       entityId: cropId,
@@ -109,7 +110,7 @@ export class MLFeatureIntegrationService {
       source = 'computed';
     }
 
-    console.log(`[MLFeatureIntegration] Got default prediction features for loan ${loanId} from ${source} in ${Date.now() - startTime}ms`);
+    logger.info(`[MLFeatureIntegration] Got default prediction features for loan ${loanId} from ${source} in ${Date.now() - startTime}ms`);
 
     return {
       entityId: loanId,
@@ -232,7 +233,7 @@ export class MLFeatureIntegrationService {
     try {
       const lakehouse = getLakehouseClient();
       if (lakehouse.isConnected()) {
-        const logRecord: Record<string, unknown> = {
+        const logRecord: Record<string, any> = {
           prediction_id: log.predictionId,
           model_name: log.modelName,
           model_version: log.modelVersion,
@@ -251,7 +252,7 @@ export class MLFeatureIntegrationService {
         });
       }
     } catch (error) {
-      console.error('[MLFeatureIntegration] Failed to log prediction to lakehouse:', error);
+      logger.error('[MLFeatureIntegration] Failed to log prediction to lakehouse:', error);
     }
   }
 
@@ -313,7 +314,7 @@ export class MLFeatureIntegrationService {
         const result = await this.scoreFarmerCredit(farmerId);
         results.set(farmerId, result);
       } catch (error) {
-        console.error(`[MLFeatureIntegration] Failed to score farmer ${farmerId}:`, error);
+        logger.error(`[MLFeatureIntegration] Failed to score farmer ${farmerId}:`, error);
         results.set(farmerId, { error: String(error) });
       }
     }

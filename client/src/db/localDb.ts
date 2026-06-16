@@ -1,8 +1,8 @@
 /**
  * LocalDb Abstraction Layer
  * 
- * Provides a unified interface for local database operations, supporting both
- * PGlite (legacy) and SQLite WASM + OPFS (new) backends.
+ * Provides a unified interface for local database operations using
+ * SQLite WASM + OPFS as the storage backend.
  * 
  * Features inspired by:
  * - ElectricSQL: Versioning, incremental sync, conflict metadata
@@ -88,7 +88,7 @@ export interface QueryResult<T> {
   subscribe: (callback: (data: T[]) => void) => () => void;
 }
 
-// LocalDb interface - abstraction over PGlite and SQLite WASM
+// LocalDb interface - abstraction over SQLite WASM backend
 export interface LocalDb {
   // Lifecycle
   init(): Promise<void>;

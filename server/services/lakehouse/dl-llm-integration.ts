@@ -11,6 +11,7 @@
 
 import { getLakehouseClient, type QueryResult } from './lakehouse-client.js';
 import { LAKEHOUSE_TABLES } from './lakehouse-config.js';
+import { logger } from '../../logger.js';
 
 // ============================================================================
 // Types
@@ -113,10 +114,10 @@ export class DLLLMIntegrationService {
    * Initialize the DL/LLM integration service
    */
   async initialize(): Promise<void> {
-    console.log('[DL/LLM] Initializing DL/LLM integration service...');
-    console.log(`  Embedding Model: ${this.embeddingConfig.model}`);
-    console.log(`  LLM Provider: ${this.llmConfig.provider}`);
-    console.log(`  LLM Model: ${this.llmConfig.model}`);
+    logger.info('[DL/LLM] Initializing DL/LLM integration service...');
+    logger.info(`  Embedding Model: ${this.embeddingConfig.model}`);
+    logger.info(`  LLM Provider: ${this.llmConfig.provider}`);
+    logger.info(`  LLM Model: ${this.llmConfig.model}`);
 
     // Initialize vector store collections
     vectorStore.set('farmer_profiles', []);
@@ -125,7 +126,7 @@ export class DLLLMIntegrationService {
     vectorStore.set('market_insights', []);
 
     this.initialized = true;
-    console.log('[DL/LLM] DL/LLM integration service initialized');
+    logger.info('[DL/LLM] DL/LLM integration service initialized');
   }
 
   // ============================================================================
@@ -152,7 +153,7 @@ export class DLLLMIntegrationService {
         return data.embedding;
       }
     } catch (error) {
-      console.warn('[DL/LLM] Ollama not available, using simulated embeddings');
+      logger.warn('[DL/LLM] Ollama not available, using simulated embeddings');
     }
 
     // Fallback: Generate deterministic pseudo-embeddings for development
@@ -226,7 +227,7 @@ export class DLLLMIntegrationService {
       entries.push(entry);
     }
 
-    console.log(`[DL/LLM] Added document ${id} to collection ${collection}`);
+    logger.info(`[DL/LLM] Added document ${id} to collection ${collection}`);
   }
 
   /**
@@ -295,7 +296,7 @@ export class DLLLMIntegrationService {
         return await this.generateWithOpenAI(prompt, systemPrompt, maxTokens, temperature);
       }
     } catch (error) {
-      console.warn('[DL/LLM] LLM not available, using fallback response');
+      logger.warn('[DL/LLM] LLM not available, using fallback response');
     }
 
     // Fallback response for development
@@ -402,7 +403,7 @@ export class DLLLMIntegrationService {
     collections: string[] = ['farmer_profiles', 'crop_knowledge', 'market_insights'],
     topK: number = 5
   ): Promise<RAGContext> {
-    console.log(`[DL/LLM] Executing RAG query: ${query.substring(0, 50)}...`);
+    logger.info(`[DL/LLM] Executing RAG query: ${query.substring(0, 50)}...`);
 
     // Retrieve relevant documents from all collections
     const allResults: VectorSearchResult[] = [];
@@ -456,10 +457,10 @@ ${context}`;
   ): Promise<TrainingDataset> {
     const lakehouse = getLakehouseClient();
     
-    console.log(`[DL/LLM] Extracting training dataset: ${datasetName}`);
-    console.log(`  Source: ${sourceTable}`);
-    console.log(`  Features: ${features.join(', ')}`);
-    console.log(`  Label: ${labelColumn}`);
+    logger.info(`[DL/LLM] Extracting training dataset: ${datasetName}`);
+    logger.info(`  Source: ${sourceTable}`);
+    logger.info(`  Features: ${features.join(', ')}`);
+    logger.info(`  Label: ${labelColumn}`);
 
     // Read data from lakehouse
     const columns = [...features, labelColumn];
@@ -486,7 +487,7 @@ ${context}`;
       partitionBy: ['extraction_date'],
     });
 
-    console.log(`[DL/LLM] Extracted ${result.rowCount} rows for training dataset ${datasetName}`);
+    logger.info(`[DL/LLM] Extracted ${result.rowCount} rows for training dataset ${datasetName}`);
     return dataset;
   }
 
@@ -537,7 +538,7 @@ ${context}`;
       partitionBy: ['partition_date', 'modelName'],
     });
 
-    console.log(`[DL/LLM] Logged prediction ${prediction.predictionId} for model ${prediction.modelName}`);
+    logger.info(`[DL/LLM] Logged prediction ${prediction.predictionId} for model ${prediction.modelName}`);
   }
 
   /**

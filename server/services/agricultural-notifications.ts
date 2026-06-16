@@ -2,6 +2,7 @@ import { getDb } from '../db';
 import { farmers, farms, crops } from '../../drizzle/schema';
 import { eq, and, lte, gte, sql } from 'drizzle-orm';
 import { sendSMS } from './africas-talking';
+import { logger } from '../logger.js';
 
 /**
  * Agricultural Intelligence SMS Notification Service
@@ -63,11 +64,11 @@ export async function sendIrrigationAlerts(): Promise<NotificationResult> {
         )
       );
 
-    console.log(`[Agricultural Notifications] Found ${farmsWithLowMoisture.length} farms with low soil moisture`);
+    logger.info(`[Agricultural Notifications] Found ${farmsWithLowMoisture.length} farms with low soil moisture`);
 
     for (const farm of farmsWithLowMoisture) {
       if (!farm.farmerPhone) {
-        console.log(`[Agricultural Notifications] Skipping farm ${farm.farmName} - no phone number`);
+        logger.info(`[Agricultural Notifications] Skipping farm ${farm.farmName} - no phone number`);
         continue;
       }
 
@@ -79,19 +80,19 @@ export async function sendIrrigationAlerts(): Promise<NotificationResult> {
           message: message
         });
         result.sentCount++;
-        console.log(`[Agricultural Notifications] Irrigation alert sent to ${farm.farmerPhone}`);
+        logger.info(`[Agricultural Notifications] Irrigation alert sent to ${farm.farmerPhone}`);
       } catch (error) {
         result.failedCount++;
         const errorMsg = `Failed to send to ${farm.farmerPhone}: ${error}`;
         result.errors.push(errorMsg);
-        console.error(`[Agricultural Notifications] ${errorMsg}`);
+        logger.error(`[Agricultural Notifications] ${errorMsg}`);
       }
     }
 
     result.success = result.failedCount === 0;
     return result;
   } catch (error) {
-    console.error('[Agricultural Notifications] Error sending irrigation alerts:', error);
+    logger.error('[Agricultural Notifications] Error sending irrigation alerts:', error);
     return {
       success: false,
       sentCount: result.sentCount,
@@ -141,11 +142,11 @@ export async function sendHarvestApproachingAlerts(): Promise<NotificationResult
         )
       );
 
-    console.log(`[Agricultural Notifications] Found ${cropsNearingHarvest.length} crops nearing harvest`);
+    logger.info(`[Agricultural Notifications] Found ${cropsNearingHarvest.length} crops nearing harvest`);
 
     for (const crop of cropsNearingHarvest) {
       if (!crop.farmerPhone) {
-        console.log(`[Agricultural Notifications] Skipping crop ${crop.cropName} - no phone number`);
+        logger.info(`[Agricultural Notifications] Skipping crop ${crop.cropName} - no phone number`);
         continue;
       }
 
@@ -158,19 +159,19 @@ export async function sendHarvestApproachingAlerts(): Promise<NotificationResult
           message: message
         });
         result.sentCount++;
-        console.log(`[Agricultural Notifications] Harvest alert sent to ${crop.farmerPhone}`);
+        logger.info(`[Agricultural Notifications] Harvest alert sent to ${crop.farmerPhone}`);
       } catch (error) {
         result.failedCount++;
         const errorMsg = `Failed to send to ${crop.farmerPhone}: ${error}`;
         result.errors.push(errorMsg);
-        console.error(`[Agricultural Notifications] ${errorMsg}`);
+        logger.error(`[Agricultural Notifications] ${errorMsg}`);
       }
     }
 
     result.success = result.failedCount === 0;
     return result;
   } catch (error) {
-    console.error('[Agricultural Notifications] Error sending harvest alerts:', error);
+    logger.error('[Agricultural Notifications] Error sending harvest alerts:', error);
     return {
       success: false,
       sentCount: result.sentCount,
@@ -241,11 +242,11 @@ export async function sendPestDiseaseAlerts(): Promise<NotificationResult> {
         )`
       );
 
-    console.log(`[Agricultural Notifications] Found ${farmsWithHighRisk.length} farms with high pest/disease risk`);
+    logger.info(`[Agricultural Notifications] Found ${farmsWithHighRisk.length} farms with high pest/disease risk`);
 
     for (const farm of farmsWithHighRisk) {
       if (!farm.farmerPhone) {
-        console.log(`[Agricultural Notifications] Skipping farm ${farm.farmName} - no phone number`);
+        logger.info(`[Agricultural Notifications] Skipping farm ${farm.farmName} - no phone number`);
         continue;
       }
 
@@ -258,19 +259,19 @@ export async function sendPestDiseaseAlerts(): Promise<NotificationResult> {
           message: message
         });
         result.sentCount++;
-        console.log(`[Agricultural Notifications] Pest/disease alert sent to ${farm.farmerPhone}`);
+        logger.info(`[Agricultural Notifications] Pest/disease alert sent to ${farm.farmerPhone}`);
       } catch (error) {
         result.failedCount++;
         const errorMsg = `Failed to send to ${farm.farmerPhone}: ${error}`;
         result.errors.push(errorMsg);
-        console.error(`[Agricultural Notifications] ${errorMsg}`);
+        logger.error(`[Agricultural Notifications] ${errorMsg}`);
       }
     }
 
     result.success = result.failedCount === 0;
     return result;
   } catch (error) {
-    console.error('[Agricultural Notifications] Error sending pest/disease alerts:', error);
+    logger.error('[Agricultural Notifications] Error sending pest/disease alerts:', error);
     return {
       success: false,
       sentCount: result.sentCount,
@@ -289,7 +290,7 @@ export async function sendAllAgriculturalAlerts(): Promise<{
   harvest: NotificationResult;
   pestDisease: NotificationResult;
 }> {
-  console.log('[Agricultural Notifications] Starting daily alert cycle...');
+  logger.info('[Agricultural Notifications] Starting daily alert cycle...');
 
   const results = {
     irrigation: await sendIrrigationAlerts(),
@@ -300,11 +301,11 @@ export async function sendAllAgriculturalAlerts(): Promise<{
   const totalSent = results.irrigation.sentCount + results.harvest.sentCount + results.pestDisease.sentCount;
   const totalFailed = results.irrigation.failedCount + results.harvest.failedCount + results.pestDisease.failedCount;
 
-  console.log(`[Agricultural Notifications] Daily alert cycle completed:`);
-  console.log(`  - Irrigation alerts: ${results.irrigation.sentCount} sent, ${results.irrigation.failedCount} failed`);
-  console.log(`  - Harvest alerts: ${results.harvest.sentCount} sent, ${results.harvest.failedCount} failed`);
-  console.log(`  - Pest/disease alerts: ${results.pestDisease.sentCount} sent, ${results.pestDisease.failedCount} failed`);
-  console.log(`  - Total: ${totalSent} sent, ${totalFailed} failed`);
+  logger.info(`[Agricultural Notifications] Daily alert cycle completed:`);
+  logger.info(`  - Irrigation alerts: ${results.irrigation.sentCount} sent, ${results.irrigation.failedCount} failed`);
+  logger.info(`  - Harvest alerts: ${results.harvest.sentCount} sent, ${results.harvest.failedCount} failed`);
+  logger.info(`  - Pest/disease alerts: ${results.pestDisease.sentCount} sent, ${results.pestDisease.failedCount} failed`);
+  logger.info(`  - Total: ${totalSent} sent, ${totalFailed} failed`);
 
   return results;
 }

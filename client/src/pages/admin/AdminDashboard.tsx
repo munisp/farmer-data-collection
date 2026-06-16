@@ -1,7 +1,9 @@
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
 
@@ -21,7 +23,8 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="container mx-auto py-8">
+    <DashboardLayout>
+      <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Workflow Admin Dashboard</h1>
 
       <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -85,7 +88,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-32">
-                    <div className="h-2 bg-gray-200 rounded-full">
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
                       <div
                         className={`h-2 rounded-full ${
                           wf.status === "completed" ? "bg-green-500" :
@@ -97,9 +100,9 @@ export default function AdminDashboard() {
                     <div className="text-xs text-center mt-1">{wf.progress}%</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm ${
-                    wf.status === "completed" ? "bg-green-100 text-green-800" :
-                    wf.status === "failed" ? "bg-red-100 text-red-800" :
-                    "bg-blue-100 text-blue-800"
+                    wf.status === "completed" ? "bg-green-100 dark:bg-green-900 text-green-800" :
+                    wf.status === "failed" ? "bg-red-100 dark:bg-red-900 text-red-800" :
+                    "bg-blue-100 dark:bg-blue-900 text-blue-800"
                   }`}>
                     {wf.status}
                   </span>
@@ -158,5 +161,6 @@ export default function AdminDashboard() {
         </Card>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

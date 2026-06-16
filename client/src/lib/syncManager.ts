@@ -56,7 +56,8 @@ function getIdempotencyStore(): Map<string, IdempotencyRecord> {
     // Filter out expired records
     const validRecords = records.filter(r => r.expiresAt > now);
     return new Map(validRecords.map(r => [r.key, r]));
-  } catch {
+  } catch (err) {
+    console.warn('[SyncManager] Failed to load idempotency store:', String(err));
     return new Map();
   }
 }
@@ -216,7 +217,7 @@ export class SyncManager {
     
       // If sync interval is Infinity (manual mode), don't start auto-sync
       if (config.syncInterval === Infinity) {
-        console.log('[SyncManager] Auto-sync disabled (manual mode or critical battery)');
+        console.warn('[SyncManager] Auto-sync disabled (manual mode or critical battery)');
         return;
       }
 
@@ -231,7 +232,7 @@ export class SyncManager {
         }
       }, config.syncInterval);
     
-      console.log(`[SyncManager] Auto-sync started with interval: ${config.syncInterval}ms`);
+      console.warn(`[SyncManager] Auto-sync started with interval: ${config.syncInterval}ms`);
     }
 
     // Restart auto-sync with new configuration (called when network/battery changes)
@@ -247,9 +248,9 @@ export class SyncManager {
               this.sync();
             }
           }, config.syncInterval);
-          console.log(`[SyncManager] Auto-sync restarted with new interval: ${config.syncInterval}ms`);
+          console.warn(`[SyncManager] Auto-sync restarted with new interval: ${config.syncInterval}ms`);
         } else {
-          console.log('[SyncManager] Auto-sync paused (manual mode or critical battery)');
+          console.warn('[SyncManager] Auto-sync paused (manual mode or critical battery)');
         }
       }
     }
@@ -278,7 +279,7 @@ export class SyncManager {
       // Check network status before syncing
       const networkState = this.adaptiveSyncManager.getNetworkState();
       if (!networkState.online) {
-        console.log('[SyncManager] Skipping sync - offline');
+        console.warn('[SyncManager] Skipping sync - offline');
         return [];
       }
 
@@ -458,7 +459,7 @@ export class SyncManager {
         
         const idempotencyCheck = checkClientIdempotency(idempotencyKey);
         if (idempotencyCheck.exists) {
-          console.log(`[SyncManager] Idempotent push detected, skipping: ${tableName}/${recordId}`);
+          console.warn(`[SyncManager] Idempotent push detected, skipping: ${tableName}/${recordId}`);
           skippedRecords.push(String(recordId));
           continue;
         }
@@ -471,7 +472,7 @@ export class SyncManager {
       }
 
       if (recordsToSync.length === 0) {
-        console.log(`[SyncManager] All ${records.length} records already synced for ${tableName}`);
+        console.warn(`[SyncManager] All ${records.length} records already synced for ${tableName}`);
         return skippedRecords.length; // Return count of already-synced records
       }
 
@@ -504,15 +505,15 @@ export class SyncManager {
         // Re-pull to get latest server state for conflicted records
         for (const conflict of conflicts) {
           try {
-            const serverRecord = conflict.record;
+            const serverRecord = conflict.record as Record<string, unknown> | undefined;
             if (serverRecord) {
               await db
                 .update(tableSchema)
                 .set({
                   ...serverRecord,
-                  updatedAt: new Date(serverRecord.updatedAt),
+                  updatedAt: new Date(serverRecord.updatedAt as string),
                 })
-                .where(eq(tableSchema.id, serverRecord.id));
+                .where(eq(tableSchema.id, serverRecord.id as number));
             }
           } catch (conflictError) {
             console.error(`Error resolving conflict for record ${conflict.id}:`, conflictError);

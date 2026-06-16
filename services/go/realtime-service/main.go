@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -353,19 +357,41 @@ func main() {
 	go hub.Run()
 
 	// Setup routes
-	http.HandleFunc("/ws", handleWebSocket)
-	http.HandleFunc("/health", handleHealth)
-	http.HandleFunc("/api/broadcast", handleBroadcast)
-	http.HandleFunc("/api/stats", handleStats)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws", handleWebSocket)
+	mux.HandleFunc("/health", handleHealth)
+	mux.HandleFunc("/api/broadcast", handleBroadcast)
+	mux.HandleFunc("/api/stats", handleStats)
 
-	// Start server
-	port := ":8081"
-	log.Printf("[Server] Starting WebSocket server on port %s", port)
-	log.Printf("[Server] WebSocket endpoint: ws://localhost%s/ws", port)
-	log.Printf("[Server] Health check: http://localhost%s/health", port)
-	log.Printf("[Server] Broadcast API: http://localhost%s/api/broadcast", port)
-
-	if err := http.ListenAndServe(port, nil); err != nil {
-		log.Fatal("[Server] Failed to start:", err)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8081"
 	}
+
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      mux,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	go func() {
+		log.Printf("[RealtimeService] Server starting on port %s", port)
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("[RealtimeService] Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("[RealtimeService] Shutting down gracefully...")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("[RealtimeService] Forced shutdown: %v", err)
+	}
+	log.Println("[RealtimeService] Server stopped")
 }

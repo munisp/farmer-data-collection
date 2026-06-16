@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Download, Search, CreditCard, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 export default function TransactionHistory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -72,17 +73,17 @@ export default function TransactionHistory() {
     switch (status) {
       case "completed":
       case "delivered":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800";
       case "cancelled":
       case "refunded":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800";
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800";
       case "processing":
       case "shipped":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 dark:bg-blue-900 text-blue-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100";
     }
   };
 
@@ -94,7 +95,7 @@ export default function TransactionHistory() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Transaction History</h1>
@@ -153,7 +154,7 @@ export default function TransactionHistory() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by order ID or seller..."
+                  aria-label="Search" placeholder="Search by order ID or seller..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -205,51 +206,51 @@ export default function TransactionHistory() {
           <CardContent>
             {filteredOrders.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-2">Order ID</th>
-                      <th className="text-left py-3 px-2">Date</th>
-                      <th className="text-left py-3 px-2">Seller</th>
-                      <th className="text-left py-3 px-2">Status</th>
-                      <th className="text-right py-3 px-2">Amount</th>
-                      <th className="text-right py-3 px-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table role="table" aria-label="Data table" className="w-full">
+                  <TableHeader role="rowgroup">
+                    <TableRow className="border-b">
+                      <TableHead className="text-left py-3 px-2">Order ID</TableHead>
+                      <TableHead className="text-left py-3 px-2">Date</TableHead>
+                      <TableHead className="text-left py-3 px-2">Seller</TableHead>
+                      <TableHead className="text-left py-3 px-2">Status</TableHead>
+                      <TableHead className="text-right py-3 px-2">Amount</TableHead>
+                      <TableHead className="text-right py-3 px-2">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody role="rowgroup">
                     {filteredOrders.map((order: any) => (
-                      <tr key={order.id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2">
+                      <TableRow key={order.id} className="border-b hover:bg-muted/50">
+                        <TableCell className="py-3 px-2">
                           <div className="flex items-center gap-2">
                             <CreditCard className="w-4 h-4 text-muted-foreground" />
                             <span className="font-mono text-sm">#{order.id}</span>
                           </div>
-                        </td>
-                        <td className="py-3 px-2 text-sm">
+                        </TableCell>
+                        <TableCell className="py-3 px-2 text-sm">
                           {formatDate(order.createdAt)}
-                        </td>
-                        <td className="py-3 px-2">
+                        </TableCell>
+                        <TableCell className="py-3 px-2">
                           <div className="font-medium">{order.sellerName || "Unknown Seller"}</div>
-                        </td>
-                        <td className="py-3 px-2">
+                        </TableCell>
+                        <TableCell className="py-3 px-2">
                           <Badge className={`flex items-center gap-1 w-fit ${getStatusColor(order.status)}`}>
                             {getStatusIcon(order.status)}
                             {order.status}
                           </Badge>
-                        </td>
-                        <td className="text-right py-3 px-2 font-semibold">
+                        </TableCell>
+                        <TableCell className="text-right py-3 px-2 font-semibold">
                           {formatCurrency(order.totalAmount)}
-                        </td>
-                        <td className="text-right py-3 px-2">
+                        </TableCell>
+                        <TableCell className="text-right py-3 px-2">
                           <Button variant="ghost" size="sm">
                             <Download className="w-4 h-4 mr-1" />
                             Receipt
                           </Button>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : (
               <div className="text-center py-12">

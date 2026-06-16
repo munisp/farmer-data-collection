@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios';
+import { logger } from '../logger.js';
 
 // Soil moisture data source
 export type SoilMoistureSource = 'nasa_smap' | 'copernicus' | 'local_sensor';
@@ -69,7 +70,7 @@ export async function fetchNASASMAPData(
   const apiKey = process.env.NASA_EARTHDATA_API_KEY;
   
   if (!apiKey) {
-    console.warn('[Soil Moisture] NASA Earthdata API key not configured');
+    logger.warn('[Soil Moisture] NASA Earthdata API key not configured');
     return null;
   }
 
@@ -106,7 +107,7 @@ export async function fetchNASASMAPData(
 
     return null;
   } catch (error) {
-    console.error('[Soil Moisture] Error fetching NASA SMAP data:', error);
+    logger.error('[Soil Moisture] Error fetching NASA SMAP data:', error);
     return null;
   }
 }
@@ -125,7 +126,7 @@ export async function fetchCopernicusData(
   const apiKey = process.env.COPERNICUS_API_KEY;
   
   if (!apiKey) {
-    console.warn('[Soil Moisture] Copernicus API key not configured');
+    logger.warn('[Soil Moisture] Copernicus API key not configured');
     return null;
   }
 
@@ -163,7 +164,7 @@ export async function fetchCopernicusData(
 
     return null;
   } catch (error) {
-    console.error('[Soil Moisture] Error fetching Copernicus data:', error);
+    logger.error('[Soil Moisture] Error fetching Copernicus data:', error);
     return null;
   }
 }
@@ -190,20 +191,8 @@ export async function getSoilMoisture(
     return data;
   }
 
-  // If both fail, return simulated data for development
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('[Soil Moisture] Using simulated data for development');
-    return {
-      moisture: 0.25 + Math.random() * 0.15, // Random between 0.25-0.40
-      timestamp: new Date(),
-      source: 'local_sensor',
-      latitude,
-      longitude,
-      depth: 10,
-      quality: 'medium',
-    };
-  }
-
+  // If both APIs fail, return null — no fake data in production
+  logger.warn('[Soil Moisture] Both SMAP and Copernicus APIs unavailable');
   return null;
 }
 

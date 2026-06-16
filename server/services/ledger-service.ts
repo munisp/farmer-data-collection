@@ -52,7 +52,7 @@ export interface TransferParams {
   sourceType: SourceType;
   sourceId?: string;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdBy?: number;
 }
 
@@ -77,7 +77,7 @@ class LedgerService {
     }[ownerType] || "ACC";
     
     const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const random = crypto.randomUUID().slice(0, 6).toUpperCase();
     return `${prefix}-${timestamp}-${random}`;
   }
 

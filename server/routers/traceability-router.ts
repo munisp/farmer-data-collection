@@ -1,9 +1,10 @@
+import crypto from "crypto";
 /**
  * Supply Chain Traceability Router
  * Track agricultural products from farm to buyer with QR codes
  */
 
-import { router, publicProcedure } from '../_core/trpc-base.js';
+import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
@@ -16,9 +17,11 @@ import {
   warehouseReceipts,
 } from '../../drizzle/traceability-schema.js';
 
+import { logger } from '../logger.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const traceabilityRouter = router({
   // Get all batches
-  listBatches: publicProcedure
+  listBatches: protectedProcedure
     .input(z.object({
       farmerId: z.number().optional(),
       status: z.string().optional(),
@@ -49,7 +52,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get batch by ID or code
-  getBatch: publicProcedure
+  getBatch: protectedProcedure
     .input(z.object({
       id: z.number().optional(),
       batchCode: z.string().optional(),
@@ -86,7 +89,7 @@ export const traceabilityRouter = router({
     }),
 
   // Create batch
-  createBatch: publicProcedure
+  createBatch: protectedProcedure
     .input(z.object({
       cropType: z.string(),
       variety: z.string().optional(),
@@ -110,14 +113,20 @@ export const traceabilityRouter = router({
       createdBy: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
       // Generate batch code
-      const batchCode = `BATCH-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const batchCode = `BATCH-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
       
       // Generate QR code data (URL to traceability page)
-      const qrCode = `https://app.example.com/trace/${batchCode}`;
+      const baseUrl = process.env.APP_BASE_URL || "https://farmconnect.app";
+      const qrCode = `${baseUrl}/trace/${batchCode}`;
       
       const [batch] = await db
         .insert(productBatches)
@@ -157,7 +166,7 @@ export const traceabilityRouter = router({
     }),
 
   // Update batch status
-  updateBatchStatus: publicProcedure
+  updateBatchStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(['created', 'at_farm', 'in_transit', 'at_collection_center', 'at_warehouse', 'processing', 'ready_for_sale', 'sold', 'delivered', 'rejected']),
@@ -167,6 +176,11 @@ export const traceabilityRouter = router({
       currentPrice: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -187,7 +201,7 @@ export const traceabilityRouter = router({
     }),
 
   // Record traceability event
-  recordEvent: publicProcedure
+  recordEvent: protectedProcedure
     .input(z.object({
       batchId: z.number(),
       eventType: z.enum(['harvest', 'quality_check', 'collection', 'transport_start', 'transport_end', 'warehouse_receipt', 'processing_start', 'processing_end', 'packaging', 'sale', 'delivery', 'return', 'disposal']),
@@ -206,6 +220,11 @@ export const traceabilityRouter = router({
       organizationName: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -247,12 +266,17 @@ export const traceabilityRouter = router({
     }),
 
   // Verify event
-  verifyEvent: publicProcedure
+  verifyEvent: protectedProcedure
     .input(z.object({
       id: z.number(),
       verifiedBy: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -270,7 +294,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get collection centers
-  listCollectionCenters: publicProcedure
+  listCollectionCenters: protectedProcedure
     .input(z.object({
       region: z.string().optional(),
       activeOnly: z.boolean().default(true),
@@ -295,7 +319,7 @@ export const traceabilityRouter = router({
     }),
 
   // Create collection center
-  createCollectionCenter: publicProcedure
+  createCollectionCenter: protectedProcedure
     .input(z.object({
       name: z.string(),
       code: z.string().optional(),
@@ -316,6 +340,11 @@ export const traceabilityRouter = router({
       cooperativeId: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -336,7 +365,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get warehouses
-  listWarehouses: publicProcedure
+  listWarehouses: protectedProcedure
     .input(z.object({
       region: z.string().optional(),
       activeOnly: z.boolean().default(true),
@@ -361,7 +390,7 @@ export const traceabilityRouter = router({
     }),
 
   // Create warehouse
-  createWarehouse: publicProcedure
+  createWarehouse: protectedProcedure
     .input(z.object({
       name: z.string(),
       code: z.string().optional(),
@@ -377,6 +406,11 @@ export const traceabilityRouter = router({
       certifications: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -398,7 +432,7 @@ export const traceabilityRouter = router({
     }),
 
   // Create warehouse receipt
-  createWarehouseReceipt: publicProcedure
+  createWarehouseReceipt: protectedProcedure
     .input(z.object({
       batchId: z.number(),
       warehouseId: z.number(),
@@ -414,10 +448,15 @@ export const traceabilityRouter = router({
       issuedBy: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
-      const receiptNumber = `WR-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const receiptNumber = `WR-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
       
       const [receipt] = await db
         .insert(warehouseReceipts)
@@ -453,7 +492,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get warehouse receipts
-  listWarehouseReceipts: publicProcedure
+  listWarehouseReceipts: protectedProcedure
     .input(z.object({
       depositorId: z.number().optional(),
       warehouseId: z.number().optional(),
@@ -480,12 +519,17 @@ export const traceabilityRouter = router({
     }),
 
   // Pledge receipt as collateral
-  pledgeReceipt: publicProcedure
+  pledgeReceipt: protectedProcedure
     .input(z.object({
       id: z.number(),
       loanId: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -504,9 +548,14 @@ export const traceabilityRouter = router({
     }),
 
   // Release receipt
-  releaseReceipt: publicProcedure
+  releaseReceipt: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("traceability", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("traceability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -524,7 +573,7 @@ export const traceabilityRouter = router({
     }),
 
   // Get traceability stats
-  getStats: publicProcedure
+  getStats: protectedProcedure
     .query(async () => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });

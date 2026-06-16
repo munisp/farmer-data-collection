@@ -2,6 +2,7 @@ import { getDb } from "../db.js";
 import { smsScheduledMessages } from "../../drizzle/schema";
 import { eq, and, lte } from "drizzle-orm";
 import { sendSMS } from "../services/africas-talking.js";
+import { logger } from '../logger.js';
 
 /**
  * SMS Scheduler Job
@@ -13,7 +14,7 @@ import { sendSMS } from "../services/africas-talking.js";
 export async function processPendingScheduledMessages() {
   const db = await getDb();
   if (!db) {
-    console.error("[SMS Scheduler] Database not available");
+    logger.error("[SMS Scheduler] Database not available");
     return;
   }
 
@@ -32,7 +33,7 @@ export async function processPendingScheduledMessages() {
       )
       .limit(100); // Process max 100 messages per run
 
-    console.log(`[SMS Scheduler] Found ${pendingMessages.length} pending messages to process`);
+    logger.info(`[SMS Scheduler] Found ${pendingMessages.length} pending messages to process`);
 
     let successCount = 0;
     let failureCount = 0;
@@ -56,13 +57,13 @@ export async function processPendingScheduledMessages() {
               sentAt: new Date(),
               deliveryStatus: "sent",
               messageId: recipient.messageId,
-              cost: Math.round(parseFloat(recipient.cost.replace('KES ', '')) * 100), // Convert to cents
+              cost: Math.round(parseFloat(recipient.cost.replace(/^[A-Z₦]{1,4}\s?/, '')) * 100), // Convert to minor units
               updatedAt: new Date(),
             })
             .where(eq(smsScheduledMessages.id, message.id));
 
           successCount++;
-          console.log(`[SMS Scheduler] Message ${message.id} sent successfully to ${message.recipientPhone}`);
+          logger.info(`[SMS Scheduler] Message ${message.id} sent successfully to ${message.recipientPhone}`);
         } else {
           // Update message status to failed
           await db
@@ -75,25 +76,25 @@ export async function processPendingScheduledMessages() {
             .where(eq(smsScheduledMessages.id, message.id));
 
           failureCount++;
-          console.error(`[SMS Scheduler] Message ${message.id} failed: ${recipient?.status}`);
+          logger.error(`[SMS Scheduler] Message ${message.id} failed: ${recipient?.status}`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Update message status to failed
         await db
           .update(smsScheduledMessages)
           .set({
             status: "failed",
-            errorMessage: error.message || "Unknown error",
+            errorMessage: (error instanceof Error ? error.message : String(error)),
             updatedAt: new Date(),
           })
           .where(eq(smsScheduledMessages.id, message.id));
 
         failureCount++;
-        console.error(`[SMS Scheduler] Error processing message ${message.id}:`, error);
+        logger.error(`[SMS Scheduler] Error processing message ${message.id}:`, error);
       }
     }
 
-    console.log(`[SMS Scheduler] Completed: ${successCount} sent, ${failureCount} failed`);
+    logger.info(`[SMS Scheduler] Completed: ${successCount} sent, ${failureCount} failed`);
 
     return {
       processed: pendingMessages.length,
@@ -101,7 +102,7 @@ export async function processPendingScheduledMessages() {
       failureCount,
     };
   } catch (error) {
-    console.error("[SMS Scheduler] Error processing scheduled messages:", error);
+    logger.error("[SMS Scheduler] Error processing scheduled messages:", error);
     throw error;
   }
 }
@@ -111,17 +112,17 @@ export async function processPendingScheduledMessages() {
  * Runs every minute to check for pending messages
  */
 export function startSmsScheduler() {
-  console.log("[SMS Scheduler] Starting SMS scheduler job (runs every minute)");
+  logger.info("[SMS Scheduler] Starting SMS scheduler job (runs every minute)");
   
   // Run immediately on start
   processPendingScheduledMessages().catch((error) => {
-    console.error("[SMS Scheduler] Error in initial run:", error);
+    logger.error("[SMS Scheduler] Error in initial run:", error);
   });
 
   // Then run every minute
   setInterval(() => {
     processPendingScheduledMessages().catch((error) => {
-      console.error("[SMS Scheduler] Error in scheduled run:", error);
+      logger.error("[SMS Scheduler] Error in scheduled run:", error);
     });
   }, 60 * 1000); // 60 seconds
 }

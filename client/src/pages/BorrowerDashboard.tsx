@@ -11,6 +11,7 @@ import { PaymentTimeline } from "@/components/PaymentTimeline";
 import { Bell, CreditCard, Settings, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 const formatCurrencyFromCents = (amountInCents: number | null | undefined) => {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
@@ -152,7 +153,7 @@ export default function BorrowerDashboard() {
 
   if (loansQuery.isLoading) {
     return (
-      <div className="container py-8 space-y-8">
+      <div role="main" aria-label="Page content" className="container py-8 space-y-8">
         <div>
           <h1 className="text-3xl font-bold">Borrower Dashboard</h1>
           <p className="text-muted-foreground mt-2">Loading your live loans and repayment data.</p>
@@ -177,7 +178,8 @@ export default function BorrowerDashboard() {
   }
 
   return (
-    <div className="container py-8 space-y-8">
+    <DashboardLayout>
+      <div className="container py-8 space-y-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Borrower Dashboard</h1>
@@ -445,5 +447,6 @@ export default function BorrowerDashboard() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

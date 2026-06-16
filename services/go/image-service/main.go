@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -11,8 +12,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
@@ -41,16 +44,41 @@ func main() {
 		port = "8080"
 	}
 
-	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/api/image/process", processImageHandler)
-	http.HandleFunc("/api/image/compress", compressImageHandler)
-	http.HandleFunc("/api/image/resize", resizeImageHandler)
-	http.HandleFunc("/api/image/thumbnail", thumbnailHandler)
-	http.HandleFunc("/api/image/watermark", watermarkHandler)
-	http.HandleFunc("/api/image/batch", batchProcessHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/api/image/process", processImageHandler)
+	mux.HandleFunc("/api/image/compress", compressImageHandler)
+	mux.HandleFunc("/api/image/resize", resizeImageHandler)
+	mux.HandleFunc("/api/image/thumbnail", thumbnailHandler)
+	mux.HandleFunc("/api/image/watermark", watermarkHandler)
+	mux.HandleFunc("/api/image/batch", batchProcessHandler)
 
-	log.Printf("Image Processing Service starting on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      mux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	go func() {
+		log.Printf("[ImageService] Server starting on port %s", port)
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("[ImageService] Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("[ImageService] Shutting down gracefully...")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("[ImageService] Forced shutdown: %v", err)
+	}
+	log.Println("[ImageService] Server stopped")
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {

@@ -5,8 +5,9 @@
  * Helps answer questions like "Is my land suitable for planting palm trees?"
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import {
   assessLandSuitability,
   findSuitableCrops,
@@ -19,6 +20,7 @@ import {
   type TopographyData,
 } from "../services/land-suitability-service";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // Input schemas
 const soilDataSchema = z.object({
   ph: z.number().min(0).max(14),
@@ -71,7 +73,7 @@ export const landSuitabilityRouter = router({
     .query(({ input }) => {
       const details = getCropDetails(input.cropId);
       if (!details) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
       return details;
     }),
@@ -91,7 +93,12 @@ export const landSuitabilityRouter = router({
         fieldAreaHa: z.number().min(0.01).default(1),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("land_suitability", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("land_suitability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const result = assessLandSuitability(
         input.cropId,
         input.soil as SoilData,
@@ -101,7 +108,7 @@ export const landSuitabilityRouter = router({
       );
 
       if (!result) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
 
       return result;
@@ -123,7 +130,11 @@ export const landSuitabilityRouter = router({
         category: z.string().optional(),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("land_suitability", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("land_suitability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       let results = findSuitableCrops(
         input.soil as SoilData,
         input.climate as ClimateData,
@@ -192,7 +203,7 @@ export const landSuitabilityRouter = router({
       const result = assessLandSuitability(input.cropId, soil, climate, topography, 1);
 
       if (!result) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
 
       return {
@@ -214,7 +225,12 @@ export const landSuitabilityRouter = router({
         fieldAreaHa: z.number().min(0.01).default(1),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("land_suitability", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("land_suitability", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const results = input.cropIds.map((cropId) => {
         const result = assessLandSuitability(
           cropId,
@@ -254,7 +270,7 @@ export const landSuitabilityRouter = router({
     .query(({ input }) => {
       const crop = getCropDetails(input.cropId);
       if (!crop) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
 
       // Use a simplified assessment to get amendments
@@ -283,7 +299,7 @@ export const landSuitabilityRouter = router({
       );
 
       if (!result) {
-        throw new Error(`Assessment failed for: ${input.cropId}`);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Assessment failed for: ${input.cropId}` });
       }
 
       return {
@@ -324,7 +340,7 @@ export const landSuitabilityRouter = router({
       );
 
       if (!result) {
-        throw new Error(`Crop not found: ${input.cropId}`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Crop not found: ${input.cropId}` });
       }
 
       const crop = getCropDetails(input.cropId)!;

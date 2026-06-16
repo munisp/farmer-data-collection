@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { middleware } from "../trpc";
+import { logger } from '../logger.js';
 
 // Centralized Authorization Middleware
 // Integrates with Keycloak for authentication and Permify for fine-grained authorization
@@ -312,22 +313,75 @@ export const requireResourceAccess = (getResource: (ctx: { user: { id: number; r
     });
   });
 
-// Check resource ownership (simplified - would integrate with Permify in production)
+// Check resource ownership against database
 async function checkResourceOwnership(
   userId: number,
   resourceType: string,
   resourceId: string | number
 ): Promise<boolean> {
-  // This would typically query Permify or the database
-  // For now, return true to allow access (implement actual checks based on your data model)
-  
-  // Example checks:
-  // - farmer: check if farmer.userId === userId
-  // - farm: check if farm.farmerId belongs to user
-  // - loan: check if loan.userId === userId
-  // - order: check if order.buyerId === userId or order.sellerId === userId
-  
-  return true; // Placeholder - implement actual ownership checks
+  try {
+    const { getDb } = await import('../db.js');
+    const { eq, and } = await import('drizzle-orm');
+    const db = await getDb();
+    if (!db) return false;
+
+    const id = typeof resourceId === 'string' ? parseInt(resourceId, 10) : resourceId;
+    if (isNaN(id)) return false;
+
+    switch (resourceType) {
+      case 'farmer': {
+        const { farmers } = await import('../../drizzle/schema.js');
+        const results = await db.select({ userId: farmers.userId })
+          .from(farmers)
+          .where(and(eq(farmers.id, id), eq(farmers.userId, userId)))
+          .limit(1);
+        return results.length > 0;
+      }
+      case 'farm': {
+        const { farms, farmers } = await import('../../drizzle/schema.js');
+        // Check if farm belongs to a farmer owned by this user
+        const results = await db.select({ id: farms.id })
+          .from(farms)
+          .where(and(eq(farms.id, id), eq(farms.userId, userId)))
+          .limit(1);
+        return results.length > 0;
+      }
+      case 'loan': {
+        const { loans } = await import('../../drizzle/financial-schema.js');
+        const results = await db.select({ userId: loans.userId })
+          .from(loans)
+          .where(and(eq(loans.id, id), eq(loans.userId, userId)))
+          .limit(1);
+        return results.length > 0;
+      }
+      case 'order': {
+        const { marketplaceOrders } = await import('../../drizzle/schema.js');
+        const orderResults = await db.select()
+          .from(marketplaceOrders)
+          .where(eq(marketplaceOrders.id, id))
+          .limit(1);
+        if (orderResults.length === 0) return false;
+        const order = orderResults[0];
+        return order.buyerId === userId || order.sellerId === userId;
+      }
+      case 'listing': {
+        const { produceListings: listings } = await import('../../drizzle/schema.js');
+        const results = await db.select({ userId: listings.userId })
+          .from(listings)
+          .where(and(eq(listings.id, id), eq(listings.userId, userId)))
+          .limit(1);
+        return results.length > 0;
+      }
+      default:
+        // For unknown resource types, deny by default (safe default)
+        logger.warn(`[Authorization] Unknown resource type: ${resourceType}, denying access`);
+        return false;
+    }
+  } catch (err) {
+    logger.error('[Authorization] Ownership check failed:', err);
+    // On error, deny access (fail-closed)
+    return false;
+  }
 }
 
 // Audit logging for authorization decisions
@@ -348,5 +402,5 @@ export function logAuthorizationDecision(
   };
   
   // In production, this would write to an audit log table or external service
-  console.log("[AUTH]", JSON.stringify(logEntry));
+  logger.info("[AUTH]", JSON.stringify(logEntry));
 }

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
@@ -8,6 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { sendPaymentReminder, sendLoanApprovalNotification, sendLoanRejectionNotification, sendPaymentConfirmation } from "../services/sms.js";
 import { checkLoanApplicationKyc, checkLoanRepaymentKyc } from "../middleware/kyc-enforcement.js";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 export const microfinanceRouter = router({
   // Get all loans for the current user
   getMyLoans: protectedProcedure.query(async ({ ctx }) => {
@@ -53,6 +55,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -66,7 +75,7 @@ export const microfinanceRouter = router({
       }
 
       // Generate loan number
-      const loanNumber = `LN${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      const loanNumber = `LN${Date.now()}${crypto.randomInt(1000)}`;
 
       const [newLoan] = await db
         .insert(loans)
@@ -134,6 +143,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -166,6 +182,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -193,6 +216,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -363,6 +393,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -436,6 +473,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -541,7 +585,7 @@ export const microfinanceRouter = router({
     let factorsData;
     try {
       factorsData = latestScore.factors ? JSON.parse(latestScore.factors) : null;
-    } catch {
+    } catch (err) {
       factorsData = null;
     }
 
@@ -785,6 +829,13 @@ export const microfinanceRouter = router({
   }),
 
   refreshCreditScore: protectedProcedure.mutation(async ({ ctx }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", undefined);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -880,6 +931,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -913,12 +971,15 @@ export const microfinanceRouter = router({
       }
 
       const borrowerName = `${loanData.user.firstName || ''} ${loanData.user.lastName || ''}`.trim();
+      const dueDate = loanData.loan.nextPaymentDue instanceof Date
+        ? loanData.loan.nextPaymentDue.toISOString().split('T')[0]
+        : String(loanData.loan.nextPaymentDue || 'N/A');
       const result = await sendPaymentReminder(
         loanData.user.phoneNumber,
         borrowerName,
         loanData.loan.monthlyPayment || 0,
-        loanData.loan.nextPaymentDue,
-        loanData.lender.name || 'Unknown Lender'
+        dueDate,
+        'NGN'
       );
 
       if (!result.success) {
@@ -936,6 +997,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -988,6 +1056,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -1020,8 +1095,7 @@ export const microfinanceRouter = router({
       const result = await sendLoanRejectionNotification(
         loanData.user.phoneNumber,
         borrowerName,
-        loanData.lender.name || 'Unknown Lender',
-        input.reason
+        input.reason || 'eligibility criteria'
       );
 
       if (!result.success) {
@@ -1040,6 +1114,13 @@ export const microfinanceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -1074,9 +1155,10 @@ export const microfinanceRouter = router({
       const result = await sendPaymentConfirmation(
         loanData.user.phoneNumber,
         borrowerName,
+        loanData.lender.name || 'Unknown Lender',
         input.paymentAmount,
         Math.max(0, remainingBalance),
-        loanData.lender.name || 'Unknown Lender'
+        'NGN'
       );
 
       if (!result.success) {
@@ -1245,5 +1327,388 @@ export const microfinanceRouter = router({
         creditScore: loan.creditScore,
         lastPayment: loan.lastPayment,
       }));
+    }),
+
+  // ============================================================================
+  // Gap #1: Late Payment Penalties & Loan Restructuring
+  // ============================================================================
+
+  /**
+   * Calculate late payment penalty for an overdue loan.
+   * Penalty tiers:
+   *   1-7 days:   1% of outstanding balance (grace period warning)
+   *   8-30 days:  2% of outstanding balance
+   *   31-60 days: 5% of outstanding balance + credit score impact
+   *   61-90 days: 8% of outstanding balance + collections flag
+   *   90+ days:   10% of outstanding + default classification
+   */
+  calculateLatePenalty: protectedProcedure
+    .input(z.object({ loanId: z.number() }))
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [loan] = await db.select().from(loans)
+        .where(eq(loans.id, ctx.user.id ? ctx.user.id : 0));
+
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+      if (!loan.nextPaymentDue) return { penalty: 0, daysOverdue: 0, tier: "current" };
+
+      const now = new Date();
+      const dueDate = new Date(loan.nextPaymentDue);
+      const daysOverdue = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / 86400000));
+      const outstanding = loan.outstandingBalance || loan.principalAmount;
+
+      // Penalty tiers loaded from centralized config (env-overridable)
+      const { getPenaltyTier } = await import('../config/business-rules.js');
+      const tierInfo = getPenaltyTier(daysOverdue);
+      const penaltyRate = tierInfo.rate;
+      const tier = tierInfo.tier;
+      const creditScoreImpact = tierInfo.creditScoreImpact;
+
+      const penalty = Math.round(outstanding * penaltyRate);
+
+      return {
+        loanId: loan.id,
+        daysOverdue,
+        tier,
+        penaltyRate: penaltyRate * 100,
+        penalty,
+        outstanding,
+        totalDue: outstanding + penalty,
+        creditScoreImpact,
+        nextAction: tier === "grace"
+          ? "Pay within 7 days to avoid penalties"
+          : tier === "late"
+          ? "Pay immediately to prevent credit score damage"
+          : tier === "delinquent"
+          ? "Contact loan officer for restructuring options"
+          : tier === "collections"
+          ? "Loan sent to collections. Call +234-800-FARM-HELP"
+          : tier === "default"
+          ? "Loan classified as default. Legal action may follow"
+          : "No action needed",
+      };
+    }),
+
+  /**
+   * Restructure an overdue loan with new terms.
+   * Options: extend term, reduce rate, capitalize arrears, payment holiday.
+   */
+  restructureLoan: protectedProcedure
+    .input(z.object({
+      loanId: z.number(),
+      restructureType: z.enum([
+        "term_extension",    // Extend loan term, reduce monthly payment
+        "rate_reduction",    // Temporarily reduce interest rate
+        "arrears_capitalize", // Roll overdue amount into principal
+        "payment_holiday",   // Pause payments for N months
+      ]),
+      newTermMonths: z.number().int().positive().optional(),
+      newInterestRate: z.number().min(0).max(100).optional(),
+      holidayMonths: z.number().int().min(1).max(6).optional(),
+      reason: z.string().min(10),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [loan] = await db.select().from(loans).where(eq(loans.id, input.loanId));
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+      if (loan.userId !== ctx.user.id && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not authorized" });
+      }
+
+      const outstanding = loan.outstandingBalance || loan.principalAmount;
+      const currentRate = loan.interestRate || 1500; // basis points
+      const currentTerm = loan.termMonths || 12;
+
+      let updates: Record<string, unknown> = {};
+      let newMonthlyPayment = loan.monthlyPayment || 0;
+      let summary = "";
+
+      switch (input.restructureType) {
+        case "term_extension": {
+          const newTerm = input.newTermMonths || currentTerm + 6;
+          const monthlyRate = currentRate / 10000 / 12;
+          newMonthlyPayment = monthlyRate > 0
+            ? Math.round((outstanding * monthlyRate * Math.pow(1 + monthlyRate, newTerm)) / (Math.pow(1 + monthlyRate, newTerm) - 1))
+            : Math.round(outstanding / newTerm);
+          updates = { termMonths: newTerm, monthlyPayment: newMonthlyPayment };
+          summary = `Term extended to ${newTerm} months. New payment: ${newMonthlyPayment}`;
+          break;
+        }
+        case "rate_reduction": {
+          const newRate = input.newInterestRate
+            ? Math.round(input.newInterestRate * 100) // convert % to basis points
+            : Math.round(currentRate * 0.7); // 30% reduction default
+          const monthlyRate = newRate / 10000 / 12;
+          newMonthlyPayment = monthlyRate > 0
+            ? Math.round((outstanding * monthlyRate * Math.pow(1 + monthlyRate, currentTerm)) / (Math.pow(1 + monthlyRate, currentTerm) - 1))
+            : Math.round(outstanding / currentTerm);
+          updates = { interestRate: newRate, monthlyPayment: newMonthlyPayment };
+          summary = `Rate reduced to ${newRate / 100}%. New payment: ${newMonthlyPayment}`;
+          break;
+        }
+        case "arrears_capitalize": {
+          // Calculate total overdue amount and add to principal
+          const overdueRepayments = await db.select().from(loanRepayments)
+            .where(and(eq(loanRepayments.loanId, input.loanId), eq(loanRepayments.status, "overdue")));
+          const arrearsAmount = overdueRepayments.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+          const newPrincipal = outstanding + arrearsAmount;
+          const monthlyRate = currentRate / 10000 / 12;
+          newMonthlyPayment = monthlyRate > 0
+            ? Math.round((newPrincipal * monthlyRate * Math.pow(1 + monthlyRate, currentTerm)) / (Math.pow(1 + monthlyRate, currentTerm) - 1))
+            : Math.round(newPrincipal / currentTerm);
+          updates = { outstandingBalance: newPrincipal, monthlyPayment: newMonthlyPayment };
+          // Mark overdue repayments as restructured
+          for (const rep of overdueRepayments) {
+            await db.update(loanRepayments)
+              .set({ status: "restructured" })
+              .where(eq(loanRepayments.id, rep.id));
+          }
+          summary = `Arrears of ${arrearsAmount} capitalized. New balance: ${newPrincipal}`;
+          break;
+        }
+        case "payment_holiday": {
+          const months = input.holidayMonths || 3;
+          const resumeDate = new Date();
+          resumeDate.setMonth(resumeDate.getMonth() + months);
+          updates = { nextPaymentDue: resumeDate };
+          summary = `Payment holiday of ${months} months. Payments resume ${resumeDate.toISOString().split("T")[0]}`;
+          break;
+        }
+      }
+
+      await db.update(loans)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(loans.id, input.loanId));
+
+      return {
+        loanId: input.loanId,
+        restructureType: input.restructureType,
+        previousMonthlyPayment: loan.monthlyPayment,
+        newMonthlyPayment,
+        summary,
+        reason: input.reason,
+        effectiveDate: new Date().toISOString(),
+      };
+    }),
+
+  /**
+   * Pre-payment: pay off loan early (full or partial).
+   * No prepayment penalty — encourages early repayment.
+   */
+  prepayLoan: protectedProcedure
+    .input(z.object({
+      loanId: z.number(),
+      amount: z.number().positive(),
+      paymentMethod: z.enum(["mpesa", "mtn_momo", "bank_transfer", "cash"]).default("mpesa"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [loan] = await db.select().from(loans).where(eq(loans.id, input.loanId));
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+      if (loan.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not your loan" });
+      }
+
+      const outstanding = loan.outstandingBalance || loan.principalAmount;
+      const paymentAmount = Math.min(input.amount, outstanding);
+      const newBalance = outstanding - paymentAmount;
+      const isFullPayoff = newBalance <= 0;
+
+      // Record the prepayment
+      await db.insert(loanRepayments).values({
+        loanId: input.loanId,
+        paymentNumber: 0,
+        totalAmount: paymentAmount,
+        principalAmount: paymentAmount,
+        interestAmount: 0,
+        paidAmount: paymentAmount,
+        status: "paid",
+        paidDate: new Date(),
+        dueDate: new Date(),
+        paymentMethod: "prepayment",
+      });
+
+      // Update loan
+      await db.update(loans)
+        .set({
+          outstandingBalance: Math.max(0, newBalance),
+          status: isFullPayoff ? "completed" : loan.status,
+          updatedAt: new Date(),
+        })
+        .where(eq(loans.id, input.loanId));
+
+      // Recalculate remaining schedule if partial prepay
+      let newMonthlyPayment = loan.monthlyPayment;
+      if (!isFullPayoff && loan.termMonths) {
+        const remainingMonths = Math.max(1, loan.termMonths - Math.floor(
+          (Date.now() - new Date(loan.disbursedAt || loan.createdAt).getTime()) / (30 * 86400000)
+        ));
+        const monthlyRate = (loan.interestRate || 0) / 10000 / 12;
+        newMonthlyPayment = monthlyRate > 0
+          ? Math.round((newBalance * monthlyRate * Math.pow(1 + monthlyRate, remainingMonths)) / (Math.pow(1 + monthlyRate, remainingMonths) - 1))
+          : Math.round(newBalance / remainingMonths);
+        await db.update(loans)
+          .set({ monthlyPayment: newMonthlyPayment })
+          .where(eq(loans.id, input.loanId));
+      }
+
+      return {
+        loanId: input.loanId,
+        amountPaid: paymentAmount,
+        previousBalance: outstanding,
+        newBalance: Math.max(0, newBalance),
+        isFullPayoff,
+        newMonthlyPayment: isFullPayoff ? 0 : newMonthlyPayment,
+        interestSaved: isFullPayoff
+          ? Math.round(outstanding * (loan.interestRate || 0) / 10000 / 12 * (loan.termMonths || 0) * 0.3)
+          : 0,
+      };
+    }),
+
+  // Multi-currency loan conversion
+  convertLoanCurrency: protectedProcedure
+    .input(z.object({
+      loanId: z.number(),
+      targetCurrency: z.enum(['KES', 'NGN', 'UGX', 'TZS', 'USD']),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [loan] = await db.select().from(loans).where(
+        and(eq(loans.id, input.loanId), eq(loans.userId, ctx.user.id))
+      );
+      if (!loan) throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
+
+      // Exchange rates (would be fetched from market data service in production)
+      const exchangeRates: Record<string, Record<string, number>> = {
+        KES: { NGN: 3.45, UGX: 28.5, TZS: 19.2, USD: 0.0065 },
+        NGN: { KES: 0.29, UGX: 8.26, TZS: 5.57, USD: 0.0019 },
+        UGX: { KES: 0.035, NGN: 0.121, TZS: 0.674, USD: 0.00023 },
+        TZS: { KES: 0.052, NGN: 0.180, UGX: 1.484, USD: 0.00034 },
+        USD: { KES: 153.5, NGN: 530.0, UGX: 4380.0, TZS: 2950.0 },
+      };
+
+      const sourceCurrency = 'KES'; // Default currency
+      const rate = exchangeRates[sourceCurrency]?.[input.targetCurrency] || 1;
+      const convertedPrincipal = Math.round((loan.principalAmount || 0) * rate);
+      const convertedBalance = Math.round((loan.outstandingBalance || 0) * rate);
+      const convertedMonthly = Math.round((loan.monthlyPayment || 0) * rate);
+
+      return {
+        loanId: input.loanId,
+        sourceCurrency,
+        targetCurrency: input.targetCurrency,
+        exchangeRate: rate,
+        originalPrincipal: loan.principalAmount,
+        convertedPrincipal,
+        originalBalance: loan.outstandingBalance,
+        convertedBalance,
+        originalMonthly: loan.monthlyPayment,
+        convertedMonthly,
+        rateTimestamp: new Date().toISOString(),
+        disclaimer: "Exchange rates are indicative. Final conversion at disbursement rate.",
+      };
+    }),
+
+  // Credit score refresh/decay mechanism
+  refreshCreditScoreWithDecay: protectedProcedure
+    .input(z.object({ userId: z.number().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("microfinance", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("microfinance", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "microfinance", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const targetUserId = input.userId || ctx.user.id;
+      const [currentScore] = await db.select().from(creditScores)
+        .where(eq(creditScores.userId, targetUserId))
+        .orderBy(desc(creditScores.calculatedAt))
+        .limit(1);
+
+      if (!currentScore) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No credit score found for user" });
+      }
+
+      // Decay rules: score decays if not refreshed within 90 days
+      const lastCalculated = new Date(currentScore.calculatedAt || Date.now());
+      const daysSinceRefresh = Math.floor((Date.now() - lastCalculated.getTime()) / (86400 * 1000));
+      // Credit decay config loaded from centralized config (env-overridable)
+      const { CREDIT_DECAY } = await import('../config/business-rules.js');
+      const DECAY_THRESHOLD_DAYS = CREDIT_DECAY.thresholdDays;
+      const DECAY_RATE_PER_DAY = CREDIT_DECAY.ratePerDay;
+      const MAX_DECAY = CREDIT_DECAY.maxDecay;
+
+      let decayAmount = 0;
+      let isStale = false;
+
+      if (daysSinceRefresh > DECAY_THRESHOLD_DAYS) {
+        const daysOverThreshold = daysSinceRefresh - DECAY_THRESHOLD_DAYS;
+        decayAmount = Math.min(Math.round(daysOverThreshold * DECAY_RATE_PER_DAY), MAX_DECAY);
+        isStale = true;
+      }
+
+      const originalScore = currentScore.score || 500;
+      const adjustedScore = Math.max(300, originalScore - decayAmount); // Floor at 300
+
+      // Determine new band
+      const getBand = (score: number) => {
+        if (score >= 750) return 'A';
+        if (score >= 650) return 'B';
+        if (score >= 550) return 'C';
+        if (score >= 450) return 'D';
+        return 'E';
+      };
+
+      return {
+        userId: targetUserId,
+        originalScore,
+        adjustedScore,
+        decayAmount,
+        daysSinceRefresh,
+        isStale,
+        originalBand: getBand(originalScore),
+        currentBand: getBand(adjustedScore),
+        bandChanged: getBand(originalScore) !== getBand(adjustedScore),
+        nextRefreshRecommended: isStale ? 'immediately' : `in ${DECAY_THRESHOLD_DAYS - daysSinceRefresh} days`,
+        decayPolicy: {
+          thresholdDays: DECAY_THRESHOLD_DAYS,
+          ratePerDay: DECAY_RATE_PER_DAY,
+          maxDecay: MAX_DECAY,
+          minimumScore: 300,
+        },
+      };
     }),
 });

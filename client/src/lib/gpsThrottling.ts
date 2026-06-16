@@ -267,7 +267,7 @@ class GpsThrottlingService {
 
     // Check accuracy threshold
     if (options.minAccuracy && point.accuracy > options.minAccuracy) {
-      console.log(`[GPS] Skipping point with low accuracy: ${point.accuracy}m`);
+      console.warn(`[GPS] Skipping point with low accuracy: ${point.accuracy}m`);
       return;
     }
 
@@ -275,7 +275,7 @@ class GpsThrottlingService {
     if (this.state.lastPoint && options.minDistance) {
       const distance = this.calculateDistance(this.state.lastPoint, point);
       if (distance < options.minDistance) {
-        console.log(`[GPS] Skipping point too close: ${distance.toFixed(1)}m`);
+        console.warn(`[GPS] Skipping point too close: ${distance.toFixed(1)}m`);
         return;
       }
     }
@@ -296,7 +296,7 @@ class GpsThrottlingService {
 
     // Check max points
     if (options.maxPoints && this.state.track && this.state.track.points.length >= options.maxPoints) {
-      console.log('[GPS] Max points reached, stopping tracking');
+      console.warn('[GPS] Max points reached, stopping tracking');
       this.stopTracking();
     }
   }
@@ -317,7 +317,7 @@ class GpsThrottlingService {
     
     // Don't stop tracking on temporary errors
     if (error.code === error.TIMEOUT) {
-      console.log('[GPS] Timeout, will retry...');
+      console.warn('[GPS] Timeout, will retry...');
     }
   }
 

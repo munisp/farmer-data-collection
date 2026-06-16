@@ -692,7 +692,7 @@ export default function FarmerOnboardingWizard() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="monthlyIncome">Average Monthly Income (KES) *</Label>
+              <Label htmlFor="monthlyIncome">Average Monthly Income *</Label>
               <Input
                 id="monthlyIncome"
                 type="number"
@@ -734,7 +734,7 @@ export default function FarmerOnboardingWizard() {
 
             {data.financial.hasExistingLoans && (
               <div className="space-y-2">
-                <Label htmlFor="existingLoanAmount">Total Existing Loan Amount (KES)</Label>
+                <Label htmlFor="existingLoanAmount">Total Existing Loan Amount</Label>
                 <Input
                   id="existingLoanAmount"
                   type="number"
@@ -939,7 +939,7 @@ export default function FarmerOnboardingWizard() {
                 <span className="text-muted-foreground">Mobile Number:</span>
                 <span>{data.financial.mobileMoneyNumber}</span>
                 <span className="text-muted-foreground">Monthly Income:</span>
-                <span>KES {data.financial.monthlyIncome.toLocaleString()}</span>
+                <span>{data.financial.monthlyIncome.toLocaleString()}</span>
               </div>
             </div>
 
@@ -975,10 +975,10 @@ export default function FarmerOnboardingWizard() {
   // Completion screen
   if (isComplete) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div role="main" aria-label="Page content" className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
               <CheckCircle2 className="h-10 w-10 text-green-600" />
             </div>
             <CardTitle className="text-2xl">Registration Complete!</CardTitle>
@@ -1031,7 +1031,7 @@ export default function FarmerOnboardingWizard() {
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     isActive ? 'bg-primary text-primary-foreground' : 
-                    isCompleted ? 'bg-green-100 text-green-600' : 'bg-muted'
+                    isCompleted ? 'bg-green-100 dark:bg-green-900 text-green-600' : 'bg-muted'
                   }`}>
                     {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                   </div>

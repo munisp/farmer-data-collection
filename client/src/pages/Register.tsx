@@ -59,7 +59,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div role="main" aria-label="Page content" className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">{APP_TITLE}</CardTitle>
@@ -67,7 +67,7 @@ export default function Register() {
             Create an account to get started
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form aria-label="Submit form" onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {error && (
               <Alert variant="destructive">
@@ -75,7 +75,7 @@ export default function Register() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
                 <Input

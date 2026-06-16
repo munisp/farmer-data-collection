@@ -1,4 +1,5 @@
 import React from 'react';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -6,7 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 type JourneyStatus = 'not_started' | 'in_progress' | 'completed' | 'failed' | 'blocked';
@@ -89,17 +90,20 @@ export default function JourneyDetailScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
+          accessibilityRole="button" 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Journey Details</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle} numberOfLines={1}>Journey Details</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+      accessibilityLabel="Journey Detail screen"
+      accessibilityRole="scrollbar" style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.heroCard, { backgroundColor: `${journey.color}10` }]}>
           <View style={[styles.iconContainer, { backgroundColor: `${journey.color}20` }]}>
             <Ionicons name={journey.icon as any} size={32} color={journey.color} />
@@ -123,7 +127,7 @@ export default function JourneyDetailScreen({ route, navigation }: any) {
 
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
-            <Text style={styles.sectionTitle}>Overall Progress</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>Overall Progress</Text>
             <Text style={[styles.progressPercent, { color: journey.color }]}>{journey.progress}%</Text>
           </View>
           <View style={styles.progressBar}>
@@ -140,7 +144,7 @@ export default function JourneyDetailScreen({ route, navigation }: any) {
         </View>
 
         <View style={styles.channelsSection}>
-          <Text style={styles.sectionTitle}>Available Channels</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Available Channels</Text>
           <View style={styles.channelRow}>
             {journey.channels.map((channel, idx) => (
               <View key={idx} style={styles.channelBadge}>
@@ -163,7 +167,7 @@ export default function JourneyDetailScreen({ route, navigation }: any) {
         </View>
 
         <View style={styles.stepsSection}>
-          <Text style={styles.sectionTitle}>Journey Steps</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Journey Steps</Text>
           
           {journey.steps.map((step, index) => {
             const isLast = index === journey.steps.length - 1;
@@ -221,7 +225,8 @@ export default function JourneyDetailScreen({ route, navigation }: any) {
                   )}
                   
                   {step.status === 'in_progress' && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
+          accessibilityRole="button" 
                       style={[styles.actionButton, { backgroundColor: journey.color }]}
                     >
                       <Text style={styles.actionButtonText}>Continue Step</Text>
@@ -230,7 +235,8 @@ export default function JourneyDetailScreen({ route, navigation }: any) {
                   )}
                   
                   {step.status === 'not_started' && index === currentStepIndex + 1 && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
+          accessibilityRole="button" 
                       style={[styles.actionButton, styles.actionButtonOutline, { borderColor: journey.color }]}
                     >
                       <Text style={[styles.actionButtonTextOutline, { color: journey.color }]}>
@@ -255,7 +261,8 @@ export default function JourneyDetailScreen({ route, navigation }: any) {
         )}
 
         <View style={styles.bottomActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
+          accessibilityRole="button" 
             style={[styles.primaryButton, { backgroundColor: journey.color }]}
           >
             <Text style={styles.primaryButtonText}>
@@ -282,7 +289,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -295,7 +302,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.gray900,
     flex: 1,
     textAlign: 'center',
   },
@@ -319,7 +326,7 @@ const styles = StyleSheet.create({
   journeyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.gray900,
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -356,7 +363,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 24,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
   },
   progressHeader: {
@@ -368,7 +375,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.gray900,
   },
   progressPercent: {
     fontSize: 18,
@@ -404,12 +411,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     gap: 6,
   },
   channelText: {
     fontSize: 13,
-    color: '#374151',
+    color: colors.gray700,
     fontWeight: '500',
   },
   stepsSection: {
@@ -440,7 +447,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
     paddingBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
   },
@@ -473,7 +480,7 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.gray900,
     marginBottom: 4,
   },
   stepDescription: {
@@ -504,7 +511,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
   actionButtonOutline: {
     backgroundColor: 'transparent',
@@ -536,6 +543,6 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
 });

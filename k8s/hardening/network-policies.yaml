@@ -1,0 +1,213 @@
+# NetworkPolicies for FarmConnect Platform
+# Zero-trust network segmentation — deny all, then allow specific flows
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: farmconnect
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-ingress
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/component: api
+spec:
+  podSelector:
+    matchLabels:
+      app: farmconnect-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Allow to PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow to Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow to Kafka
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+    # Allow to gRPC services
+    - to:
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 9091
+        - protocol: TCP
+          port: 9092
+        - protocol: TCP
+          port: 9093
+        - protocol: TCP
+          port: 9094
+        - protocol: TCP
+          port: 9096
+        - protocol: TCP
+          port: 9098
+        - protocol: TCP
+          port: 9110
+        - protocol: TCP
+          port: 9111
+        - protocol: TCP
+          port: 9112
+        - protocol: TCP
+          port: 9113
+        - protocol: TCP
+          port: 9114
+        - protocol: TCP
+          port: 9115
+        - protocol: TCP
+          port: 9116
+        - protocol: TCP
+          port: 9117
+        - protocol: TCP
+          port: 9118
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-internal
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/component: backend
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from API server
+    - from:
+        - podSelector:
+            matchLabels:
+              app: farmconnect-api
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 9091
+  egress:
+    # Allow to databases
+    - to:
+        - podSelector:
+            matchLabels:
+              tier: data
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 9092
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-data-tier
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/component: data
+spec:
+  podSelector:
+    matchLabels:
+      tier: data
+  policyTypes:
+    - Ingress
+  ingress:
+    # Only allow from API and backend tiers
+    - from:
+        - podSelector:
+            matchLabels:
+              app: farmconnect-api
+        - podSelector:
+            matchLabels:
+              tier: backend
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 9092
+        - protocol: TCP
+          port: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-observability
+  namespace: farmconnect
+spec:
+  podSelector:
+    matchLabels:
+      tier: observability
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow metrics scraping from all pods
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 4318
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 16686

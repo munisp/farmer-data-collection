@@ -1,6 +1,7 @@
 import { publishEvent, createEvent, TOPICS, EVENT_TYPES, type KafkaEvent } from './kafka.js';
 
 // Helper to publish multiple events
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function publishMultipleEvents(events: Array<{ topic: string; event: any }>) {
   for (const { topic, event } of events) {
     await publishEvent(topic, event);
@@ -262,7 +263,7 @@ export async function publishRepaymentProcessed(
 }
 
 // Farmer events
-export async function publishFarmerCreated(farmerId: number, userId: number, data: any) {
+export async function publishFarmerCreated(farmerId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(EVENT_TYPES.CREATED, 'farmer', farmerId, userId, data);
   await publishMultipleEvents([
     { topic: TOPICS.FARMER_EVENTS, event },
@@ -271,7 +272,7 @@ export async function publishFarmerCreated(farmerId: number, userId: number, dat
   ]);
 }
 
-export async function publishFarmerUpdated(farmerId: number, userId: number, data: any) {
+export async function publishFarmerUpdated(farmerId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(EVENT_TYPES.UPDATED, 'farmer', farmerId, userId, data);
   await publishMultipleEvents([
     { topic: TOPICS.FARMER_EVENTS, event },
@@ -290,7 +291,7 @@ export async function publishFarmerDeleted(farmerId: number, userId: number) {
 }
 
 // Authentication events
-export async function publishUserLogin(userId: number, email: string, metadata?: any) {
+export async function publishUserLogin(userId: number, email: string, metadata?: Record<string, unknown>) {
   const event = createEvent(EVENT_TYPES.LOGIN, 'user', userId, userId, { email }, metadata);
   await publishMultipleEvents([
     { topic: TOPICS.AUTH_EVENTS, event },
@@ -299,7 +300,7 @@ export async function publishUserLogin(userId: number, email: string, metadata?:
   ]);
 }
 
-export async function publishUserRegistered(userId: number, email: string, data: any) {
+export async function publishUserRegistered(userId: number, email: string, data: Record<string, unknown>) {
   const event = createEvent(EVENT_TYPES.REGISTER, 'user', userId, userId, { email, ...data });
   await publishMultipleEvents([
     { topic: TOPICS.AUTH_EVENTS, event },

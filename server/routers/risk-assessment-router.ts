@@ -1,6 +1,7 @@
 import { router, protectedProcedure } from '../_core/trpc-base';
 import { z } from 'zod';
 import { assessBorrowerRisk, getAllBorrowerRiskProfiles } from '../services/risk-assessment.service';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const riskAssessmentRouter = router({
   /**

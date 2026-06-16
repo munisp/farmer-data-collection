@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { logger } from '../logger.js';
 
 const GO_IMAGE_SERVICE_URL = process.env.GO_IMAGE_SERVICE_URL || 'http://localhost:8080';
 
@@ -213,7 +214,7 @@ export class GoImageClient {
       });
       return response.data.status === 'healthy';
     } catch (error) {
-      console.error('Go image service health check failed:', error);
+      logger.error('Go image service health check failed:', error);
       return false;
     }
   }
@@ -235,7 +236,7 @@ export class GoImageClient {
       }
     }
     
-    console.error('Go image service error:', error);
+    logger.error('Go image service error:', error);
     throw new Error(defaultMessage);
   }
 }

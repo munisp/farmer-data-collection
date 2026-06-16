@@ -45,6 +45,9 @@ interface NotificationPreferences {
 // ============================================================================
 
 export default function NotificationPreferences() {
+  const preferencesQuery = trpc.notification.getPreferences.useQuery({ userId: 1 }, { retry: 1 });
+  const preferencesData = preferencesQuery.data ?? null;
+
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     smsEnabled: false,
     emailEnabled: false,
@@ -127,7 +130,7 @@ export default function NotificationPreferences() {
     }
   };
 
-  const updatePreference = (key: keyof NotificationPreferences, value: any) => {
+  const updatePreference = (key: keyof NotificationPreferences, value: boolean | string) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
   };
 
@@ -157,7 +160,7 @@ export default function NotificationPreferences() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-6 space-y-6 max-w-4xl">
+      <div role="main" aria-label="Page content" className="container mx-auto py-6 space-y-6 max-w-4xl">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Notification Preferences</h1>

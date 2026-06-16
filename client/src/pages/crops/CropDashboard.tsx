@@ -1,7 +1,9 @@
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useParams, useLocation } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type CropData = {
   name: string;
   icon: string;
@@ -33,7 +35,8 @@ export default function CropDashboard() {
   const cropData = cropMap[cropId] || { name: "Unknown", icon: "❓", journeys: [] };
 
   return (
-    <div className="container mx-auto py-8">
+    <DashboardLayout>
+      <div className="container mx-auto py-8">
       <div className="flex items-center gap-4 mb-8">
         <div className="text-6xl">{cropData.icon}</div>
         <div>
@@ -96,5 +99,6 @@ export default function CropDashboard() {
         <Button variant="outline" onClick={() => setLocation("/marketplace")}>Browse Marketplace</Button>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

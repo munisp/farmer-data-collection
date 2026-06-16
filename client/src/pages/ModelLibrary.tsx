@@ -10,6 +10,7 @@ import { Download, Star, TrendingUp, Award, Search, Filter, CheckCircle2, Clock 
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Model Library Page
  * 
@@ -100,7 +101,7 @@ export default function ModelLibrary() {
       case "minimal":
         return "bg-orange-500/10 text-orange-700 dark:text-orange-400";
       default:
-        return "bg-gray-500/10 text-gray-700 dark:text-gray-400";
+        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400";
     }
   };
 
@@ -115,12 +116,13 @@ export default function ModelLibrary() {
       case "price_forecasting":
         return "bg-blue-500/10 text-blue-700 dark:text-blue-400";
       default:
-        return "bg-gray-500/10 text-gray-700 dark:text-gray-400";
+        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400";
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container py-8">
@@ -157,7 +159,7 @@ export default function ModelLibrary() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search models or crops (e.g., maize, cassava)..."
+                  aria-label="Search" placeholder="Search models or crops (e.g., maize, cassava)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -459,5 +461,6 @@ export default function ModelLibrary() {
         </Tabs>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

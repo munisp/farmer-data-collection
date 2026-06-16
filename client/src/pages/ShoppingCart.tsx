@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { ShoppingCart as CartIcon, Trash2, ArrowRight, ShoppingBag, AlertTriangle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function ShoppingCart() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
@@ -73,7 +74,7 @@ export default function ShoppingCart() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading cart...</p>
       </div>
     );
@@ -97,7 +98,8 @@ export default function ShoppingCart() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container py-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -270,5 +272,6 @@ export default function ShoppingCart() {
         </div>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

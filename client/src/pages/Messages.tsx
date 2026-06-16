@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function Messages() {
   const [selectedPartnerId, setSelectedPartnerId] = useState<number | null>(null);
   const [messageText, setMessageText] = useState("");
@@ -39,7 +40,8 @@ export default function Messages() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-6">Messages</h1>
 
@@ -167,5 +169,6 @@ export default function Messages() {
         </div>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

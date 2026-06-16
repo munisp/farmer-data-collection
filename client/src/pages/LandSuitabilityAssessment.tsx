@@ -25,6 +25,7 @@ import {
   BarChart3
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type SuitabilityCategory = 'highly_suitable' | 'suitable' | 'moderately_suitable' | 'marginally_suitable' | 'not_suitable';
 
 interface SuitabilityResult {
@@ -79,9 +80,9 @@ const getSuitabilityLabel = (category: SuitabilityCategory) => {
 
 const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
   switch (priority) {
-    case 'high': return 'bg-red-100 text-red-800';
-    case 'medium': return 'bg-yellow-100 text-yellow-800';
-    case 'low': return 'bg-green-100 text-green-800';
+    case 'high': return 'bg-red-100 dark:bg-red-900 text-red-800';
+    case 'medium': return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800';
+    case 'low': return 'bg-green-100 dark:bg-green-900 text-green-800';
   }
 };
 
@@ -164,7 +165,8 @@ export default function LandSuitabilityAssessment() {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -656,7 +658,7 @@ export default function LandSuitabilityAssessment() {
 
                   <div className="grid gap-4">
                     {suitableCropsResult.results.map((result, i) => (
-                      <Card key={result.cropId} className="hover:shadow-md transition-shadow">
+                      <Card key={result.cropId} className="hover:shadow-md dark:shadow-gray-900/30 transition-shadow">
                         <CardContent className="pt-6">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
@@ -741,5 +743,6 @@ export default function LandSuitabilityAssessment() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

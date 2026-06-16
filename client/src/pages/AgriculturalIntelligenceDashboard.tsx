@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, Sprout, Droplets, Bug } from "lucide-react";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function AgriculturalIntelligenceDashboard() {
   const [selectedCropId, setSelectedCropId] = useState<number | null>(null);
   const [selectedFarmId, setSelectedFarmId] = useState<number | null>(null);
@@ -113,7 +114,8 @@ export default function AgriculturalIntelligenceDashboard() {
   const selectedCrop = normalizedCrops.find(c => c.id === selectedCropId);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -325,5 +327,6 @@ export default function AgriculturalIntelligenceDashboard() {
         </Card>
       )}
     </div>
-  );
+  
+    </DashboardLayout>);
 }

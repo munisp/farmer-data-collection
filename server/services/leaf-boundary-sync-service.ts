@@ -19,6 +19,7 @@
  */
 
 import { sql } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 // Leaf.io API configuration
 const LEAF_API_BASE_URL = process.env.LEAF_API_URL || 'https://api.withleaf.io/services';
@@ -102,7 +103,7 @@ export class LeafBoundarySyncService {
     this.isConfigured = !!this.apiKey;
     
     if (!this.isConfigured) {
-      console.warn('[Leaf.io] API key not configured - sync features will use mock data');
+      logger.warn('[Leaf.io] API key not configured - sync features will use mock data');
     }
   }
 
@@ -312,18 +313,18 @@ export class LeafBoundarySyncService {
               message: `Imported ${leafField.name} from ${leafField.providerName}`,
             });
           }
-        } catch (error: any) {
-          console.error(`[Leaf.io] Error syncing field ${leafField.id}:`, error);
+        } catch (error: unknown) {
+          logger.error(`[Leaf.io] Error syncing field ${leafField.id}:`, error);
           results.push({
             boundaryId: 0,
             action: 'skipped',
             source: 'leaf',
-            message: `Error syncing ${leafField.name}: ${error.message}`,
+            message: `Error syncing ${leafField.name}: ${(error instanceof Error ? error.message : String(error))}`,
           });
         }
       }
-    } catch (error: any) {
-      console.error('[Leaf.io] Error fetching fields:', error);
+    } catch (error: unknown) {
+      logger.error('[Leaf.io] Error fetching fields:', error);
       throw error;
     }
 
@@ -398,18 +399,18 @@ export class LeafBoundarySyncService {
               message: `Created ${boundary.name} in Leaf.io`,
             });
           }
-        } catch (error: any) {
-          console.error(`[Leaf.io] Error pushing boundary ${boundary.id}:`, error);
+        } catch (error: unknown) {
+          logger.error(`[Leaf.io] Error pushing boundary ${boundary.id}:`, error);
           results.push({
             boundaryId: boundary.id,
             action: 'skipped',
             source: 'local',
-            message: `Error pushing ${boundary.name}: ${error.message}`,
+            message: `Error pushing ${boundary.name}: ${(error instanceof Error ? error.message : String(error))}`,
           });
         }
       }
-    } catch (error: any) {
-      console.error('[Leaf.io] Error pushing boundaries:', error);
+    } catch (error: unknown) {
+      logger.error('[Leaf.io] Error pushing boundaries:', error);
       throw error;
     }
 

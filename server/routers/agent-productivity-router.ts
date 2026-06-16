@@ -3,7 +3,7 @@
  * Task management, route planning, and visit tracking for field agents
  */
 
-import { router, publicProcedure } from '../_core/trpc-base.js';
+import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
@@ -15,10 +15,12 @@ import {
   agentPerformanceMetrics,
   agentTerritories,
 } from '../../drizzle/agent-productivity-schema.js';
+import { logger } from '../logger.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const agentProductivityRouter = router({
   // Get tasks for agent
-  getTasks: publicProcedure
+  getTasks: protectedProcedure
     .input(z.object({
       agentId: z.number(),
       status: z.enum(['pending', 'assigned', 'in_progress', 'completed', 'cancelled', 'overdue']).optional(),
@@ -57,7 +59,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Get today's tasks
-  getTodaysTasks: publicProcedure
+  getTodaysTasks: protectedProcedure
     .input(z.object({ agentId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -82,7 +84,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Get task by ID
-  getTaskById: publicProcedure
+  getTaskById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -108,7 +110,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Create task
-  createTask: publicProcedure
+  createTask: protectedProcedure
     .input(z.object({
       agentId: z.number(),
       assignedBy: z.number().optional(),
@@ -132,6 +134,11 @@ export const agentProductivityRouter = router({
       offlineId: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agent_productivity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agent_productivity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -152,7 +159,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Update task status
-  updateTaskStatus: publicProcedure
+  updateTaskStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(['pending', 'assigned', 'in_progress', 'completed', 'cancelled', 'overdue']),
@@ -160,6 +167,11 @@ export const agentProductivityRouter = router({
       outcomeNotes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agent_productivity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agent_productivity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -188,7 +200,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Record visit
-  recordVisit: publicProcedure
+  recordVisit: protectedProcedure
     .input(z.object({
       taskId: z.number().optional(),
       agentId: z.number(),
@@ -214,6 +226,11 @@ export const agentProductivityRouter = router({
       offlineId: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agent_productivity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agent_productivity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -251,7 +268,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Get visits
-  getVisits: publicProcedure
+  getVisits: protectedProcedure
     .input(z.object({
       agentId: z.number(),
       startDate: z.string().optional(),
@@ -282,7 +299,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Get/create route for date
-  getRoute: publicProcedure
+  getRoute: protectedProcedure
     .input(z.object({
       agentId: z.number(),
       date: z.string(),
@@ -306,7 +323,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Create/update route
-  saveRoute: publicProcedure
+  saveRoute: protectedProcedure
     .input(z.object({
       agentId: z.number(),
       routeDate: z.string(),
@@ -317,6 +334,11 @@ export const agentProductivityRouter = router({
       optimizedOrder: z.array(z.number()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agent_productivity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agent_productivity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -365,9 +387,14 @@ export const agentProductivityRouter = router({
     }),
 
   // Start route
-  startRoute: publicProcedure
+  startRoute: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agent_productivity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agent_productivity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -385,7 +412,7 @@ export const agentProductivityRouter = router({
     }),
 
   // End route
-  endRoute: publicProcedure
+  endRoute: protectedProcedure
     .input(z.object({
       id: z.number(),
       actualDistance: z.number().optional(),
@@ -393,6 +420,11 @@ export const agentProductivityRouter = router({
       stopsSkipped: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agent_productivity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agent_productivity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -413,7 +445,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Get performance metrics
-  getPerformanceMetrics: publicProcedure
+  getPerformanceMetrics: protectedProcedure
     .input(z.object({
       agentId: z.number(),
       periodType: z.enum(['daily', 'weekly', 'monthly']).default('monthly'),
@@ -437,7 +469,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Calculate performance metrics
-  calculateMetrics: publicProcedure
+  calculateMetrics: protectedProcedure
     .input(z.object({
       agentId: z.number(),
       periodType: z.enum(['daily', 'weekly', 'monthly']),
@@ -445,6 +477,11 @@ export const agentProductivityRouter = router({
       periodEnd: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agent_productivity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agent_productivity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -506,7 +543,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Get agent territory
-  getTerritory: publicProcedure
+  getTerritory: protectedProcedure
     .input(z.object({ agentId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -524,7 +561,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Assign territory
-  assignTerritory: publicProcedure
+  assignTerritory: protectedProcedure
     .input(z.object({
       agentId: z.number(),
       territoryName: z.string(),
@@ -534,6 +571,11 @@ export const agentProductivityRouter = router({
       boundaryPolygon: z.any().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("agent_productivity", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("agent_productivity", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -560,7 +602,7 @@ export const agentProductivityRouter = router({
     }),
 
   // Get dashboard stats
-  getDashboardStats: publicProcedure
+  getDashboardStats: protectedProcedure
     .input(z.object({ agentId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();

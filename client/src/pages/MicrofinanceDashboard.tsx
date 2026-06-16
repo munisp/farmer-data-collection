@@ -119,7 +119,7 @@ export default function MicrofinanceDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-8">
+      <div role="main" aria-label="Page content" className="container mx-auto py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Microfinance & Loans</h1>
           <p className="text-muted-foreground">
@@ -128,7 +128,7 @@ export default function MicrofinanceDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <TabsTrigger value="loans">
               <FileText className="w-4 h-4 mr-2" />
               My Loans
@@ -177,12 +177,12 @@ export default function MicrofinanceDashboard() {
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${
                             loan.status === 'approved' || loan.status === 'disbursed' || loan.status === 'active'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800'
                               : loan.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'
                               : loan.status === 'rejected'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-blue-100 text-blue-800'
+                              ? 'bg-red-100 dark:bg-red-900 text-red-800'
+                              : 'bg-blue-100 dark:bg-blue-900 text-blue-800'
                           }`}>
                             {loan.status}
                           </span>
@@ -214,7 +214,7 @@ export default function MicrofinanceDashboard() {
                 <CardDescription>Submit a new loan application</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleApplyForLoan} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleApplyForLoan} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="lender">Lender *</Label>
                     <Select 
@@ -233,7 +233,7 @@ export default function MicrofinanceDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="loanType">Loan Type</Label>
                       <Select value={loanType} onValueChange={(value: any) => setLoanType(value)}>
@@ -290,7 +290,7 @@ export default function MicrofinanceDashboard() {
                       rows={2}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="guarantorName">Guarantor Name (Optional)</Label>
                       <Input
@@ -376,7 +376,7 @@ export default function MicrofinanceDashboard() {
                 <CardDescription>Record a payment towards your loan</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleMakeRepayment} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleMakeRepayment} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="loanId">Select Loan *</Label>
                     <Select 
@@ -541,9 +541,9 @@ export default function MicrofinanceDashboard() {
                           </p>
                         </div>
                         <span className={`text-xs px-2 py-1 rounded ${
-                          record.rating === 'low' ? 'bg-green-100 text-green-800' :
-                          record.rating === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
+                          record.rating === 'low' ? 'bg-green-100 dark:bg-green-900 text-green-800' :
+                          record.rating === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800' :
+                          'bg-red-100 dark:bg-red-900 text-red-800'
                         }`}>
                           {record.rating}
                         </span>

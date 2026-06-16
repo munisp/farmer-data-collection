@@ -2,6 +2,7 @@ import { Kafka, Producer, Consumer, EachMessagePayload } from "kafkajs";
 import { randomUUID } from "crypto";
 import { db, getDb } from "../db.js";
 import { sql } from "drizzle-orm";
+import { logger } from '../logger.js';
 
 // Use Node.js built-in crypto.randomUUID() instead of uuid package
 const uuidv4 = () => randomUUID();
@@ -95,13 +96,13 @@ class EventBus {
         },
       });
     } catch (error) {
-      console.warn("Kafka not configured, using in-memory event handling");
+      logger.warn("Kafka not configured, using in-memory event handling");
     }
   }
 
   async connect(): Promise<void> {
     if (!this.kafka) {
-      console.log("EventBus: Running in local mode (no Kafka)");
+      logger.info("EventBus: Running in local mode (no Kafka)");
       return;
     }
 
@@ -109,9 +110,9 @@ class EventBus {
       this.producer = this.kafka.producer();
       await this.producer.connect();
       this.isConnected = true;
-      console.log("EventBus: Connected to Kafka");
+      logger.info("EventBus: Connected to Kafka");
     } catch (error) {
-      console.warn("EventBus: Failed to connect to Kafka, using local mode", error);
+      logger.warn("EventBus: Failed to connect to Kafka, using local mode", error);
       this.isConnected = false;
     }
   }
@@ -172,7 +173,7 @@ class EventBus {
         // Mark as published in outbox
         await this.markAsPublished(event.eventId);
       } catch (error) {
-        console.error("Failed to publish event to Kafka:", error);
+        logger.error("Failed to publish event to Kafka:", error);
         // Event is still in outbox, will be retried by outbox processor
       }
     }
@@ -204,7 +205,7 @@ class EventBus {
       `);
     } catch (error) {
       // Table might not exist yet, log and continue
-      console.warn("Failed to store event in outbox:", error);
+      logger.warn("Failed to store event in outbox:", error);
     }
   }
 
@@ -217,7 +218,7 @@ class EventBus {
         WHERE event_id = ${eventId}
       `);
     } catch (error) {
-      console.warn("Failed to mark event as published:", error);
+      logger.warn("Failed to mark event as published:", error);
     }
   }
 
@@ -242,7 +243,7 @@ class EventBus {
       try {
         await handler(event);
       } catch (error) {
-        console.error(`Handler failed for event ${event.eventType}:`, error);
+        logger.error(`Handler failed for event ${event.eventType}:`, error);
       }
     }
   }
@@ -250,7 +251,7 @@ class EventBus {
   // Subscribe to events from Kafka
   async subscribe(groupId: string, topics: string[]): Promise<void> {
     if (!this.kafka) {
-      console.log("EventBus: Kafka not available, skipping subscription");
+      logger.info("EventBus: Kafka not available, skipping subscription");
       return;
     }
 
@@ -267,7 +268,7 @@ class EventBus {
           const event: DomainEvent = JSON.parse(message.value?.toString() || "{}");
           await this.dispatchLocally(event);
         } catch (error) {
-          console.error("Failed to process message:", error);
+          logger.error("Failed to process message:", error);
         }
       },
     });
@@ -318,13 +319,13 @@ class EventBus {
           await this.markAsPublished(event.eventId);
           published++;
         } catch (error) {
-          console.error(`Failed to publish event ${row.event_id}:`, error);
+          logger.error(`Failed to publish event ${row.event_id}:`, error);
         }
       }
 
       return published;
     } catch (error) {
-      console.warn("Failed to process outbox:", error);
+      logger.warn("Failed to process outbox:", error);
       return 0;
     }
   }
@@ -334,20 +335,20 @@ class EventBus {
 export const eventBus = new EventBus();
 
 // Helper functions for common events
-export const publishFarmerRegistered = (farmerId: number, data: any, userId?: number) =>
+export const publishFarmerRegistered = (farmerId: number, data: Record<string, unknown>, userId?: number) =>
   eventBus.publish("farmer.registered", "farmer", String(farmerId), data, { userId });
 
-export const publishLoanApproved = (loanId: number, data: any, userId?: number) =>
+export const publishLoanApproved = (loanId: number, data: Record<string, unknown>, userId?: number) =>
   eventBus.publish("loan.approved", "loan", String(loanId), data, { userId });
 
-export const publishLoanDisbursed = (loanId: number, data: any, userId?: number) =>
+export const publishLoanDisbursed = (loanId: number, data: Record<string, unknown>, userId?: number) =>
   eventBus.publish("loan.disbursed", "loan", String(loanId), data, { userId });
 
-export const publishTradeExecuted = (tradeId: number, data: any, userId?: number) =>
+export const publishTradeExecuted = (tradeId: number, data: Record<string, unknown>, userId?: number) =>
   eventBus.publish("exchange.trade_executed", "trade", String(tradeId), data, { userId });
 
-export const publishPaymentCompleted = (paymentId: string, data: any, userId?: number) =>
+export const publishPaymentCompleted = (paymentId: string, data: Record<string, unknown>, userId?: number) =>
   eventBus.publish("payment.completed", "payment", paymentId, data, { userId });
 
-export const publishOrderPlaced = (orderId: number, data: any, userId?: number) =>
+export const publishOrderPlaced = (orderId: number, data: Record<string, unknown>, userId?: number) =>
   eventBus.publish("marketplace.order_placed", "order", String(orderId), data, { userId });

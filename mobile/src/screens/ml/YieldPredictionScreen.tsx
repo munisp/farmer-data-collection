@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Text, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { Header } from '@/components/shared/Header';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -35,7 +35,9 @@ export default function YieldPredictionScreen() {
   return (
     <View style={styles.container}>
       <Header title="Yield Prediction" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Yield Prediction screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Card style={styles.card}>
           <Text style={styles.description}>
             Use AI-powered yield prediction to estimate your harvest based on field conditions and historical data.
@@ -43,7 +45,7 @@ export default function YieldPredictionScreen() {
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Field Information</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Field Information</Text>
           <Input 
             label="Crop Type *" 
             value={cropType} 

@@ -10,7 +10,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -990,14 +992,34 @@ func main() {
 		protected.POST("/settlement/:windowId/close", permifyAuthzMiddleware("mojaloop", "settlement_close"), closeSettlementWindowHandler)
 	}
 
-	// Start server
+	// Start server with graceful shutdown
 	addr := fmt.Sprintf(":%s", config.Port)
 	log.Printf("[Server] Mojaloop Gateway listening on %s", addr)
-	log.Printf("[Server] Features: party-lookup, quotes, transfers, bulk-transfers, transaction-requests, settlement")
 	log.Printf("[Server] Auth: Keycloak JWT + Permify RBAC")
-	log.Printf("[Server] Caching: Redis (party lookups, balances)")
 
-	if err := router.Run(addr); err != nil {
-		log.Fatalf("[Server] Failed to start: %v", err)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("[Server] Failed to start: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-quit
+	log.Printf("[Server] Received %v, shutting down...", sig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("[Server] Shutdown error: %v", err)
+	}
+	log.Println("[Server] Mojaloop Gateway stopped")
 }

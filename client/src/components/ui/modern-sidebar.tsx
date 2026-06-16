@@ -117,7 +117,7 @@ export function ModernSidebar({ className }: ModernSidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2">
+      <nav role="navigation" aria-label="Navigation" className="flex-1 overflow-y-auto py-4 px-2">
         {navigationGroups.map((group) => (
           <div key={group.title} className="sidebar-nav-group">
             {!collapsed && (
@@ -218,7 +218,7 @@ export function MobileNav({ className }: MobileNavProps) {
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <nav className="p-4 overflow-y-auto h-full">
+        <nav role="navigation" aria-label="Navigation" className="p-4 overflow-y-auto h-full">
           {navigationGroups.map((group) => (
             <div key={group.title} className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-3">
@@ -248,7 +248,7 @@ export function MobileNav({ className }: MobileNavProps) {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t border-border z-40 flex items-center justify-around px-2">
+      <nav role="navigation" aria-label="Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t border-border z-40 flex items-center justify-around px-2">
         {quickNavItems.map((item) => (
           <Link key={item.href} href={item.href}>
             <a

@@ -1,4 +1,5 @@
 import { storagePut, storageGet } from "../storage";
+import { logger } from '../logger.js';
 
 /**
  * Storage Service
@@ -283,8 +284,8 @@ function sanitizeFilename(filename: string): string {
  * This function logs deletion requests for audit purposes.
  */
 export async function deleteFile(key: string): Promise<void> {
-  console.warn(`[Storage] File deletion requested but not supported by platform: ${key}`);
-  console.log(`[Storage] Recommended: Mark file as deleted in database metadata instead`);
+  logger.warn(`[Storage] File deletion requested but not supported by platform: ${key}`);
+  logger.info(`[Storage] Recommended: Mark file as deleted in database metadata instead`);
   
   // Log to audit trail for compliance
   // In production, you might want to:

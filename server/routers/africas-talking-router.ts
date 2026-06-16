@@ -1,6 +1,8 @@
+import crypto from "crypto";
 import { router, publicProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { logger } from '../logger.js';
 import {
   handleUSSDSession,
   parseSMSCommand,
@@ -10,6 +12,7 @@ import {
   notifyFarmer
 } from '../services/africas-talking.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * Africa's Talking Webhook Router
  * 
@@ -41,14 +44,14 @@ const ALLOWED_IP_RANGES = [
  * Verify webhook request authenticity
  * Checks shared secret in header or query parameter
  */
-function verifyWebhookRequest(ctx: any): void {
+function verifyWebhookRequest(ctx: { req?: { headers?: Record<string, string>; query?: Record<string, string> }; [key: string]: unknown }): void {
   if (!WEBHOOK_VERIFICATION_ENABLED) {
-    console.log('[Webhook] Verification disabled via AFRICAS_TALKING_WEBHOOK_VERIFY=false');
+    logger.info('[Webhook] Verification disabled via AFRICAS_TALKING_WEBHOOK_VERIFY=false');
     return;
   }
 
   if (!WEBHOOK_SECRET) {
-    console.warn('[Webhook] AFRICAS_TALKING_WEBHOOK_SECRET not configured - skipping verification');
+    logger.warn('[Webhook] AFRICAS_TALKING_WEBHOOK_SECRET not configured - skipping verification');
     return;
   }
 
@@ -58,7 +61,7 @@ function verifyWebhookRequest(ctx: any): void {
   const providedSecret = headerSecret || querySecret;
 
   if (!providedSecret) {
-    console.error('[Webhook] No webhook secret provided in request');
+    logger.error('[Webhook] No webhook secret provided in request');
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'Webhook verification failed: missing secret',
@@ -66,21 +69,21 @@ function verifyWebhookRequest(ctx: any): void {
   }
 
   if (providedSecret !== WEBHOOK_SECRET) {
-    console.error('[Webhook] Invalid webhook secret provided');
+    logger.error('[Webhook] Invalid webhook secret provided');
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'Webhook verification failed: invalid secret',
     });
   }
 
-  console.log('[Webhook] Request verified successfully');
+  logger.info('[Webhook] Request verified successfully');
 }
 
 /**
  * Generate a correlation ID for request tracing
  */
 function generateCorrelationId(): string {
-  return `at-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `at-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 }
 
 export const africasTalkingRouter = router({
@@ -95,15 +98,19 @@ export const africasTalkingRouter = router({
       phoneNumber: z.string(),
       text: z.string()
     }))
-    .mutation(async ({ input, ctx }: { input: { sessionId: string; serviceCode: string; phoneNumber: string; text: string }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { sessionId: string; serviceCode: string; phoneNumber: string; text: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
+      const rateCheck = await checkRateLimit("africas_talking", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       verifyWebhookRequest(ctx);
       
       const correlationId = generateCorrelationId();
       const response = await handleUSSDSession(input);
       
       // Log USSD interaction with correlation ID
-      console.log('[USSD]', {
+      logger.info('[USSD]', {
         correlationId,
         sessionId: input.sessionId,
         phoneNumber: input.phoneNumber,
@@ -130,15 +137,19 @@ export const africasTalkingRouter = router({
       id: z.string().optional(),
       linkId: z.string().optional()
     }))
-    .mutation(async ({ input, ctx }: { input: { from: string; text: string; date: string; id?: string; linkId?: string }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { from: string; text: string; date: string; id?: string; linkId?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
+      const rateCheck = await checkRateLimit("africas_talking", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       verifyWebhookRequest(ctx);
       
       const correlationId = generateCorrelationId();
       const responseText = parseSMSCommand(input);
       
       // Log SMS interaction with correlation ID
-      console.log('[SMS]', {
+      logger.info('[SMS]', {
         correlationId,
         externalId: input.id,
         from: input.from,
@@ -170,15 +181,19 @@ export const africasTalkingRouter = router({
       timestamp: z.string(),
       id: z.string().optional()
     }))
-    .mutation(async ({ input, ctx }: { input: { from: string; text: string; timestamp: string; id?: string }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { from: string; text: string; timestamp: string; id?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
+      const rateCheck = await checkRateLimit("africas_talking", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       verifyWebhookRequest(ctx);
       
       const correlationId = generateCorrelationId();
       const responseText = handleWhatsAppMessage(input);
       
       // Log WhatsApp interaction with correlation ID
-      console.log('[WhatsApp]', {
+      logger.info('[WhatsApp]', {
         correlationId,
         externalId: input.id,
         from: input.from,
@@ -212,14 +227,18 @@ export const africasTalkingRouter = router({
       retryCount: z.number().optional(),
       failureReason: z.string().optional()
     }))
-    .mutation(async ({ input, ctx }: { input: { id: string; status: string; phoneNumber: string; networkCode?: string; retryCount?: number; failureReason?: string }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { id: string; status: string; phoneNumber: string; networkCode?: string; retryCount?: number; failureReason?: string }; ctx: Record<string, unknown> }) => {
       // Verify webhook authenticity
+      const rateCheck = await checkRateLimit("africas_talking", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       verifyWebhookRequest(ctx);
       
       const correlationId = generateCorrelationId();
       
       // Log delivery status with correlation ID
-      console.log('[Delivery Report]', {
+      logger.info('[Delivery Report]', {
         correlationId,
         externalId: input.id,
         status: input.status,
@@ -250,7 +269,7 @@ export const africasTalkingRouter = router({
             .limit(1);
           
           if (existingEvent.length > 0) {
-            console.log(`[Delivery Report] Duplicate event detected for ${input.id}, skipping processing`);
+            logger.info(`[Delivery Report] Duplicate event detected for ${input.id}, skipping processing`);
             return {
               success: true,
               message: 'Delivery report already processed (duplicate)',
@@ -291,10 +310,10 @@ export const africasTalkingRouter = router({
             metadata: { status: input.status, phoneNumber: input.phoneNumber },
           }).onConflictDoNothing();
           
-          console.log(`[Delivery Report] Updated message ${input.id} status to ${mappedStatus}`);
+          logger.info(`[Delivery Report] Updated message ${input.id} status to ${mappedStatus}`);
         }
       } catch (error) {
-        console.error('[Delivery Report] Failed to update message status:', error);
+        logger.error('[Delivery Report] Failed to update message status:', error);
         // Don't fail the webhook if database update fails
       }
 
@@ -315,6 +334,10 @@ export const africasTalkingRouter = router({
       from: z.string().optional()
     }))
     .mutation(async ({ input }: { input: { to: string[]; message: string; from?: string } }) => {
+      const rateCheck = await checkRateLimit("africas_talking", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const result = await sendSMS(input);
       return result;
     }),
@@ -330,6 +353,11 @@ export const africasTalkingRouter = router({
       templateParams: z.record(z.string(), z.unknown()).optional()
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("africas_talking", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const result = await sendWhatsApp(input);
       return result;
     }),
@@ -344,6 +372,10 @@ export const africasTalkingRouter = router({
       channel: z.enum(['sms', 'whatsapp']).default('sms')
     }))
     .mutation(async ({ input }: { input: { phoneNumber: string; message: string; channel: 'sms' | 'whatsapp' } }) => {
+      const rateCheck = await checkRateLimit("africas_talking", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("africas_talking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       await notifyFarmer(input.phoneNumber, input.message, input.channel);
       return {
         success: true,

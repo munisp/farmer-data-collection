@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { database } from '@/services/database';
 import { Header } from '@/components/shared/Header';
@@ -63,7 +63,9 @@ export default function ExpenseEditScreen() {
   return (
     <View style={styles.container}>
       <Header title="Edit Expense" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Expense Edit screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Input label="Category *" value={category} onChangeText={setCategory} />
         <Input label="Amount *" value={amount} onChangeText={setAmount} keyboardType="numeric" />
         <Input label="Notes" value={notes} onChangeText={setNotes} multiline numberOfLines={4} />

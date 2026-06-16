@@ -3,10 +3,11 @@ import { TRPC_URL } from '@/utils/constants';
 import { authService } from '../auth';
 import type { AuthTokens, User } from '@/types/models';
 
-// Import AppRouter type from server (shared types)
-// In production, this would be imported from a shared package
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AppRouter = any;
+// Import AppRouter type from server for end-to-end type safety
+// In a monorepo, this would come from a shared package (@farmconnect/api-types)
+// For now, reference the server's type export directly
+import type { AppRouter } from '../../../../server/trpc.js';
+export type { AppRouter };
 
 interface BackendUser {
   id: number | string;

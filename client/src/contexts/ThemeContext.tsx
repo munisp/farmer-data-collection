@@ -1,64 +1,70 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-type Theme = "light" | "dark";
+type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme?: () => void;
-  switchable: boolean;
+  resolvedTheme: "light" | "dark";
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "system",
+  resolvedTheme: "light",
+  setTheme: () => {},
+  toggleTheme: () => {},
+});
 
-interface ThemeProviderProps {
-  children: React.ReactNode;
-  defaultTheme?: Theme;
-  switchable?: boolean;
-}
-
-export function ThemeProvider({
-  children,
-  defaultTheme = "light",
-  switchable = false,
-}: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (switchable) {
-      const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
-    }
-    return defaultTheme;
+export function ThemeProvider({ children, defaultTheme = "system" }: { children: ReactNode; defaultTheme?: Theme }) {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    const stored = localStorage.getItem("farmconnect-theme");
+    return (stored as Theme) || defaultTheme;
   });
 
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-    if (switchable) {
-      localStorage.setItem("theme", theme);
-    }
-  }, [theme, switchable]);
+    function updateResolved() {
+      const resolved = theme === "system"
+        ? (mediaQuery.matches ? "dark" : "light")
+        : theme;
+      setResolvedTheme(resolved);
 
-  const toggleTheme = switchable
-    ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
+      const root = document.documentElement;
+      root.classList.remove("light", "dark");
+      root.classList.add(resolved);
+
+      // Update meta theme-color for PWA
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        meta.setAttribute("content", resolved === "dark" ? "#0f172a" : "#16a34a");
       }
-    : undefined;
+    }
+
+    updateResolved();
+    mediaQuery.addEventListener("change", updateResolved);
+    return () => mediaQuery.removeEventListener("change", updateResolved);
+  }, [theme]);
+
+  function setTheme(newTheme: Theme) {
+    setThemeState(newTheme);
+    localStorage.setItem("farmconnect-theme", newTheme);
+  }
+
+  function toggleTheme() {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within ThemeProvider");
-  }
-  return context;
+  return useContext(ThemeContext);
 }

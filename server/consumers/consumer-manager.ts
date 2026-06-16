@@ -2,6 +2,7 @@ import { Consumer } from 'kafkajs';
 import { startCacheInvalidationConsumer } from './cache-invalidation-consumer.js';
 import { startAuditTrailConsumer } from './audit-trail-consumer.js';
 import { startAnalyticsConsumer } from './analytics-consumer.js';
+import { logger } from '../logger.js';
 
 /**
  * Consumer Manager
@@ -16,7 +17,7 @@ const consumers: Consumer[] = [];
 let isShuttingDown = false;
 
 export async function startAllConsumers() {
-  console.log('[ConsumerManager] Starting all consumers...');
+  logger.info('[ConsumerManager] Starting all consumers...');
 
   try {
     // Start cache invalidation consumer
@@ -37,26 +38,26 @@ export async function startAllConsumers() {
       consumers.push(analyticsConsumer);
     }
 
-    console.log(`[ConsumerManager] Started ${consumers.length} consumers successfully`);
+    logger.info(`[ConsumerManager] Started ${consumers.length} consumers successfully`);
 
     // Setup graceful shutdown
     setupGracefulShutdown();
 
     return consumers;
   } catch (error) {
-    console.error('[ConsumerManager] Error starting consumers:', error);
+    logger.error('[ConsumerManager] Error starting consumers:', error);
     throw error;
   }
 }
 
 export async function stopAllConsumers() {
   if (isShuttingDown) {
-    console.log('[ConsumerManager] Already shutting down...');
+    logger.info('[ConsumerManager] Already shutting down...');
     return;
   }
 
   isShuttingDown = true;
-  console.log('[ConsumerManager] Stopping all consumers...');
+  logger.info('[ConsumerManager] Stopping all consumers...');
 
   try {
     await Promise.all(
@@ -64,14 +65,14 @@ export async function stopAllConsumers() {
         try {
           await consumer.disconnect();
         } catch (error) {
-          console.error('[ConsumerManager] Error disconnecting consumer:', error);
+          logger.error('[ConsumerManager] Error disconnecting consumer:', error);
         }
       })
     );
 
-    console.log('[ConsumerManager] All consumers stopped');
+    logger.info('[ConsumerManager] All consumers stopped');
   } catch (error) {
-    console.error('[ConsumerManager] Error stopping consumers:', error);
+    logger.error('[ConsumerManager] Error stopping consumers:', error);
     throw error;
   }
 }
@@ -81,20 +82,20 @@ function setupGracefulShutdown() {
 
   signals.forEach((signal) => {
     process.on(signal, async () => {
-      console.log(`[ConsumerManager] Received ${signal}, shutting down gracefully...`);
+      logger.info(`[ConsumerManager] Received ${signal}, shutting down gracefully...`);
       await stopAllConsumers();
       process.exit(0);
     });
   });
 
   process.on('uncaughtException', async (error) => {
-    console.error('[ConsumerManager] Uncaught exception:', error);
+    logger.error('[ConsumerManager] Uncaught exception:', error);
     await stopAllConsumers();
     process.exit(1);
   });
 
   process.on('unhandledRejection', async (reason, promise) => {
-    console.error('[ConsumerManager] Unhandled rejection at:', promise, 'reason:', reason);
+    logger.error('[ConsumerManager] Unhandled rejection', { reason: String(reason) });
     await stopAllConsumers();
     process.exit(1);
   });

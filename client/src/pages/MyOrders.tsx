@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingBag, Package, Truck, CheckCircle, XCircle } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function MyOrders() {
   const { data: orders, isLoading } = trpc.marketplace.getMyOrders.useQuery();
 
@@ -34,32 +35,33 @@ export default function MyOrders() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800";
       case "confirmed":
       case "preparing":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 dark:bg-blue-900 text-blue-800";
       case "ready":
       case "shipped":
         return "bg-orange-100 text-orange-800";
       case "delivered":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800";
       case "cancelled":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100";
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading your orders...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-8">My Orders</h1>
 
@@ -80,7 +82,7 @@ export default function MyOrders() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {orders.map((order: any) => (
+            {orders.map((order) => (
               <Card key={order.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -114,7 +116,7 @@ export default function MyOrders() {
                   <div>
                     <p className="text-sm font-medium mb-2">Items</p>
                     <div className="space-y-2">
-                      {order.items.map((item: any) => (
+                      {order.items.map((item) => (
                         <div key={item.id} className="flex justify-between text-sm">
                           <span>
                             {item.productTitle} × {item.quantity} {item.productUnit}
@@ -128,7 +130,7 @@ export default function MyOrders() {
                   <Separator />
 
                   {/* Delivery Info */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="font-medium">Delivery Method</p>
                       <p className="text-muted-foreground capitalize">{order.deliveryMethod}</p>
@@ -186,5 +188,6 @@ export default function MyOrders() {
         )}
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

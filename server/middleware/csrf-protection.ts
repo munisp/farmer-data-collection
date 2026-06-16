@@ -80,7 +80,7 @@ class CSRFTokenManager {
         Buffer.from(hash),
         Buffer.from(expectedHash)
       );
-    } catch {
+    } catch (err) {
       return false;
     }
   }
@@ -215,7 +215,7 @@ export function createDoubleSubmitCSRF(config: CSRFConfig = {}) {
             message: 'CSRF token mismatch.',
           });
         }
-      } catch {
+      } catch (err) {
         return res.status(403).json({
           error: 'CSRF Error',
           message: 'Invalid CSRF token format.',
@@ -257,7 +257,7 @@ export function validateOrigin(allowedOrigins: string[]) {
         if (allowedOrigins.includes(refererOrigin)) {
           return next();
         }
-      } catch {
+      } catch (err) {
         // Invalid referer URL
       }
       return res.status(403).json({

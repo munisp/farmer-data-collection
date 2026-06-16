@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import { MapPin, User, Phone, Mail, Home, CheckCircle2, Loader2, Navigation } fr
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { useLocation } from "wouter";
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 interface FormData {
   firstName: string;
   lastName: string;
@@ -35,6 +37,7 @@ interface FormData {
 
 export default function QuickFarmerRegistration() {
   const { isInitialized, db } = useDatabase();
+  const farmersQuery = trpc.coreFarms.list.useQuery({}, { enabled: false });
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [step, setStep] = useState(1);
@@ -131,7 +134,7 @@ export default function QuickFarmerRegistration() {
 
           const newMarker = new maplibregl.Marker({
             draggable: true,
-            color: "#16a34a",
+            color: SEMANTIC_COLORS.success,
           })
             .setLngLat([pos.lng, pos.lat])
             .addTo(map);
@@ -163,7 +166,7 @@ export default function QuickFarmerRegistration() {
       } else {
         const newMarker = new maplibregl.Marker({
           draggable: true,
-          color: "#16a34a",
+          color: SEMANTIC_COLORS.success,
         })
           .setLngLat([lngLat.lng, lngLat.lat])
           .addTo(map);
@@ -352,7 +355,7 @@ export default function QuickFarmerRegistration() {
 
   return (
     <DashboardLayout>
-      <div className="container max-w-2xl py-6">
+      <div role="main" aria-label="Page content" className="container max-w-2xl py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold">Quick Farmer Registration</h1>
@@ -392,7 +395,7 @@ export default function QuickFarmerRegistration() {
 
             {step === 1 && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">
                       First Name <span className="text-destructive">*</span>
@@ -501,7 +504,7 @@ export default function QuickFarmerRegistration() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="district">
                       District <span className="text-destructive">*</span>
@@ -578,7 +581,7 @@ export default function QuickFarmerRegistration() {
 
             {step === 4 && (
               <div className="text-center py-8">
-                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
                   <CheckCircle2 className="w-8 h-8 text-green-600" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">

@@ -12,6 +12,7 @@ import { FileUp, CheckCircle2, ArrowLeft, ArrowRight, CreditCard, User, Briefcas
 import { ModernCard } from "@/components/ui/modern-card";
 import { cn } from "@/lib/utils";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Multi-Step Loan Application Form
  * 
@@ -209,7 +210,8 @@ export default function LoanApplicationForm() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Modern Header */}
       <div className="gradient-hero text-white py-10">
         <div className="container">
@@ -506,7 +508,7 @@ export default function LoanApplicationForm() {
                   </div>
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 rounded-lg p-4 mt-4">
                   <p className="text-sm text-yellow-800">
                     By submitting this application, you confirm that all information provided is accurate and complete.
                   </p>
@@ -538,5 +540,6 @@ export default function LoanApplicationForm() {
         </div>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

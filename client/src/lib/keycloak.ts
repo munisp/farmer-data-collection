@@ -10,6 +10,6 @@ const keycloakConfig = {
 // Create Keycloak instance
 const keycloak = new Keycloak(keycloakConfig);
 
-console.log('[Keycloak] Configuration:', keycloakConfig);
+console.warn('[Keycloak] Configuration:', keycloakConfig);
 
 export default keycloak;

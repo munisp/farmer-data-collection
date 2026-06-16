@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Cloud, Droplets, Wind, Thermometer, Sun, CloudRain, Eye } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 interface WeatherData {
   temperature: number;
   feels_like: number;
@@ -57,107 +59,41 @@ export default function WeatherDashboard() {
     longitude: "3.3792",
   });
 
+  const lat = parseFloat(location.latitude) || 6.5244;
+  const lng = parseFloat(location.longitude) || 3.3792;
+
+  const weatherQuery = trpc.weather.getCurrentWeather.useQuery(
+    { latitude: lat, longitude: lng },
+    { retry: 1, refetchOnWindowFocus: false }
+  );
+  const forecastQuery = trpc.weather.getForecast.useQuery(
+    { latitude: lat, longitude: lng },
+    { retry: 1, refetchOnWindowFocus: false }
+  );
+
   useEffect(() => {
-    loadWeatherData();
-  }, []);
+    if (weatherQuery.data) {
+      setCurrentWeather(weatherQuery.data as WeatherData);
+      const w = weatherQuery.data;
+      setAgIndices({
+        temperature: w.temperature,
+        humidity: w.humidity,
+        wind_speed: w.wind_speed,
+        heat_stress_index: String((w.temperature * 1.08).toFixed(1)),
+        evapotranspiration_mm: String((w.temperature * 0.15).toFixed(2)),
+        growing_degree_days: String(Math.max(0, w.temperature - 10).toFixed(1)),
+        frost_risk: w.temperature < 10 ? "High" : w.temperature < 15 ? "Medium" : "Low",
+        irrigation_recommendation: w.humidity > 80 ? "Reduce" : w.humidity < 40 ? "Increase" : "Normal",
+        optimal_spray_conditions: w.wind_speed < 10 && w.humidity > 40 && w.humidity < 80,
+      });
+    }
+    if (forecastQuery.data) setForecast(forecastQuery.data as ForecastDay[]);
+  }, [weatherQuery.data, forecastQuery.data]);
 
   const loadWeatherData = () => {
-    setLoading(true);
-    try {
-      // Mock weather data (since we're using mock service)
-      const mockWeather: WeatherData = {
-        temperature: 28.5,
-        feels_like: 31.2,
-        humidity: 65,
-        pressure: 1013,
-        weather: "Clouds",
-        description: "scattered clouds",
-        wind_speed: 3.5,
-        wind_direction: 180,
-        clouds: 40,
-        visibility: 9500,
-        location: "Lagos, Nigeria",
-      };
-
-      const mockForecast: ForecastDay[] = [
-        {
-          date: new Date().toISOString().split('T')[0],
-          temp_min: 24.0,
-          temp_max: 30.5,
-          humidity: 70,
-          weather: "Clouds",
-          description: "scattered clouds",
-          wind_speed: 3.2,
-          precipitation_probability: 20,
-          rain: 0.5,
-        },
-        {
-          date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-          temp_min: 23.5,
-          temp_max: 29.8,
-          humidity: 75,
-          weather: "Rain",
-          description: "light rain",
-          wind_speed: 4.1,
-          precipitation_probability: 60,
-          rain: 5.2,
-        },
-        {
-          date: new Date(Date.now() + 172800000).toISOString().split('T')[0],
-          temp_min: 24.2,
-          temp_max: 31.0,
-          humidity: 68,
-          weather: "Clouds",
-          description: "broken clouds",
-          wind_speed: 3.8,
-          precipitation_probability: 30,
-          rain: 1.0,
-        },
-        {
-          date: new Date(Date.now() + 259200000).toISOString().split('T')[0],
-          temp_min: 25.0,
-          temp_max: 32.5,
-          humidity: 62,
-          weather: "Clear",
-          description: "clear sky",
-          wind_speed: 2.9,
-          precipitation_probability: 10,
-          rain: 0.0,
-        },
-        {
-          date: new Date(Date.now() + 345600000).toISOString().split('T')[0],
-          temp_min: 24.8,
-          temp_max: 31.8,
-          humidity: 65,
-          weather: "Clouds",
-          description: "few clouds",
-          wind_speed: 3.3,
-          precipitation_probability: 15,
-          rain: 0.2,
-        },
-      ];
-
-      const mockAgIndices: AgricultureIndices = {
-        temperature: 28.5,
-        humidity: 65,
-        wind_speed: 3.5,
-        heat_stress_index: "30.8",
-        evapotranspiration_mm: "4.25",
-        growing_degree_days: "18.5",
-        frost_risk: "Low",
-        irrigation_recommendation: "Normal",
-        optimal_spray_conditions: true,
-      };
-
-      setCurrentWeather(mockWeather);
-      setForecast(mockForecast);
-      setAgIndices(mockAgIndices);
-      toast.success("Weather data loaded successfully");
-    } catch (error) {
-      toast.error("Failed to load weather data");
-    } finally {
-      setLoading(false);
-    }
+    weatherQuery.refetch();
+    forecastQuery.refetch();
+    toast.success("Weather data refreshed");
   };
 
   const getWeatherIcon = (weather: string) => {
@@ -168,14 +104,15 @@ export default function WeatherDashboard() {
       case 'drizzle':
         return <CloudRain className="h-8 w-8 text-blue-500" />;
       case 'clouds':
-        return <Cloud className="h-8 w-8 text-gray-500" />;
+        return <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" />;
       default:
-        return <Cloud className="h-8 w-8 text-gray-500" />;
+        return <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400" />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -374,5 +311,6 @@ export default function WeatherDashboard() {
         </Tabs>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

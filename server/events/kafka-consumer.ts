@@ -6,6 +6,7 @@
  */
 
 import { Kafka, Consumer, EachMessagePayload, KafkaMessage } from 'kafkajs';
+import { logger } from '../logger.js';
 
 // ============================================================================
 // Types
@@ -27,7 +28,7 @@ export interface DomainEvent<T = any> {
   timestamp: string;
   userId?: number;
   data: T;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -59,7 +60,7 @@ export class KafkaConsumerManager {
       this.handlers.set(eventType, []);
     }
     this.handlers.get(eventType)!.push(handler);
-    console.log(`[Kafka] Registered handler for event type: ${eventType}`);
+    logger.info(`[Kafka] Registered handler for event type: ${eventType}`);
   }
 
   /**
@@ -69,7 +70,7 @@ export class KafkaConsumerManager {
     const { groupId, topics, fromBeginning = false } = config;
 
     if (this.consumers.has(groupId)) {
-      console.log(`[Kafka] Consumer ${groupId} already exists`);
+      logger.info(`[Kafka] Consumer ${groupId} already exists`);
       return;
     }
 
@@ -78,10 +79,10 @@ export class KafkaConsumerManager {
 
     try {
       await consumer.connect();
-      console.log(`[Kafka] Consumer ${groupId} connected`);
+      logger.info(`[Kafka] Consumer ${groupId} connected`);
 
       await consumer.subscribe({ topics, fromBeginning });
-      console.log(`[Kafka] Consumer ${groupId} subscribed to topics:`, topics);
+      logger.info(`[Kafka] Consumer ${groupId} subscribed to topics:`, topics);
 
       await consumer.run({
         eachMessage: async (payload: EachMessagePayload) => {
@@ -90,9 +91,9 @@ export class KafkaConsumerManager {
       });
 
       this.isConnected = true;
-      console.log(`[Kafka] Consumer ${groupId} started successfully`);
+      logger.info(`[Kafka] Consumer ${groupId} started successfully`);
     } catch (error) {
-      console.error(`[Kafka] Error starting consumer ${groupId}:`, error);
+      logger.error(`[Kafka] Error starting consumer ${groupId}:`, error);
       throw error;
     }
   }
@@ -106,12 +107,12 @@ export class KafkaConsumerManager {
     try {
       const event = this.parseMessage(message);
       
-      console.log(`[Kafka] Processing event: ${event.eventType} from topic: ${topic}`);
+      logger.info(`[Kafka] Processing event: ${event.eventType} from topic: ${topic}`);
 
       const handlers = this.handlers.get(event.eventType) || [];
       
       if (handlers.length === 0) {
-        console.warn(`[Kafka] No handlers registered for event type: ${event.eventType}`);
+        logger.warn(`[Kafka] No handlers registered for event type: ${event.eventType}`);
         return;
       }
 
@@ -120,15 +121,15 @@ export class KafkaConsumerManager {
         handlers.map(async (handler) => {
           try {
             await handler.handle(event);
-            console.log(`[Kafka] Successfully processed event: ${event.eventType}`);
+            logger.info(`[Kafka] Successfully processed event: ${event.eventType}`);
           } catch (error) {
-            console.error(`[Kafka] Handler error for event ${event.eventType}:`, error);
+            logger.error(`[Kafka] Handler error for event ${event.eventType}:`, error);
             // Don't throw - allow other handlers to continue
           }
         })
       );
     } catch (error) {
-      console.error(`[Kafka] Error processing message from topic ${topic}:`, error);
+      logger.error(`[Kafka] Error processing message from topic ${topic}:`, error);
       // In production, you might want to send to dead letter queue
     }
   }
@@ -149,21 +150,21 @@ export class KafkaConsumerManager {
    * Stop all consumers
    */
   async disconnect(): Promise<void> {
-    console.log('[Kafka] Disconnecting all consumers...');
+    logger.info('[Kafka] Disconnecting all consumers...');
     
     const entries = Array.from(this.consumers.entries());
     for (const [groupId, consumer] of entries) {
       try {
         await consumer.disconnect();
-        console.log(`[Kafka] Consumer ${groupId} disconnected`);
+        logger.info(`[Kafka] Consumer ${groupId} disconnected`);
       } catch (error) {
-        console.error(`[Kafka] Error disconnecting consumer ${groupId}:`, error);
+        logger.error(`[Kafka] Error disconnecting consumer ${groupId}:`, error);
       }
     }
 
     this.consumers.clear();
     this.isConnected = false;
-    console.log('[Kafka] All consumers disconnected');
+    logger.info('[Kafka] All consumers disconnected');
   }
 
   /**
@@ -200,7 +201,7 @@ export function getConsumerManager(): KafkaConsumerManager {
 // ============================================================================
 
 process.on('SIGTERM', async () => {
-  console.log('[Kafka] SIGTERM received, shutting down consumers...');
+  logger.info('[Kafka] SIGTERM received, shutting down consumers...');
   if (consumerManager) {
     await consumerManager.disconnect();
   }
@@ -208,7 +209,7 @@ process.on('SIGTERM', async () => {
 });
 
 process.on('SIGINT', async () => {
-  console.log('[Kafka] SIGINT received, shutting down consumers...');
+  logger.info('[Kafka] SIGINT received, shutting down consumers...');
   if (consumerManager) {
     await consumerManager.disconnect();
   }

@@ -34,3 +34,16 @@ return renewalID, nil
 func main() {
 fmt.Println("Certification Management Service running...")
 }
+
+// Health endpoint for container orchestration
+func startHealthServer(serviceName string, port string) {
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		fmt.Fprintf(w, `{"status":"healthy","service":"%s","timestamp":"%s"}`, serviceName, time.Now().Format(time.RFC3339))
+	})
+	go func() {
+		fmt.Printf("Health endpoint available at http://0.0.0.0:%s/health\n", port)
+		http.ListenAndServe(":"+port, nil)
+	}()
+}

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { MapPin, Navigation, Activity, TrendingUp, Plus, Trash2, Loader2, Signal, AlertTriangle } from "lucide-react";
 import { MapView, maplibregl } from "@/components/Map";
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 export default function GPSTracking() {
   const [selectedDevice, setSelectedDevice] = useState<number | null>(null);
   const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
@@ -74,7 +75,7 @@ export default function GPSTracking() {
       el.className = 'gps-track-marker';
       el.style.width = index === 0 ? '16px' : '8px';
       el.style.height = index === 0 ? '16px' : '8px';
-      el.style.backgroundColor = index === 0 ? '#22c55e' : '#3b82f6';
+      el.style.backgroundColor = index === 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.info;
       el.style.borderRadius = '50%';
       el.style.border = '2px solid white';
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
@@ -133,7 +134,7 @@ export default function GPSTracking() {
           'line-cap': 'round',
         },
         paint: {
-          'line-color': '#3b82f6',
+          'line-color': SEMANTIC_COLORS.info,
           'line-width': 3,
           'line-opacity': 0.8,
         },
@@ -195,7 +196,7 @@ export default function GPSTracking() {
                 <DialogTitle>Register GPS Device</DialogTitle>
                 <DialogDescription>Add a new GPS tracking device to your account</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleRegisterDevice} className="space-y-4">
+              <form aria-label="Submit form" onSubmit={handleRegisterDevice} className="space-y-4">
                 <div>
                   <Label htmlFor="deviceId">Device ID</Label>
                   <Input id="deviceId" name="deviceId" placeholder="e.g., GPS-001 or device IMEI" required />
@@ -413,7 +414,7 @@ export default function GPSTracking() {
                   <TabsContent value="statistics" className="space-y-4">
                     {statistics ? (
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 border rounded-lg">
+                        <div role="main" aria-label="Page content" className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Total Points</p>
                           <p className="text-2xl font-bold">{(statistics as any).total_points || 0}</p>
                         </div>

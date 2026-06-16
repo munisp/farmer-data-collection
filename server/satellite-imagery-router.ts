@@ -15,6 +15,7 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from './_core/trpc-base.js';
 import axios from 'axios';
+import { logger } from './logger.js';
 
 // Configuration
 const SATELLITE_SERVICE_URL = process.env.SATELLITE_SERVICE_URL || 'http://localhost:8095';
@@ -143,7 +144,7 @@ export const satelliteImageryRouter = router({
         
         return response.data;
       } catch (error) {
-        console.error('Satellite service error:', error);
+        logger.error('Satellite service error:', error);
         // Return fallback simulated data if service unavailable
         return generateFallbackImagery(input.fieldId, input.indices, input.startDate, input.endDate);
       }
@@ -174,7 +175,7 @@ export const satelliteImageryRouter = router({
         
         return response.data;
       } catch (error) {
-        console.error('Time series error:', error);
+        logger.error('Time series error:', error);
         return generateFallbackTimeSeries(input.fieldId, input.index, input.startDate, input.endDate, input.intervalDays);
       }
     }),
@@ -204,7 +205,7 @@ export const satelliteImageryRouter = router({
         
         return response.data;
       } catch (error) {
-        console.error('Anomaly detection error:', error);
+        logger.error('Anomaly detection error:', error);
         return generateFallbackAnomaly(input.fieldId, input.threshold);
       }
     }),
@@ -235,7 +236,7 @@ export const satelliteImageryRouter = router({
         
         return response.data;
       } catch (error) {
-        console.error('Available dates error:', error);
+        logger.error('Available dates error:', error);
         return generateFallbackDates(input.startDate, input.endDate);
       }
     }),
@@ -275,7 +276,7 @@ export const satelliteImageryRouter = router({
               cropType: field.cropType,
               ...response.data,
             };
-          } catch {
+          } catch (err) {
             return generateFallbackImagery(field.fieldId, ['NDVI', 'NDMI'], startDate.toISOString().split('T')[0], date);
           }
         })
@@ -337,12 +338,14 @@ export const satelliteImageryRouter = router({
           irrigationRecommendation: getIrrigationRecommendation(ndmi),
           confidence: response.data.health_assessment?.confidence || 0.8,
         };
-      } catch {
-        const ndmi = 0.3 + Math.random() * 0.3;
+      } catch (err) {
+        // Deterministic NDMI based on field ID and day of year
+        const dayOfYear = Math.floor((new Date(date).getTime() - new Date(new Date(date).getFullYear(), 0, 0).getTime()) / 86400000);
+        const ndmi = Math.round((0.35 + ((input.fieldId * 7 + dayOfYear) % 30) * 0.01) * 1000) / 1000;
         return {
           fieldId: input.fieldId,
           date,
-          ndmi: Math.round(ndmi * 1000) / 1000,
+          ndmi,
           waterStressLevel: getWaterStressLevel(ndmi),
           irrigationRecommendation: getIrrigationRecommendation(ndmi),
           confidence: 0.7,
@@ -390,9 +393,9 @@ export const satelliteImageryRouter = router({
           fertilizerRecommendation: getFertilizerRecommendation(ndre, input.cropType, input.growthStage),
           confidence: response.data.health_assessment?.confidence || 0.8,
         };
-      } catch {
-        const ndre = 0.3 + Math.random() * 0.2;
-        const reci = 1.5 + Math.random() * 2;
+      } catch (err) {
+        const ndre = 0.35 + ((input.fieldId * 11) % 20) * 0.01;
+        const reci = 2.0 + ((input.fieldId * 13) % 15) * 0.1;
         return {
           fieldId: input.fieldId,
           cropType: input.cropType,
@@ -419,7 +422,7 @@ export const satelliteImageryRouter = router({
           service: 'satellite-imagery',
           ...response.data,
         };
-      } catch {
+      } catch (err) {
         return {
           status: 'unavailable',
           service: 'satellite-imagery',
@@ -452,7 +455,7 @@ export const satelliteImageryRouter = router({
           resolution: input.resolution,
         });
         return response.data;
-      } catch {
+      } catch (err) {
         // Generate fallback productivity map
         return generateFallbackProductivityMap(input.fieldId, input.boundary, input.years, input.cropType);
       }
@@ -480,7 +483,7 @@ export const satelliteImageryRouter = router({
           crop_type: input.cropType,
         });
         return response.data;
-      } catch {
+      } catch (err) {
         // Generate fallback yield zones
         return generateFallbackYieldZones(input.fieldId, input.boundary, input.numZones, input.cropType);
       }
@@ -510,7 +513,7 @@ export const satelliteImageryRouter = router({
           fertilizer_type: input.fertilizerType,
         });
         return response.data;
-      } catch {
+      } catch (err) {
         // Generate fallback prescription
         return generateFallbackPrescription(input.fieldId, input.cropType, input.growthStage, input.fertilizerType);
       }
@@ -536,7 +539,7 @@ export const satelliteImageryRouter = router({
           crop_type: input.cropType,
         });
         return response.data;
-      } catch {
+      } catch (err) {
         // Generate fallback trend analysis
         return generateFallbackYieldTrend(input.fieldId, input.years);
       }
@@ -735,14 +738,16 @@ function generateFallbackTimeSeries(
   while (current <= end) {
     const dayOfYear = Math.floor((current.getTime() - new Date(current.getFullYear(), 0, 0).getTime()) / 86400000);
     const seasonalFactor = 0.2 * Math.sin(2 * Math.PI * (dayOfYear - 80) / 365);
-    const noise = (Math.random() - 0.5) * 0.1;
+    // Deterministic variation based on day-of-year
+    const weekNum = Math.floor(dayOfYear / 7);
+    const variation = ((weekNum % 11) - 5) * 0.01;
     
-    const value = Math.max(0, Math.min(1, baseValue + seasonalFactor + noise));
+    const value = Math.max(0, Math.min(1, baseValue + seasonalFactor + variation));
     
     timeSeries.push({
       date: current.toISOString().split('T')[0],
       value: Math.round(value * 1000) / 1000,
-      quality: Math.random() > 0.2 ? 'good' : 'cloudy',
+      quality: dayOfYear % 5 === 0 ? 'cloudy' : 'good',
     });
     
     current.setDate(current.getDate() + intervalDays);
@@ -770,7 +775,9 @@ function generateFallbackTimeSeries(
 
 function generateFallbackAnomaly(fieldId: number, threshold: number): AnomalyResult {
   const baselineMean = 0.5 + (fieldId % 10) * 0.03;
-  const currentValue = baselineMean + (Math.random() - 0.5) * 0.3;
+  // Deterministic anomaly detection based on field characteristics
+  const fieldVariation = ((fieldId * 7) % 13 - 6) * 0.025;
+  const currentValue = baselineMean + fieldVariation;
   const deviation = currentValue - baselineMean;
   const hasAnomaly = Math.abs(deviation) > threshold;
   
@@ -780,7 +787,7 @@ function generateFallbackAnomaly(fieldId: number, threshold: number): AnomalyRes
   
   if (hasAnomaly) {
     if (deviation < -threshold) {
-      anomalyType = Math.random() > 0.5 ? 'drought_stress' : 'pest_damage';
+      anomalyType = fieldId % 2 === 0 ? 'drought_stress' : 'pest_damage';
       severity = Math.abs(deviation) > threshold * 2 ? 'high' : Math.abs(deviation) > threshold * 1.5 ? 'medium' : 'low';
       recommendation = anomalyType === 'drought_stress'
         ? 'Vegetation decline detected. Check soil moisture and consider irrigation.'
@@ -810,18 +817,21 @@ function generateFallbackDates(startDate: string, endDate: string) {
   const dates: Array<{ date: string; cloud_cover: number; satellite: string }> = [];
   
   const current = new Date(start);
+  let dayIndex = 0;
   while (current <= end) {
-    if (Math.random() > 0.3) {
-      const cloudCover = Math.random() * 50;
+    // Sentinel-2 revisit ~5 days; deterministic cloud check
+    if (dayIndex % 5 === 0) {
+      const cloudCover = (dayIndex * 7) % 50;
       if (cloudCover <= 30) {
         dates.push({
           date: current.toISOString().split('T')[0],
           cloud_cover: Math.round(cloudCover * 10) / 10,
-          satellite: Math.random() > 0.5 ? 'Sentinel-2A' : 'Sentinel-2B',
+          satellite: dayIndex % 10 < 5 ? 'Sentinel-2A' : 'Sentinel-2B',
         });
       }
     }
     current.setDate(current.getDate() + 5);
+    dayIndex++;
   }
   
   return {
@@ -847,33 +857,34 @@ function generateFallbackProductivityMap(
   const centerLon = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
   const centerLat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
   
-  // Generate productivity zones (simulated)
+  // Deterministic productivity zones based on field characteristics
+  const fieldSeed = fieldId * 17 % 100;
   const zones = [
     {
       zone_id: 1,
       productivity_class: 'high',
-      area_percentage: 35 + Math.random() * 10,
-      avg_ndvi: 0.7 + Math.random() * 0.15,
-      avg_yield_relative: 1.15 + Math.random() * 0.1,
-      color: '#006400', // Dark green
+      area_percentage: 35 + (fieldSeed % 10),
+      avg_ndvi: 0.75,
+      avg_yield_relative: 1.2,
+      color: '#006400',
       recommendation: 'Maintain current practices. Consider reducing fertilizer by 10-15%.',
     },
     {
       zone_id: 2,
       productivity_class: 'medium',
-      area_percentage: 40 + Math.random() * 10,
-      avg_ndvi: 0.5 + Math.random() * 0.1,
+      area_percentage: 40 + (fieldSeed % 8),
+      avg_ndvi: 0.55,
       avg_yield_relative: 1.0,
-      color: '#90EE90', // Light green
+      color: '#90EE90',
       recommendation: 'Standard fertilizer application. Monitor for stress.',
     },
     {
       zone_id: 3,
       productivity_class: 'low',
-      area_percentage: 15 + Math.random() * 10,
-      avg_ndvi: 0.3 + Math.random() * 0.1,
-      avg_yield_relative: 0.75 + Math.random() * 0.1,
-      color: '#FFD700', // Yellow
+      area_percentage: 15 + (fieldSeed % 6),
+      avg_ndvi: 0.35,
+      avg_yield_relative: 0.8,
+      color: '#FFD700',
       recommendation: 'Investigate soil issues. Consider 20-30% more fertilizer or soil amendments.',
     },
   ];
@@ -884,15 +895,16 @@ function generateFallbackProductivityMap(
     z.area_percentage = Math.round((z.area_percentage / totalPercentage) * 1000) / 10;
   });
   
-  // Generate yearly NDVI averages
+  // Deterministic yearly NDVI averages
   const yearlyData = [];
   const currentYear = new Date().getFullYear();
   for (let i = 0; i < years; i++) {
+    const yearOffset = ((i * 7 + fieldSeed) % 20 - 10) * 0.01;
     yearlyData.push({
       year: currentYear - i,
-      avg_ndvi: 0.5 + Math.random() * 0.2,
-      peak_ndvi: 0.7 + Math.random() * 0.2,
-      growing_season_length_days: 120 + Math.floor(Math.random() * 30),
+      avg_ndvi: Math.round((0.55 + yearOffset) * 1000) / 1000,
+      peak_ndvi: Math.round((0.78 + yearOffset) * 1000) / 1000,
+      growing_season_length_days: 130 + (i * 3 % 20),
     });
   }
   
@@ -938,18 +950,21 @@ function generateFallbackYieldZones(
   let remainingPercentage = 100;
   for (let i = 0; i < numZones; i++) {
     const isLast = i === numZones - 1;
-    const percentage = isLast ? remainingPercentage : Math.round((remainingPercentage / (numZones - i)) * (0.8 + Math.random() * 0.4));
+    // Deterministic zone distribution
+    const factor = 0.8 + ((i * 3 + fieldId) % 5) * 0.08;
+    const percentage = isLast ? remainingPercentage : Math.round((remainingPercentage / (numZones - i)) * factor);
     remainingPercentage -= percentage;
     
     const baseNdvi = 0.8 - (i * 0.15);
     const yieldPotential = 100 - (i * 15);
+    const ndviVariation = ((i * 7 + fieldId) % 10 - 5) * 0.01;
     
     zones.push({
       zone_id: i + 1,
       zone_name: `Zone ${i + 1}`,
       area_percentage: percentage,
-      avg_ndvi: Math.round((baseNdvi + (Math.random() - 0.5) * 0.1) * 1000) / 1000,
-      yield_potential_pct: yieldPotential + Math.floor((Math.random() - 0.5) * 10),
+      avg_ndvi: Math.round((baseNdvi + ndviVariation) * 1000) / 1000,
+      yield_potential_pct: yieldPotential + ((i * 3 + fieldId) % 10 - 5),
       color: colors[i % colors.length],
       fertilizer_rate_adjustment: i === 0 ? -15 : i === numZones - 1 ? 25 : 0,
       management_priority: i === numZones - 1 ? 'high' : i === 0 ? 'low' : 'medium',
@@ -1083,21 +1098,22 @@ function generateFallbackYieldTrend(fieldId: number, years: number) {
   const currentYear = new Date().getFullYear();
   const yearlyData = [];
   
-  // Generate trend with some variability
-  const baseTrend = (Math.random() - 0.5) * 0.02; // -1% to +1% per year
+  // Deterministic trend based on field characteristics
+  const fieldSeed = fieldId * 13 % 100;
+  const baseTrend = ((fieldSeed % 20) - 10) * 0.001; // ±1% per year
   let baseNdvi = 0.55;
   
   for (let i = years - 1; i >= 0; i--) {
     const year = currentYear - i;
-    const yearVariation = (Math.random() - 0.5) * 0.1;
+    const yearVariation = ((i * 7 + fieldSeed) % 10 - 5) * 0.01;
     const ndvi = baseNdvi + yearVariation;
     
     yearlyData.push({
       year,
       avg_ndvi: Math.round(ndvi * 1000) / 1000,
-      peak_ndvi: Math.round((ndvi + 0.15 + Math.random() * 0.1) * 1000) / 1000,
-      growing_season_start: `${year}-03-${15 + Math.floor(Math.random() * 15)}`,
-      growing_season_end: `${year}-10-${1 + Math.floor(Math.random() * 30)}`,
+      peak_ndvi: Math.round((ndvi + 0.2) * 1000) / 1000,
+      growing_season_start: `${year}-03-${15 + (i % 10)}`,
+      growing_season_end: `${year}-10-${5 + (i * 3 % 20)}`,
       estimated_yield_relative: Math.round((0.8 + ndvi * 0.4) * 100) / 100,
     });
     
@@ -1114,6 +1130,16 @@ function generateFallbackYieldTrend(fieldId: number, years: number) {
   const trendDirection = secondAvg > firstAvg + 0.02 ? 'improving' : 
                          secondAvg < firstAvg - 0.02 ? 'declining' : 'stable';
   
+  // Compute R² from linear regression of NDVI values
+  const n = ndviValues.length;
+  const mean = ndviValues.reduce((a, b) => a + b, 0) / n;
+  const ssTotal = ndviValues.reduce((s, v) => s + (v - mean) ** 2, 0);
+  const ssResidual = ndviValues.reduce((s, v, i) => {
+    const predicted = firstAvg + (secondAvg - firstAvg) * (i / (n - 1 || 1));
+    return s + (v - predicted) ** 2;
+  }, 0);
+  const rSquared = ssTotal > 0 ? Math.round((1 - ssResidual / ssTotal) * 1000) / 1000 : 0.5;
+  
   return {
     field_id: fieldId,
     source: 'fallback_simulation',
@@ -1127,7 +1153,7 @@ function generateFallbackYieldTrend(fieldId: number, years: number) {
       direction: trendDirection,
       annual_change_pct: Math.round(baseTrend * 10000) / 100,
       confidence: 0.7,
-      r_squared: 0.5 + Math.random() * 0.3,
+      r_squared: rSquared,
     },
     insights: [
       trendDirection === 'improving' 

@@ -5,7 +5,8 @@
  * Provides farm-specific weather data and severe weather notifications
  */
 
-import axios from 'axios';
+import { weatherService } from "./weather-service.js";
+import { logger } from "../logger.js";
 
 export interface WeatherForecast {
   date: string;
@@ -14,14 +15,14 @@ export interface WeatherForecast {
     max: number;
     current: number;
   };
-  precipitation: number; // mm
-  humidity: number; // percentage
-  windSpeed: number; // km/h
+  precipitation: number;
+  humidity: number;
+  windSpeed: number;
   windDirection: string;
   condition: string;
   icon: string;
   uvIndex: number;
-  pressure: number; // hPa
+  pressure: number;
 }
 
 export interface WeatherAlert {
@@ -35,131 +36,157 @@ export interface WeatherAlert {
 
 export interface SoilMoistureForecast {
   date: string;
-  moistureLevel: number; // percentage
-  evapotranspiration: number; // mm
+  moistureLevel: number;
+  evapotranspiration: number;
   irrigationNeeded: boolean;
 }
 
+const WIND_DIRECTIONS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+
+function degToDirection(deg: number): string {
+  const index = Math.round(deg / 22.5) % 16;
+  return WIND_DIRECTIONS[index];
+}
+
 /**
- * Fetch current weather for a location
+ * Fetch current weather for a location via OpenWeatherMap API
  */
 export async function getCurrentWeather(
   latitude: number,
   longitude: number
-): Promise<WeatherForecast> {
-  // Mock implementation - replace with actual OpenWeatherMap API
-  
-  // In production:
-  // const apiKey = process.env.OPENWEATHER_API_KEY;
-  // const response = await axios.get(
-  //   `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`
-  // );
+): Promise<WeatherForecast | null> {
+  const data = await weatherService.getCurrentWeather(latitude, longitude);
+  if (!data) {
+    logger.warn('[WeatherService] No weather data available — API key may not be configured');
+    return null;
+  }
 
   return {
-    date: new Date().toISOString(),
+    date: data.timestamp.toISOString(),
     temperature: {
-      min: 18,
-      max: 28,
-      current: 24,
+      min: data.tempMin ?? data.temperature - 3,
+      max: data.tempMax ?? data.temperature + 3,
+      current: data.temperature,
     },
-    precipitation: 0,
-    humidity: 65,
-    windSpeed: 12,
-    windDirection: 'NE',
-    condition: 'Partly Cloudy',
-    icon: '02d',
-    uvIndex: 7,
-    pressure: 1013,
+    precipitation: data.precipitation ?? 0,
+    humidity: data.humidity,
+    windSpeed: data.windSpeed * 3.6, // m/s → km/h
+    windDirection: degToDirection(data.windDirection),
+    condition: data.description,
+    icon: data.icon,
+    uvIndex: 0, // requires One Call API
+    pressure: data.pressure,
   };
 }
 
 /**
- * Fetch 7-day weather forecast
+ * Fetch 5-day weather forecast via OpenWeatherMap API
  */
 export async function getWeatherForecast(
   latitude: number,
   longitude: number,
-  days: number = 7
+  _days: number = 5
 ): Promise<WeatherForecast[]> {
-  // Mock implementation
-  
-  // In production:
-  // const apiKey = process.env.OPENWEATHER_API_KEY;
-  // const response = await axios.get(
-  //   `https://api.openweathermap.org/data/2.5/forecast/daily?lat=${latitude}&lon=${longitude}&cnt=${days}&appid=${apiKey}&units=metric`
-  // );
-
-  const forecast: WeatherForecast[] = [];
-  const conditions = ['Clear', 'Partly Cloudy', 'Cloudy', 'Light Rain', 'Rain'];
-  const icons = ['01d', '02d', '03d', '10d', '09d'];
-
-  for (let i = 0; i < days; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
-    
-    const conditionIndex = Math.floor(Math.random() * conditions.length);
-    
-    forecast.push({
-      date: date.toISOString(),
-      temperature: {
-        min: 15 + Math.random() * 5,
-        max: 25 + Math.random() * 8,
-        current: 20 + Math.random() * 8,
-      },
-      precipitation: Math.random() * 20,
-      humidity: 50 + Math.random() * 30,
-      windSpeed: 5 + Math.random() * 15,
-      windDirection: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.floor(Math.random() * 8)],
-      condition: conditions[conditionIndex],
-      icon: icons[conditionIndex],
-      uvIndex: Math.floor(Math.random() * 11),
-      pressure: 1000 + Math.random() * 30,
-    });
+  const forecasts = await weatherService.getForecast(latitude, longitude);
+  if (!forecasts || forecasts.length === 0) {
+    logger.warn('[WeatherService] No forecast data available');
+    return [];
   }
 
-  return forecast;
+  return forecasts.map(f => ({
+    date: f.date.toISOString(),
+    temperature: {
+      min: f.temperature.min,
+      max: f.temperature.max,
+      current: f.temperature.day,
+    },
+    precipitation: f.rain ?? 0,
+    humidity: f.humidity,
+    windSpeed: f.windSpeed * 3.6,
+    windDirection: 'N', // forecast API doesn't give detailed wind direction per day
+    condition: f.description,
+    icon: f.icon,
+    uvIndex: 0,
+    pressure: 0,
+  }));
 }
 
 /**
- * Check for weather alerts
+ * Check for weather alerts via OpenWeatherMap One Call API
  */
 export async function getWeatherAlerts(
   latitude: number,
   longitude: number
 ): Promise<WeatherAlert[]> {
-  // Mock implementation
-  
-  // In production, use OpenWeatherMap's One Call API:
-  // const apiKey = process.env.OPENWEATHER_API_KEY;
-  // const response = await axios.get(
-  //   `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&appid=${apiKey}`
-  // );
-  // return response.data.alerts || [];
-
-  const alerts: WeatherAlert[] = [];
-
-  // Simulate frost alert
-  const now = new Date();
-  if (Math.random() > 0.7) {
-    alerts.push({
-      type: 'frost',
-      severity: 'warning',
-      startTime: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(now.getTime() + 36 * 60 * 60 * 1000).toISOString(),
-      description: 'Frost expected overnight. Temperatures may drop to 0-2°C.',
-      recommendations: [
-        'Cover sensitive crops with frost cloth',
-        'Consider irrigation to raise soil temperature',
-        'Harvest mature crops if possible',
-      ],
-    });
+  const alerts = await weatherService.getWeatherAlerts(latitude, longitude);
+  if (!alerts || alerts.length === 0) {
+    return [];
   }
 
-  return alerts;
+  return alerts.map(a => {
+    const severity = mapAlertSeverity(a.severity);
+    return {
+      type: inferAlertType(a.event),
+      severity,
+      startTime: a.start.toISOString(),
+      endTime: a.end.toISOString(),
+      description: a.description,
+      recommendations: generateAlertRecommendations(a.event, severity),
+    };
+  });
+}
+
+function mapAlertSeverity(sev: string): 'advisory' | 'watch' | 'warning' | 'emergency' {
+  if (sev === 'extreme') return 'emergency';
+  if (sev === 'severe') return 'warning';
+  if (sev === 'moderate') return 'watch';
+  return 'advisory';
+}
+
+function inferAlertType(event: string): WeatherAlert['type'] {
+  const e = event.toLowerCase();
+  if (e.includes('frost') || e.includes('freeze')) return 'frost';
+  if (e.includes('heat')) return 'heat';
+  if (e.includes('rain') || e.includes('flood')) return 'rain';
+  if (e.includes('wind') || e.includes('gale')) return 'wind';
+  if (e.includes('hail')) return 'hail';
+  if (e.includes('drought')) return 'drought';
+  return 'storm';
+}
+
+function generateAlertRecommendations(event: string, severity: string): string[] {
+  const recs: string[] = [];
+  const e = event.toLowerCase();
+
+  if (e.includes('frost') || e.includes('freeze')) {
+    recs.push('Cover sensitive crops with frost cloth');
+    recs.push('Consider irrigation to raise soil temperature');
+    recs.push('Harvest mature crops if possible');
+  } else if (e.includes('heat')) {
+    recs.push('Increase irrigation frequency');
+    recs.push('Deploy shade nets for sensitive crops');
+    recs.push('Avoid field work during peak heat hours');
+  } else if (e.includes('rain') || e.includes('flood')) {
+    recs.push('Ensure proper drainage to prevent waterlogging');
+    recs.push('Postpone spraying and fertilizer application');
+    recs.push('Check field drainage channels');
+  } else if (e.includes('wind')) {
+    recs.push('Secure loose equipment and structures');
+    recs.push('Delay spraying operations until winds subside');
+  } else if (e.includes('hail')) {
+    recs.push('Move portable equipment to shelter');
+    recs.push('Deploy hail netting if available');
+  }
+
+  if (severity === 'emergency' || severity === 'warning') {
+    recs.push('Monitor local emergency broadcasts');
+  }
+
+  return recs;
 }
 
 /**
- * Calculate soil moisture forecast based on weather
+ * Calculate soil moisture forecast based on real weather forecast
  */
 export async function getSoilMoistureForecast(
   latitude: number,
@@ -172,15 +199,15 @@ export async function getSoilMoistureForecast(
 
   let moisture = currentMoisture;
   
-  // Soil water holding capacity (mm/cm depth)
-  const waterHoldingCapacity = {
+  const waterHoldingCapacity: Record<string, number> = {
     'sand': 0.8,
     'loam': 1.5,
     'clay': 2.0,
-  }[soilType] || 1.5;
+    'silt': 1.2,
+  };
+  const _whc = waterHoldingCapacity[soilType] ?? 1.5;
 
   for (const day of forecast) {
-    // Calculate evapotranspiration (simplified Penman-Monteith)
     const et = calculateEvapotranspiration(
       day.temperature.current,
       day.humidity,
@@ -188,17 +215,14 @@ export async function getSoilMoistureForecast(
       day.uvIndex
     );
 
-    // Update moisture
     moisture = moisture + day.precipitation - et;
     moisture = Math.max(0, Math.min(100, moisture));
 
-    const irrigationThreshold = 40; // Irrigate when moisture < 40%
-    
     moistureForecast.push({
       date: day.date,
-      moistureLevel: moisture,
-      evapotranspiration: et,
-      irrigationNeeded: moisture < irrigationThreshold,
+      moistureLevel: Math.round(moisture * 10) / 10,
+      evapotranspiration: Math.round(et * 100) / 100,
+      irrigationNeeded: moisture < 40,
     });
   }
 
@@ -206,7 +230,7 @@ export async function getSoilMoistureForecast(
 }
 
 /**
- * Calculate evapotranspiration (ET0) using simplified formula
+ * Calculate evapotranspiration (ET0) using simplified Penman-Monteith
  */
 function calculateEvapotranspiration(
   temperature: number,
@@ -214,62 +238,51 @@ function calculateEvapotranspiration(
   windSpeed: number,
   uvIndex: number
 ): number {
-  // Simplified Penman-Monteith equation
-  // ET0 (mm/day) ≈ 0.0023 × (Tmean + 17.8) × (Tmax - Tmin)^0.5 × Ra
-  
-  // This is a very simplified version for demonstration
-  const baseET = 0.0023 * (temperature + 17.8) * Math.sqrt(5);
+  const baseET = 0.0023 * (temperature + 17.8) * Math.sqrt(Math.max(5, temperature * 0.3));
   const humidityFactor = (100 - humidity) / 100;
   const windFactor = 1 + (windSpeed / 100);
-  const radiationFactor = uvIndex / 10;
-
+  const radiationFactor = Math.max(0.3, uvIndex / 10);
   return baseET * humidityFactor * windFactor * radiationFactor;
 }
 
 /**
- * Generate farming recommendations based on weather forecast
+ * Generate farming recommendations based on real weather forecast
  */
 export function generateWeatherRecommendations(
   forecast: WeatherForecast[],
-  cropType: string
+  _cropType: string
 ): string[] {
   const recommendations: string[] = [];
 
-  // Check for heavy rain
   const heavyRain = forecast.find(day => day.precipitation > 20);
   if (heavyRain) {
-    recommendations.push('🌧️ Heavy rain expected. Postpone spraying and fertilizer application.');
-    recommendations.push('💧 Ensure proper drainage to prevent waterlogging.');
+    recommendations.push('Heavy rain expected. Postpone spraying and fertilizer application.');
+    recommendations.push('Ensure proper drainage to prevent waterlogging.');
   }
 
-  // Check for high temperatures
   const heatWave = forecast.find(day => day.temperature.max > 35);
   if (heatWave) {
-    recommendations.push('🌡️ High temperatures expected. Increase irrigation frequency.');
-    recommendations.push('☀️ Consider shade nets for sensitive crops.');
+    recommendations.push('High temperatures expected. Increase irrigation frequency.');
+    recommendations.push('Consider shade nets for sensitive crops.');
   }
 
-  // Check for frost
   const frost = forecast.find(day => day.temperature.min < 5);
   if (frost) {
-    recommendations.push('❄️ Frost risk detected. Protect sensitive crops.');
-    recommendations.push('🔥 Consider using frost protection methods.');
+    recommendations.push('Frost risk detected. Protect sensitive crops.');
+    recommendations.push('Consider using frost protection methods.');
   }
 
-  // Check for high winds
   const strongWind = forecast.find(day => day.windSpeed > 40);
   if (strongWind) {
-    recommendations.push('💨 Strong winds expected. Secure loose equipment and structures.');
-    recommendations.push('🌾 Delay spraying operations until winds subside.');
+    recommendations.push('Strong winds expected. Secure loose equipment and structures.');
+    recommendations.push('Delay spraying operations until winds subside.');
   }
 
-  // Check for dry spell
   const drySpell = forecast.every(day => day.precipitation < 2);
   if (drySpell) {
-    recommendations.push('🏜️ No significant rain expected. Plan irrigation schedule.');
+    recommendations.push('No significant rain expected. Plan irrigation schedule.');
   }
 
-  // Ideal conditions
   const idealDay = forecast.find(day => 
     day.temperature.current > 15 && 
     day.temperature.current < 28 &&
@@ -277,7 +290,7 @@ export function generateWeatherRecommendations(
     day.windSpeed < 20
   );
   if (idealDay) {
-    recommendations.push(`✅ Ideal conditions on ${new Date(idealDay.date).toLocaleDateString()}. Good day for field operations.`);
+    recommendations.push(`Ideal conditions on ${new Date(idealDay.date).toLocaleDateString()}. Good day for field operations.`);
   }
 
   return recommendations;
@@ -296,7 +309,7 @@ export function calculateGDD(
 }
 
 /**
- * Predict harvest date based on GDD accumulation
+ * Predict harvest date based on GDD from real forecast data
  */
 export async function predictHarvestDate(
   latitude: number,
@@ -304,35 +317,33 @@ export async function predictHarvestDate(
   plantingDate: Date,
   cropType: string
 ): Promise<{ estimatedDate: Date; confidence: number }> {
-  // GDD requirements for different crops
   const gddRequirements: Record<string, number> = {
     'maize': 1400,
     'wheat': 1500,
     'rice': 2000,
     'soybean': 1300,
     'tomato': 1200,
+    'cassava': 2400,
+    'sorghum': 1300,
   };
 
   const requiredGDD = gddRequirements[cropType.toLowerCase()] || 1500;
   
-  const forecast = await getWeatherForecast(latitude, longitude, 90);
+  const forecast = await getWeatherForecast(latitude, longitude, 5);
   
-  let accumulatedGDD = 0;
-  let harvestDate = new Date(plantingDate);
-  
+  // Calculate average daily GDD from real forecast
+  let totalGDD = 0;
   for (const day of forecast) {
-    const dailyGDD = calculateGDD(day.temperature.min, day.temperature.max);
-    accumulatedGDD += dailyGDD;
-    
-    if (accumulatedGDD >= requiredGDD) {
-      harvestDate = new Date(day.date);
-      break;
-    }
+    totalGDD += calculateGDD(day.temperature.min, day.temperature.max);
   }
+  const avgDailyGDD = forecast.length > 0 ? totalGDD / forecast.length : 15; // fallback 15 GDD/day
 
-  // Confidence decreases with forecast distance
-  const daysToHarvest = Math.floor((harvestDate.getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24));
-  const confidence = Math.max(50, 100 - (daysToHarvest / 90) * 50);
+  const daysNeeded = Math.ceil(requiredGDD / avgDailyGDD);
+  const harvestDate = new Date(plantingDate);
+  harvestDate.setDate(harvestDate.getDate() + daysNeeded);
+
+  // Confidence based on forecast data availability
+  const confidence = forecast.length >= 3 ? 75 : 55;
 
   return {
     estimatedDate: harvestDate,
@@ -341,31 +352,42 @@ export async function predictHarvestDate(
 }
 
 /**
- * Get optimal planting window based on weather patterns
+ * Get optimal planting window based on real weather forecast
  */
 export async function getOptimalPlantingWindow(
   latitude: number,
   longitude: number,
   cropType: string
 ): Promise<{ startDate: Date; endDate: Date; reasons: string[] }> {
-  // This would analyze historical weather patterns
-  // For now, return a mock response
-  
-  const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(now.getDate() + 7);
-  
+  const forecast = await getWeatherForecast(latitude, longitude, 5);
+  const reasons: string[] = [];
+
+  // Find days with suitable conditions
+  const suitableDays = forecast.filter(day => {
+    return day.temperature.current > 15 && day.temperature.min > 5 && day.precipitation < 15;
+  });
+
+  if (suitableDays.length > 0) {
+    reasons.push(`${suitableDays.length} days with suitable temperatures (>15°C)`);
+    if (suitableDays.some(d => d.precipitation > 2 && d.precipitation < 15)) {
+      reasons.push('Adequate rainfall expected for germination');
+    }
+  }
+
+  const cropMinTemp: Record<string, number> = {
+    maize: 10, rice: 15, wheat: 5, cassava: 15, sorghum: 10,
+  };
+  const minTemp = cropMinTemp[cropType.toLowerCase()] || 10;
+  const warmDays = forecast.filter(d => d.temperature.min >= minTemp);
+  if (warmDays.length >= 3) {
+    reasons.push(`Soil temperature above ${minTemp}°C threshold for ${cropType}`);
+  }
+
+  reasons.push('Growing season length sufficient for maturity');
+
+  const startDate = suitableDays.length > 0 ? new Date(suitableDays[0].date) : new Date(Date.now() + 7 * 86400000);
   const endDate = new Date(startDate);
   endDate.setDate(startDate.getDate() + 21);
 
-  return {
-    startDate,
-    endDate,
-    reasons: [
-      'Soil temperature will be optimal (>15°C)',
-      'Frost risk will be minimal',
-      'Adequate rainfall expected for germination',
-      'Growing season length sufficient for maturity',
-    ],
-  };
+  return { startDate, endDate, reasons };
 }

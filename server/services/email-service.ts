@@ -13,6 +13,7 @@
 
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import { logger } from '../logger.js';
 
 // Email configuration
 const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || "smtp";
@@ -81,10 +82,10 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       attachments: options.attachments,
     });
 
-    console.log(`Email sent successfully to ${options.to}`);
+    logger.info(`Email sent successfully to ${options.to}`);
     return true;
   } catch (error) {
-    console.error("Email send error:", error);
+    logger.error("Email send error:", error);
     return false;
   }
 }

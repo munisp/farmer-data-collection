@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { disbursementService } from "../services/disbursement-service.js";
@@ -9,6 +10,7 @@ import { users } from "../../drizzle/schema.js";
 import { eq, desc } from "drizzle-orm";
 import { checkLoanDisbursementKyc } from "../middleware/kyc-enforcement.js";
 
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
 // Admin middleware - checks if user has admin role
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (ctx.user.role !== "admin") {
@@ -42,6 +44,13 @@ export const disbursementRouter = router({
         })
       )
       .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("disbursement", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("disbursement", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "disbursement", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
         // Enforce KYC requirements before disbursement
         const kycCheck = await checkLoanDisbursementKyc(input.userId, input.amount);
         if (!kycCheck.allowed) {
@@ -53,10 +62,10 @@ export const disbursementRouter = router({
 
         try {
           return await disbursementService.createDisbursement(input);
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to create disbursement",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -74,15 +83,22 @@ export const disbursementRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("disbursement", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("disbursement", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "disbursement", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       try {
         return await disbursementService.processDisbursement({
           ...input,
           processedBy: ctx.user.id,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to process disbursement",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -99,16 +115,23 @@ export const disbursementRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("disbursement", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("disbursement", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "disbursement", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       try {
         return await disbursementService.completeDisbursement(
           input.disbursementId,
           ctx.user.id,
           input.notes
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to complete disbursement",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -125,16 +148,23 @@ export const disbursementRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("disbursement", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("disbursement", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "disbursement", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       try {
         return await disbursementService.failDisbursement(
           input.disbursementId,
           ctx.user.id,
           input.failureReason
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to mark disbursement as failed",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -151,16 +181,23 @@ export const disbursementRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("disbursement", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("disbursement", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission(String(ctx.user?.id ?? "anon"), "disbursement", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
       try {
         return await disbursementService.cancelDisbursement(
           input.disbursementId,
           ctx.user.id,
           input.reason
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.message || "Failed to cancel disbursement",
+          message: (error instanceof Error ? error.message : String(error)),
         });
       }
     }),
@@ -213,7 +250,7 @@ export const disbursementRouter = router({
    */
   getAll: adminProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     // Get all disbursements with loan, lender, and user details
     const disbursements = await db
@@ -284,7 +321,7 @@ export const disbursementRouter = router({
    */
   getAnalytics: adminProcedure.query(async () => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     // Get all disbursements with timestamps
     const allDisbursements = await db

@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
@@ -9,6 +10,7 @@ import { users } from "../../drizzle/schema";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { sendPaymentReminder } from "../services/sms";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const smsRouter = router({
   /**
    * Get SMS delivery logs with pagination
@@ -24,7 +26,7 @@ export const smsRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [eq(smsDeliveryLogs.userId, ctx.user.id)];
       
@@ -52,7 +54,7 @@ export const smsRouter = router({
    */
   getStatistics: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const stats = await db
       .select({
@@ -79,8 +81,13 @@ export const smsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Import SMS service
       const smsService = await import("../services/sms");
@@ -110,7 +117,7 @@ export const smsRouter = router({
         .returning();
 
       if (!result.success) {
-        throw new Error(result.error || "Failed to send SMS");
+        throw new TRPCError({ code: "BAD_REQUEST", message: result.error || "Failed to send SMS" });
       }
 
       return {
@@ -130,8 +137,13 @@ export const smsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get loan details with borrower info
       const [loanData] = await db
@@ -152,11 +164,11 @@ export const smsRouter = router({
       const loan = loanData;
 
       if (!loan) {
-        throw new Error("Loan not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Loan not found" });
       }
 
       if (!loan.borrowerPhone) {
-        throw new Error("Borrower phone number not available");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Borrower phone number not available" });
       }
 
       // Check user notification preferences
@@ -166,11 +178,11 @@ export const smsRouter = router({
         .where(eq(userNotificationPreferences.userId, ctx.user.id));
 
       if (prefs && !prefs.smsEnabled) {
-        throw new Error("SMS notifications are disabled for this user");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "SMS notifications are disabled for this user" });
       }
 
       if (prefs && !prefs.paymentReminders) {
-        throw new Error("Payment reminders are disabled for this user");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Payment reminders are disabled for this user" });
       }
 
       // Format message content
@@ -189,12 +201,15 @@ export const smsRouter = router({
       const messageContent = `Dear ${loan.borrowerName}, this is a reminder that your loan payment of ${formattedAmount} for loan ${loan.loanNumber} is due on ${formattedDate}. Please ensure timely payment to avoid penalties.`;
 
       // Send payment reminder
+      const dueDateStr = loan.nextPaymentDate instanceof Date
+        ? loan.nextPaymentDate.toISOString().split('T')[0]
+        : String(loan.nextPaymentDate || 'N/A');
       const result = await sendPaymentReminder(
         loan.borrowerPhone,
         loan.borrowerName,
         loan.monthlyPayment || loan.amount,
-        loan.nextPaymentDate || new Date(),
-        loan.loanNumber
+        dueDateStr,
+        'NGN'
       );
 
       // Log the SMS
@@ -217,7 +232,7 @@ export const smsRouter = router({
         .returning();
 
       if (!result.success) {
-        throw new Error(result.error || "Failed to send payment reminder");
+        throw new TRPCError({ code: "BAD_REQUEST", message: result.error || "Failed to send payment reminder" });
       }
 
       return {
@@ -232,7 +247,7 @@ export const smsRouter = router({
    */
   getNotificationPreferences: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const [prefs] = await db
       .select()
@@ -271,8 +286,13 @@ export const smsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Check if preferences exist
       const [existing] = await db
@@ -281,7 +301,7 @@ export const smsRouter = router({
         .where(eq(userNotificationPreferences.userId, ctx.user.id));
 
       // Map frontend field names to database field names
-      const dbFields: any = {};
+      const dbFields: Record<string, unknown> = {};
       if (input.smsEnabled !== undefined) dbFields.smsEnabled = input.smsEnabled;
       if (input.paymentReminders !== undefined) dbFields.paymentReminders = input.paymentReminders;
       if (input.loanApprovals !== undefined) dbFields.loanApprovalNotifications = input.loanApprovals;
@@ -327,8 +347,13 @@ export const smsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const results = {
         successCount: 0,

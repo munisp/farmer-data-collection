@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';
@@ -47,7 +47,9 @@ export default function MarketplaceDetailScreen() {
   return (
     <View style={styles.container}>
       <Header title="Product Details" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Marketplace Detail screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <Text style={styles.name}>{item.name}</Text>
         <View style={styles.row}>
           <Badge text={item.category} variant="info" />

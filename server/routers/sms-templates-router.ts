@@ -1,9 +1,11 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { smsTemplates, smsScheduledMessages } from "../../drizzle/schema";
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * SMS Templates Router
  * 
@@ -12,7 +14,7 @@ import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
  */
 
 // Template variable substitution helper
-function substituteVariables(template: string, variables: Record<string, any>): string {
+function substituteVariables(template: string, variables: Record<string, unknown>): string {
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
     const regex = new RegExp(`{{${key}}}`, 'g');
@@ -30,7 +32,7 @@ export const smsTemplatesRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [];
       
@@ -55,7 +57,7 @@ export const smsTemplatesRouter = router({
   getAll: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const templates = await db
         .select()
@@ -71,7 +73,7 @@ export const smsTemplatesRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [template] = await db
         .select()
@@ -80,7 +82,7 @@ export const smsTemplatesRouter = router({
         .limit(1);
       
       if (!template) {
-        throw new Error("Template not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
       }
       
       return template;
@@ -91,7 +93,7 @@ export const smsTemplatesRouter = router({
     .input(z.object({ type: z.string() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [template] = await db
         .select()
@@ -121,8 +123,13 @@ export const smsTemplatesRouter = router({
       isDefault: z.boolean().default(false),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // If setting as default, unset other defaults for this type
       if (input.isDefault) {
@@ -163,8 +170,13 @@ export const smsTemplatesRouter = router({
       isDefault: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { id, ...updates } = input;
       
@@ -192,7 +204,7 @@ export const smsTemplatesRouter = router({
         .returning();
       
       if (!template) {
-        throw new Error("Template not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
       }
       
       return { success: true, template };
@@ -205,8 +217,13 @@ export const smsTemplatesRouter = router({
       type: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Unset other defaults for this type
       await db
@@ -227,7 +244,7 @@ export const smsTemplatesRouter = router({
         .returning();
       
       if (!template) {
-        throw new Error("Template not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
       }
       
       return { success: true, template };
@@ -237,8 +254,13 @@ export const smsTemplatesRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // First delete any scheduled messages using this template
       await db
@@ -261,7 +283,7 @@ export const smsTemplatesRouter = router({
     }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [template] = await db
         .select()
@@ -270,7 +292,7 @@ export const smsTemplatesRouter = router({
         .limit(1);
       
       if (!template) {
-        throw new Error("Template not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
       }
       
       const message = substituteVariables(template.body, input.variables);
@@ -287,8 +309,13 @@ export const smsTemplatesRouter = router({
   incrementUsage: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       await db
         .update(smsTemplates)
@@ -312,8 +339,13 @@ export const smsTemplatesRouter = router({
       metadata: z.record(z.string(), z.any()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [scheduled] = await db
         .insert(smsScheduledMessages)
@@ -340,7 +372,7 @@ export const smsTemplatesRouter = router({
     }).optional())
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [];
       
@@ -370,7 +402,7 @@ export const smsTemplatesRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [message] = await db
         .select()
@@ -379,7 +411,7 @@ export const smsTemplatesRouter = router({
         .limit(1);
       
       if (!message) {
-        throw new Error("Scheduled message not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Scheduled message not found" });
       }
       
       return message;
@@ -389,8 +421,13 @@ export const smsTemplatesRouter = router({
   cancelScheduled: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [message] = await db
         .update(smsScheduledMessages)
@@ -407,7 +444,7 @@ export const smsTemplatesRouter = router({
         .returning();
       
       if (!message) {
-        throw new Error("Message not found or already sent");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Message not found or already sent" });
       }
       
       return { success: true, message };
@@ -417,7 +454,7 @@ export const smsTemplatesRouter = router({
   getPendingMessages: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const now = new Date();
       
@@ -446,8 +483,13 @@ export const smsTemplatesRouter = router({
       cost: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { id, ...updates } = input;
       
@@ -472,8 +514,13 @@ export const smsTemplatesRouter = router({
       scheduledFor: z.string(), // ISO date string
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_templates", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_templates", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();  
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get template
       const [template] = await db
@@ -483,7 +530,7 @@ export const smsTemplatesRouter = router({
         .limit(1);
       
       if (!template) {
-        throw new Error("Template not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
       }
 
       // Import schema for loans and users
@@ -540,9 +587,9 @@ export const smsTemplatesRouter = router({
             });
 
           results.successCount++;
-        } catch (error: any) {
+        } catch (error: unknown) {
           results.failureCount++;
-          results.errors.push(`Loan ${loanId}: ${error.message}`);
+          results.errors.push(`Loan ${loanId}: ${(error instanceof Error ? error.message : String(error))}`);
         }
       }
 

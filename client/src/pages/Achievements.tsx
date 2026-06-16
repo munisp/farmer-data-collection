@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,9 @@ import {
 import { toast } from "sonner";
 
 export default function Achievements() {
+  const achievementsQuery = trpc.platformAdvanced.getRegionConfig.useQuery({ region: "west_africa" as const }, { retry: 1 });
+  const achievementsData = achievementsQuery.data ?? null;
+
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const achievements = [
@@ -87,9 +91,38 @@ export default function Achievements() {
     });
   };
 
+  // Loading & error states
+  if (achievementsQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (achievementsQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => achievementsQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Achievements & Onboarding</h1>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, Alert ,useColorScheme } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { database } from '@/services/database';
 import type { Harvest } from '@/types/models';
@@ -42,7 +42,9 @@ export default function HarvestDetailScreen() {
   return (
     <View style={styles.container}>
       <Header title="Harvest Details" showBack />
-      <ScrollView style={styles.content}>
+      <ScrollView
+      accessibilityLabel="Harvest Detail screen"
+      accessibilityRole="scrollbar" style={styles.content}>
         <View style={styles.row}>
           <Text style={styles.label}>Crop Type</Text>
           <Text style={styles.value}>{harvest.cropType}</Text>

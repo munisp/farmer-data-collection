@@ -1,9 +1,12 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { smsResponses, users, loans } from "../../drizzle/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
+import { logger } from '../logger.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * SMS Responses Router
  * 
@@ -71,8 +74,13 @@ export const smsResponsesRouter = router({
       linkId: z.string().optional(), // Link to original message (if reply)
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("sms_responses", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_responses", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Classify the message
       const { category, sentiment } = classifyMessage(input.text);
@@ -156,7 +164,7 @@ export const smsResponsesRouter = router({
             })
             .where(eq(smsResponses.id, response.id));
         } catch (error) {
-          console.error("Failed to send auto-reply:", error);
+          logger.error("Failed to send auto-reply:", error);
         }
       }
 
@@ -181,7 +189,7 @@ export const smsResponsesRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [];
       
@@ -220,7 +228,7 @@ export const smsResponsesRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [response] = await db
         .select({
@@ -241,7 +249,7 @@ export const smsResponsesRouter = router({
         .limit(1);
 
       if (!response) {
-        throw new Error("Response not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Response not found" });
       }
 
       return response;
@@ -258,10 +266,15 @@ export const smsResponsesRouter = router({
       assignTo: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      const rateCheck = await checkRateLimit("sms_responses", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_responses", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
 
-      const updates: any = {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const updates: Record<string, unknown> = {
         isProcessed: input.status,
         updatedAt: new Date(),
       };
@@ -297,8 +310,13 @@ export const smsResponsesRouter = router({
       message: z.string().min(1).max(1000),
     }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("sms_responses", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("sms_responses", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get the original response
       const [response] = await db
@@ -308,7 +326,7 @@ export const smsResponsesRouter = router({
         .limit(1);
 
       if (!response) {
-        throw new Error("Response not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Response not found" });
       }
 
       // Send SMS
@@ -319,7 +337,7 @@ export const smsResponsesRouter = router({
       });
 
       if (!result.success) {
-        throw new Error(`Failed to send reply: ${result.error}`);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Failed to send reply: ${result.error}` });
       }
 
       // Update response status
@@ -346,7 +364,7 @@ export const smsResponsesRouter = router({
   getStatistics: protectedProcedure
     .query(async () => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [stats] = await db
         .select({

@@ -372,8 +372,8 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let endpoint = env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
-    let access_key = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".to_string());
-    let secret_key = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".to_string());
+    let access_key = env::var("S3_ACCESS_KEY").expect("S3_ACCESS_KEY must be set");
+    let secret_key = env::var("S3_SECRET_KEY").expect("S3_SECRET_KEY must be set");
     let bucket = env::var("S3_BUCKET").unwrap_or_else(|_| "farmer-uploads".to_string());
     let port = env::var("PORT").unwrap_or_else(|_| "8015".to_string());
 
@@ -413,7 +413,121 @@ async fn main() -> anyhow::Result<()> {
     info!("Starting Rust Image Processor on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
+    info!("Image Processor shut down gracefully");
     Ok(())
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+    tokio::select! {
+        _ = ctrl_c => { info!("Received SIGINT, shutting down..."); },
+        _ = terminate => { info!("Received SIGTERM, shutting down..."); },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+    use axum_test::TestServer;
+
+    #[tokio::test]
+    async fn test_health_endpoint() {
+        let state = AppState {
+            upload_dir: std::path::PathBuf::from("/tmp/test-uploads"),
+            max_file_size: 10 * 1024 * 1024,
+            allowed_formats: vec!["jpg".to_string(), "png".to_string(), "webp".to_string()],
+        };
+        let app = axum::Router::new()
+            .route("/health", axum::routing::get(health))
+            .with_state(state);
+
+        let server = TestServer::new(app).unwrap();
+        let response = server.get("/health").await;
+        assert_eq!(response.status_code(), StatusCode::OK);
+    }
+
+    #[test]
+    fn test_image_dimensions_validation() {
+        assert!(validate_dimensions(1920, 1080));
+        assert!(validate_dimensions(100, 100));
+        assert!(!validate_dimensions(0, 0));
+        assert!(!validate_dimensions(50000, 50000));
+    }
+
+    #[test]
+    fn test_thumbnail_sizes() {
+        let sizes: Vec<(&str, u32, u32)> = vec![
+            ("small", 150, 150),
+            ("medium", 300, 300),
+            ("large", 800, 600),
+        ];
+        for (name, w, h) in &sizes {
+            assert!(validate_dimensions(*w, *h), "Size {} should be valid", name);
+        }
+    }
+
+    #[test]
+    fn test_resize_ratio_calculation() {
+        let (orig_w, orig_h) = (1920u32, 1080u32);
+        let target_w = 800u32;
+        let ratio = target_w as f32 / orig_w as f32;
+        let new_h = (orig_h as f32 * ratio) as u32;
+        assert_eq!(new_h, 450);
+    }
+
+    #[test]
+    fn test_s3_key_generation() {
+        let key = generate_s3_key("upload-123", "jpg");
+        assert!(key.contains("upload-123"));
+        assert!(key.ends_with(".jpg"));
+    }
+
+    #[test]
+    fn test_content_type_detection() {
+        assert_eq!(detect_content_type("jpg"), "image/jpeg");
+        assert_eq!(detect_content_type("png"), "image/png");
+        assert_eq!(detect_content_type("webp"), "image/webp");
+        assert_eq!(detect_content_type("unknown"), "application/octet-stream");
+    }
+
+    #[test]
+    fn test_allowed_formats() {
+        let allowed = vec!["jpg".to_string(), "png".to_string(), "webp".to_string()];
+        assert!(allowed.contains(&"jpg".to_string()));
+        assert!(allowed.contains(&"png".to_string()));
+        assert!(!allowed.contains(&"bmp".to_string()));
+    }
+
+    fn validate_dimensions(width: u32, height: u32) -> bool {
+        width > 0 && height > 0 && width <= 10000 && height <= 10000
+    }
+
+    fn generate_s3_key(upload_id: &str, ext: &str) -> String {
+        format!("images/{}.{}", upload_id, ext)
+    }
+
+    fn detect_content_type(ext: &str) -> &str {
+        match ext {
+            "jpg" | "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "webp" => "image/webp",
+            "gif" => "image/gif",
+            _ => "application/octet-stream",
+        }
+    }
 }

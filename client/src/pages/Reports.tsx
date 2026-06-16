@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,8 @@ import { FileDown, Loader2 } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 interface ExpenseByCategory {
   category: string;
   total: number;
@@ -22,6 +25,7 @@ interface HarvestByMonth {
 
 export default function Reports() {
   const { isInitialized, db } = useDatabase();
+  const farmersQuery = trpc.coreFarms.list.useQuery({}, { enabled: false });
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [expenseData, setExpenseData] = useState<ExpenseByCategory[]>([]);
@@ -140,11 +144,11 @@ export default function Reports() {
     );
   }
 
-  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const COLORS = CHART_COLORS.slice(0, 6);
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div role="main" aria-label="Page content" className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
@@ -232,7 +236,7 @@ export default function Reports() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="quantity" fill="#10b981" name="Quantity (units)" />
+                    <Bar dataKey="quantity" fill={SEMANTIC_COLORS.success} name="Quantity (units)" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -253,26 +257,26 @@ export default function Reports() {
           <CardContent>
             {expenseData.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Category</th>
-                      <th className="text-right p-2">Total Amount</th>
-                      <th className="text-right p-2">Percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table role="table" aria-label="Data table" className="w-full">
+                  <TableHeader role="rowgroup">
+                    <TableRow className="border-b">
+                      <TableHead className="text-left p-2">Category</TableHead>
+                      <TableHead className="text-right p-2">Total Amount</TableHead>
+                      <TableHead className="text-right p-2">Percentage</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody role="rowgroup">
                     {expenseData.map((item) => (
-                      <tr key={item.category} className="border-b">
-                        <td className="p-2">{item.category}</td>
-                        <td className="text-right p-2">${item.total.toFixed(2)}</td>
-                        <td className="text-right p-2">
+                      <TableRow key={item.category} className="border-b">
+                        <TableCell className="p-2">{item.category}</TableCell>
+                        <TableCell className="text-right p-2">${item.total.toFixed(2)}</TableCell>
+                        <TableCell className="text-right p-2">
                           {((item.total / totalExpenses) * 100).toFixed(1)}%
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : (
               <p className="text-muted-foreground">No expense data available</p>

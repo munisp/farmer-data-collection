@@ -60,7 +60,7 @@ class ErrorTrackingService {
     this.flushInterval = setInterval(() => this.flush(), 30000);
 
     this.isInitialized = true;
-    console.log(`[ErrorTracking] Initialized for ${environment} (${release})`);
+    console.warn(`[ErrorTracking] Initialized for ${environment} (${release})`);
   }
 
   /**
@@ -69,7 +69,7 @@ class ErrorTrackingService {
   setUser(userId: string, email?: string, additionalData?: Record<string, unknown>): void {
     this.userId = userId;
     this.userEmail = email || null;
-    console.log(`[ErrorTracking] User context set: ${userId}`);
+    console.warn(`[ErrorTracking] User context set: ${userId}`);
   }
 
   /**
@@ -78,7 +78,7 @@ class ErrorTrackingService {
   clearUser(): void {
     this.userId = null;
     this.userEmail = null;
-    console.log('[ErrorTracking] User context cleared');
+    console.warn('[ErrorTracking] User context cleared');
   }
 
   /**
@@ -131,7 +131,7 @@ class ErrorTrackingService {
     };
 
     if (import.meta.env.DEV) {
-      console.log(`[Analytics] Event: ${name}`, properties);
+      console.warn(`[Analytics] Event: ${name}`, properties);
     }
 
     this.analyticsQueue.push(event);
@@ -142,7 +142,7 @@ class ErrorTrackingService {
    */
   trackPerformance(metric: PerformanceMetric): void {
     if (import.meta.env.DEV) {
-      console.log(`[Performance] ${metric.name}: ${metric.value}${metric.unit}`);
+      console.warn(`[Performance] ${metric.name}: ${metric.value}${metric.unit}`);
     }
 
     this.performanceQueue.push({

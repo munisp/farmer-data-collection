@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, FileText, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function AccountingDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [reportStartDate, setReportStartDate] = useState(format(new Date(new Date().getFullYear(), 0, 1), "yyyy-MM-dd"));
@@ -32,7 +33,7 @@ export default function AccountingDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       <div className="container py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -54,7 +55,7 @@ export default function AccountingDashboard() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
                 <div className="text-2xl font-bold">
-                  ₦{((balanceSheet?.totalAssets || 0) / 100).toLocaleString()}
+                  ₦{(Number(balanceSheet?.totalAssets || 0) / 100).toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -70,7 +71,7 @@ export default function AccountingDashboard() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
                 <div className="text-2xl font-bold">
-                  ₦{((balanceSheet?.totalLiabilities || 0) / 100).toLocaleString()}
+                  ₦{(Number(balanceSheet?.totalLiabilities || 0) / 100).toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -86,7 +87,7 @@ export default function AccountingDashboard() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
                 <div className="text-2xl font-bold text-green-600">
-                  ₦{((profitLoss?.totalRevenue || 0) / 100).toLocaleString()}
+                  ₦{(Number(profitLoss?.totalRevenue || 0) / 100).toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -101,8 +102,8 @@ export default function AccountingDashboard() {
               {plLoading ? (
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
-                <div className={`text-2xl font-bold ${(profitLoss?.netIncome || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  ₦{((profitLoss?.netIncome || 0) / 100).toLocaleString()}
+                <div className={`text-2xl font-bold ${Number(profitLoss?.netIncome || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  ₦{(Number(profitLoss?.netIncome || 0) / 100).toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -148,9 +149,9 @@ export default function AccountingDashboard() {
                           <TableCell>{entry.reference || "-"}</TableCell>
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              entry.status === "posted" ? "bg-green-100 text-green-800" :
-                              entry.status === "draft" ? "bg-yellow-100 text-yellow-800" :
-                              "bg-red-100 text-red-800"
+                              entry.status === "posted" ? "bg-green-100 dark:bg-green-900 text-green-800" :
+                              entry.status === "draft" ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800" :
+                              "bg-red-100 dark:bg-red-900 text-red-800"
                             }`}>
                               {entry.status}
                             </span>
@@ -438,9 +439,9 @@ function JournalEntriesTab({ entries, loading }: any) {
                   <TableCell>{entry.reference || "-"}</TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      entry.status === "posted" ? "bg-green-100 text-green-800" :
-                      entry.status === "draft" ? "bg-yellow-100 text-yellow-800" :
-                      "bg-red-100 text-red-800"
+                      entry.status === "posted" ? "bg-green-100 dark:bg-green-900 text-green-800" :
+                      entry.status === "draft" ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800" :
+                      "bg-red-100 dark:bg-red-900 text-red-800"
                     }`}>
                       {entry.status}
                     </span>
@@ -610,7 +611,8 @@ function FinancialReportsTab({ reportStartDate, reportEndDate, setReportStartDat
 
 function HelpGuideTab() {
   return (
-    <div className="space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>Getting Started with Accounting</CardTitle>
@@ -666,5 +668,6 @@ function HelpGuideTab() {
         </CardContent>
       </Card>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

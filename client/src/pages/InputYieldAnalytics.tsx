@@ -44,6 +44,7 @@ import {
 import { useLocalization } from '@/contexts/LocalizationContext';
 import { trpc } from '@/lib/trpc';
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function InputYieldAnalytics() {
   const { formatCurrency, formatWeight } = useLocalization();
   const [selectedCrop, setSelectedCrop] = useState('all');
@@ -102,18 +103,18 @@ export default function InputYieldAnalytics() {
       case 'down':
         return <TrendingDown className="w-4 h-4 text-red-500" />;
       default:
-        return <span className="w-4 h-4 text-gray-400">—</span>;
+        return <span className="w-4 h-4 text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">—</span>;
     }
   };
 
   const getOutlierBadge = (type: string) => {
     switch (type) {
       case 'high_performer':
-        return <Badge className="bg-green-100 text-green-800">High Performer</Badge>;
+        return <Badge className="bg-green-100 dark:bg-green-900 text-green-800">High Performer</Badge>;
       case 'high_cost':
         return <Badge className="bg-orange-100 text-orange-800">High Cost</Badge>;
       case 'low_yield':
-        return <Badge className="bg-red-100 text-red-800">Low Yield</Badge>;
+        return <Badge className="bg-red-100 dark:bg-red-900 text-red-800">Low Yield</Badge>;
       default:
         return <Badge variant="outline">{type}</Badge>;
     }
@@ -121,10 +122,10 @@ export default function InputYieldAnalytics() {
 
   const getInsightBadge = (insight: string) => {
     if (insight.includes('Top') || insight.includes('High performer')) {
-      return <Badge className="bg-green-100 text-green-800">{insight}</Badge>;
+      return <Badge className="bg-green-100 dark:bg-green-900 text-green-800">{insight}</Badge>;
     }
     if (insight.includes('Needs') || insight.includes('Low')) {
-      return <Badge className="bg-red-100 text-red-800">{insight}</Badge>;
+      return <Badge className="bg-red-100 dark:bg-red-900 text-red-800">{insight}</Badge>;
     }
     if (insight.includes('High input') || insight.includes('cost')) {
       return <Badge className="bg-orange-100 text-orange-800">{insight}</Badge>;
@@ -133,7 +134,8 @@ export default function InputYieldAnalytics() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Input vs Yield Analytics</h1>
@@ -237,7 +239,7 @@ export default function InputYieldAnalytics() {
                 <div className="w-24 font-medium">{input.category}</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-200 rounded-full h-4">
+                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-4">
                       <div
                         className="bg-primary h-4 rounded-full"
                         style={{ width: `${input.percentage}%` }}
@@ -373,9 +375,9 @@ export default function InputYieldAnalytics() {
               <div className="space-y-4">
                 {outliers.map((outlier: { farmer: string; crop: string; yield: number; inputCost: number; profitMargin: number; type: string }, index: number) => (
                   <div key={index} className={`p-4 border rounded-lg ${
-                    outlier.type === 'high_performer' ? 'border-green-200 bg-green-50' :
-                    outlier.type === 'low_yield' ? 'border-red-200 bg-red-50' :
-                    'border-orange-200 bg-orange-50'
+                    outlier.type === 'high_performer' ? 'border-green-200 bg-green-50 dark:bg-green-950' :
+                    outlier.type === 'low_yield' ? 'border-red-200 bg-red-50 dark:bg-red-950' :
+                    'border-orange-200 bg-orange-50 dark:bg-orange-950'
                   }`}>
                     <div className="flex items-start justify-between">
                       <div>
@@ -406,13 +408,13 @@ export default function InputYieldAnalytics() {
                       </div>
                     </div>
                     {outlier.type === 'high_performer' && (
-                      <div className="mt-3 p-2 bg-green-100 rounded text-sm flex items-center gap-2">
+                      <div className="mt-3 p-2 bg-green-100 dark:bg-green-900 rounded text-sm flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600" />
                         <span>Best practices from this farmer could be shared with others</span>
                       </div>
                     )}
                     {outlier.type === 'low_yield' && (
-                      <div className="mt-3 p-2 bg-red-100 rounded text-sm flex items-center gap-2">
+                      <div className="mt-3 p-2 bg-red-100 dark:bg-red-900 rounded text-sm flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-red-600" />
                         <span>Consider agronomic support or soil testing</span>
                       </div>
@@ -490,5 +492,6 @@ export default function InputYieldAnalytics() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

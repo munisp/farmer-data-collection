@@ -4,6 +4,7 @@
  */
 
 import { Redis } from 'ioredis';
+import { logger } from '../logger.js';
 
 interface CacheConfig {
   host: string;
@@ -38,7 +39,7 @@ export class RedisCacheService {
     this.defaultTTL = config.defaultTTL || 3600; // 1 hour default
 
     this.client.on('error', (err) => {
-      console.error('Redis cache error:', err);
+      logger.error('Redis cache error:', err);
     });
   }
 
@@ -49,7 +50,7 @@ export class RedisCacheService {
     
     try {
       return JSON.parse(data) as T;
-    } catch {
+    } catch (err) {
       return data as unknown as T;
     }
   }
@@ -177,7 +178,7 @@ export class RedisCacheService {
       name: string;
       phone: string;
       region: string;
-      farms: any[];
+      farms: unknown[];
       creditScore: number;
       totalLoans: number;
     }
@@ -226,7 +227,7 @@ export class RedisCacheService {
       memberCount: number;
       totalSavings: number;
       activeLoans: number;
-      members: any[];
+      members: unknown[];
     }
   ): Promise<void> {
     await this.set(`cooperative:${cooperativeId}`, data, {
@@ -315,7 +316,7 @@ export class RedisCacheService {
     try {
       const result = await this.client.ping();
       return result === 'PONG';
-    } catch {
+    } catch (err) {
       return false;
     }
   }

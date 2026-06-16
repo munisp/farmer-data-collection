@@ -1,5 +1,6 @@
 import axios from "axios";
 import { WhatsAppMessage, WhatsAppResponse, WHATSAPP_TEMPLATES } from "../../shared/whatsapp-types.js";
+import { logger } from '../logger.js';
 
 // Provider types
 export type WhatsAppProvider = "meta" | "twilio";
@@ -68,7 +69,7 @@ export class WhatsAppService {
       this.twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
       this.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
       this.twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER;
-      console.log("[WhatsApp] Twilio initialized");
+      logger.info("[WhatsApp] Twilio initialized");
       this.defaultProvider = "twilio";
     }
 
@@ -76,7 +77,7 @@ export class WhatsAppService {
     if (process.env.META_WHATSAPP_ACCESS_TOKEN && process.env.META_WHATSAPP_PHONE_NUMBER_ID) {
       this.metaAccessToken = process.env.META_WHATSAPP_ACCESS_TOKEN;
       this.metaPhoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
-      console.log("[WhatsApp] Meta Business API initialized");
+      logger.info("[WhatsApp] Meta Business API initialized");
       
       // Prefer Meta API if available
       if (this.metaAccessToken) {
@@ -85,7 +86,7 @@ export class WhatsAppService {
     }
 
     if (!this.twilioAccountSid && !this.metaAccessToken) {
-      console.warn("[WhatsApp] No WhatsApp provider configured. WhatsApp functionality will be disabled.");
+      logger.warn("[WhatsApp] No WhatsApp provider configured. WhatsApp functionality will be disabled.");
     }
   }
 
@@ -119,7 +120,7 @@ export class WhatsAppService {
 
     if (availableProviders.length === 0) {
       // All providers unhealthy, try default anyway
-      console.warn("[WhatsApp] All providers unhealthy, attempting default provider");
+      logger.warn("[WhatsApp] All providers unhealthy, attempting default provider");
       return this.sendWithProvider(message, this.defaultProvider);
     }
 
@@ -137,12 +138,12 @@ export class WhatsAppService {
         // Provider returned failure, try next
         lastError = result.error || "Unknown error";
         this.recordFailure(provider, lastError);
-        console.warn(`[WhatsApp] Provider ${provider} failed: ${lastError}, trying next...`);
+        logger.warn(`[WhatsApp] Provider ${provider} failed: ${lastError}, trying next...`);
 
-      } catch (error: any) {
-        lastError = error.message || "Unknown error";
+      } catch (error: unknown) {
+        lastError = (error instanceof Error ? error.message : String(error));
         this.recordFailure(provider, lastError);
-        console.warn(`[WhatsApp] Provider ${provider} threw error: ${lastError}, trying next...`);
+        logger.warn(`[WhatsApp] Provider ${provider} threw error: ${lastError}, trying next...`);
       }
 
       // Small delay before trying next provider
@@ -170,11 +171,11 @@ export class WhatsAppService {
           error: `Provider ${provider} not available`,
         };
       }
-    } catch (error: any) {
-      console.error(`[WhatsApp] Send error (${provider}):`, error);
+    } catch (error: unknown) {
+      logger.error(`[WhatsApp] Send error (${provider}):`, error);
       return {
         success: false,
-        error: error.message || "Failed to send WhatsApp message",
+        error: (error instanceof Error ? error.message : String(error)),
         provider,
       };
     }
@@ -204,7 +205,7 @@ export class WhatsAppService {
           health.isHealthy = true;
           health.consecutiveFailures = 0;
           healthy.push(provider);
-          console.log(`[WhatsApp] Provider ${provider} marked healthy after cooldown`);
+          logger.info(`[WhatsApp] Provider ${provider} marked healthy after cooldown`);
         }
       }
     }
@@ -238,7 +239,7 @@ export class WhatsAppService {
       // Mark unhealthy after 3 consecutive failures
       if (health.consecutiveFailures >= 3) {
         health.isHealthy = false;
-        console.warn(`[WhatsApp] Provider ${provider} marked unhealthy after ${health.consecutiveFailures} failures`);
+        logger.warn(`[WhatsApp] Provider ${provider} marked unhealthy after ${health.consecutiveFailures} failures`);
       }
     }
   }
@@ -274,7 +275,7 @@ export class WhatsAppService {
         throw new Error("Unsupported message type for Twilio");
       }
 
-      const params: any = {
+      const params: Record<string, any> = {
         To: `whatsapp:${message.to}`,
         From: `whatsapp:${this.twilioWhatsAppNumber}`,
         Body: body,
@@ -299,8 +300,8 @@ export class WhatsAppService {
         messageId: response.data.sid,
         provider: "twilio",
       };
-    } catch (error: any) {
-      throw new Error(`Twilio WhatsApp error: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Twilio WhatsApp error: ${((error as Record<string, any>).response?.data)?.message || (error instanceof Error ? error.message : String(error))}`);
     }
   }
 
@@ -311,7 +312,7 @@ export class WhatsAppService {
     try {
       const url = `https://graph.facebook.com/v18.0/${this.metaPhoneNumberId}/messages`;
 
-      const payload: any = {
+      const payload: Record<string, any> = {
         messaging_product: "whatsapp",
         recipient_type: "individual",
         to: message.to,
@@ -342,9 +343,9 @@ export class WhatsAppService {
         messageId: response.data.messages[0].id,
         provider: "meta",
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(
-        `Meta WhatsApp error: ${error.response?.data?.error?.message || error.message}`
+        `Meta WhatsApp error: ${((error as Record<string, any>).response?.data)?.error?.message || (error instanceof Error ? error.message : String(error))}`
       );
     }
   }

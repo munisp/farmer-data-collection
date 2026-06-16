@@ -5,8 +5,10 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type StorageType = 
   | 'hermetic_bags'
@@ -434,9 +436,9 @@ const PACKAGING_RECOMMENDATIONS: Record<string, PackagingRecommendation> = {
 };
 
 class PostHarvestService {
-  private bookings: Map<string, StorageBooking> = new Map();
-  private logisticsBookings: Map<string, LogisticsBooking> = new Map();
-  private qualityAssessments: Map<string, QualityAssessment> = new Map();
+  private bookings: BoundedMap<string, StorageBooking> = new BoundedMap(2000, 86400_000);
+  private logisticsBookings: BoundedMap<string, LogisticsBooking> = new BoundedMap(2000, 86400_000);
+  private qualityAssessments: BoundedMap<string, QualityAssessment> = new BoundedMap(5000, 86400_000);
 
   /**
    * Find available storage facilities
@@ -508,7 +510,7 @@ class PostHarvestService {
 
     const totalCost = quantity * facility.pricePerTonPerDay * days;
 
-    const bookingId = `SB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const bookingId = `SB-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const booking: StorageBooking = {
       id: bookingId,
       farmerId,
@@ -541,7 +543,7 @@ class PostHarvestService {
         }],
       });
     } catch (error) {
-      console.warn('[PostHarvest] Could not emit Kafka event:', error);
+      logger.warn('[PostHarvest] Could not emit Kafka event:', error);
     }
 
     return booking;
@@ -611,7 +613,7 @@ class PostHarvestService {
       recommendations.push('Suitable for premium markets and export');
     }
 
-    const assessmentId = `QA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const assessmentId = `QA-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const assessment: QualityAssessment = {
       id: assessmentId,
       cropName,
@@ -700,7 +702,7 @@ class PostHarvestService {
     const travelHours = distance / 50;
     const estimatedDeliveryDate = new Date(pickupDate.getTime() + travelHours * 60 * 60 * 1000);
 
-    const bookingId = `LB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const bookingId = `LB-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const booking: LogisticsBooking = {
       id: bookingId,
       farmerId,
@@ -784,7 +786,7 @@ class PostHarvestService {
       preventionRecommendations.push('Join a cooperative for shared cold storage access');
     }
 
-    const assessmentId = `LA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const assessmentId = `LA-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const assessment: LossAssessment = {
       id: assessmentId,
       farmerId,

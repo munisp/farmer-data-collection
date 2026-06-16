@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity ,useColorScheme } from 'react-native';
 import { Card } from '../../components/ui/Card';
 
 export default function WorkflowDetailScreen({ route }: any) {
@@ -22,7 +22,9 @@ export default function WorkflowDetailScreen({ route }: any) {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
+    <ScrollView
+      accessibilityLabel="Workflow Detail screen"
+      accessibilityRole="scrollbar" className="flex-1 bg-gray-50">
       <View className="p-4">
         <Text className="text-2xl font-bold mb-2">{workflow.type}</Text>
         <Text className="text-gray-600 mb-6">ID: {workflow.id}</Text>
@@ -74,10 +76,12 @@ export default function WorkflowDetailScreen({ route }: any) {
 
         <Card className="p-4">
           <Text className="text-lg font-bold mb-4">Actions</Text>
-          <TouchableOpacity className="bg-yellow-500 p-4 rounded-lg mb-3">
+          <TouchableOpacity
+          accessibilityRole="button" className="bg-yellow-500 p-4 rounded-lg mb-3">
             <Text className="text-white text-center font-semibold">Pause Workflow</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="bg-red-500 p-4 rounded-lg">
+          <TouchableOpacity
+          accessibilityRole="button" className="bg-red-500 p-4 rounded-lg">
             <Text className="text-white text-center font-semibold">Terminate Workflow</Text>
           </TouchableOpacity>
         </Card>

@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -65,6 +66,7 @@ export default function FarmerDetailPage() {
   const [match, params] = useRoute("/farmers/:id");
   const [, navigate] = useLocation();
   const { isInitialized, db } = useDatabase();
+  const farmersQuery = trpc.coreFarms.list.useQuery({}, { enabled: false });
   const { user } = useAuth();
   const [farmer, setFarmer] = useState<Farmer | null>(null);
   const [farmerFarms, setFarmerFarms] = useState<Farm[]>([]);
@@ -175,7 +177,7 @@ export default function FarmerDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate("/farmers-enhanced")}>

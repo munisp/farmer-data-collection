@@ -5,10 +5,12 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type PestType = 
   | 'fall_armyworm' 
@@ -668,9 +670,9 @@ const DISEASE_DATABASE: Record<DiseaseType, {
 };
 
 class PestDiseaseWarningService {
-  private alerts: Map<string, PestDiseaseAlert> = new Map();
-  private outbreakReports: Map<string, OutbreakReport> = new Map();
-  private farmAssessments: Map<number, FarmRiskAssessment> = new Map();
+  private alerts: BoundedMap<string, PestDiseaseAlert> = new BoundedMap(5000, 86400_000);
+  private outbreakReports: BoundedMap<string, OutbreakReport> = new BoundedMap(2000, 86400_000);
+  private farmAssessments: BoundedMap<number, FarmRiskAssessment> = new BoundedMap(5000, 43200_000);
   private monitoringInterval: NodeJS.Timeout | null = null;
 
   /**
@@ -790,7 +792,7 @@ class PestDiseaseWarningService {
         }],
       });
     } catch (error) {
-      console.warn('[PestDiseaseWarning] Could not emit Kafka event:', error);
+      logger.warn('[PestDiseaseWarning] Could not emit Kafka event:', error);
     }
 
     return assessment;
@@ -811,7 +813,7 @@ class PestDiseaseWarningService {
     latitude: number;
     longitude: number;
   }): Promise<OutbreakReport> {
-    const reportId = `OR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const reportId = `OR-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const report: OutbreakReport = {
       id: reportId,
@@ -849,7 +851,7 @@ class PestDiseaseWarningService {
         }],
       });
     } catch (error) {
-      console.warn('[PestDiseaseWarning] Could not emit Kafka event:', error);
+      logger.warn('[PestDiseaseWarning] Could not emit Kafka event:', error);
     }
 
     return report;
@@ -911,13 +913,13 @@ class PestDiseaseWarningService {
     }
 
     this.monitoringInterval = setInterval(async () => {
-      console.log('[PestDiseaseWarning] Running regional monitoring...');
+      logger.info('[PestDiseaseWarning] Running regional monitoring...');
       
       // Would scan satellite imagery and weather data for outbreak indicators
       // and update alerts accordingly
     }, intervalMs);
 
-    console.log('[PestDiseaseWarning] Monitoring started');
+    logger.info('[PestDiseaseWarning] Monitoring started');
   }
 
   /**
@@ -944,7 +946,7 @@ class PestDiseaseWarningService {
         humidity: weather?.humidity || 70,
         rainfall: weather?.precipitation || 0,
       };
-    } catch {
+    } catch (err) {
       return { temperature: 28, humidity: 70, rainfall: 0 };
     }
   }
@@ -1000,7 +1002,7 @@ class PestDiseaseWarningService {
       riskLevel >= 30 ? 'medium' : 'low';
 
     return {
-      id: `ALERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `ALERT-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
       type,
       name,
       severity,
@@ -1016,9 +1018,9 @@ class PestDiseaseWarningService {
         'Maintain field hygiene',
       ],
       treatmentOptions: data.treatments,
-      reportedCases: Math.floor(Math.random() * 50),
-      confirmedCases: Math.floor(Math.random() * 20),
-      firstReportedDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+      reportedCases: 0,
+      confirmedCases: 0,
+      firstReportedDate: new Date(),
       lastUpdated: new Date(),
       expectedDuration: '2-4 weeks',
       weatherConditions: [

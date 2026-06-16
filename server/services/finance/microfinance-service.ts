@@ -21,6 +21,7 @@ import {
   type CreditScore,
 } from '../../../drizzle/financial-schema';
 import { eq, and, sql, desc, lt, gte } from 'drizzle-orm';
+import { logger } from '../../logger.js';
 
 export interface CreateLoanInput {
   userId: number;
@@ -96,7 +97,7 @@ export class MicrofinanceService {
       applicationDate: new Date(),
     }).returning();
 
-    console.log(`[Microfinance] Loan application ${loan.id} submitted for user ${input.userId}`);
+    logger.info(`[Microfinance] Loan application ${loan.id} submitted for user ${input.userId}`);
     return loan.id;
   }
 
@@ -138,7 +139,7 @@ export class MicrofinanceService {
       })
       .where(eq(loans.id, loanId));
 
-    console.log(`[Microfinance] Loan ${loanId} approved`);
+    logger.info(`[Microfinance] Loan ${loanId} approved`);
   }
 
   /**
@@ -160,7 +161,7 @@ export class MicrofinanceService {
       })
       .where(eq(loans.id, loanId));
 
-    console.log(`[Microfinance] Loan ${loanId} rejected`);
+    logger.info(`[Microfinance] Loan ${loanId} rejected`);
   }
 
   /**
@@ -236,7 +237,7 @@ export class MicrofinanceService {
     // Update credit score
     await this.calculateCreditScore(loan.userId);
 
-    console.log(`[Microfinance] Recorded repayment ${repayment.id} for loan ${input.loanId}`);
+    logger.info(`[Microfinance] Recorded repayment ${repayment.id} for loan ${input.loanId}`);
     return repayment.id;
   }
 
@@ -334,7 +335,7 @@ export class MicrofinanceService {
     let stabilityScore = 50;
     if (expenses.length >= 3) {
       // Calculate coefficient of variation (lower is better)
-      const amounts = expenses.map((e: any) => e.amount);
+      const amounts = expenses.map((e: Record<string, any>) => e.amount);
       const mean = amounts.reduce((sum: number, val: number) => sum + val, 0) / amounts.length;
       const variance = amounts.reduce((sum: number, val: number) => sum + Math.pow(val - mean, 2), 0) / amounts.length;
       const stdDev = Math.sqrt(variance);
@@ -420,7 +421,7 @@ export class MicrofinanceService {
       calculatedAt: new Date(),
     });
 
-    console.log(`[Microfinance] Credit score for user ${userId}: ${score} (${riskCategory} risk)`);
+    logger.info(`[Microfinance] Credit score for user ${userId}: ${score} (${riskCategory} risk)`);
     return score;
   }
 

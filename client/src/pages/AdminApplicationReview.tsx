@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { CheckCircle2, XCircle, Eye, FileText, Clock } from "lucide-react";
 import { toast } from "sonner";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Admin Application Review Interface
  * 
@@ -74,7 +75,7 @@ export default function AdminApplicationReview() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8">
+      <div role="main" aria-label="Page content" className="container mx-auto py-8">
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">Loading applications...</p>
         </div>
@@ -86,7 +87,8 @@ export default function AdminApplicationReview() {
   const reviewedApplications = applications?.filter((app) => app.status === "approved" || app.status === "rejected") || [];
 
   return (
-    <div className="container mx-auto py-8">
+    <DashboardLayout>
+      <div className="container mx-auto py-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Loan Application Review</h1>
         <p className="text-muted-foreground">Review and process loan applications</p>
@@ -327,14 +329,14 @@ export default function AdminApplicationReview() {
                 </div>
 
                 {app.reviewNotes && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
                     <p className="text-sm font-semibold">Review Notes:</p>
-                    <p className="text-sm text-gray-700">{app.reviewNotes}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-200">{app.reviewNotes}</p>
                   </div>
                 )}
 
                 {app.status === "rejected" && app.rejectionReason && (
-                  <div className="mt-4 p-3 bg-red-50 rounded-lg">
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 rounded-lg">
                     <p className="text-sm font-semibold text-red-800">Rejection Reason:</p>
                     <p className="text-sm text-red-700">{app.rejectionReason}</p>
                   </div>
@@ -345,5 +347,6 @@ export default function AdminApplicationReview() {
         </div>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

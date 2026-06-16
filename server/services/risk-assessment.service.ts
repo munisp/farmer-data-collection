@@ -2,6 +2,7 @@ import { getDb } from '../db';
 import { loans, loanRepayments } from '../../drizzle/financial-schema';
 import { users } from '../../drizzle/schema';
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 export type RiskCategory = 'low' | 'medium' | 'high' | 'critical';
 
@@ -478,7 +479,7 @@ export async function getAllBorrowerRiskProfiles(): Promise<BorrowerRiskProfile[
       const profile = await assessBorrowerRisk(borrower.userId);
       profiles.push(profile);
     } catch (error) {
-      console.error(`Failed to assess risk for user ${borrower.userId}:`, error);
+      logger.error(`Failed to assess risk for user ${borrower.userId}:`, error);
     }
   }
 

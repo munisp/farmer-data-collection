@@ -5,8 +5,10 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type ContentType = 'question' | 'answer' | 'tip' | 'success_story' | 'tutorial' | 'discussion';
 export type ContentStatus = 'pending' | 'approved' | 'rejected' | 'flagged';
@@ -277,13 +279,13 @@ const LEARNING_PATHS: LearningPath[] = [
 ];
 
 class KnowledgeSharingService {
-  private posts: Map<string, ForumPost> = new Map();
-  private comments: Map<string, Comment> = new Map();
-  private successStories: Map<string, SuccessStory> = new Map();
-  private experts: Map<string, Expert> = new Map();
-  private expertSessions: Map<string, ExpertSession> = new Map();
-  private farmerProfiles: Map<number, FarmerProfile> = new Map();
-  private farmerProgress: Map<string, FarmerProgress> = new Map();
+  private posts: BoundedMap<string, ForumPost> = new BoundedMap(5000, 86400_000);
+  private comments: BoundedMap<string, Comment> = new BoundedMap(10000, 86400_000);
+  private successStories: BoundedMap<string, SuccessStory> = new BoundedMap(2000, 86400_000);
+  private experts: BoundedMap<string, Expert> = new BoundedMap(500, 86400_000);
+  private expertSessions: BoundedMap<string, ExpertSession> = new BoundedMap(1000, 43200_000);
+  private farmerProfiles: BoundedMap<number, FarmerProfile> = new BoundedMap(5000, 86400_000);
+  private farmerProgress: BoundedMap<string, FarmerProgress> = new BoundedMap(5000, 86400_000);
 
   /**
    * Create a forum post
@@ -301,7 +303,7 @@ class KnowledgeSharingService {
     location?: { state: string; lga: string };
     crops?: string[];
   }): Promise<ForumPost> {
-    const postId = `POST-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const postId = `POST-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     // Get author badges
     const profile = this.farmerProfiles.get(params.authorId);
@@ -360,7 +362,7 @@ class KnowledgeSharingService {
         }],
       });
     } catch (error) {
-      console.warn('[KnowledgeSharing] Could not emit Kafka event:', error);
+      logger.warn('[KnowledgeSharing] Could not emit Kafka event:', error);
     }
 
     return post;
@@ -446,7 +448,7 @@ class KnowledgeSharingService {
     const profile = this.farmerProfiles.get(authorId);
     const authorBadges = profile?.badges.map(b => b.name) || [];
 
-    const commentId = `CMT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const commentId = `CMT-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const comment: Comment = {
       id: commentId,
       postId,
@@ -587,7 +589,7 @@ class KnowledgeSharingService {
     practicesUsed: string[];
     lessonsLearned: string[];
   }): Promise<SuccessStory> {
-    const storyId = `STORY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const storyId = `STORY-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const story: SuccessStory = {
       id: storyId,
@@ -669,7 +671,7 @@ class KnowledgeSharingService {
     languages: string[];
     contactPreference: Expert['contactPreference'];
   }): Promise<Expert> {
-    const expertId = `EXP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const expertId = `EXP-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const expert: Expert = {
       id: expertId,
@@ -740,7 +742,7 @@ class KnowledgeSharingService {
       throw new Error('Expert is not available');
     }
 
-    const sessionId = `SES-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `SES-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const session: ExpertSession = {
       id: sessionId,
       expertId: params.expertId,

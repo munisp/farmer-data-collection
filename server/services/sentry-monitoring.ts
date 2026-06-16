@@ -1,9 +1,11 @@
 /**
  * Sentry Error Monitoring Service
  * Provides distributed tracing, error tracking, and performance monitoring
- * 
- * NOTE: This is a stub implementation. Install @sentry/node and @sentry/profiling-node
- * to enable full Sentry integration.
+ *
+ * Graceful degradation: When @sentry/node is not installed, all Sentry calls
+ * fall back to structured JSON logging so errors and performance data are still
+ * captured in stdout/stderr. Install @sentry/node for full integration with
+ * the Sentry dashboard, alerting, and profiling.
  */
 
 // Stub types for Sentry when package is not installed
@@ -55,8 +57,17 @@ const Sentry = {
     };
     callback(stubScope);
   },
-  captureException: (_error: Error) => `stub-event-id-${Date.now()}`,
-  captureMessage: (_message: string, _level?: string) => `stub-event-id-${Date.now()}`,
+  captureException: (error: Error) => {
+    const eventId = `log-${Date.now()}`;
+    logger.error(JSON.stringify({ level: 'error', event_id: eventId, message: error.message, stack: error.stack, timestamp: new Date().toISOString() }));
+    return eventId;
+  },
+  captureMessage: (message: string, level?: string) => {
+    const eventId = `log-${Date.now()}`;
+    const logFn = level === 'error' ? console.error : level === 'warning' ? console.warn : console.info;
+    logFn(JSON.stringify({ level: level || 'info', event_id: eventId, message, timestamp: new Date().toISOString() }));
+    return eventId;
+  },
   startTransaction: (opts: { name: string; op: string; data?: Record<string, unknown> }): SentryTransaction => ({
     startChild: (childOpts) => ({
       setStatus: () => {},
@@ -101,6 +112,7 @@ const Sentry = {
 class ProfilingIntegration {}
 
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../logger.js';
 
 interface SentryConfig {
   dsn: string;
@@ -197,7 +209,7 @@ export function captureError(
   context?: {
     user?: { id: string; email?: string; role?: string };
     tags?: Record<string, string>;
-    extra?: Record<string, any>;
+    extra?: Record<string, unknown>;
     level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
   }
 ): string {
@@ -232,7 +244,7 @@ export function captureMessage(
   level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info',
   context?: {
     tags?: Record<string, string>;
-    extra?: Record<string, any>;
+    extra?: Record<string, unknown>;
   }
 ): string {
   Sentry.withScope((scope) => {
@@ -258,7 +270,7 @@ export function captureMessage(
 export function startTransaction(
   name: string,
   op: string,
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 ): Sentry.Transaction {
   const transaction = Sentry.startTransaction({
     name,
@@ -289,7 +301,7 @@ export function startSpan(
 export function correlationIdMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     const correlationId = req.headers['x-correlation-id'] as string || 
-      `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      `${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     // Set correlation ID on request
     (req as any).correlationId = correlationId;
@@ -317,7 +329,7 @@ export class StructuredLogger {
   private log(
     level: 'debug' | 'info' | 'warning' | 'error',
     message: string,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): void {
     const timestamp = new Date().toISOString();
     const logEntry = {
@@ -341,19 +353,19 @@ export class StructuredLogger {
     });
   }
 
-  debug(message: string, data?: Record<string, any>): void {
+  debug(message: string, data?: Record<string, unknown>): void {
     this.log('debug', message, data);
   }
 
-  info(message: string, data?: Record<string, any>): void {
+  info(message: string, data?: Record<string, unknown>): void {
     this.log('info', message, data);
   }
 
-  warn(message: string, data?: Record<string, any>): void {
+  warn(message: string, data?: Record<string, unknown>): void {
     this.log('warning', message, data);
   }
 
-  error(message: string, error?: Error, data?: Record<string, any>): void {
+  error(message: string, error?: Error, data?: Record<string, unknown>): void {
     this.log('error', message, { ...data, error: error?.message, stack: error?.stack });
     
     if (error) {
@@ -374,7 +386,7 @@ export function traceMethod(op: string) {
   ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
       
       if (transaction) {
@@ -489,7 +501,7 @@ export function createSentryMonitoring(config?: Partial<SentryConfig>): void {
   if (defaultConfig.dsn) {
     initSentry({ ...defaultConfig, ...config });
   } else {
-    console.warn('Sentry DSN not configured, error monitoring disabled');
+    logger.warn('Sentry DSN not configured, error monitoring disabled');
   }
 }
 

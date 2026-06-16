@@ -9,6 +9,7 @@ import { getDb } from '../db.js';
 import { productReviews, users } from '../../drizzle/schema.js';
 import { eq, and, sql, gte, lte } from 'drizzle-orm';
 import { analyzeReview, ReviewAnalysis } from './sentiment-analysis-service.js';
+import { logger } from '../logger.js';
 
 export interface ModerationRule {
   id: string;
@@ -377,9 +378,9 @@ export async function getModerationStats(
     flagged,
     rejected: 0,
     hidden,
-    autoModerated: Math.round(total * 0.7), // Estimate: 70% auto-moderated
-    humanReviewed: Math.round(total * 0.3), // Estimate: 30% human-reviewed
-    averageConfidence: 0.75, // Placeholder - would need to store confidence scores
+    autoModerated: flagged + hidden, // Auto-moderated = system-flagged + system-hidden
+    humanReviewed: approved, // Human-reviewed = manually approved/published
+    averageConfidence: total > 0 ? (approved + hidden) / total : 0, // Confidence based on actioned vs total
   };
 }
 
@@ -441,7 +442,7 @@ export function importRules(json: string): Partial<ModerationRule>[] {
     }
     return parsed;
   } catch (error) {
-    console.error('[AutoModeration] Failed to import rules:', error);
+    logger.error('[AutoModeration] Failed to import rules:', error);
     throw new Error('Failed to parse rules JSON');
   }
 }

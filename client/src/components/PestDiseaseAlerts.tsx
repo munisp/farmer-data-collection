@@ -186,7 +186,7 @@ export function PestDiseaseAlerts({
                             <span className={`font-semibold ${style.textColor}`}>
                               {alert.pestDiseaseName}
                             </span>
-                            <Badge variant={style.color as any}>
+                            <Badge variant={style.color as 'default' | 'destructive' | 'secondary' | 'outline'}>
                               {alert.riskLevel.toUpperCase()} Risk
                             </Badge>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">

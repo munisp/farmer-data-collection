@@ -22,7 +22,7 @@ export default function HRDashboard() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
 
   // Queries
-  const { data: stats, refetch: refetchStats } = trpc.hr.getHRStats.useQuery();
+  const { data: stats, refetch: refetchStats, isPending: statsLoading } = trpc.hr.getHRStats.useQuery();
   const { data: employees, refetch: refetchEmployees } = trpc.hr.getEmployees.useQuery();
   const { data: timeEntries, refetch: refetchTimeEntries } = trpc.hr.getTimeEntries.useQuery({});
   const { data: payrollRecords, refetch: refetchPayroll } = trpc.hr.getPayrollRecords.useQuery({});
@@ -159,9 +159,22 @@ export default function HRDashboard() {
     });
   };
 
+  if (statsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">HR & Payroll Management</h1>
           <p className="text-muted-foreground">Manage employees, track time, and process payroll</p>
@@ -233,7 +246,7 @@ export default function HRDashboard() {
                       {selectedEmployee ? "Update employee information" : "Enter employee details"}
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleEmployeeSubmit} className="space-y-4">
+                  <form aria-label="Submit form" onSubmit={handleEmployeeSubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="employeeNumber">Employee Number</Label>
                       <Input
@@ -399,7 +412,7 @@ export default function HRDashboard() {
                     <DialogTitle>Add Time Entry</DialogTitle>
                     <DialogDescription>Record employee work hours</DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleTimeEntrySubmit} className="space-y-4">
+                  <form aria-label="Submit form" onSubmit={handleTimeEntrySubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="employeeId">Employee</Label>
                       <Select name="employeeId" required>
@@ -533,7 +546,7 @@ export default function HRDashboard() {
                       Calculate payroll for an employee based on time entries
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handlePayrollCalculate} className="space-y-4">
+                  <form aria-label="Submit form" onSubmit={handlePayrollCalculate} className="space-y-4">
                     <div>
                       <Label htmlFor="employeeId">Employee</Label>
                       <Select name="employeeId" required>

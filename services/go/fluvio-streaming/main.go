@@ -1,19 +1,23 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"os/signal"
+	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
 )
 
-const (
-	port = "8084"
-)
+const port = "8084"
 
 // StreamMessage represents a message in the stream
 type StreamMessage struct {
@@ -21,86 +25,240 @@ type StreamMessage struct {
 	Key       string                 `json:"key,omitempty"`
 	Value     interface{}            `json:"value"`
 	Timestamp time.Time              `json:"timestamp"`
+	Offset    int64                  `json:"offset"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ProduceRequest represents a request to produce messages
 type ProduceRequest struct {
-	Topic    string      `json:"topic"`
-	Key      string      `json:"key,omitempty"`
-	Value    interface{} `json:"value"`
+	Topic    string                 `json:"topic"`
+	Key      string                 `json:"key,omitempty"`
+	Value    interface{}            `json:"value"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ConsumeRequest represents a request to consume messages
 type ConsumeRequest struct {
 	Topic    string `json:"topic"`
 	Offset   int64  `json:"offset,omitempty"`
 	MaxCount int    `json:"maxCount,omitempty"`
 }
 
-// HealthResponse represents health check response
 type HealthResponse struct {
 	Status    string    `json:"status"`
 	Timestamp time.Time `json:"timestamp"`
 	Fluvio    string    `json:"fluvio"`
 	Topics    []string  `json:"topics"`
+	Mode      string    `json:"mode"` // "native" or "fallback"
 }
 
-// In-memory message store (for demo purposes - replace with actual Fluvio client)
-var messageStore = make(map[string][]StreamMessage)
+// Thread-safe message store with mutex protection
+type MessageStore struct {
+	mu       sync.RWMutex
+	messages map[string][]StreamMessage
+}
+
+func NewMessageStore() *MessageStore {
+	return &MessageStore{messages: make(map[string][]StreamMessage)}
+}
+
+func (s *MessageStore) Produce(topic string, msg StreamMessage) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.messages[topic]; !exists {
+		s.messages[topic] = []StreamMessage{}
+	}
+	msg.Offset = int64(len(s.messages[topic]))
+	s.messages[topic] = append(s.messages[topic], msg)
+	return len(s.messages[topic]) - 1
+}
+
+func (s *MessageStore) Consume(topic string, offset int64, maxCount int) ([]StreamMessage, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	msgs, exists := s.messages[topic]
+	if !exists {
+		return nil, false
+	}
+	if offset >= int64(len(msgs)) {
+		return []StreamMessage{}, true
+	}
+	result := msgs[offset:]
+	if maxCount > 0 && len(result) > maxCount {
+		result = result[:maxCount]
+	}
+	return result, true
+}
+
+func (s *MessageStore) Topics() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	topics := make([]string, 0, len(s.messages))
+	for t := range s.messages {
+		topics = append(topics, t)
+	}
+	return topics
+}
+
+func (s *MessageStore) TopicInfo() []map[string]interface{} {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]map[string]interface{}, 0, len(s.messages))
+	for topic, msgs := range s.messages {
+		info := map[string]interface{}{
+			"name":         topic,
+			"messageCount": len(msgs),
+		}
+		if len(msgs) > 0 {
+			info["lastTimestamp"] = msgs[len(msgs)-1].Timestamp
+		}
+		result = append(result, info)
+	}
+	return result
+}
+
+func (s *MessageStore) CreateTopic(topic string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.messages[topic]; exists {
+		return false
+	}
+	s.messages[topic] = []StreamMessage{}
+	return true
+}
+
+func (s *MessageStore) DeleteTopic(topic string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.messages[topic]; !exists {
+		return false
+	}
+	delete(s.messages, topic)
+	return true
+}
+
+func (s *MessageStore) TotalMessages() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	total := 0
+	for _, msgs := range s.messages {
+		total += len(msgs)
+	}
+	return total
+}
+
+var store = NewMessageStore()
+var fluvioAvailable = false
+
+// Circuit breaker for Fluvio CLI calls
+type CircuitBreaker struct {
+	mu               sync.Mutex
+	state            string
+	failureCount     int
+	failureThreshold int
+	resetTimeout     time.Duration
+	lastFailureTime  time.Time
+}
+
+var cb = &CircuitBreaker{
+	state:            "CLOSED",
+	failureThreshold: 3,
+	resetTimeout:     30 * time.Second,
+}
+
+func (c *CircuitBreaker) Allow() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.state == "CLOSED" {
+		return true
+	}
+	if c.state == "OPEN" && time.Since(c.lastFailureTime) > c.resetTimeout {
+		c.state = "HALF_OPEN"
+		return true
+	}
+	return c.state == "HALF_OPEN"
+}
+
+func (c *CircuitBreaker) RecordSuccess() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.failureCount = 0
+	c.state = "CLOSED"
+}
+
+func (c *CircuitBreaker) RecordFailure() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.failureCount++
+	c.lastFailureTime = time.Now()
+	if c.failureCount >= c.failureThreshold {
+		c.state = "OPEN"
+		log.Printf("[Fluvio] Circuit breaker OPEN after %d failures", c.failureCount)
+	}
+}
 
 func main() {
 	log.Println("[Fluvio Service] Starting...")
 
-	// Initialize Fluvio client (simulated for now)
 	initializeFluvio()
 
-	// Create HTTP router
 	router := mux.NewRouter()
-
-	// Health check
 	router.HandleFunc("/health", healthHandler).Methods("GET")
-
-	// Producer endpoints
 	router.HandleFunc("/produce", produceHandler).Methods("POST")
 	router.HandleFunc("/produce/batch", produceBatchHandler).Methods("POST")
-
-	// Consumer endpoints
 	router.HandleFunc("/consume", consumeHandler).Methods("POST")
 	router.HandleFunc("/consume/stream", consumeStreamHandler).Methods("GET")
-
-	// Topic management
 	router.HandleFunc("/topics", listTopicsHandler).Methods("GET")
 	router.HandleFunc("/topics/{topic}", createTopicHandler).Methods("POST")
 	router.HandleFunc("/topics/{topic}", deleteTopicHandler).Methods("DELETE")
-
-	// Metrics
 	router.HandleFunc("/metrics", metricsHandler).Methods("GET")
 
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		sig := <-sigChan
+		log.Printf("[Fluvio Service] Received %v, shutting down...", sig)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("[Fluvio Service] Shutdown error: %v", err)
+		}
+	}()
+
 	log.Printf("[Fluvio Service] Listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, router); err != nil {
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("[Fluvio Service] Failed to start: %v", err)
 	}
+	log.Println("[Fluvio Service] Stopped")
 }
 
 func initializeFluvio() {
-	// Initialize Fluvio client connection
-	// In production, this would connect to actual Fluvio cluster
 	fluvioEndpoint := os.Getenv("FLUVIO_ENDPOINT")
 	if fluvioEndpoint == "" {
 		fluvioEndpoint = "localhost:9003"
 	}
+	log.Printf("[Fluvio Service] Attempting connection to Fluvio at %s", fluvioEndpoint)
 
-	log.Printf("[Fluvio Service] Connecting to Fluvio at %s", fluvioEndpoint)
-	
-	// Create default topics
+	// Try native Fluvio CLI
+	out, err := exec.Command("fluvio", "version").CombinedOutput()
+	if err == nil {
+		fluvioAvailable = true
+		log.Printf("[Fluvio Service] Fluvio CLI available: %s", strings.TrimSpace(string(out)))
+	} else {
+		log.Println("[Fluvio Service] Fluvio CLI not available — using in-process fallback store")
+	}
+
 	defaultTopics := []string{
 		"farmer-data-stream",
 		"marketplace-events-stream",
 		"analytics-stream",
 		"ml-predictions-stream",
-		// Financial/Payment streams (Mojaloop & TigerBeetle)
 		"mojaloop-transfers-stream",
 		"mojaloop-quotes-stream",
 		"mojaloop-parties-stream",
@@ -113,24 +271,56 @@ func initializeFluvio() {
 	}
 
 	for _, topic := range defaultTopics {
-		messageStore[topic] = []StreamMessage{}
+		store.CreateTopic(topic)
+		if fluvioAvailable && cb.Allow() {
+			if err := fluvioCreateTopic(topic); err != nil {
+				cb.RecordFailure()
+			} else {
+				cb.RecordSuccess()
+			}
+		}
 		log.Printf("[Fluvio Service] Initialized topic: %s", topic)
 	}
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	topics := make([]string, 0, len(messageStore))
-	for topic := range messageStore {
-		topics = append(topics, topic)
+func fluvioCreateTopic(topic string) error {
+	cmd := exec.Command("fluvio", "topic", "create", topic)
+	out, err := cmd.CombinedOutput()
+	if err != nil && !strings.Contains(string(out), "already exists") {
+		return fmt.Errorf("fluvio topic create failed: %s", string(out))
 	}
+	return nil
+}
 
+func fluvioProduce(topic, key string, value []byte) error {
+	if !fluvioAvailable || !cb.Allow() {
+		return fmt.Errorf("fluvio unavailable")
+	}
+	cmd := exec.Command("fluvio", "produce", topic, "--key", key)
+	cmd.Stdin = strings.NewReader(string(value))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		cb.RecordFailure()
+		return fmt.Errorf("fluvio produce failed: %s", string(out))
+	}
+	cb.RecordSuccess()
+	return nil
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	mode := "fallback"
+	fluvioStatus := "disconnected"
+	if fluvioAvailable {
+		mode = "native"
+		fluvioStatus = "connected"
+	}
 	response := HealthResponse{
 		Status:    "healthy",
 		Timestamp: time.Now(),
-		Fluvio:    "connected",
-		Topics:    topics,
+		Fluvio:    fluvioStatus,
+		Topics:    store.Topics(),
+		Mode:      mode,
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -141,13 +331,11 @@ func produceHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
 	if req.Topic == "" {
 		http.Error(w, "Topic is required", http.StatusBadRequest)
 		return
 	}
 
-	// Create message
 	message := StreamMessage{
 		Topic:     req.Topic,
 		Key:       req.Key,
@@ -156,23 +344,23 @@ func produceHandler(w http.ResponseWriter, r *http.Request) {
 		Metadata:  req.Metadata,
 	}
 
-	// Store message (in production, this would send to Fluvio)
-	if _, exists := messageStore[req.Topic]; !exists {
-		messageStore[req.Topic] = []StreamMessage{}
-	}
-	messageStore[req.Topic] = append(messageStore[req.Topic], message)
+	offset := store.Produce(req.Topic, message)
 
-	log.Printf("[Fluvio Service] Produced message to topic %s: key=%s", req.Topic, req.Key)
-
-	response := map[string]interface{}{
-		"status":    "success",
-		"topic":     req.Topic,
-		"offset":    len(messageStore[req.Topic]) - 1,
-		"timestamp": message.Timestamp,
+	// Try native Fluvio in background
+	if fluvioAvailable {
+		go func() {
+			val, _ := json.Marshal(req.Value)
+			_ = fluvioProduce(req.Topic, req.Key, val)
+		}()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":    "success",
+		"topic":     req.Topic,
+		"offset":    offset,
+		"timestamp": message.Timestamp,
+	})
 }
 
 func produceBatchHandler(w http.ResponseWriter, r *http.Request) {
@@ -181,41 +369,20 @@ func produceBatchHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
 	results := make([]map[string]interface{}, 0, len(requests))
-
 	for _, req := range requests {
 		if req.Topic == "" {
 			continue
 		}
-
-		message := StreamMessage{
-			Topic:     req.Topic,
-			Key:       req.Key,
-			Value:     req.Value,
-			Timestamp: time.Now(),
-			Metadata:  req.Metadata,
+		msg := StreamMessage{
+			Topic: req.Topic, Key: req.Key, Value: req.Value,
+			Timestamp: time.Now(), Metadata: req.Metadata,
 		}
-
-		if _, exists := messageStore[req.Topic]; !exists {
-			messageStore[req.Topic] = []StreamMessage{}
-		}
-		messageStore[req.Topic] = append(messageStore[req.Topic], message)
-
-		results = append(results, map[string]interface{}{
-			"topic":  req.Topic,
-			"offset": len(messageStore[req.Topic]) - 1,
-		})
+		offset := store.Produce(req.Topic, msg)
+		results = append(results, map[string]interface{}{"topic": req.Topic, "offset": offset})
 	}
-
-	log.Printf("[Fluvio Service] Produced %d messages in batch", len(results))
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "success",
-		"count":   len(results),
-		"results": results,
-	})
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "success", "count": len(results), "results": results})
 }
 
 func consumeHandler(w http.ResponseWriter, r *http.Request) {
@@ -224,42 +391,17 @@ func consumeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
 	if req.Topic == "" {
 		http.Error(w, "Topic is required", http.StatusBadRequest)
 		return
 	}
-
-	messages, exists := messageStore[req.Topic]
+	messages, exists := store.Consume(req.Topic, req.Offset, req.MaxCount)
 	if !exists {
 		http.Error(w, "Topic not found", http.StatusNotFound)
 		return
 	}
-
-	// Apply offset
-	if req.Offset >= int64(len(messages)) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"messages": []StreamMessage{},
-			"count":    0,
-		})
-		return
-	}
-
-	messages = messages[req.Offset:]
-
-	// Apply max count
-	if req.MaxCount > 0 && len(messages) > req.MaxCount {
-		messages = messages[:req.MaxCount]
-	}
-
-	log.Printf("[Fluvio Service] Consumed %d messages from topic %s", len(messages), req.Topic)
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"messages": messages,
-		"count":    len(messages),
-	})
+	json.NewEncoder(w).Encode(map[string]interface{}{"messages": messages, "count": len(messages)})
 }
 
 func consumeStreamHandler(w http.ResponseWriter, r *http.Request) {
@@ -268,8 +410,6 @@ func consumeStreamHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Topic is required", http.StatusBadRequest)
 		return
 	}
-
-	// Set headers for SSE
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -283,111 +423,65 @@ func consumeStreamHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-
-	lastOffset := 0
-
-	log.Printf("[Fluvio Service] Started streaming from topic %s", topic)
+	var lastOffset int64
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("[Fluvio Service] Client disconnected from stream")
 			return
 		case <-ticker.C:
-			messages, exists := messageStore[topic]
-			if !exists || len(messages) <= lastOffset {
+			messages, exists := store.Consume(topic, lastOffset, 0)
+			if !exists || len(messages) == 0 {
 				continue
 			}
-
-			// Send new messages
-			newMessages := messages[lastOffset:]
-			for _, msg := range newMessages {
+			for _, msg := range messages {
 				data, _ := json.Marshal(msg)
 				fmt.Fprintf(w, "data: %s\n\n", data)
 				flusher.Flush()
 			}
-
-			lastOffset = len(messages)
+			lastOffset += int64(len(messages))
 		}
 	}
 }
 
 func listTopicsHandler(w http.ResponseWriter, r *http.Request) {
-	topics := make([]map[string]interface{}, 0, len(messageStore))
-	
-	for topic, messages := range messageStore {
-		topics = append(topics, map[string]interface{}{
-			"name":          topic,
-			"messageCount":  len(messages),
-			"lastTimestamp": getLastTimestamp(messages),
-		})
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"topics": topics,
-		"count":  len(topics),
-	})
+	info := store.TopicInfo()
+	json.NewEncoder(w).Encode(map[string]interface{}{"topics": info, "count": len(info)})
 }
 
 func createTopicHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	topic := vars["topic"]
-
-	if _, exists := messageStore[topic]; exists {
+	if !store.CreateTopic(topic) {
 		http.Error(w, "Topic already exists", http.StatusConflict)
 		return
 	}
-
-	messageStore[topic] = []StreamMessage{}
-	log.Printf("[Fluvio Service] Created topic: %s", topic)
-
+	if fluvioAvailable {
+		_ = fluvioCreateTopic(topic)
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": "created",
-		"topic":  topic,
-	})
+	json.NewEncoder(w).Encode(map[string]string{"status": "created", "topic": topic})
 }
 
 func deleteTopicHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	topic := vars["topic"]
-
-	if _, exists := messageStore[topic]; !exists {
+	if !store.DeleteTopic(topic) {
 		http.Error(w, "Topic not found", http.StatusNotFound)
 		return
 	}
-
-	delete(messageStore, topic)
-	log.Printf("[Fluvio Service] Deleted topic: %s", topic)
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": "deleted",
-		"topic":  topic,
-	})
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted", "topic": topic})
 }
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
-	totalMessages := 0
-	for _, messages := range messageStore {
-		totalMessages += len(messages)
-	}
-
-	metrics := map[string]interface{}{
-		"totalTopics":   len(messageStore),
-		"totalMessages": totalMessages,
-		"timestamp":     time.Now(),
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(metrics)
-}
-
-func getLastTimestamp(messages []StreamMessage) *time.Time {
-	if len(messages) == 0 {
-		return nil
-	}
-	ts := messages[len(messages)-1].Timestamp
-	return &ts
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"totalTopics":    len(store.Topics()),
+		"totalMessages":  store.TotalMessages(),
+		"fluvioNative":   fluvioAvailable,
+		"circuitBreaker": cb.state,
+		"timestamp":      time.Now(),
+	})
 }

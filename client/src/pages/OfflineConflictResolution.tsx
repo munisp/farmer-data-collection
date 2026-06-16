@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 /**
  * Offline Conflict Resolution UI
  * Allows users to view and resolve sync conflicts between local and server data
@@ -33,8 +34,8 @@ import {
 // Types
 interface ConflictField {
   fieldName: string;
-  localValue: any;
-  serverValue: any;
+  localValue: unknown;
+  serverValue: unknown;
   localTimestamp: string;
   serverTimestamp: string;
 }
@@ -167,9 +168,9 @@ const mockConflicts: SyncConflict[] = [
 ];
 
 // Field value display component
-function FieldValue({ value, type }: { value: any; type: 'local' | 'server' }) {
+function FieldValue({ value, type }: { value: unknown; type: 'local' | 'server' }) {
   const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-  const bgColor = type === 'local' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
+  const bgColor = type === 'local' ? 'bg-blue-50 dark:bg-blue-950 border-blue-200' : 'bg-green-50 dark:bg-green-950 border-green-200';
   const textColor = type === 'local' ? 'text-blue-700' : 'text-green-700';
   
   return (
@@ -234,11 +235,11 @@ function ConflictCard({
   const getConflictTypeBadge = () => {
     switch (conflict.conflictType) {
       case 'update':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Update Conflict</Badge>;
+        return <Badge variant="outline" className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 border-yellow-200">Update Conflict</Badge>;
       case 'delete':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Delete Conflict</Badge>;
+        return <Badge variant="outline" className="bg-red-50 dark:bg-red-950 text-red-700 border-red-200">Delete Conflict</Badge>;
       case 'create':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Create Conflict</Badge>;
+        return <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950 text-blue-700 border-blue-200">Create Conflict</Badge>;
     }
   };
 
@@ -443,7 +444,7 @@ export default function OfflineConflictResolution() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div role="main" aria-label="Page content" className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -467,7 +468,7 @@ export default function OfflineConflictResolution() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-yellow-100">
+                <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900">
                   <AlertTriangle className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div>
@@ -481,7 +482,7 @@ export default function OfflineConflictResolution() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-green-100">
+                <div className="p-3 rounded-full bg-green-100 dark:bg-green-900">
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
@@ -495,7 +496,7 @@ export default function OfflineConflictResolution() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-100">
+                <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
                   <Info className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
@@ -598,7 +599,7 @@ export default function OfflineConflictResolution() {
                           </CardDescription>
                         </div>
                       </div>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 border-green-200">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         Resolved
                       </Badge>

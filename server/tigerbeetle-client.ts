@@ -1,29 +1,53 @@
 import { createClient, Account, Transfer, CreateAccountError, CreateTransferError } from 'tigerbeetle-node';
+import { logger } from './logger.js';
 
 const TIGERBEETLE_CLUSTER_ID = process.env.TIGERBEETLE_CLUSTER_ID || '0';
 const TIGERBEETLE_REPLICA_ADDRESSES = (process.env.TIGERBEETLE_REPLICA_ADDRESSES || '3000').split(',');
 
-console.log('[TigerBeetle] Initializing TigerBeetle client...');
-console.log(`  Cluster ID: ${TIGERBEETLE_CLUSTER_ID}`);
-console.log(`  Replica Addresses: ${TIGERBEETLE_REPLICA_ADDRESSES.join(', ')}`);
-
-// Create TigerBeetle client
 let client: ReturnType<typeof createClient> | null = null;
+let _connectionFailed = false;
+let _lastAttempt = 0;
+const RETRY_INTERVAL_MS = 30_000;
 
-export async function getTigerBeetleClient() {
-  if (!client) {
+export async function getTigerBeetleClient(): Promise<ReturnType<typeof createClient> | null> {
+  if (_connectionFailed && Date.now() - _lastAttempt < RETRY_INTERVAL_MS) return null;
+  if (client) return client;
+
+  try {
+    _lastAttempt = Date.now();
+    client = createClient({
+      cluster_id: BigInt(TIGERBEETLE_CLUSTER_ID),
+      replica_addresses: TIGERBEETLE_REPLICA_ADDRESSES,
+    });
+    _connectionFailed = false;
+    logger.info('[TigerBeetle] Client created', {
+      clusterId: TIGERBEETLE_CLUSTER_ID,
+      replicas: TIGERBEETLE_REPLICA_ADDRESSES.join(','),
+    });
+    return client;
+  } catch (error) {
+    _connectionFailed = true;
+    logger.warn('[TigerBeetle] Client creation failed — degraded mode', {
+      error: (error as Error).message,
+    });
+    return null;
+  }
+}
+
+export function isTigerBeetleHealthy(): boolean {
+  return client !== null && !_connectionFailed;
+}
+
+export async function closeTigerBeetle(): Promise<void> {
+  if (client) {
     try {
-      client = createClient({
-        cluster_id: BigInt(TIGERBEETLE_CLUSTER_ID),
-        replica_addresses: TIGERBEETLE_REPLICA_ADDRESSES,
-      });
-      console.log('[TigerBeetle] Client created successfully');
+      client.destroy();
+      client = null;
+      logger.info('[TigerBeetle] Client closed');
     } catch (error) {
-      console.error('[TigerBeetle] Failed to create client:', error);
-      throw error;
+      logger.warn('[TigerBeetle] Error closing client', { error: (error as Error).message });
     }
   }
-  return client;
 }
 
 // Account types (chart of accounts)
@@ -72,7 +96,8 @@ export async function createAccount(
   flags: number = 0
 ): Promise<void> {
   try {
-    const client = await getTigerBeetleClient();
+    const tbClient = await getTigerBeetleClient();
+    if (!tbClient) throw new Error('TigerBeetle unavailable');
     
     const account: Account = {
       id: accountId,
@@ -90,20 +115,19 @@ export async function createAccount(
       timestamp: BigInt(0),
     };
     
-    const errors = await client.createAccounts([account]);
+    const errors = await tbClient.createAccounts([account]);
     
     if (errors.length > 0) {
       const error = errors[0];
       if (error.result !== CreateAccountError.exists) {
         throw new Error(`Failed to create account: ${CreateAccountError[error.result]}`);
       }
-      // Account already exists, that's okay
-      console.log(`[TigerBeetle] Account ${accountId} already exists`);
+      logger.info(`[TigerBeetle] Account ${accountId} already exists`);
     } else {
-      console.log(`[TigerBeetle] Created account: ${accountId} (ledger: ${ledger}, code: ${code})`);
+      logger.info(`[TigerBeetle] Created account: ${accountId}`, { ledger, code: code.toString() });
     }
   } catch (error) {
-    console.error('[TigerBeetle] Failed to create account:', error);
+    logger.error('[TigerBeetle] Failed to create account', { error: (error as Error).message });
     throw error;
   }
 }
@@ -121,7 +145,8 @@ export async function createTransfer(
   flags: number = 0
 ): Promise<void> {
   try {
-    const client = await getTigerBeetleClient();
+    const tbClient = await getTigerBeetleClient();
+    if (!tbClient) throw new Error('TigerBeetle unavailable');
     
     const transfer: Transfer = {
       id: transferId,
@@ -139,16 +164,16 @@ export async function createTransfer(
       timestamp: BigInt(0),
     };
     
-    const errors = await client.createTransfers([transfer]);
+    const errors = await tbClient.createTransfers([transfer]);
     
     if (errors.length > 0) {
       const error = errors[0];
       throw new Error(`Failed to create transfer: ${CreateTransferError[error.result]}`);
     }
     
-    console.log(`[TigerBeetle] Created transfer: ${transferId} (${debitAccountId} -> ${creditAccountId}, amount: ${amount})`);
+    logger.info(`[TigerBeetle] Created transfer: ${transferId}`, { debitAccountId: debitAccountId.toString(), creditAccountId: creditAccountId.toString(), amount: amount.toString() });
   } catch (error) {
-    console.error('[TigerBeetle] Failed to create transfer:', error);
+    logger.error('[TigerBeetle] Failed to create transfer', { error: (error as Error).message });
     throw error;
   }
 }
@@ -158,16 +183,12 @@ export async function createTransfer(
  */
 export async function lookupAccount(accountId: bigint): Promise<Account | null> {
   try {
-    const client = await getTigerBeetleClient();
-    const accounts = await client.lookupAccounts([accountId]);
-    
-    if (accounts.length === 0) {
-      return null;
-    }
-    
-    return accounts[0];
+    const tbClient = await getTigerBeetleClient();
+    if (!tbClient) return null;
+    const accounts = await tbClient.lookupAccounts([accountId]);
+    return accounts.length === 0 ? null : accounts[0];
   } catch (error) {
-    console.error('[TigerBeetle] Failed to lookup account:', error);
+    logger.error('[TigerBeetle] Failed to lookup account', { error: (error as Error).message });
     return null;
   }
 }
@@ -177,16 +198,12 @@ export async function lookupAccount(accountId: bigint): Promise<Account | null> 
  */
 export async function lookupTransfer(transferId: bigint): Promise<Transfer | null> {
   try {
-    const client = await getTigerBeetleClient();
-    const transfers = await client.lookupTransfers([transferId]);
-    
-    if (transfers.length === 0) {
-      return null;
-    }
-    
-    return transfers[0];
+    const tbClient = await getTigerBeetleClient();
+    if (!tbClient) return null;
+    const transfers = await tbClient.lookupTransfers([transferId]);
+    return transfers.length === 0 ? null : transfers[0];
   } catch (error) {
-    console.error('[TigerBeetle] Failed to lookup transfer:', error);
+    logger.error('[TigerBeetle] Failed to lookup transfer', { error: (error as Error).message });
     return null;
   }
 }
@@ -340,15 +357,12 @@ export async function calculateProfitLoss(farmerId: number): Promise<{
 export async function initializeFarmerAccounts(farmerId: number): Promise<void> {
   const ledger = getFarmerLedger(farmerId);
   
-  console.log(`[TigerBeetle] Initializing accounts for farmer ${farmerId}`);
+  logger.info(`[TigerBeetle] Initializing accounts for farmer ${farmerId}`);
   
-  // Create all account types
-  for (const [accountName, accountCode] of Object.entries(ACCOUNT_TYPES)) {
+  for (const [, accountCode] of Object.entries(ACCOUNT_TYPES)) {
     const accountId = BigInt(farmerId) * BigInt(10000) + accountCode;
     await createAccount(accountId, ledger, accountCode);
   }
   
-  console.log(`[TigerBeetle] Initialized all accounts for farmer ${farmerId}`);
+  logger.info(`[TigerBeetle] Initialized all accounts for farmer ${farmerId}`);
 }
-
-console.log('[TigerBeetle] Client module initialized');

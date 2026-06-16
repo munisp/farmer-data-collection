@@ -49,6 +49,7 @@ import {
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function AgentTasksDashboard() {
   const { toast } = useToast();
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -136,14 +137,14 @@ export default function AgentTasksDashboard() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; label: string }> = {
-      pending: { color: 'bg-gray-100 text-gray-800', label: 'Pending' },
-      assigned: { color: 'bg-blue-100 text-blue-800', label: 'Assigned' },
-      in_progress: { color: 'bg-yellow-100 text-yellow-800', label: 'In Progress' },
-      completed: { color: 'bg-green-100 text-green-800', label: 'Completed' },
-      cancelled: { color: 'bg-red-100 text-red-800', label: 'Cancelled' },
-      overdue: { color: 'bg-red-100 text-red-800', label: 'Overdue' },
+      pending: { color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100', label: 'Pending' },
+      assigned: { color: 'bg-blue-100 dark:bg-blue-900 text-blue-800', label: 'Assigned' },
+      in_progress: { color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800', label: 'In Progress' },
+      completed: { color: 'bg-green-100 dark:bg-green-900 text-green-800', label: 'Completed' },
+      cancelled: { color: 'bg-red-100 dark:bg-red-900 text-red-800', label: 'Cancelled' },
+      overdue: { color: 'bg-red-100 dark:bg-red-900 text-red-800', label: 'Overdue' },
     };
-    const config = statusConfig[status] || { color: 'bg-gray-100', label: status };
+    const config = statusConfig[status] || { color: 'bg-gray-100 dark:bg-gray-800', label: status };
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
@@ -177,20 +178,21 @@ export default function AgentTasksDashboard() {
 
   const getOutcomeBadge = (outcome: string) => {
     const config: Record<string, { color: string; label: string }> = {
-      successful: { color: 'bg-green-100 text-green-800', label: 'Successful' },
-      farmer_absent: { color: 'bg-yellow-100 text-yellow-800', label: 'Farmer Absent' },
-      rescheduled: { color: 'bg-blue-100 text-blue-800', label: 'Rescheduled' },
-      unsuccessful: { color: 'bg-red-100 text-red-800', label: 'Unsuccessful' },
+      successful: { color: 'bg-green-100 dark:bg-green-900 text-green-800', label: 'Successful' },
+      farmer_absent: { color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800', label: 'Farmer Absent' },
+      rescheduled: { color: 'bg-blue-100 dark:bg-blue-900 text-blue-800', label: 'Rescheduled' },
+      unsuccessful: { color: 'bg-red-100 dark:bg-red-900 text-red-800', label: 'Unsuccessful' },
     };
-    const c = config[outcome] || { color: 'bg-gray-100', label: outcome };
+    const c = config[outcome] || { color: 'bg-gray-100 dark:bg-gray-800', label: outcome };
     return <Badge className={c.color}>{c.label}</Badge>;
   };
 
-    const completedToday = todaysTasks.filter((t: any) => t.status === 'completed').length;
+    const completedToday = todaysTasks.filter((t) => t.status === 'completed').length;
     const completionRate = performance.tasksAssigned > 0 ? (performance.tasksCompleted / performance.tasksAssigned) * 100 : 0;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Field Agent Dashboard</h1>
@@ -387,13 +389,13 @@ export default function AgentTasksDashboard() {
                     <div className="flex items-start gap-4">
                       <div className="flex flex-col items-center">
                         <div className={`p-2 rounded-full ${
-                          task.status === 'completed' ? 'bg-green-100' :
-                          task.status === 'in_progress' ? 'bg-yellow-100' : 'bg-gray-100'
+                          task.status === 'completed' ? 'bg-green-100 dark:bg-green-900' :
+                          task.status === 'in_progress' ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-gray-100 dark:bg-gray-800'
                         }`}>
                           {getTaskTypeIcon(task.taskType)}
                         </div>
                         {index < todaysTasks.length - 1 && (
-                          <div className="w-0.5 h-8 bg-gray-200 my-2" />
+                          <div className="w-0.5 h-8 bg-gray-200 dark:bg-gray-700 my-2" />
                         )}
                       </div>
                       <div className="flex-1">
@@ -486,7 +488,7 @@ export default function AgentTasksDashboard() {
                 {tasks.map((task: { id: number; taskType: string; title: string; scheduledDate: Date | null; scheduledTime: string | null; locationName: string | null; priority: string; status: string }) => (
                   <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-gray-100">
+                      <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-800">
                         {getTaskTypeIcon(task.taskType)}
                       </div>
                       <div>
@@ -519,7 +521,7 @@ export default function AgentTasksDashboard() {
                   <div key={visit.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-4">
                       <div className={`p-2 rounded-full ${
-                        visit.outcome === 'successful' ? 'bg-green-100' : 'bg-yellow-100'
+                        visit.outcome === 'successful' ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900'
                       }`}>
                         {visit.outcome === 'successful' ? (
                           <CheckCircle className="w-5 h-5 text-green-600" />
@@ -665,5 +667,6 @@ export default function AgentTasksDashboard() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

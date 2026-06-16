@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("federated-learning")
+
 """
 Federated Learning Service
 Privacy-preserving model improvement without centralizing farmer data
@@ -29,6 +34,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Federated Learning Service")
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[federated-learning] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[federated-learning] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[federated-learning] Shutdown complete")
+
 
 app.add_middleware(
     CORSMiddleware,

@@ -142,6 +142,7 @@ import { sinkConnectorManager } from './kafka-sink-connector.js';
 import { getFeatureStore } from './feature-store.js';
 import { getETLPipeline } from './etl-pipeline.js';
 import { getDLLLMService } from './dl-llm-integration.js';
+import { logger } from '../../logger.js';
 
 export interface LakehouseStatus {
   connected: boolean;
@@ -160,38 +161,38 @@ export interface LakehouseStatus {
  * Initialize the lakehouse system - PRODUCTION READY
  */
 export async function initializeLakehouse(): Promise<void> {
-  console.log('[Lakehouse] Initializing lakehouse system...');
+  logger.info('[Lakehouse] Initializing lakehouse system...');
 
   try {
     // 1. Connect to lakehouse (S3/MinIO + local fallback)
     const client = getLakehouseClient();
     await client.connect();
-    console.log(`[Lakehouse] Storage mode: ${client.getStorageMode()}`);
+    logger.info(`[Lakehouse] Storage mode: ${client.getStorageMode()}`);
 
     // 2. Start Kafka sink connectors (graceful failure if Kafka unavailable)
     try {
       await sinkConnectorManager.startAll();
     } catch (kafkaError) {
-      console.warn('[Lakehouse] Kafka sink connectors not started (Kafka may be unavailable):', kafkaError);
+      logger.warn('[Lakehouse] Kafka sink connectors not started (Kafka may be unavailable):', kafkaError);
     }
 
     // 3. Initialize feature store
     const featureStore = getFeatureStore();
-    console.log(`[Lakehouse] Feature store initialized with ${featureStore.getAllFeatureGroups().length} feature groups`);
+    logger.info(`[Lakehouse] Feature store initialized with ${featureStore.getAllFeatureGroups().length} feature groups`);
 
     // 4. Initialize ETL pipelines
     const etlPipeline = getETLPipeline();
     const enabledPipelines = etlPipeline.getAllPipelines().filter(p => p.enabled).length;
-    console.log(`[Lakehouse] ETL pipelines initialized: ${enabledPipelines} enabled`);
+    logger.info(`[Lakehouse] ETL pipelines initialized: ${enabledPipelines} enabled`);
 
     // 5. Initialize DL/LLM integration service
     const dlLLMService = getDLLLMService();
     await dlLLMService.initialize();
-    console.log('[Lakehouse] DL/LLM integration service initialized');
+    logger.info('[Lakehouse] DL/LLM integration service initialized');
 
-    console.log('[Lakehouse] Lakehouse system initialized successfully');
+    logger.info('[Lakehouse] Lakehouse system initialized successfully');
   } catch (error) {
-    console.error('[Lakehouse] Failed to initialize lakehouse:', error);
+    logger.error('[Lakehouse] Failed to initialize lakehouse:', error);
     throw error;
   }
 }
@@ -200,7 +201,7 @@ export async function initializeLakehouse(): Promise<void> {
  * Shutdown the lakehouse system
  */
 export async function shutdownLakehouse(): Promise<void> {
-  console.log('[Lakehouse] Shutting down lakehouse system...');
+  logger.info('[Lakehouse] Shutting down lakehouse system...');
 
   try {
     // Stop sink connectors
@@ -210,9 +211,9 @@ export async function shutdownLakehouse(): Promise<void> {
     const client = getLakehouseClient();
     await client.disconnect();
 
-    console.log('[Lakehouse] Lakehouse system shut down successfully');
+    logger.info('[Lakehouse] Lakehouse system shut down successfully');
   } catch (error) {
-    console.error('[Lakehouse] Error during shutdown:', error);
+    logger.error('[Lakehouse] Error during shutdown:', error);
   }
 }
 
@@ -243,7 +244,7 @@ export function getLakehouseStatus(): LakehouseStatus {
 /**
  * Run all ETL pipelines manually
  */
-export async function runAllETLPipelines(): Promise<Map<string, any>> {
+export async function runAllETLPipelines(): Promise<Map<string, unknown>> {
   const etlPipeline = getETLPipeline();
   return await etlPipeline.runAllPipelines();
 }
@@ -251,7 +252,7 @@ export async function runAllETLPipelines(): Promise<Map<string, any>> {
 /**
  * Compute features for a farmer (for credit scoring)
  */
-export async function computeFarmerFeatures(farmerId: number): Promise<Record<string, any>> {
+export async function computeFarmerFeatures(farmerId: number): Promise<Record<string, unknown>> {
   const featureStore = getFeatureStore();
   return await featureStore.computeCreditScoringFeatures(farmerId);
 }
@@ -259,7 +260,7 @@ export async function computeFarmerFeatures(farmerId: number): Promise<Record<st
 /**
  * Get features for a farmer from online store
  */
-export async function getFarmerFeatures(farmerId: number): Promise<Record<string, any> | null> {
+export async function getFarmerFeatures(farmerId: number): Promise<Record<string, unknown> | null> {
   const featureStore = getFeatureStore();
   return await featureStore.getOnlineFeatures('credit_scoring_features', farmerId);
 }

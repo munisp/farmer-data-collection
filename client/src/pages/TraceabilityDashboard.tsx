@@ -55,7 +55,10 @@ import {
 import { useLocalization } from '@/contexts/LocalizationContext';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
+import { Scissors, Link2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function TraceabilityDashboard() {
   const { formatCurrency, formatWeight } = useLocalization();
   const { toast } = useToast();
@@ -63,6 +66,14 @@ export default function TraceabilityDashboard() {
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
   const [showCreateBatchDialog, setShowCreateBatchDialog] = useState(false);
   const [showBatchDetailDialog, setShowBatchDetailDialog] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
+  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
+  const [qrBatchCode, setQrBatchCode] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyResult, setVerifyResult] = useState<any>(null);
+  const [splitParts, setSplitParts] = useState('2');
+  const [splitQuantities, setSplitQuantities] = useState<string[]>([]);
 
   const { data: batchesData, isLoading: batchesLoading, refetch: refetchBatches } = trpc.traceability.listBatches.useQuery({});
 
@@ -71,6 +82,31 @@ export default function TraceabilityDashboard() {
   const { data: warehousesData, isLoading: warehousesLoading } = trpc.traceability.listWarehouses.useQuery({});
 
   const { data: statsData } = trpc.traceability.getStats.useQuery();
+
+  const generateQRMutation = trpc.traceabilityEnhancements.generateQRCode.useMutation({
+    onSuccess: (data) => {
+      setQrBatchCode(JSON.stringify(data, null, 2));
+      setShowQRDialog(true);
+    },
+    onError: (err) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+  });
+
+  const verifyBatchQuery = trpc.traceabilityEnhancements.verifyBatch.useQuery(
+    { batchCode: verifyCode },
+    {
+      enabled: false,
+      retry: false,
+    }
+  );
+
+  const splitBatchMutation = trpc.traceabilityEnhancements.splitBatch.useMutation({
+    onSuccess: (data) => {
+      toast({ title: `Batch split into ${data.newBatches.length} parts` });
+      setShowSplitDialog(false);
+      refetchBatches();
+    },
+    onError: (err: any) => toast({ title: 'Split failed', description: err.message, variant: 'destructive' }),
+  });
 
   const createBatchMutation = trpc.traceability.createBatch.useMutation({
     onSuccess: () => {
@@ -99,27 +135,27 @@ export default function TraceabilityDashboard() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; label: string }> = {
-      created: { color: 'bg-gray-100 text-gray-800', label: 'Created' },
-      at_farm: { color: 'bg-green-100 text-green-800', label: 'At Farm' },
-      in_transit: { color: 'bg-blue-100 text-blue-800', label: 'In Transit' },
-      at_collection_center: { color: 'bg-yellow-100 text-yellow-800', label: 'At Collection' },
+      created: { color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100', label: 'Created' },
+      at_farm: { color: 'bg-green-100 dark:bg-green-900 text-green-800', label: 'At Farm' },
+      in_transit: { color: 'bg-blue-100 dark:bg-blue-900 text-blue-800', label: 'In Transit' },
+      at_collection_center: { color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800', label: 'At Collection' },
       at_warehouse: { color: 'bg-purple-100 text-purple-800', label: 'At Warehouse' },
       ready_for_sale: { color: 'bg-emerald-100 text-emerald-800', label: 'Ready for Sale' },
       sold: { color: 'bg-indigo-100 text-indigo-800', label: 'Sold' },
       delivered: { color: 'bg-teal-100 text-teal-800', label: 'Delivered' },
     };
-    const config = statusConfig[status] || { color: 'bg-gray-100', label: status };
+    const config = statusConfig[status] || { color: 'bg-gray-100 dark:bg-gray-800', label: status };
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
   const getGradeBadge = (grade: string) => {
     const gradeConfig: Record<string, { color: string; label: string }> = {
       premium: { color: 'bg-amber-100 text-amber-800', label: 'Premium' },
-      grade_a: { color: 'bg-green-100 text-green-800', label: 'Grade A' },
-      grade_b: { color: 'bg-blue-100 text-blue-800', label: 'Grade B' },
-      grade_c: { color: 'bg-gray-100 text-gray-800', label: 'Grade C' },
+      grade_a: { color: 'bg-green-100 dark:bg-green-900 text-green-800', label: 'Grade A' },
+      grade_b: { color: 'bg-blue-100 dark:bg-blue-900 text-blue-800', label: 'Grade B' },
+      grade_c: { color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100', label: 'Grade C' },
     };
-    const config = gradeConfig[grade] || { color: 'bg-gray-100', label: grade };
+    const config = gradeConfig[grade] || { color: 'bg-gray-100 dark:bg-gray-800', label: grade };
     return <Badge variant="outline" className={config.color}>{config.label}</Badge>;
   };
 
@@ -147,7 +183,8 @@ export default function TraceabilityDashboard() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Supply Chain Traceability</h1>
@@ -294,7 +331,7 @@ export default function TraceabilityDashboard() {
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by batch code..."
+                    aria-label="Search" placeholder="Search by batch code..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -329,7 +366,7 @@ export default function TraceabilityDashboard() {
                                         <div className="flex items-center gap-2">
                                           {batch.cropType}
                                           {batch.isOrganic && (
-                                            <Badge variant="outline" className="bg-green-50 text-green-700">
+                                            <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700">
                                               <Leaf className="w-3 h-3 mr-1" />
                                               Organic
                                             </Badge>
@@ -345,11 +382,11 @@ export default function TraceabilityDashboard() {
                                           <Button variant="ghost" size="sm" onClick={() => viewBatchDetails(batch)}>
                                             <Eye className="w-4 h-4" />
                                           </Button>
-                                          <Button variant="ghost" size="sm">
+                                          <Button variant="ghost" size="sm" onClick={() => generateQRMutation.mutate({ batchId: batch.id })}>
                                             <QrCode className="w-4 h-4" />
                                           </Button>
-                                          <Button variant="ghost" size="sm">
-                                            <Download className="w-4 h-4" />
+                                          <Button variant="ghost" size="sm" onClick={() => { setSelectedBatch(batch); setSplitParts('2'); setSplitQuantities([]); setShowSplitDialog(true); }}>
+                                            <Scissors className="w-4 h-4" />
                                           </Button>
                                         </div>
                                       </TableCell>
@@ -382,14 +419,50 @@ export default function TraceabilityDashboard() {
                   <QrCode className="w-4 h-4 mr-2" />
                   Start Scanning
                 </Button>
-                <p className="text-sm text-muted-foreground">Or enter batch code manually:</p>
+                <p className="text-sm text-muted-foreground">Enter batch code to verify:</p>
                 <div className="flex gap-2 w-full max-w-md">
-                  <Input placeholder="BATCH-2024-001" />
-                  <Button variant="outline">
-                    <Search className="w-4 h-4 mr-2" />
-                    Search
+                  <Input placeholder="BATCH-2024-001" value={verifyCode} onChange={(e) => setVerifyCode(e.target.value)} />
+                  <Button variant="outline" onClick={() => { if (verifyCode) verifyBatchQuery.refetch().then(r => { if (r.data) setVerifyResult(r.data); }); }} disabled={!verifyCode || verifyBatchQuery.isFetching}>
+                    {verifyBatchQuery.isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+                    Verify
                   </Button>
                 </div>
+
+                {/* Verification Result */}
+                {verifyResult && (
+                  <Card className="w-full max-w-md mt-4">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        Batch Verified
+                      </CardTitle>
+                      <CardDescription>{verifyResult.batch.batchCode}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-muted-foreground">Crop:</span> {verifyResult.batch.cropType}</div>
+                        <div><span className="text-muted-foreground">Grade:</span> {getGradeBadge(verifyResult.batch.qualityGrade)}</div>
+                        <div><span className="text-muted-foreground">Origin:</span> {verifyResult.batch.originRegion}</div>
+                        <div><span className="text-muted-foreground">Status:</span> {getStatusBadge(verifyResult.batch.status)}</div>
+                        <div><span className="text-muted-foreground">Organic:</span> {verifyResult.batch.isOrganic ? 'Yes' : 'No'}</div>
+                        <div><span className="text-muted-foreground">Events:</span> {verifyResult.totalEvents} recorded</div>
+                      </div>
+                      {verifyResult.journey && verifyResult.journey.length > 0 && (
+                        <div className="mt-4 border-t pt-4">
+                          <h5 className="text-sm font-semibold mb-2">Journey Timeline</h5>
+                          {verifyResult.journey.map((ev: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2 text-xs py-1">
+                              {getEventIcon(ev.eventType)}
+                              <span className="capitalize">{ev.eventType.replace('_', ' ')}</span>
+                              <span className="text-muted-foreground">{ev.location || ''}</span>
+                              {ev.isVerified && <CheckCircle className="w-3 h-3 text-green-500" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -417,7 +490,7 @@ export default function TraceabilityDashboard() {
                                         <span>Capacity:</span>
                                         <span>{center.currentStock}/{center.capacity} tonnes</span>
                                       </div>
-                                      <div className="w-full bg-gray-200 rounded-full h-2">
+                                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                         <div
                                           className="bg-primary h-2 rounded-full"
                                           style={{ width: `${(center.currentStock / center.capacity) * 100}%` }}
@@ -476,7 +549,7 @@ export default function TraceabilityDashboard() {
                                         <span>Available Capacity:</span>
                                         <span>{warehouse.availableCapacity}/{warehouse.totalCapacity} tonnes</span>
                                       </div>
-                                      <div className="w-full bg-gray-200 rounded-full h-2">
+                                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                         <div
                                           className="bg-green-500 h-2 rounded-full"
                                           style={{ width: `${(warehouse.availableCapacity / warehouse.totalCapacity) * 100}%` }}
@@ -543,18 +616,18 @@ export default function TraceabilityDashboard() {
                   {(selectedBatch.events || []).map((event: { id: number; eventType: string; isVerified?: boolean; location?: string; eventTimestamp?: Date; performedBy?: number }, index: number) => (
                     <div key={event.id} className="flex gap-4">
                       <div className="flex flex-col items-center">
-                        <div className={`p-2 rounded-full ${event.isVerified ? 'bg-green-100' : 'bg-gray-100'}`}>
+                        <div className={`p-2 rounded-full ${event.isVerified ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-100 dark:bg-gray-800'}`}>
                           {getEventIcon(event.eventType)}
                         </div>
                         {index < (selectedBatch.events || []).length - 1 && (
-                          <div className="w-0.5 h-full bg-gray-200 my-1" />
+                          <div className="w-0.5 h-full bg-gray-200 dark:bg-gray-700 my-1" />
                         )}
                       </div>
                       <div className="flex-1 pb-4">
                         <div className="flex items-center gap-2">
                           <span className="font-medium capitalize">{event.eventType.replace('_', ' ')}</span>
                           {event.isVerified && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700">
+                            <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700">
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Verified
                             </Badge>
@@ -571,19 +644,74 @@ export default function TraceabilityDashboard() {
               </div>
 
               <div className="flex justify-between">
-                <Button variant="outline">
-                  <QrCode className="w-4 h-4 mr-2" />
-                  View QR Code
+                <Button variant="outline" onClick={() => generateQRMutation.mutate({ batchId: selectedBatch.id })} disabled={generateQRMutation.isPending}>
+                  {generateQRMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
+                  Generate QR Code
                 </Button>
-                <Button variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Certificate
+                <Button variant="outline" onClick={() => { setSelectedBatch(selectedBatch); setSplitParts('2'); setShowSplitDialog(true); }}>
+                  <Scissors className="w-4 h-4 mr-2" />
+                  Split Batch
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><QrCode className="w-5 h-5" /> QR Code Data</DialogTitle>
+            <DialogDescription>Scan this data with any QR code generator to produce a scannable label</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <pre className="text-xs whitespace-pre-wrap font-mono">{qrBatchCode}</pre>
+            </div>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => { navigator.clipboard.writeText(qrBatchCode); toast({ title: 'Copied to clipboard' }); }}>
+                <Link2 className="w-4 h-4 mr-2" />Copy Data
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Split Batch Dialog */}
+      <Dialog open={showSplitDialog} onOpenChange={setShowSplitDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Scissors className="w-5 h-5" /> Split Batch</DialogTitle>
+            <DialogDescription>Divide {selectedBatch?.batchCode} into sub-batches</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm">Original quantity: <strong>{selectedBatch?.quantity} kg</strong></div>
+            <div className="space-y-2">
+              <Label>Number of parts</Label>
+              <Select value={splitParts} onValueChange={(v) => { setSplitParts(v); setSplitQuantities(Array(parseInt(v)).fill('')); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{['2', '3', '4', '5'].map(n => <SelectItem key={n} value={n}>{n} parts</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            {splitQuantities.map((q, i) => (
+              <div key={i} className="space-y-1">
+                <Label>Part {i + 1} quantity (kg)</Label>
+                <Input type="number" value={q} onChange={(e) => { const nq = [...splitQuantities]; nq[i] = e.target.value; setSplitQuantities(nq); }} />
+              </div>
+            ))}
+            <Button className="w-full" disabled={splitBatchMutation.isPending || !selectedBatch} onClick={() => {
+              if (!selectedBatch) return;
+              const quantities = splitQuantities.map(Number).filter(n => n > 0);
+              if (quantities.length < 2) { toast({ title: 'Enter at least 2 valid quantities' }); return; }
+              splitBatchMutation.mutate({ batchId: selectedBatch.id, splits: quantities.map((q: number) => ({ quantity: q })) });
+            }}>
+              {splitBatchMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Splitting...</> : 'Split Batch'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

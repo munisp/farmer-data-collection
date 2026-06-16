@@ -19,6 +19,7 @@ import { CameraUpload } from "@/components/CameraUpload";
 import { toast } from "sonner";
 import { compressImage, formatFileSize } from "@/lib/imageCompression";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function MarketplaceListing() {
   const [, params] = useRoute("/marketplace/edit/:id");
   const [, setLocation] = useLocation();
@@ -80,7 +81,7 @@ export default function MarketplaceListing() {
       
       // Show compression stats
       const savings = compressed.compressionRatio.toFixed(1);
-      console.log(`Image compressed: ${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)} (${savings}% reduction)`);
+      console.warn(`Image compressed: ${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)} (${savings}% reduction)`);
       
       // Add compressed photo to photos array for preview
       setPhotos(prev => [...prev, compressed.dataUrl]);
@@ -229,14 +230,15 @@ export default function MarketplaceListing() {
 
   if (isEdit && loadingListing) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container py-8 max-w-4xl">
         <Button variant="ghost" className="mb-6" onClick={() => setLocation("/my-listings")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -248,7 +250,7 @@ export default function MarketplaceListing() {
             <CardTitle>{isEdit ? "Edit Listing" : "Create New Listing"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form aria-label="Submit form" onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Info */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -328,7 +330,7 @@ export default function MarketplaceListing() {
 
                               {/* Meat/Livestock Specific Options */}
                               {(formData.category === "meat" || formData.category === "poultry") && (
-                                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 space-y-4">
+                                <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 space-y-4">
                                   <h4 className="font-medium text-orange-800 flex items-center gap-2">
                                     <span>Meat & Livestock Options</span>
                                   </h4>
@@ -778,5 +780,6 @@ export default function MarketplaceListing() {
         </Card>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

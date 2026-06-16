@@ -48,7 +48,7 @@ export const exportRouter = router({
           "Area Planted",
           "Season",
         ];
-        const rows = data.map((crop: any) => [
+        const rows = data.map((crop) => [
           crop.id,
           crop.cropName,
           crop.cropVariety || "",
@@ -107,12 +107,12 @@ export const exportRouter = router({
           "Date",
           "Payment Method",
         ];
-        const rows = data.map((expense: any) => [
+        const rows = data.map((expense) => [
           expense.id,
           expense.description || "",
           expense.category || "",
           expense.amount,
-          expense.date?.toISOString().split("T")[0] || "",
+          expense.expenseDate?.toISOString().split("T")[0] || "",
           expense.paymentMethod || "",
         ]);
         
@@ -165,7 +165,7 @@ export const exportRouter = router({
           "Market Price",
           "Revenue",
         ];
-        const rows = data.map((harvest: any) => [
+        const rows = data.map((harvest) => [
           harvest.id,
           harvest.cropId,
           harvest.harvestDate?.toISOString().split("T")[0] || "",
@@ -213,7 +213,7 @@ export const exportRouter = router({
         .where(and(...expenseConditions));
 
       const expenseData = await expenseQuery;
-      const totalExpenses = expenseData.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+      const totalExpenses = expenseData.reduce((sum: number, e: { amount: string | number | null }) => sum + Number(e.amount), 0);
 
       // Get harvests
       const harvestConditions = [eq(harvests.userId, userId)];
@@ -231,7 +231,7 @@ export const exportRouter = router({
         .where(and(...harvestConditions));
 
       const harvestData = await harvestQuery;
-      const totalRevenue = harvestData.reduce((sum: number, h: any) => sum + Number(h.revenue || 0), 0);
+      const totalRevenue = harvestData.reduce((sum: number, h: { revenue: string | number | null }) => sum + Number(h.revenue || 0), 0);
 
       const netProfit = totalRevenue - totalExpenses;
       const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : "0.00";
@@ -312,7 +312,7 @@ export const exportRouter = router({
           "Status",
           "Created At",
         ];
-        const rows = data.map((listing: any) => [
+        const rows = data.map((listing) => [
           listing.id,
           listing.title,
           listing.category,
@@ -374,7 +374,7 @@ export const exportRouter = router({
           "Delivery Method",
           "Created At",
         ];
-        const rows = data.map((order: any) => [
+        const rows = data.map((order) => [
           order.id,
           order.buyerId,
           (order.totalAmount / 100).toFixed(2),
@@ -434,7 +434,7 @@ export const exportRouter = router({
           "Delivery Method",
           "Created At",
         ];
-        const rows = data.map((order: any) => [
+        const rows = data.map((order) => [
           order.id,
           order.sellerId,
           (order.totalAmount / 100).toFixed(2),

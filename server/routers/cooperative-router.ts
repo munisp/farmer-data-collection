@@ -3,7 +3,7 @@
  * CRUD operations for cooperatives, members, accounts, and transactions
  */
 
-import { router, publicProcedure } from '../_core/trpc-base.js';
+import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
@@ -16,10 +16,12 @@ import {
   cooperativeLoans,
   cooperativeMeetings,
 } from '../../drizzle/cooperative-schema.js';
+import { logger } from '../logger.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const cooperativeRouter = router({
   // Get all cooperatives
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       limit: z.number().min(1).max(100).default(20),
       offset: z.number().min(0).default(0),
@@ -50,7 +52,7 @@ export const cooperativeRouter = router({
     }),
 
   // Get cooperative by ID
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -85,7 +87,7 @@ export const cooperativeRouter = router({
     }),
 
   // Create cooperative
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       name: z.string().min(1),
       registrationNumber: z.string().optional(),
@@ -105,6 +107,11 @@ export const cooperativeRouter = router({
       createdBy: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -140,7 +147,7 @@ export const cooperativeRouter = router({
     }),
 
   // Update cooperative
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({
       id: z.number(),
       name: z.string().optional(),
@@ -160,6 +167,11 @@ export const cooperativeRouter = router({
       objectives: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -175,7 +187,7 @@ export const cooperativeRouter = router({
     }),
 
   // Get members of a cooperative
-  getMembers: publicProcedure
+  getMembers: protectedProcedure
     .input(z.object({
       cooperativeId: z.number(),
       status: z.enum(['active', 'inactive', 'suspended', 'pending', 'exited']).optional(),
@@ -199,7 +211,7 @@ export const cooperativeRouter = router({
     }),
 
   // Add member to cooperative
-  addMember: publicProcedure
+  addMember: protectedProcedure
     .input(z.object({
       cooperativeId: z.number(),
       userId: z.number(),
@@ -208,6 +220,11 @@ export const cooperativeRouter = router({
       sharesOwned: z.number().default(0),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -225,7 +242,7 @@ export const cooperativeRouter = router({
     }),
 
   // Update member
-  updateMember: publicProcedure
+  updateMember: protectedProcedure
     .input(z.object({
       id: z.number(),
       role: z.enum(['chairperson', 'vice_chairperson', 'secretary', 'treasurer', 'member', 'field_officer', 'advisor']).optional(),
@@ -233,6 +250,11 @@ export const cooperativeRouter = router({
       sharesOwned: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -248,7 +270,7 @@ export const cooperativeRouter = router({
     }),
 
   // Record contribution/transaction
-  recordTransaction: publicProcedure
+  recordTransaction: protectedProcedure
     .input(z.object({
       cooperativeId: z.number(),
       accountId: z.number().optional(),
@@ -260,6 +282,11 @@ export const cooperativeRouter = router({
       processedBy: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -313,7 +340,7 @@ export const cooperativeRouter = router({
     }),
 
   // Get transactions
-  getTransactions: publicProcedure
+  getTransactions: protectedProcedure
     .input(z.object({
       cooperativeId: z.number(),
       limit: z.number().default(50),
@@ -335,7 +362,7 @@ export const cooperativeRouter = router({
     }),
 
   // Get cooperative loans
-  getLoans: publicProcedure
+  getLoans: protectedProcedure
     .input(z.object({
       cooperativeId: z.number(),
       status: z.string().optional(),
@@ -359,7 +386,7 @@ export const cooperativeRouter = router({
     }),
 
   // Create cooperative loan
-  createLoan: publicProcedure
+  createLoan: protectedProcedure
     .input(z.object({
       cooperativeId: z.number(),
       loanType: z.string(),
@@ -369,6 +396,11 @@ export const cooperativeRouter = router({
       purpose: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -392,7 +424,7 @@ export const cooperativeRouter = router({
     }),
 
   // Get meetings
-  getMeetings: publicProcedure
+  getMeetings: protectedProcedure
     .input(z.object({
       cooperativeId: z.number(),
       upcoming: z.boolean().optional(),
@@ -416,7 +448,7 @@ export const cooperativeRouter = router({
     }),
 
   // Schedule meeting
-  scheduleMeeting: publicProcedure
+  scheduleMeeting: protectedProcedure
     .input(z.object({
       cooperativeId: z.number(),
       meetingType: z.string(),
@@ -430,6 +462,11 @@ export const cooperativeRouter = router({
       createdBy: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -446,7 +483,7 @@ export const cooperativeRouter = router({
     }),
 
   // Get dashboard stats
-  getDashboardStats: publicProcedure
+  getDashboardStats: protectedProcedure
     .input(z.object({ cooperativeId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -499,7 +536,7 @@ export const cooperativeRouter = router({
     }),
 
   // Get PAR (Portfolio at Risk) by Cooperative for risk dashboard
-  getParByCooperative: publicProcedure
+  getParByCooperative: protectedProcedure
     .input(z.object({}).optional())
     .query(async () => {
       const db = await getDb();
@@ -533,5 +570,106 @@ export const cooperativeRouter = router({
         par30: Number(coop.par30) || 0,
         par90: Number(coop.par90) || 0,
       }));
+    }),
+
+  // ======================== COLLECTIVE SELLING ========================
+
+  createCollectiveListing: protectedProcedure
+    .input(z.object({
+      cooperativeId: z.number(),
+      cropType: z.string(),
+      totalQuantityKg: z.number().min(1),
+      pricePerKg: z.number().min(1),
+      currency: z.string().default("NGN"),
+      qualityGrade: z.enum(["A", "B", "C"]),
+      harvestDate: z.string(),
+      memberContributions: z.array(z.object({
+        memberId: z.number(),
+        quantityKg: z.number(),
+      })),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const totalContributed = input.memberContributions.reduce((s, c) => s + c.quantityKg, 0);
+      if (totalContributed !== input.totalQuantityKg) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Member contributions (${totalContributed}kg) must equal total quantity (${input.totalQuantityKg}kg)`,
+        });
+      }
+
+      const listingId = `COL-${input.cooperativeId}-${Date.now()}`;
+      return {
+        listingId,
+        cooperativeId: input.cooperativeId,
+        cropType: input.cropType,
+        totalQuantityKg: input.totalQuantityKg,
+        pricePerKg: input.pricePerKg,
+        totalValue: input.totalQuantityKg * input.pricePerKg,
+        currency: input.currency,
+        qualityGrade: input.qualityGrade,
+        memberContributions: input.memberContributions,
+        memberCount: input.memberContributions.length,
+        status: "listed",
+        createdAt: new Date().toISOString(),
+      };
+    }),
+
+  getCollectiveListings: protectedProcedure
+    .input(z.object({ cooperativeId: z.number() }))
+    .query(async () => {
+      return [] as Array<{
+        listingId: string;
+        cropType: string;
+        totalQuantityKg: number;
+        pricePerKg: number;
+        qualityGrade: string;
+        memberCount: number;
+        status: string;
+      }>;
+    }),
+
+  distributeRevenue: protectedProcedure
+    .input(z.object({
+      listingId: z.string(),
+      totalRevenue: z.number(),
+      currency: z.string().default("NGN"),
+      memberContributions: z.array(z.object({
+        memberId: z.number(),
+        quantityKg: z.number(),
+      })),
+    }))
+    .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("cooperative", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("cooperative", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
+      const totalKg = input.memberContributions.reduce((s, c) => s + c.quantityKg, 0);
+      const distributions = input.memberContributions.map(c => ({
+        memberId: c.memberId,
+        quantityKg: c.quantityKg,
+        sharePercent: Math.round((c.quantityKg / totalKg) * 10000) / 100,
+        amount: Math.round((c.quantityKg / totalKg) * input.totalRevenue),
+        currency: input.currency,
+      }));
+
+      return {
+        listingId: input.listingId,
+        totalRevenue: input.totalRevenue,
+        platformFee: Math.round(input.totalRevenue * 0.02),
+        netRevenue: Math.round(input.totalRevenue * 0.98),
+        distributions,
+        disbursementMethod: "mobile_money",
+        status: "distributed",
+      };
     }),
 });

@@ -5,10 +5,12 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { predictYield } from "./yieldPredictionService.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export interface HarvestForecast {
   id: string;
@@ -144,9 +146,9 @@ const SEASONAL_MULTIPLIERS: Record<string, number[]> = {
 };
 
 class HarvestForecastingService {
-  private forecasts: Map<string, HarvestForecast> = new Map();
-  private marketOpportunities: Map<string, MarketOpportunity> = new Map();
-  private contractOffers: Map<string, ContractFarmingOffer> = new Map();
+  private forecasts: BoundedMap<string, HarvestForecast> = new BoundedMap(2000, 86400_000);
+  private marketOpportunities: BoundedMap<string, MarketOpportunity> = new BoundedMap(1000, 43200_000);
+  private contractOffers: BoundedMap<string, ContractFarmingOffer> = new BoundedMap(1000, 86400_000);
 
   /**
    * Generate harvest forecast for a crop
@@ -192,7 +194,7 @@ class HarvestForecastingService {
       });
       predictedYieldValue = yieldPrediction?.predictedYield || this.estimateBaseYield(cropKey, fieldSize);
       confidenceLevel = (yieldPrediction?.confidence || 70) / 100;
-    } catch {
+    } catch (err) {
       predictedYieldValue = this.estimateBaseYield(cropKey, fieldSize);
       confidenceLevel = 0.6;
     }
@@ -210,7 +212,7 @@ class HarvestForecastingService {
     // Generate recommendations
     const recommendations = this.generateRecommendations(cropKey, weatherRisks, expectedHarvestDate);
 
-    const forecastId = `HF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const forecastId = `HF-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const forecast: HarvestForecast = {
       id: forecastId,
       farmerId,
@@ -241,7 +243,7 @@ class HarvestForecastingService {
         forecast
       ));
     } catch (error) {
-      console.warn('[HarvestForecasting] Could not emit Kafka event:', error);
+      logger.warn('[HarvestForecasting] Could not emit Kafka event:', error);
     }
 
     return forecast;
@@ -265,9 +267,9 @@ class HarvestForecastingService {
       const monthIndex = forecastDate.getMonth();
       const seasonalMultiplier = seasonalMultipliers[monthIndex];
 
-      // Add some randomness for market volatility
-      const volatilityFactor = 1 + (Math.random() * 0.2 - 0.1);
-      const predictedPrice = Math.round(basePrice * seasonalMultiplier * volatilityFactor);
+      // Deterministic volatility based on week index
+      const weekVolatility = 1 + ((i / 7) % 5 - 2) * 0.03; // ±6% based on week offset
+      const predictedPrice = Math.round(basePrice * seasonalMultiplier * weekVolatility);
 
       forecasts.push({
         date: forecastDate,
@@ -494,7 +496,7 @@ class HarvestForecastingService {
         }],
       });
     } catch (error) {
-      console.warn('[HarvestForecasting] Could not emit Kafka event:', error);
+      logger.warn('[HarvestForecasting] Could not emit Kafka event:', error);
     }
 
     return { success: true, message: 'Application submitted successfully' };
@@ -613,7 +615,7 @@ class HarvestForecastingService {
         });
       }
     } catch (error) {
-      console.warn('[HarvestForecasting] Could not assess weather risks:', error);
+      logger.warn('[HarvestForecasting] Could not assess weather risks:', error);
     }
 
     return risks;

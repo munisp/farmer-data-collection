@@ -1,15 +1,23 @@
-import { initTRPC, TRPCError } from "@trpc/server";
+import { TRPCError } from "@trpc/server";
 import { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-import superjson from "superjson";
 import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db.js";
 import { users, User } from "../../drizzle/schema.js";
 import { verifyKeycloakToken, KeycloakUser } from "../keycloak.js";
 import { rateLimit, RateLimitPresets } from "./redis-rate-limit.js";
+import { router, middleware, baseProcedure } from "./trpc-init.js";
+import type { Context, AuthenticatedContext } from "./trpc-init.js";
+import { cacheMiddleware } from "../cache/trpc-cache-middleware.js";
+import { mutationInvalidationMiddleware } from "../cache/mutation-invalidation-middleware.js";
+import { logger } from '../logger.js';
+
+// Re-export types and primitives from trpc-init so existing imports continue to work
+export { router, middleware } from "./trpc-init.js";
+export type { Context, AuthenticatedContext } from "./trpc-init.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
+  logger.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
   return "dev-only-secret-do-not-use-in-production";
 })();
 
@@ -59,18 +67,6 @@ function getDemoUserFromToken(decoded: { userId: number; email: string; role: st
   } as User;
 }
 
-// Base context type (before authentication)
-export type Context = {
-  token: string | null;
-  keycloakUser: KeycloakUser | null;
-  user?: User;
-};
-
-// Authenticated context type (after protectedProcedure middleware)
-export type AuthenticatedContext = Context & {
-  user: User;
-};
-
 // Create context with token from Authorization header and Keycloak user
 export const createContext = async ({ req }: CreateExpressContextOptions): Promise<Context> => {
   const token = req?.headers?.authorization?.replace("Bearer ", "") || null;
@@ -84,22 +80,37 @@ export const createContext = async ({ req }: CreateExpressContextOptions): Promi
   return { token, keycloakUser };
 };
 
-const t = initTRPC.context<Context>().create({
-  transformer: superjson,
+// Global error-handling middleware: catches raw DB errors and converts to proper TRPCError
+const dbErrorHandler = middleware(async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    if (error instanceof TRPCError) throw error;
+    const msg = (error as Error)?.message ?? String(error);
+    const isDbError = msg.includes("relation") || msg.includes("does not exist") ||
+      msg.includes("ECONNREFUSED") || msg.includes("column") || msg.includes("no such table");
+    if (isDbError) {
+      logger.warn("[DB] Query failed", { error: msg });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Service temporarily unavailable" });
+    }
+    throw error;
+  }
 });
 
-export const router = t.router;
-export const middleware = t.middleware;
+// Public procedure with strict rate limiting(Redis or in-memory fallback) + cache + mutation invalidation
+export const publicProcedure = baseProcedure
+  .use(dbErrorHandler)
+  .use(async ({ ctx, next }) => {
+    const identifier = ctx.token || "anonymous";
+    await rateLimit(identifier, RateLimitPresets.strict);
+    return next();
+  })
+  .use(cacheMiddleware)
+  .use(mutationInvalidationMiddleware);
 
-// Public procedure with strict rate limiting(Redis or in-memory fallback)
-export const publicProcedure = t.procedure.use(async ({ ctx, next }) => {
-  const identifier = ctx.token || "anonymous";
-  await rateLimit(identifier, RateLimitPresets.strict);
-  return next();
-});
-
-// Protected procedure - requires authentication with moderate rate limiting (Redis or in-memory fallback)
-export const protectedProcedure = t.procedure
+// Protected procedure - requires authentication with moderate rate limiting (Redis or in-memory fallback) + cache
+export const protectedProcedure = baseProcedure
+  .use(dbErrorHandler)
   .use(async ({ ctx, next }) => {
     const identifier = ctx.token || "anonymous";
     await rateLimit(identifier, RateLimitPresets.moderate);
@@ -162,4 +173,6 @@ export const protectedProcedure = t.procedure
     code: "UNAUTHORIZED",
     message: "Not authenticated",
   });
-});
+})
+.use(cacheMiddleware)
+.use(mutationInvalidationMiddleware);

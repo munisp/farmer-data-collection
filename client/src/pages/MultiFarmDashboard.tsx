@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,8 @@ import { farms, crops, expenses, harvests } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 interface FarmStats {
   farmId: number;
   farmName: string;
@@ -27,9 +30,12 @@ interface FarmStats {
   profitMargin: number;
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"];
+const COLORS = [CHART_COLORS[1], CHART_COLORS[0], CHART_COLORS[2], CHART_COLORS[6], CHART_COLORS[4], CHART_COLORS[0]];
 
 export default function MultiFarmDashboard() {
+  const farmsListQuery = trpc.coreFarms.list.useQuery({}, { retry: 1 });
+  const farmsListData = farmsListQuery.data ?? [];
+
   const { user } = useAuth();
   const { db } = useDatabase();
   const [farmsList, setFarmsList] = useState<any[]>([]);
@@ -263,7 +269,7 @@ export default function MultiFarmDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="container py-6">
+      <div role="main" aria-label="Page content" className="container py-6">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Multi-Farm Dashboard</h1>
@@ -400,9 +406,9 @@ export default function MultiFarmDashboard() {
                     <YAxis />
                     <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
                     <Legend />
-                    <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
-                    <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
-                    <Bar dataKey="profit" fill="#3b82f6" name="Net Profit" />
+                    <Bar dataKey="revenue" fill={SEMANTIC_COLORS.success} name="Revenue" />
+                    <Bar dataKey="expenses" fill={SEMANTIC_COLORS.danger} name="Expenses" />
+                    <Bar dataKey="profit" fill={SEMANTIC_COLORS.info} name="Net Profit" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -432,7 +438,7 @@ export default function MultiFarmDashboard() {
                     <Line 
                       type="monotone" 
                       dataKey="revenue" 
-                      stroke="#10b981" 
+                      stroke={SEMANTIC_COLORS.success} 
                       strokeWidth={2}
                       name="Revenue" 
                       dot={{ r: 4 }}
@@ -440,7 +446,7 @@ export default function MultiFarmDashboard() {
                     <Line 
                       type="monotone" 
                       dataKey="expenses" 
-                      stroke="#ef4444" 
+                      stroke={SEMANTIC_COLORS.danger} 
                       strokeWidth={2}
                       name="Expenses" 
                       dot={{ r: 4 }}
@@ -448,7 +454,7 @@ export default function MultiFarmDashboard() {
                     <Line 
                       type="monotone" 
                       dataKey="profit" 
-                      stroke="#3b82f6" 
+                      stroke={SEMANTIC_COLORS.info} 
                       strokeWidth={2}
                       name="Net Profit" 
                       dot={{ r: 4 }}
@@ -474,7 +480,7 @@ export default function MultiFarmDashboard() {
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-                      <Bar dataKey="margin" fill="#8b5cf6" name="Profit Margin %" />
+                      <Bar dataKey="margin" fill={CHART_COLORS[4]} name="Profit Margin %" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -498,7 +504,7 @@ export default function MultiFarmDashboard() {
                         labelLine={false}
                         label={(entry) => `${entry.name}: ${entry.value}`}
                         outerRadius={80}
-                        fill="#8884d8"
+                        fill={CHART_COLORS[4]}
                         dataKey="value"
                       >
                         {cropDistributionData.map((entry, index) => (
@@ -522,36 +528,36 @@ export default function MultiFarmDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Rank</th>
-                        <th className="text-left p-2">Farm Name</th>
-                        <th className="text-right p-2">Crops</th>
-                        <th className="text-right p-2">Revenue</th>
-                        <th className="text-right p-2">Expenses</th>
-                        <th className="text-right p-2">Net Profit</th>
-                        <th className="text-right p-2">Margin %</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table role="table" aria-label="Data table" className="w-full">
+                    <TableHeader role="rowgroup">
+                      <TableRow className="border-b">
+                        <TableHead className="text-left p-2">Rank</TableHead>
+                        <TableHead className="text-left p-2">Farm Name</TableHead>
+                        <TableHead className="text-right p-2">Crops</TableHead>
+                        <TableHead className="text-right p-2">Revenue</TableHead>
+                        <TableHead className="text-right p-2">Expenses</TableHead>
+                        <TableHead className="text-right p-2">Net Profit</TableHead>
+                        <TableHead className="text-right p-2">Margin %</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody role="rowgroup">
                       {farmStats
                         .sort((a, b) => b.netProfit - a.netProfit)
                         .map((farm, index) => (
-                          <tr key={farm.farmId} className="border-b">
-                            <td className="p-2">#{index + 1}</td>
-                            <td className="p-2 font-medium">{farm.farmName}</td>
-                            <td className="text-right p-2">{farm.totalCrops}</td>
-                            <td className="text-right p-2">{formatCurrency(farm.totalRevenue)}</td>
-                            <td className="text-right p-2">{formatCurrency(farm.totalExpenses)}</td>
-                            <td className={`text-right p-2 font-semibold ${farm.netProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          <TableRow key={farm.farmId} className="border-b">
+                            <TableCell className="p-2">#{index + 1}</TableCell>
+                            <TableCell className="p-2 font-medium">{farm.farmName}</TableCell>
+                            <TableCell className="text-right p-2">{farm.totalCrops}</TableCell>
+                            <TableCell className="text-right p-2">{formatCurrency(farm.totalRevenue)}</TableCell>
+                            <TableCell className="text-right p-2">{formatCurrency(farm.totalExpenses)}</TableCell>
+                            <TableCell className={`text-right p-2 font-semibold ${farm.netProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
                               {formatCurrency(farm.netProfit)}
-                            </td>
-                            <td className="text-right p-2">{farm.profitMargin.toFixed(1)}%</td>
-                          </tr>
+                            </TableCell>
+                            <TableCell className="text-right p-2">{farm.profitMargin.toFixed(1)}%</TableCell>
+                          </TableRow>
                         ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>

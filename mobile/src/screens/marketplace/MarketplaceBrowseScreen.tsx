@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Text, StyleSheet, TextInput, RefreshControl, Alert } from 'react-native';
+import { colors, darkColors } from '@/lib/theme';
+import { View, FlatList, TouchableOpacity, Text, StyleSheet, TextInput, RefreshControl, Alert ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';
@@ -45,7 +46,8 @@ export default function MarketplaceBrowseScreen() {
   if (loading) return <Loading message="Loading marketplace..." />;
 
   return (
-    <View style={styles.container}>
+    <View
+      accessibilityLabel="Marketplace Browse screen" style={styles.container}>
       <Header title="Marketplace" />
       <View style={styles.searchContainer}>
         <TextInput
@@ -74,7 +76,8 @@ export default function MarketplaceBrowseScreen() {
             />
           }
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => navigation.navigate('MarketplaceDetail' as never, { id: item.id } as never)}>
+            <TouchableOpacity
+          accessibilityRole="button" onPress={() => navigation.navigate('MarketplaceDetail' as never, { id: item.id } as never)}>
               <Card style={styles.card}>
                 <View style={styles.row}>
                   <Text style={styles.name}>{item.name}</Text>
@@ -95,7 +98,7 @@ export default function MarketplaceBrowseScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   searchContainer: { padding: 16 },
-  searchInput: { backgroundColor: '#fff', borderRadius: 8, padding: 12, borderWidth: 1, borderColor: COLORS.border },
+  searchInput: { backgroundColor: colors.white, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: COLORS.border },
   card: { margin: 16, marginTop: 0 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 12 },
   name: { flex: 1, fontSize: 18, fontWeight: '600', color: COLORS.text },

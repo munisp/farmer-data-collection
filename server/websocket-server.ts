@@ -10,6 +10,7 @@
 
 import { Server as SocketIOServer } from 'socket.io';
 import type { Server as HTTPServer } from 'http';
+import { logger } from './logger.js';
 
 // ============================================================================
 // Types
@@ -20,7 +21,7 @@ export interface RealtimeEvent {
         'crop_planted' | 'livestock_added' | 'harvest_recorded' | 'expense_logged' |
         'dashboard_update' | 'notification';
   userId: number;
-  data: any;
+  data: object;
   timestamp: string;
 }
 
@@ -29,7 +30,7 @@ export interface DashboardUpdate {
   totalFarms?: number;
   totalHarvests?: number;
   totalExpenses?: number;
-  recentActivity?: any[];
+  recentActivity?: unknown[];
 }
 
 // ============================================================================
@@ -46,8 +47,13 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS
 
 function isAllowedOrigin(origin?: string) {
   if (!origin) return true;
-  if (!isProduction && origin.includes('manusvm.computer')) {
-    return true;
+  if (!isProduction) {
+    if (origin.includes('manusvm.computer') || origin.includes('manus.computer')) {
+      return true;
+    }
+    if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+      return true;
+    }
   }
   return allowedOrigins.includes(origin);
 }
@@ -74,7 +80,7 @@ export class WebSocketServer {
     });
 
     this.setupEventHandlers();
-    console.log('[WebSocket] Server initialized');
+    logger.info('[WebSocket] Server initialized');
   }
 
   /**
@@ -82,31 +88,31 @@ export class WebSocketServer {
    */
   private setupEventHandlers(): void {
     this.io.on('connection', (socket) => {
-      console.log(`[WebSocket] Client connected: ${socket.id}`);
+      logger.info(`[WebSocket] Client connected: ${socket.id}`);
 
       // Handle user authentication
       socket.on('authenticate', (userId: number) => {
         this.authenticateUser(socket.id, userId);
         socket.join(`user:${userId}`);
-        console.log(`[WebSocket] User ${userId} authenticated with socket ${socket.id}`);
+        logger.info(`[WebSocket] User ${userId} authenticated with socket ${socket.id}`);
       });
 
       // Handle subscription to specific channels
       socket.on('subscribe', (channel: string) => {
         socket.join(channel);
-        console.log(`[WebSocket] Socket ${socket.id} subscribed to ${channel}`);
+        logger.info(`[WebSocket] Socket ${socket.id} subscribed to ${channel}`);
       });
 
       // Handle unsubscribe
       socket.on('unsubscribe', (channel: string) => {
         socket.leave(channel);
-        console.log(`[WebSocket] Socket ${socket.id} unsubscribed from ${channel}`);
+        logger.info(`[WebSocket] Socket ${socket.id} unsubscribed from ${channel}`);
       });
 
       // Handle disconnect
       socket.on('disconnect', () => {
         this.handleDisconnect(socket.id);
-        console.log(`[WebSocket] Client disconnected: ${socket.id}`);
+        logger.info(`[WebSocket] Client disconnected: ${socket.id}`);
       });
 
       // Send welcome message
@@ -149,7 +155,7 @@ export class WebSocketServer {
    */
   public emitToUser(userId: number, event: RealtimeEvent): void {
     this.io.to(`user:${userId}`).emit('realtime_event', event);
-    console.log(`[WebSocket] Emitted ${event.type} to user ${userId}`);
+    logger.info(`[WebSocket] Emitted ${event.type} to user ${userId}`);
   }
 
   /**
@@ -157,7 +163,7 @@ export class WebSocketServer {
    */
   public broadcast(event: RealtimeEvent): void {
     this.io.emit('realtime_event', event);
-    console.log(`[WebSocket] Broadcasted ${event.type} to all clients`);
+    logger.info(`[WebSocket] Broadcasted ${event.type} to all clients`);
   }
 
   /**
@@ -176,7 +182,7 @@ export class WebSocketServer {
   /**
    * Emit notification to user
    */
-  public emitNotification(userId: number, notification: any): void {
+  public emitNotification(userId: number, notification: object): void {
     const event: RealtimeEvent = {
       type: 'notification',
       userId,
@@ -189,7 +195,7 @@ export class WebSocketServer {
   /**
    * Emit farmer created event
    */
-  public emitFarmerCreated(userId: number, farmer: any): void {
+  public emitFarmerCreated(userId: number, farmer: object): void {
     const event: RealtimeEvent = {
       type: 'farmer_created',
       userId,
@@ -202,7 +208,7 @@ export class WebSocketServer {
   /**
    * Emit harvest recorded event
    */
-  public emitHarvestRecorded(userId: number, harvest: any): void {
+  public emitHarvestRecorded(userId: number, harvest: object): void {
     const event: RealtimeEvent = {
       type: 'harvest_recorded',
       userId,
@@ -215,7 +221,7 @@ export class WebSocketServer {
   /**
    * Emit expense logged event
    */
-  public emitExpenseLogged(userId: number, expense: any): void {
+  public emitExpenseLogged(userId: number, expense: object): void {
     const event: RealtimeEvent = {
       type: 'expense_logged',
       userId,

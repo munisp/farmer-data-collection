@@ -10,6 +10,7 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { logger } from '../logger.js';
 
 // Configuration
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -60,24 +61,24 @@ class RedisRateLimiter {
       this.client = createClient({ url: REDIS_URL });
       
       this.client.on('error', (err) => {
-        console.warn('[RateLimiter] Redis error, using fallback:', err.message);
+        logger.warn('[RateLimiter] Redis error, using fallback:', err.message);
         this.isConnected = false;
       });
 
       this.client.on('connect', () => {
-        console.log('[RateLimiter] Connected to Redis');
+        logger.info('[RateLimiter] Connected to Redis');
         this.isConnected = true;
       });
 
       this.client.on('disconnect', () => {
-        console.warn('[RateLimiter] Disconnected from Redis, using fallback');
+        logger.warn('[RateLimiter] Disconnected from Redis, using fallback');
         this.isConnected = false;
       });
 
       await this.client.connect();
       this.isConnected = true;
     } catch (error) {
-      console.warn('[RateLimiter] Failed to connect to Redis, using in-memory fallback:', error);
+      logger.warn('[RateLimiter] Failed to connect to Redis, using in-memory fallback:', error);
       this.isConnected = false;
     }
   }
@@ -98,7 +99,7 @@ class RedisRateLimiter {
       try {
         return await this.checkRateLimitRedis(fullKey, config, now, windowStart);
       } catch (error) {
-        console.warn('[RateLimiter] Redis operation failed, using fallback:', error);
+        logger.warn('[RateLimiter] Redis operation failed, using fallback:', error);
       }
     }
 
@@ -226,7 +227,7 @@ class RedisRateLimiter {
       try {
         await this.client.del(fullKey);
       } catch (error) {
-        console.warn('[RateLimiter] Failed to reset Redis key:', error);
+        logger.warn('[RateLimiter] Failed to reset Redis key:', error);
       }
     }
     
@@ -254,7 +255,7 @@ class RedisRateLimiter {
           resetTime: now + config.windowMs,
         };
       } catch (error) {
-        console.warn('[RateLimiter] Failed to get Redis status:', error);
+        logger.warn('[RateLimiter] Failed to get Redis status:', error);
       }
     }
 
@@ -305,7 +306,7 @@ export const rateLimiter = new RedisRateLimiter();
 
 // Initialize on import (non-blocking)
 rateLimiter.init().catch((err) => {
-  console.warn('[RateLimiter] Initialization failed:', err);
+  logger.warn('[RateLimiter] Initialization failed:', err);
 });
 
 // Periodic cleanup of fallback cache (every 5 minutes)

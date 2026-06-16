@@ -14,6 +14,7 @@
 
 import { getDb } from '../db.js';
 import { sql } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 // ============================================================================
 // Types & Interfaces
@@ -137,7 +138,7 @@ export async function analyzeCropImage(
 
     return result;
   } catch (error) {
-    console.error('[CropDiseaseAI] Analysis error:', error);
+    logger.error('[CropDiseaseAI] Analysis error:', error);
     throw error;
   }
 }
@@ -247,7 +248,7 @@ function parseAnalysisResult(analysisText: string, language: string): CropAnalys
 
     return result;
   } catch (error) {
-    console.error('[CropDiseaseAI] Failed to parse analysis result:', error);
+    logger.error('[CropDiseaseAI] Failed to parse analysis result:', error);
     
     // Return fallback result
     return {
@@ -301,7 +302,7 @@ export async function saveCropAnalysis(
     processingTimeMs: processingTimeMs || null,
   }).returning({ id: cropAnalyses.id });
 
-  console.log('[CropDiseaseAI] Saved analysis:', {
+  logger.info('[CropDiseaseAI] Saved analysis:', {
     id: result.id,
     userId,
     farmId,

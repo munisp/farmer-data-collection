@@ -9,6 +9,8 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+import DashboardLayout from "@/components/DashboardLayout";
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 export default function PriceForecast() {
   const [selectedCrop, setSelectedCrop] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
@@ -49,17 +51,17 @@ export default function PriceForecast() {
     if (trend.toLowerCase().includes('down') || trend.toLowerCase().includes('decreasing')) {
       return <TrendingDown className="w-6 h-6 text-red-600" />;
     }
-    return <Minus className="w-6 h-6 text-gray-600" />;
+    return <Minus className="w-6 h-6 text-gray-600 dark:text-gray-300" />;
   };
 
   const getTrendColor = (trend: string) => {
     if (trend.toLowerCase().includes('up') || trend.toLowerCase().includes('increasing')) {
-      return "text-green-600 bg-green-50";
+      return "text-green-600 bg-green-50 dark:bg-green-950";
     }
     if (trend.toLowerCase().includes('down') || trend.toLowerCase().includes('decreasing')) {
-      return "text-red-600 bg-red-50";
+      return "text-red-600 bg-red-50 dark:bg-red-950";
     }
-    return "text-gray-600 bg-gray-50";
+    return "text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-950";
   };
 
   // Prepare chart data
@@ -76,21 +78,22 @@ export default function PriceForecast() {
   const minPrice = Math.min(...(forecast?.forecast?.map((item: any) => item.price) || [Infinity]));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
             <BarChart3 className="w-8 h-8 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-900">Price Forecast Dashboard</h1>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Price Forecast Dashboard</h1>
           </div>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
             Predict future crop prices with AI-powered forecasting
           </p>
         </div>
 
         {/* Controls */}
-        <Card className="shadow-lg">
+        <Card className="shadow-lg dark:shadow-gray-900/40">
           <CardHeader>
             <CardTitle>Forecast Parameters</CardTitle>
             <CardDescription>
@@ -181,40 +184,40 @@ export default function PriceForecast() {
           <>
             {/* Statistics Cards */}
             <div className="grid md:grid-cols-4 gap-4">
-              <Card className="shadow-lg">
+              <Card className="shadow-lg dark:shadow-gray-900/40">
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">
                       ₦{avgPrice.toFixed(2)}
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">Average Price</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Average Price</div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-lg">
+              <Card className="shadow-lg dark:shadow-gray-900/40">
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">
                       ₦{maxPrice.toFixed(2)}
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">Highest Price</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Highest Price</div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-lg">
+              <Card className="shadow-lg dark:shadow-gray-900/40">
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-red-600">
                       ₦{minPrice.toFixed(2)}
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">Lowest Price</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Lowest Price</div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className={`shadow-lg ${getTrendColor(forecast.trend)}`}>
+              <Card className={`shadow-lg dark:shadow-gray-900/40 ${getTrendColor(forecast.trend)}`}>
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -230,7 +233,7 @@ export default function PriceForecast() {
             </div>
 
             {/* Price Chart */}
-            <Card className="shadow-lg">
+            <Card className="shadow-lg dark:shadow-gray-900/40">
               <CardHeader>
                 <CardTitle>Price Forecast Chart</CardTitle>
                 <CardDescription>
@@ -253,13 +256,13 @@ export default function PriceForecast() {
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           return (
-                            <div className="bg-white p-3 border rounded-lg shadow-lg">
+                            <div className="bg-white dark:bg-gray-900 p-3 border rounded-lg shadow-lg dark:shadow-gray-900/40">
                               <p className="font-semibold">{payload[0].payload.date}</p>
                               <p className="text-blue-600">
                                 Price: ₦{typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}
                               </p>
                               {payload[0].payload.confidence && (
-                                <p className="text-gray-600 text-sm">
+                                <p className="text-gray-600 dark:text-gray-300 text-sm">
                                   Confidence: {payload[0].payload.confidence.toFixed(1)}%
                                 </p>
                               )}
@@ -273,9 +276,9 @@ export default function PriceForecast() {
                     <Line 
                       type="monotone" 
                       dataKey="price" 
-                      stroke="#3b82f6" 
+                      stroke={SEMANTIC_COLORS.info} 
                       strokeWidth={2}
-                      dot={{ fill: '#3b82f6', r: 4 }}
+                      dot={{ fill: SEMANTIC_COLORS.info, r: 4 }}
                       activeDot={{ r: 6 }}
                       name="Predicted Price (₦)"
                     />
@@ -285,7 +288,7 @@ export default function PriceForecast() {
             </Card>
 
             {/* Recommendation */}
-            <Card className="shadow-lg border-2 border-blue-200">
+            <Card className="shadow-lg dark:shadow-gray-900/40 border-2 border-blue-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-blue-600" />
@@ -293,7 +296,7 @@ export default function PriceForecast() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Alert className="bg-blue-50 border-blue-200">
+                <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200">
                   <Info className="h-4 w-4 text-blue-600" />
                   <AlertDescription className="text-blue-900 text-lg">
                     {forecast.recommendation}
@@ -303,9 +306,9 @@ export default function PriceForecast() {
             </Card>
 
             {/* Data Info */}
-            <Card className="shadow-lg bg-gray-50">
+            <Card className="shadow-lg dark:shadow-gray-900/40 bg-gray-50 dark:bg-gray-950">
               <CardContent className="pt-6">
-                <div className="text-center text-sm text-gray-600">
+                <div className="text-center text-sm text-gray-600 dark:text-gray-300">
                   <p>
                     Forecast based on {forecast.historicalDataPoints || 'historical'} data points
                     from marketplace listings
@@ -318,13 +321,13 @@ export default function PriceForecast() {
             </Card>
           </>
         ) : (
-          <Card className="shadow-lg">
+          <Card className="shadow-lg dark:shadow-gray-900/40">
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <BarChart3 className="w-20 h-20 text-gray-300 mb-4" />
-              <h3 className="text-2xl font-semibold text-gray-700 mb-2">
+              <h3 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                 No Forecast Generated
               </h3>
-              <p className="text-gray-500 max-w-md">
+              <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 max-w-md">
                 Select a crop, location, and forecast period, then click "Generate Forecast" to see price predictions
               </p>
             </CardContent>
@@ -332,5 +335,6 @@ export default function PriceForecast() {
         )}
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { getDb } from '../db.js';
 import { farmers, farms, harvests, expenses, crops, users } from '../../drizzle/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { logger } from '../logger.js';
 
 /**
  * Africa's Talking API Integration
@@ -265,7 +266,7 @@ async function getWeatherForecast(location: string = 'Kampala'): Promise<{ condi
       rainChance: data.clouds?.all || 0
     };
   } catch (error) {
-    console.error('Error fetching weather:', error);
+    logger.error('Error fetching weather:', error);
     return {
       condition: 'Partly Cloudy',
       tempMin: 24,
@@ -344,9 +345,9 @@ export async function handleUSSDSession(session: USSDSession): Promise<USSDRespo
         await sendSMS({
           to: [phoneNumber],
           message: `Welcome to Farmer Data Collection! Your registration is complete.\nName: ${name}\nLocation: ${location}\nFarm Size: ${farmSize} acres`
-        }).catch(() => {}); // Don't fail if SMS fails
+        }).catch((e) => logger.debug('[SMS] Welcome message failed (non-blocking)', { err: e })); // Don't fail if SMS fails
       } catch (error) {
-        console.error('Error saving farmer registration:', error);
+        logger.error('Error saving farmer registration:', error);
       }
       
       return {
@@ -393,7 +394,7 @@ export async function handleUSSDSession(session: USSDSession): Promise<USSDRespo
       try {
         await saveHarvestRecord(phoneNumber, crop, quantity);
       } catch (error) {
-        console.error('Error saving harvest record:', error);
+        logger.error('Error saving harvest record:', error);
         return {
           response: `END Error recording harvest. Please register first or try again later.`,
           endSession: true
@@ -443,7 +444,7 @@ export async function handleUSSDSession(session: USSDSession): Promise<USSDRespo
       try {
         await saveExpenseRecord(phoneNumber, expenseType, amount);
       } catch (error) {
-        console.error('Error saving expense record:', error);
+        logger.error('Error saving expense record:', error);
         return {
           response: `END Error recording expense. Please register first or try again later.`,
           endSession: true
@@ -473,7 +474,7 @@ export async function handleUSSDSession(session: USSDSession): Promise<USSDRespo
         endSession: true
       };
     } catch (error) {
-      console.error('Error fetching farm summary:', error);
+      logger.error('Error fetching farm summary:', error);
       return {
         response: `END Error fetching summary. Please try again later.`,
         endSession: true
@@ -494,7 +495,7 @@ export async function handleUSSDSession(session: USSDSession): Promise<USSDRespo
         endSession: true
       };
     } catch (error) {
-      console.error('Error fetching weather:', error);
+      logger.error('Error fetching weather:', error);
       return {
         response: `END Weather Forecast:\n` +
                   `Today: Partly Cloudy\n` +
@@ -559,7 +560,7 @@ export async function sendSMS(params: SMSMessage): Promise<SMSResponse> {
 
     return response.data;
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    logger.error('Error sending SMS:', error);
     throw error;
   }
 }
@@ -624,9 +625,9 @@ export interface WhatsAppMessage {
 /**
  * Send WhatsApp message
  */
-export async function sendWhatsApp(params: WhatsAppMessage): Promise<any> {
+export async function sendWhatsApp(params: WhatsAppMessage): Promise<unknown> {
   try {
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       username: AFRICAS_TALKING_USERNAME,
       to: params.to,
       message: params.message
@@ -651,7 +652,7 @@ export async function sendWhatsApp(params: WhatsAppMessage): Promise<any> {
 
     return response.data;
   } catch (error) {
-    console.error('Error sending WhatsApp:', error);
+    logger.error('Error sending WhatsApp:', error);
     throw error;
   }
 }
@@ -742,7 +743,7 @@ export async function notifyFarmer(
       });
     }
   } catch (error) {
-    console.error(`Error sending ${channel} notification:`, error);
+    logger.error(`Error sending ${channel} notification:`, error);
     throw error;
   }
 }

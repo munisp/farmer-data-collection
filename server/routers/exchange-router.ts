@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats, saveDaprState, writeToLakehouse, initiatePaymentSettlement } from "../integrations/middleware-router-hooks.js";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
 import { getDb } from "../db.js";
 import { eq, and, desc, asc, sql, gte, lte, or } from "drizzle-orm";
@@ -17,6 +19,7 @@ import {
 import { users } from "../../drizzle/schema";
 import { checkTradingKyc, checkWalletKyc } from "../middleware/kyc-enforcement.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "../services/tigerbeetle-ledger.js";
+import { logger } from '../logger.js';
 
 // TigerBeetle ledger instance (lazy initialization)
 let exchangeLedger: TigerBeetleLedger | null = null;
@@ -32,10 +35,10 @@ async function getExchangeLedger(): Promise<TigerBeetleLedger | null> {
     const addresses = process.env.TIGERBEETLE_ADDRESSES?.split(',') || ['127.0.0.1:3000'];
     await ledger.connect(addresses);
     exchangeLedger = ledger;
-    console.log('[Exchange] TigerBeetle ledger connected');
+    logger.info('[Exchange] TigerBeetle ledger connected');
     return ledger;
   } catch (error) {
-    console.warn('[Exchange] TigerBeetle not available, trades will not be recorded in ledger:', error);
+    logger.warn('[Exchange] TigerBeetle not available, trades will not be recorded in ledger:', error);
     return null;
   }
 }
@@ -58,13 +61,13 @@ export const exchangeRouter = router({
     }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const filters = input || { active: true };
       
       let query = db.select().from(exchangeCommodities);
       
-      const conditions: any[] = [];
+      const conditions: Array<import('drizzle-orm').SQL | undefined> = [];
       if (filters.active !== undefined) {
         conditions.push(eq(exchangeCommodities.active, filters.active));
       }
@@ -87,7 +90,7 @@ export const exchangeRouter = router({
     .input(z.object({ symbol: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [commodity] = await db
         .select()
         .from(exchangeCommodities)
@@ -95,7 +98,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!commodity) {
-        throw new Error("Commodity not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Commodity not found" });
       }
       
       return commodity;
@@ -116,8 +119,12 @@ export const exchangeRouter = router({
       description: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("exchange", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       
       const [commodity] = await db
         .insert(exchangeCommodities)
@@ -146,7 +153,7 @@ export const exchangeRouter = router({
   getMyTraderProfile: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       // Check if trader profile exists
@@ -191,7 +198,7 @@ export const exchangeRouter = router({
   getMyPositions: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       const [trader] = await db
@@ -226,8 +233,12 @@ export const exchangeRouter = router({
       sourceId: z.number().int().positive().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("exchange", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       // Get or create trader
@@ -299,14 +310,18 @@ export const exchangeRouter = router({
         reference: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("exchange", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const userId = ctx.user.id;
       
         // Enforce KYC requirements before deposit
         const kycCheck = await checkWalletKyc(userId, 'deposit', input.amount);
         if (!kycCheck.allowed) {
-          throw new Error(kycCheck.reason || "KYC verification required for deposits");
+          throw new TRPCError({ code: "BAD_REQUEST", message: kycCheck.reason || "KYC verification required for deposits" });
         }
       
         // Get trader
@@ -317,7 +332,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!trader) {
-        throw new Error("Trader profile not found. Please create one first.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Trader profile not found. Please create one first." });
       }
       
       // Get account
@@ -328,31 +343,33 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!account) {
-        throw new Error("Exchange account not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Exchange account not found." });
       }
       
-      // Update account balance
-      const [updatedAccount] = await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: account.cashBalance + input.amount,
-          cashAvailable: account.cashAvailable + input.amount,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, account.id))
-        .returning();
-      
-      // Record transaction
-      await db.insert(exchangeTransactions).values({
-        accountId: account.id,
-        traderId: trader.id,
-        transactionType: "deposit",
-        amount: input.amount,
-        currency: "NGN",
-        status: "completed",
-        reference: input.reference,
+      const updatedAccount = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: account.cashBalance + input.amount,
+            cashAvailable: account.cashAvailable + input.amount,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, account.id))
+          .returning();
+
+        await tx.insert(exchangeTransactions).values({
+          accountId: account.id,
+          traderId: trader.id,
+          transactionType: "deposit",
+          amount: input.amount,
+          currency: "NGN",
+          status: "completed",
+          reference: input.reference,
+        });
+
+        return updated;
       });
-      
+
       return updatedAccount;
     }),
 
@@ -363,14 +380,18 @@ export const exchangeRouter = router({
         reference: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("exchange", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const userId = ctx.user.id;
       
         // Enforce KYC requirements before withdrawal
         const kycCheck = await checkWalletKyc(userId, 'withdraw', input.amount);
         if (!kycCheck.allowed) {
-          throw new Error(kycCheck.reason || "KYC verification required for withdrawals");
+          throw new TRPCError({ code: "BAD_REQUEST", message: kycCheck.reason || "KYC verification required for withdrawals" });
         }
       
         // Get trader
@@ -381,7 +402,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!trader) {
-        throw new Error("Trader profile not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Trader profile not found." });
       }
       
       // Get account
@@ -392,35 +413,37 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!account) {
-        throw new Error("Exchange account not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Exchange account not found." });
       }
       
       if (account.cashAvailable < input.amount) {
-        throw new Error("Insufficient available balance.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient available balance." });
       }
       
-      // Update account balance
-      const [updatedAccount] = await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: account.cashBalance - input.amount,
-          cashAvailable: account.cashAvailable - input.amount,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, account.id))
-        .returning();
-      
-      // Record transaction
-      await db.insert(exchangeTransactions).values({
-        accountId: account.id,
-        traderId: trader.id,
-        transactionType: "withdrawal",
-        amount: input.amount,
-        currency: "NGN",
-        status: "completed",
-        reference: input.reference,
+      const updatedAccount = await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: account.cashBalance - input.amount,
+            cashAvailable: account.cashAvailable - input.amount,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, account.id))
+          .returning();
+
+        await tx.insert(exchangeTransactions).values({
+          accountId: account.id,
+          traderId: trader.id,
+          transactionType: "withdrawal",
+          amount: input.amount,
+          currency: "NGN",
+          status: "completed",
+          reference: input.reference,
+        });
+
+        return updated;
       });
-      
+
       return updatedAccount;
     }),
 
@@ -436,7 +459,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       
       // Get buy orders (bids) - highest price first
       const bids = await db
@@ -485,7 +508,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       
       const trades = await db
         .select()
@@ -514,20 +537,25 @@ export const exchangeRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) throw new Error("Database not available");
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const userId = ctx.user.id;
+        const rateCheck = await checkRateLimit("exchange-order", String(userId), 20, 60);
+        if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for exchange orders" });
+        const wafScan = await scanForThreats("exchange-order", input);
+        if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+        const permissionGranted = await checkPermission(String(userId), "exchange", "trade");
+        if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: exchange trade" });
       
-        // Enforce KYC requirements before trading
         const tradeType = input.side === 'buy' ? 'buy' : 'sell';
         const estimatedAmount = (input.price || 0) * input.quantity;
         const kycCheck = await checkTradingKyc(userId, tradeType, estimatedAmount);
         if (!kycCheck.allowed) {
-          throw new Error(kycCheck.reason || "KYC verification required for trading");
+          throw new TRPCError({ code: "BAD_REQUEST", message: kycCheck.reason || "KYC verification required for trading" });
         }
       
         // Validate limit order has price
       if (input.orderType === "limit" && !input.price) {
-        throw new Error("Limit orders require a price.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Limit orders require a price" });
       }
       
       // Get trader
@@ -538,11 +566,11 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!trader) {
-        throw new Error("Trader profile not found. Please create one first.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Trader profile not found. Please create one first." });
       }
       
       if (trader.verificationStatus === "suspended") {
-        throw new Error("Your trading account is suspended.");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Your trading account is suspended" });
       }
       
       // Get account
@@ -553,7 +581,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!account) {
-        throw new Error("Exchange account not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Exchange account not found." });
       }
       
       // Get commodity
@@ -564,7 +592,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!commodity || !commodity.active) {
-        throw new Error("Commodity not found or not active.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Commodity not found or not active." });
       }
       
       let cashReserved = 0;
@@ -574,13 +602,13 @@ export const exchangeRouter = router({
         // Calculate required cash
         const orderPrice = input.price || commodity.bestAskPrice || commodity.lastTradePrice || 0;
         if (orderPrice === 0 && input.orderType === "market") {
-          throw new Error("Cannot place market order: no price available.");
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot place market order: no price available." });
         }
         
         cashReserved = orderPrice * input.quantity;
         
         if (account.cashAvailable < cashReserved) {
-          throw new Error(`Insufficient funds. Required: ${cashReserved}, Available: ${account.cashAvailable}`);
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Insufficient funds. Required: ${cashReserved}, Available: ${account.cashAvailable}` });
         }
         
         // Reserve cash
@@ -605,7 +633,7 @@ export const exchangeRouter = router({
           .limit(1);
         
         if (!position || position.quantityAvailable < input.quantity) {
-          throw new Error(`Insufficient position. Required: ${input.quantity}, Available: ${position?.quantityAvailable || 0}`);
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Insufficient position. Required: ${input.quantity}, Available: ${position?.quantityAvailable || 0}` });
         }
         
         positionReserved = input.quantity;
@@ -666,8 +694,12 @@ export const exchangeRouter = router({
       orderId: z.number().int().positive(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const rateCheck = await checkRateLimit("exchange", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("exchange", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       // Get trader
@@ -678,7 +710,7 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!trader) {
-        throw new Error("Trader profile not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Trader profile not found." });
       }
       
       // Get order
@@ -692,11 +724,11 @@ export const exchangeRouter = router({
         .limit(1);
       
       if (!order) {
-        throw new Error("Order not found.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Order not found." });
       }
       
       if (order.status !== "open" && order.status !== "partially_filled") {
-        throw new Error("Order cannot be cancelled.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Order cannot be cancelled." });
       }
       
       const remainingQuantity = order.quantity - order.quantityFilled;
@@ -773,7 +805,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       const [trader] = await db
@@ -818,7 +850,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       const [trader] = await db
@@ -874,7 +906,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       
       const conditions = [
         eq(exchangePriceCandles.commodityId, input.commodityId),
@@ -910,7 +942,7 @@ export const exchangeRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const userId = ctx.user.id;
       
       const [trader] = await db
@@ -974,321 +1006,316 @@ async function matchOrder(
   trader: typeof exchangeTraders.$inferSelect,
   commodity: typeof exchangeCommodities.$inferSelect
 ) {
-  if (!db) throw new Error("Database not available");
-  const trades: (typeof exchangeTrades.$inferSelect)[] = [];
-  
-  if (order.side === "buy") {
-    // Match against sell orders (asks)
-    const matchingOrders = await db
-      .select()
-      .from(exchangeOrders)
-      .where(and(
-        eq(exchangeOrders.commodityId, order.commodityId),
-        eq(exchangeOrders.side, "sell"),
-        eq(exchangeOrders.status, "open"),
-        order.orderType === "limit" && order.price
-          ? lte(exchangeOrders.price, order.price)
-          : sql`TRUE`
-      ))
-      .orderBy(asc(exchangeOrders.price), asc(exchangeOrders.createdAt));
-    
-    let remainingQuantity = order.quantity - order.quantityFilled;
-    
-    for (const sellOrder of matchingOrders) {
-      if (remainingQuantity <= 0) break;
-      
-      const sellRemaining = sellOrder.quantity - sellOrder.quantityFilled;
-      const matchQuantity = Math.min(remainingQuantity, sellRemaining);
-      const matchPrice = sellOrder.price!; // Sell order price
-      const tradeValue = matchPrice * matchQuantity;
-      
-      // Create trade
-      const [trade] = await db
-        .insert(exchangeTrades)
-        .values({
-          commodityId: order.commodityId,
-          buyOrderId: order.id,
-          sellOrderId: sellOrder.id,
-          price: matchPrice,
-          quantity: matchQuantity,
-          tradeValue,
-          buyerTraderId: order.traderId,
-          sellerTraderId: sellOrder.traderId,
-          settlementStatus: "pending",
-          tradeTime: new Date(),
-        })
-        .returning();
-      
-      trades.push(trade);
-      
-      // Update buy order
-      await db
-        .update(exchangeOrders)
-        .set({
-          quantityFilled: order.quantityFilled + matchQuantity,
-          status: order.quantityFilled + matchQuantity >= order.quantity ? "filled" : "partially_filled",
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeOrders.id, order.id));
-      
-      // Update sell order
-      await db
-        .update(exchangeOrders)
-        .set({
-          quantityFilled: sellOrder.quantityFilled + matchQuantity,
-          status: sellOrder.quantityFilled + matchQuantity >= sellOrder.quantity ? "filled" : "partially_filled",
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeOrders.id, sellOrder.id));
-      
-      // Get accounts
-      const [buyerAccount] = await db
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+  const trades = await db.transaction(async (tx) => {
+    const matched: (typeof exchangeTrades.$inferSelect)[] = [];
+
+    if (order.side === "buy") {
+      const matchingOrders = await tx
         .select()
-        .from(exchangeAccounts)
-        .where(eq(exchangeAccounts.traderId, order.traderId))
-        .limit(1);
-      
-      const [sellerAccount] = await db
-        .select()
-        .from(exchangeAccounts)
-        .where(eq(exchangeAccounts.traderId, sellOrder.traderId))
-        .limit(1);
-      
-      // Create settlement
-      const feeRate = 0.01; // 1% fee
-      const feesBuyer = Math.floor(tradeValue * feeRate);
-      const feesSeller = Math.floor(tradeValue * feeRate);
-      
-      await db.insert(exchangeSettlements).values({
-        tradeId: trade.id,
-        buyerAccountId: buyerAccount.id,
-        sellerAccountId: sellerAccount.id,
-        grossAmount: tradeValue,
-        feesBuyer,
-        feesSeller,
-        netBuyerDebit: tradeValue + feesBuyer,
-        netSellerCredit: tradeValue - feesSeller,
-        status: "pending",
-      });
-      
-      // Update buyer account (release reserved, deduct actual)
-      const buyerCashUsed = tradeValue + feesBuyer;
-      await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: buyerAccount.cashBalance - buyerCashUsed,
-          cashReserved: buyerAccount.cashReserved - tradeValue,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, buyerAccount.id));
-      
-      // Update seller account (credit proceeds)
-      await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: sellerAccount.cashBalance + (tradeValue - feesSeller),
-          cashAvailable: sellerAccount.cashAvailable + (tradeValue - feesSeller),
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, sellerAccount.id));
-      
-      // Update seller position (reduce reserved)
-      const [sellerPosition] = await db
-        .select()
-        .from(exchangePositions)
+        .from(exchangeOrders)
         .where(and(
-          eq(exchangePositions.traderId, sellOrder.traderId),
-          eq(exchangePositions.commodityId, order.commodityId)
+          eq(exchangeOrders.commodityId, order.commodityId),
+          eq(exchangeOrders.side, "sell"),
+          eq(exchangeOrders.status, "open"),
+          order.orderType === "limit" && order.price
+            ? lte(exchangeOrders.price, order.price)
+            : sql`TRUE`
         ))
-        .limit(1);
-      
-      if (sellerPosition) {
-        await db
-          .update(exchangePositions)
+        .orderBy(asc(exchangeOrders.price), asc(exchangeOrders.createdAt));
+
+      let remainingQuantity = order.quantity - order.quantityFilled;
+
+      for (const sellOrder of matchingOrders) {
+        if (remainingQuantity <= 0) break;
+
+        const sellRemaining = sellOrder.quantity - sellOrder.quantityFilled;
+        const matchQuantity = Math.min(remainingQuantity, sellRemaining);
+        const matchPrice = sellOrder.price!;
+        const tradeValue = matchPrice * matchQuantity;
+
+        const [trade] = await tx
+          .insert(exchangeTrades)
+          .values({
+            commodityId: order.commodityId,
+            buyOrderId: order.id,
+            sellOrderId: sellOrder.id,
+            price: matchPrice,
+            quantity: matchQuantity,
+            tradeValue,
+            buyerTraderId: order.traderId,
+            sellerTraderId: sellOrder.traderId,
+            settlementStatus: "pending",
+            tradeTime: new Date(),
+          })
+          .returning();
+
+        matched.push(trade);
+
+        await tx
+          .update(exchangeOrders)
           .set({
-            quantityTotal: sellerPosition.quantityTotal - matchQuantity,
-            quantityReserved: sellerPosition.quantityReserved - matchQuantity,
+            quantityFilled: order.quantityFilled + matchQuantity,
+            status: order.quantityFilled + matchQuantity >= order.quantity ? "filled" : "partially_filled",
             updatedAt: new Date(),
           })
-          .where(eq(exchangePositions.id, sellerPosition.id));
-      }
-      
-      // Update commodity price
-      await db
-        .update(exchangeCommodities)
-        .set({
-          lastTradePrice: matchPrice,
-          lastTradeAt: new Date(),
-          dailyVolume: (commodity.dailyVolume || 0) + matchQuantity,
-          dailyHigh: Math.max(commodity.dailyHigh || 0, matchPrice),
-          dailyLow: commodity.dailyLow ? Math.min(commodity.dailyLow, matchPrice) : matchPrice,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeCommodities.id, commodity.id));
-      
-      remainingQuantity -= matchQuantity;
-    }
-  } else {
-    // Match against buy orders (bids)
-    const matchingOrders = await db
-      .select()
-      .from(exchangeOrders)
-      .where(and(
-        eq(exchangeOrders.commodityId, order.commodityId),
-        eq(exchangeOrders.side, "buy"),
-        eq(exchangeOrders.status, "open"),
-        order.orderType === "limit" && order.price
-          ? gte(exchangeOrders.price, order.price)
-          : sql`TRUE`
-      ))
-      .orderBy(desc(exchangeOrders.price), asc(exchangeOrders.createdAt));
-    
-    let remainingQuantity = order.quantity - order.quantityFilled;
-    
-    for (const buyOrder of matchingOrders) {
-      if (remainingQuantity <= 0) break;
-      
-      const buyRemaining = buyOrder.quantity - buyOrder.quantityFilled;
-      const matchQuantity = Math.min(remainingQuantity, buyRemaining);
-      const matchPrice = buyOrder.price!; // Buy order price
-      const tradeValue = matchPrice * matchQuantity;
-      
-      // Create trade
-      const [trade] = await db
-        .insert(exchangeTrades)
-        .values({
-          commodityId: order.commodityId,
-          buyOrderId: buyOrder.id,
-          sellOrderId: order.id,
-          price: matchPrice,
-          quantity: matchQuantity,
-          tradeValue,
-          buyerTraderId: buyOrder.traderId,
-          sellerTraderId: order.traderId,
-          settlementStatus: "pending",
-          tradeTime: new Date(),
-        })
-        .returning();
-      
-      trades.push(trade);
-      
-      // Update sell order (current order)
-      await db
-        .update(exchangeOrders)
-        .set({
-          quantityFilled: order.quantityFilled + matchQuantity,
-          status: order.quantityFilled + matchQuantity >= order.quantity ? "filled" : "partially_filled",
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeOrders.id, order.id));
-      
-      // Update buy order
-      await db
-        .update(exchangeOrders)
-        .set({
-          quantityFilled: buyOrder.quantityFilled + matchQuantity,
-          status: buyOrder.quantityFilled + matchQuantity >= buyOrder.quantity ? "filled" : "partially_filled",
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeOrders.id, buyOrder.id));
-      
-      // Get accounts
-      const [buyerAccount] = await db
-        .select()
-        .from(exchangeAccounts)
-        .where(eq(exchangeAccounts.traderId, buyOrder.traderId))
-        .limit(1);
-      
-      const [sellerAccount] = await db
-        .select()
-        .from(exchangeAccounts)
-        .where(eq(exchangeAccounts.traderId, order.traderId))
-        .limit(1);
-      
-      // Create settlement
-      const feeRate = 0.01; // 1% fee
-      const feesBuyer = Math.floor(tradeValue * feeRate);
-      const feesSeller = Math.floor(tradeValue * feeRate);
-      
-      await db.insert(exchangeSettlements).values({
-        tradeId: trade.id,
-        buyerAccountId: buyerAccount.id,
-        sellerAccountId: sellerAccount.id,
-        grossAmount: tradeValue,
-        feesBuyer,
-        feesSeller,
-        netBuyerDebit: tradeValue + feesBuyer,
-        netSellerCredit: tradeValue - feesSeller,
-        status: "pending",
-      });
-      
-      // Update buyer account
-      const buyerCashUsed = tradeValue + feesBuyer;
-      await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: buyerAccount.cashBalance - buyerCashUsed,
-          cashReserved: buyerAccount.cashReserved - tradeValue,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, buyerAccount.id));
-      
-      // Update seller account
-      await db
-        .update(exchangeAccounts)
-        .set({
-          cashBalance: sellerAccount.cashBalance + (tradeValue - feesSeller),
-          cashAvailable: sellerAccount.cashAvailable + (tradeValue - feesSeller),
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeAccounts.id, sellerAccount.id));
-      
-      // Update seller position
-      const [sellerPosition] = await db
-        .select()
-        .from(exchangePositions)
-        .where(and(
-          eq(exchangePositions.traderId, order.traderId),
-          eq(exchangePositions.commodityId, order.commodityId)
-        ))
-        .limit(1);
-      
-      if (sellerPosition) {
-        await db
-          .update(exchangePositions)
+          .where(eq(exchangeOrders.id, order.id));
+
+        await tx
+          .update(exchangeOrders)
           .set({
-            quantityTotal: sellerPosition.quantityTotal - matchQuantity,
-            quantityReserved: sellerPosition.quantityReserved - matchQuantity,
+            quantityFilled: sellOrder.quantityFilled + matchQuantity,
+            status: sellOrder.quantityFilled + matchQuantity >= sellOrder.quantity ? "filled" : "partially_filled",
             updatedAt: new Date(),
           })
-          .where(eq(exchangePositions.id, sellerPosition.id));
+          .where(eq(exchangeOrders.id, sellOrder.id));
+
+        const [buyerAccount] = await tx
+          .select()
+          .from(exchangeAccounts)
+          .where(eq(exchangeAccounts.traderId, order.traderId))
+          .limit(1);
+
+        const [sellerAccount] = await tx
+          .select()
+          .from(exchangeAccounts)
+          .where(eq(exchangeAccounts.traderId, sellOrder.traderId))
+          .limit(1);
+
+        const feeRate = 0.01;
+        const feesBuyer = Math.floor(tradeValue * feeRate);
+        const feesSeller = Math.floor(tradeValue * feeRate);
+
+        await tx.insert(exchangeSettlements).values({
+          tradeId: trade.id,
+          buyerAccountId: buyerAccount.id,
+          sellerAccountId: sellerAccount.id,
+          grossAmount: tradeValue,
+          feesBuyer,
+          feesSeller,
+          netBuyerDebit: tradeValue + feesBuyer,
+          netSellerCredit: tradeValue - feesSeller,
+          status: "pending",
+        });
+
+        const buyerCashUsed = tradeValue + feesBuyer;
+        await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: buyerAccount.cashBalance - buyerCashUsed,
+            cashReserved: buyerAccount.cashReserved - tradeValue,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, buyerAccount.id));
+
+        await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: sellerAccount.cashBalance + (tradeValue - feesSeller),
+            cashAvailable: sellerAccount.cashAvailable + (tradeValue - feesSeller),
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, sellerAccount.id));
+
+        const [sellerPosition] = await tx
+          .select()
+          .from(exchangePositions)
+          .where(and(
+            eq(exchangePositions.traderId, sellOrder.traderId),
+            eq(exchangePositions.commodityId, order.commodityId)
+          ))
+          .limit(1);
+
+        if (sellerPosition) {
+          await tx
+            .update(exchangePositions)
+            .set({
+              quantityTotal: sellerPosition.quantityTotal - matchQuantity,
+              quantityReserved: sellerPosition.quantityReserved - matchQuantity,
+              updatedAt: new Date(),
+            })
+            .where(eq(exchangePositions.id, sellerPosition.id));
+        }
+
+        await tx
+          .update(exchangeCommodities)
+          .set({
+            lastTradePrice: matchPrice,
+            lastTradeAt: new Date(),
+            dailyVolume: (commodity.dailyVolume || 0) + matchQuantity,
+            dailyHigh: Math.max(commodity.dailyHigh || 0, matchPrice),
+            dailyLow: commodity.dailyLow ? Math.min(commodity.dailyLow, matchPrice) : matchPrice,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeCommodities.id, commodity.id));
+
+        remainingQuantity -= matchQuantity;
       }
-      
-      // Update commodity price
-      await db
-        .update(exchangeCommodities)
-        .set({
-          lastTradePrice: matchPrice,
-          lastTradeAt: new Date(),
-          dailyVolume: (commodity.dailyVolume || 0) + matchQuantity,
-          dailyHigh: Math.max(commodity.dailyHigh || 0, matchPrice),
-          dailyLow: commodity.dailyLow ? Math.min(commodity.dailyLow, matchPrice) : matchPrice,
-          updatedAt: new Date(),
-        })
-        .where(eq(exchangeCommodities.id, commodity.id));
-      
-      remainingQuantity -= matchQuantity;
+    } else {
+      const matchingOrders = await tx
+        .select()
+        .from(exchangeOrders)
+        .where(and(
+          eq(exchangeOrders.commodityId, order.commodityId),
+          eq(exchangeOrders.side, "buy"),
+          eq(exchangeOrders.status, "open"),
+          order.orderType === "limit" && order.price
+            ? gte(exchangeOrders.price, order.price)
+            : sql`TRUE`
+        ))
+        .orderBy(desc(exchangeOrders.price), asc(exchangeOrders.createdAt));
+
+      let remainingQuantity = order.quantity - order.quantityFilled;
+
+      for (const buyOrder of matchingOrders) {
+        if (remainingQuantity <= 0) break;
+
+        const buyRemaining = buyOrder.quantity - buyOrder.quantityFilled;
+        const matchQuantity = Math.min(remainingQuantity, buyRemaining);
+        const matchPrice = buyOrder.price!;
+        const tradeValue = matchPrice * matchQuantity;
+
+        const [trade] = await tx
+          .insert(exchangeTrades)
+          .values({
+            commodityId: order.commodityId,
+            buyOrderId: buyOrder.id,
+            sellOrderId: order.id,
+            price: matchPrice,
+            quantity: matchQuantity,
+            tradeValue,
+            buyerTraderId: buyOrder.traderId,
+            sellerTraderId: order.traderId,
+            settlementStatus: "pending",
+            tradeTime: new Date(),
+          })
+          .returning();
+
+        matched.push(trade);
+
+        await tx
+          .update(exchangeOrders)
+          .set({
+            quantityFilled: order.quantityFilled + matchQuantity,
+            status: order.quantityFilled + matchQuantity >= order.quantity ? "filled" : "partially_filled",
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeOrders.id, order.id));
+
+        await tx
+          .update(exchangeOrders)
+          .set({
+            quantityFilled: buyOrder.quantityFilled + matchQuantity,
+            status: buyOrder.quantityFilled + matchQuantity >= buyOrder.quantity ? "filled" : "partially_filled",
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeOrders.id, buyOrder.id));
+
+        const [buyerAccount] = await tx
+          .select()
+          .from(exchangeAccounts)
+          .where(eq(exchangeAccounts.traderId, buyOrder.traderId))
+          .limit(1);
+
+        const [sellerAccount] = await tx
+          .select()
+          .from(exchangeAccounts)
+          .where(eq(exchangeAccounts.traderId, order.traderId))
+          .limit(1);
+
+        const feeRate = 0.01;
+        const feesBuyer = Math.floor(tradeValue * feeRate);
+        const feesSeller = Math.floor(tradeValue * feeRate);
+
+        await tx.insert(exchangeSettlements).values({
+          tradeId: trade.id,
+          buyerAccountId: buyerAccount.id,
+          sellerAccountId: sellerAccount.id,
+          grossAmount: tradeValue,
+          feesBuyer,
+          feesSeller,
+          netBuyerDebit: tradeValue + feesBuyer,
+          netSellerCredit: tradeValue - feesSeller,
+          status: "pending",
+        });
+
+        const buyerCashUsed = tradeValue + feesBuyer;
+        await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: buyerAccount.cashBalance - buyerCashUsed,
+            cashReserved: buyerAccount.cashReserved - tradeValue,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, buyerAccount.id));
+
+        await tx
+          .update(exchangeAccounts)
+          .set({
+            cashBalance: sellerAccount.cashBalance + (tradeValue - feesSeller),
+            cashAvailable: sellerAccount.cashAvailable + (tradeValue - feesSeller),
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeAccounts.id, sellerAccount.id));
+
+        const [sellerPosition] = await tx
+          .select()
+          .from(exchangePositions)
+          .where(and(
+            eq(exchangePositions.traderId, order.traderId),
+            eq(exchangePositions.commodityId, order.commodityId)
+          ))
+          .limit(1);
+
+        if (sellerPosition) {
+          await tx
+            .update(exchangePositions)
+            .set({
+              quantityTotal: sellerPosition.quantityTotal - matchQuantity,
+              quantityReserved: sellerPosition.quantityReserved - matchQuantity,
+              updatedAt: new Date(),
+            })
+            .where(eq(exchangePositions.id, sellerPosition.id));
+        }
+
+        await tx
+          .update(exchangeCommodities)
+          .set({
+            lastTradePrice: matchPrice,
+            lastTradeAt: new Date(),
+            dailyVolume: (commodity.dailyVolume || 0) + matchQuantity,
+            dailyHigh: Math.max(commodity.dailyHigh || 0, matchPrice),
+            dailyLow: commodity.dailyLow ? Math.min(commodity.dailyLow, matchPrice) : matchPrice,
+            updatedAt: new Date(),
+          })
+          .where(eq(exchangeCommodities.id, commodity.id));
+
+        remainingQuantity -= matchQuantity;
+      }
     }
-  }
-  
-  // Update best bid/ask after matching
+
+    return matched;
+  });
+
+  // Update best bid/ask after matching (outside transaction — read-only)
   await updateBestPrices(db, order.commodityId);
-  
+
+  // Initiate cross-FSP settlement via Mojaloop (outside transaction — external call)
+  for (const trade of trades) {
+    await initiatePaymentSettlement(
+      `fsp-buyer-${trade.buyerTraderId}`,
+      `fsp-seller-${trade.sellerTraderId}`,
+      trade.tradeValue,
+      "KES",
+    );
+  }
+
   return trades;
 }
 
 async function updateBestPrices(db: Awaited<ReturnType<typeof getDb>>, commodityId: number) {
-  if (!db) throw new Error("Database not available");
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
   // Get best bid (highest buy price)
   const [bestBid] = await db
     .select({ price: exchangeOrders.price })

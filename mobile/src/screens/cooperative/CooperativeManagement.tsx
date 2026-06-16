@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -7,7 +8,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   FlatList,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CooperativeMember {
@@ -99,20 +100,23 @@ export default function CooperativeManagement() {
       </View>
 
       <View style={styles.actionsContainer}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <TouchableOpacity style={styles.actionButton}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Quick Actions</Text>
+        <TouchableOpacity
+          accessibilityRole="button" style={styles.actionButton}>
           <Text style={styles.actionButtonText}>Process Payouts</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]}>
+        <TouchableOpacity
+          accessibilityRole="button" style={[styles.actionButton, styles.secondaryButton]}>
           <Text style={[styles.actionButtonText, styles.secondaryButtonText]}>Add New Member</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]}>
+        <TouchableOpacity
+          accessibilityRole="button" style={[styles.actionButton, styles.secondaryButton]}>
           <Text style={[styles.actionButtonText, styles.secondaryButtonText]}>Generate Report</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.recentActivity}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Recent Activity</Text>
         <View style={styles.activityItem}>
           <View style={[styles.activityDot, { backgroundColor: '#4CAF50' }]} />
           <View style={styles.activityContent}>
@@ -139,7 +143,8 @@ export default function CooperativeManagement() {
   );
 
   const renderMemberItem = ({ item }: { item: CooperativeMember }) => (
-    <TouchableOpacity style={styles.memberCard}>
+    <TouchableOpacity
+          accessibilityRole="button" style={styles.memberCard}>
       <View style={styles.memberHeader}>
         <Text style={styles.memberName}>{item.name}</Text>
         <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
@@ -186,7 +191,7 @@ export default function CooperativeManagement() {
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Fund Distribution</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>Fund Distribution</Text>
       <View style={styles.distributionChart}>
         <View style={styles.distributionItem}>
           <View style={[styles.distributionBar, { width: '70%', backgroundColor: '#4CAF50' }]} />
@@ -202,7 +207,7 @@ export default function CooperativeManagement() {
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Recent Transactions</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>Recent Transactions</Text>
       <View style={styles.transactionsList}>
         <View style={styles.transactionItem}>
           <View>
@@ -232,13 +237,14 @@ export default function CooperativeManagement() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Cooperative Management</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Cooperative Management</Text>
         <Text style={styles.headerSubtitle}>Farmers United Cooperative</Text>
       </View>
 
       <View style={styles.tabBar}>
         {(['overview', 'members', 'funds'] as const).map((tab) => (
           <TouchableOpacity
+          accessibilityRole="button"
             key={tab}
             style={[styles.tab, activeTab === tab && styles.activeTab]}
             onPress={() => setActiveTab(tab)}
@@ -251,6 +257,8 @@ export default function CooperativeManagement() {
       </View>
 
       <ScrollView
+      accessibilityLabel="Cooperative Management screen"
+      accessibilityRole="scrollbar"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -276,7 +284,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
   },
   headerSubtitle: {
     fontSize: 14,
@@ -285,7 +293,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -320,10 +328,10 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -356,12 +364,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   secondaryButton: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: '#4CAF50',
   },
   actionButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
     fontSize: 16,
   },
@@ -399,11 +407,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   memberCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -470,10 +478,10 @@ const styles = StyleSheet.create({
   },
   fundCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -490,7 +498,7 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   distributionChart: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -508,7 +516,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   transactionsList: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     overflow: 'hidden',
   },

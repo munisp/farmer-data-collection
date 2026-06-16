@@ -104,3 +104,12 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+
+# Rust build artifacts
+services/rust/*/target/
+
+# Test artifacts
+test-plan*.md
+test-report.md
+test-screenshots/
+__pycache__/

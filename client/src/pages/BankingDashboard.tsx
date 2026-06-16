@@ -140,7 +140,7 @@ export default function BankingDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-8">
+      <div role="main" aria-label="Page content" className="container mx-auto py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Banking & Payments</h1>
           <p className="text-muted-foreground">
@@ -180,8 +180,8 @@ export default function BankingDashboard() {
                 <CardDescription>Link a new bank account or mobile money account</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleCreateAccount} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <form aria-label="Submit form" onSubmit={handleCreateAccount} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="accountName">Account Name *</Label>
                       <Input
@@ -201,7 +201,7 @@ export default function BankingDashboard() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="bankName">Bank Name *</Label>
                       <Input
@@ -268,11 +268,11 @@ export default function BankingDashboard() {
                           </div>
                           <div className="text-right">
                             {account.isVerified ? (
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                              <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 px-2 py-1 rounded">
                                 Verified
                               </span>
                             ) : (
-                              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                              <span className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 px-2 py-1 rounded">
                                 Pending
                               </span>
                             )}
@@ -298,7 +298,7 @@ export default function BankingDashboard() {
                 <CardDescription>Transfer money to any Mojaloop participant</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleInitiateTransfer} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleInitiateTransfer} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="fromAccount">From Account *</Label>
                     <Select 
@@ -317,7 +317,7 @@ export default function BankingDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="toPartyIdType">Recipient ID Type</Label>
                       <Select value={toPartyIdType} onValueChange={(value: any) => setToPartyIdType(value)}>
@@ -387,7 +387,7 @@ export default function BankingDashboard() {
                 <CardDescription>Generate a payment request with QR code</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleCreatePaymentRequest} className="space-y-4">
+                <form aria-label="Submit form" onSubmit={handleCreatePaymentRequest} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="paymentAccount">Receiving Account *</Label>
                     <Select 
@@ -471,10 +471,10 @@ export default function BankingDashboard() {
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${
                             request.status === 'paid' 
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800'
                               : request.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
                           }`}>
                             {request.status}
                           </span>
@@ -522,10 +522,10 @@ export default function BankingDashboard() {
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${
                             tx.status === 'completed' 
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800'
                               : tx.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'
+                              : 'bg-red-100 dark:bg-red-900 text-red-800'
                           }`}>
                             {tx.status}
                           </span>
@@ -575,10 +575,10 @@ export default function BankingDashboard() {
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${
                             tx.mojaloop?.status === 'completed' 
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800'
                               : tx.mojaloop?.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'
+                              : 'bg-red-100 dark:bg-red-900 text-red-800'
                           }`}>
                             {tx.mojaloop?.status || 'unknown'}
                           </span>

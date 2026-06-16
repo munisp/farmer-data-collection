@@ -1,3 +1,6 @@
+import crypto from "crypto";
+import { TRPCError } from "@trpc/server";
+import { withRedisCache, publishKafkaEvent, KAFKA_TOPICS, indexDocument, recordLedgerEntry, checkPermission, checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * Loan Application Router
  * 
@@ -13,6 +16,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { documentUploadService } from "../services/document-upload-service.js";
 import { checkLoanApplicationKyc } from "../middleware/kyc-enforcement.js";
 import { createTemporalService, TemporalWorkflowService } from "../services/temporal-workflow-service.js";
+import { logger } from '../logger.js';
 
 // Temporal workflow service (lazy initialization)
 let temporalService: TemporalWorkflowService | null = null;
@@ -28,10 +32,10 @@ async function getTemporalService(): Promise<TemporalWorkflowService | null> {
     const address = process.env.TEMPORAL_ADDRESS || 'localhost:7233';
     await service.connect(address);
     temporalService = service;
-    console.log('[LoanApplication] Temporal workflow service connected');
+    logger.info('[LoanApplication] Temporal workflow service connected');
     return service;
   } catch (error) {
-    console.warn('[LoanApplication] Temporal not available, workflows will run synchronously:', error);
+    logger.warn('[LoanApplication] Temporal not available, workflows will run synchronously:', error);
     return null;
   }
 }
@@ -74,52 +78,60 @@ export const loanApplicationRouter = router({
       })
     )
         .mutation(async ({ input, ctx }) => {
+          const rateCheck = await checkRateLimit("loan-application", ctx.token ?? "anon", 5, 60);
+          if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded for loan applications" });
+          const wafScan = await scanForThreats("loan-application", input);
+          if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+          const permissionGranted = await checkPermission(ctx.token ?? "anon", "loan", "apply");
+          if (!permissionGranted) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied: loan application" });
+
           const db = await getDb();
-          if (!db) throw new Error("Database not available");
+          if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
           const userId = ctx.token ? parseInt(ctx.token) : null;
-          if (!userId) throw new Error("User not authenticated");
+          if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
-          // Enforce KYC requirements before loan application
           const kycCheck = await checkLoanApplicationKyc(userId, input.loanAmount);
           if (!kycCheck.allowed) {
-            throw new Error(kycCheck.reason || "KYC verification required for loan applications");
+            throw new TRPCError({ code: "BAD_REQUEST", message: kycCheck.reason || "KYC verification required for loan applications" });
           }
 
           // Generate application number
-      const applicationNumber = `APP-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const applicationNumber = `APP-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
-      // Insert application
-      const [application] = await db
-        .insert(loanApplications)
-        .values({
-          userId,
-          applicationNumber,
-          loanAmount: input.loanAmount,
-          purpose: input.purpose,
-          termMonths: input.termMonths,
-          fullName: input.fullName,
-          email: input.email,
-          phone: input.phone,
-          address: input.address,
-          employmentStatus: input.employmentStatus || null,
-          monthlyIncome: input.monthlyIncome || null,
-          incomeSource: input.incomeSource || null,
-          farmSize: input.farmSize || null,
-          cropTypes: input.cropTypes || null,
-          yearsOfFarming: input.yearsOfFarming || null,
-          status: "pending",
-          submittedAt: new Date(),
-        })
-        .returning();
+      const application = await db.transaction(async (tx) => {
+        const [app] = await tx
+          .insert(loanApplications)
+          .values({
+            userId,
+            applicationNumber,
+            loanAmount: input.loanAmount,
+            purpose: input.purpose,
+            termMonths: input.termMonths,
+            fullName: input.fullName,
+            email: input.email,
+            phone: input.phone,
+            address: input.address,
+            employmentStatus: input.employmentStatus || null,
+            monthlyIncome: input.monthlyIncome || null,
+            incomeSource: input.incomeSource || null,
+            farmSize: input.farmSize || null,
+            cropTypes: input.cropTypes || null,
+            yearsOfFarming: input.yearsOfFarming || null,
+            status: "pending",
+            submittedAt: new Date(),
+          })
+          .returning();
 
-      // Record status change
-      await db.insert(applicationStatusHistory).values({
-        applicationId: application.id,
-        fromStatus: null,
-        toStatus: "pending",
-        changedBy: userId,
-        notes: "Application submitted",
+        await tx.insert(applicationStatusHistory).values({
+          applicationId: app.id,
+          fromStatus: null,
+          toStatus: "pending",
+          changedBy: userId,
+          notes: "Application submitted",
+        });
+
+        return app;
       });
 
       // Start Temporal workflow for loan processing (async, non-blocking)
@@ -134,14 +146,14 @@ export const loanApplicationRouter = router({
             purpose: input.purpose,
             termMonths: input.termMonths,
           });
-          console.log(`[LoanApplication] Temporal workflow started: ${workflowId}`);
+          logger.info(`[LoanApplication] Temporal workflow started: ${workflowId}`);
         }
       } catch (workflowError) {
         // Log but don't fail the application if workflow fails to start
-        console.error('[LoanApplication] Failed to start Temporal workflow:', workflowError);
+        logger.error('[LoanApplication] Failed to start Temporal workflow:', workflowError);
       }
 
-      console.log(`[LoanApplication] New application submitted: ${applicationNumber}`);
+      logger.info(`[LoanApplication] New application submitted: ${applicationNumber}`);
 
       return {
         success: true,
@@ -165,11 +177,15 @@ export const loanApplicationRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("loan_application", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("loan_application", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userId = ctx.token ? parseInt(ctx.token) : null;
-      if (!userId) throw new Error("User not authenticated");
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
       // Verify application belongs to user
       const [application] = await db
@@ -183,7 +199,7 @@ export const loanApplicationRouter = router({
         );
 
       if (!application) {
-        throw new Error("Application not found or access denied");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Application not found or access denied" });
       }
 
       // Decode base64 file data
@@ -200,7 +216,7 @@ export const loanApplicationRouter = router({
       });
 
       if (!validation.valid) {
-        throw new Error(validation.error || "Invalid upload");
+        throw new TRPCError({ code: "BAD_REQUEST", message: validation.error || "Invalid upload" });
       }
 
       // Upload to S3
@@ -240,10 +256,10 @@ export const loanApplicationRouter = router({
    */
   getMyApplications: protectedProcedure.query(async ({ ctx }: { ctx: any }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const userId = ctx.token ? parseInt(ctx.token) : null;
-    if (!userId) throw new Error("User not authenticated");
+    if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
     const applications = await db
       .select()
@@ -261,10 +277,10 @@ export const loanApplicationRouter = router({
     .input(z.object({ applicationId: z.number() }))
     .query(async ({ input, ctx }: { input: any; ctx: any }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userId = ctx.token ? parseInt(ctx.token) : null;
-      if (!userId) throw new Error("User not authenticated");
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
       // Get application
       const [application] = await db
@@ -278,7 +294,7 @@ export const loanApplicationRouter = router({
         );
 
       if (!application) {
-        throw new Error("Application not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
       }
 
       // Get documents
@@ -307,15 +323,15 @@ export const loanApplicationRouter = router({
    */
   getAllApplications: protectedProcedure.query(async ({ ctx }: { ctx: any }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const userId = ctx.token ? parseInt(ctx.token) : null;
-    if (!userId) throw new Error("User not authenticated");
+    if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
     // Admin role check
     const isAdmin = await checkAdminRole(userId);
     if (!isAdmin) {
-      throw new Error("Access denied: Admin role required");
+      throw new TRPCError({ code: "FORBIDDEN", message: "Access denied: Admin role required" });
     }
 
     const applications = await db
@@ -342,16 +358,20 @@ export const loanApplicationRouter = router({
       })
     )
     .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
+      const rateCheck = await checkRateLimit("loan_application", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("loan_application", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userId = ctx.token ? parseInt(ctx.token) : null;
-      if (!userId) throw new Error("User not authenticated");
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
       // Admin role check
       const isAdmin = await checkAdminRole(userId);
       if (!isAdmin) {
-        throw new Error("Access denied: Admin role required");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied: Admin role required" });
       }
 
       // Get current application
@@ -361,35 +381,35 @@ export const loanApplicationRouter = router({
         .where(eq(loanApplications.id, input.applicationId));
 
       if (!currentApp) {
-        throw new Error("Application not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
       }
 
-      // Update application
-      await db
-        .update(loanApplications)
-        .set({
-          status: input.status,
-          reviewedBy: userId,
-          reviewedAt: new Date(),
-          reviewNotes: input.reviewNotes || null,
-          rejectionReason: input.rejectionReason || null,
-          approvedAmount: input.approvedAmount || null,
-          approvedTermMonths: input.approvedTermMonths || null,
-          approvedInterestRate: input.approvedInterestRate || null,
-          updatedAt: new Date(),
-        })
-        .where(eq(loanApplications.id, input.applicationId));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(loanApplications)
+          .set({
+            status: input.status,
+            reviewedBy: userId,
+            reviewedAt: new Date(),
+            reviewNotes: input.reviewNotes || null,
+            rejectionReason: input.rejectionReason || null,
+            approvedAmount: input.approvedAmount || null,
+            approvedTermMonths: input.approvedTermMonths || null,
+            approvedInterestRate: input.approvedInterestRate || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(loanApplications.id, input.applicationId));
 
-      // Record status change
-      await db.insert(applicationStatusHistory).values({
-        applicationId: input.applicationId,
-        fromStatus: currentApp.status,
-        toStatus: input.status,
-        changedBy: userId,
-        notes: input.reviewNotes || null,
+        await tx.insert(applicationStatusHistory).values({
+          applicationId: input.applicationId,
+          fromStatus: currentApp.status,
+          toStatus: input.status,
+          changedBy: userId,
+          notes: input.reviewNotes || null,
+        });
       });
 
-      console.log(`[LoanApplication] Status updated: ${currentApp.applicationNumber} -> ${input.status}`);
+      logger.info(`[LoanApplication] Status updated: ${currentApp.applicationNumber} -> ${input.status}`);
 
       return { success: true };
     }),
@@ -406,16 +426,20 @@ export const loanApplicationRouter = router({
       })
     )
     .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
+      const rateCheck = await checkRateLimit("loan_application", String((ctx as any)?.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("loan_application", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const userId = ctx.token ? parseInt(ctx.token) : null;
-      if (!userId) throw new Error("User not authenticated");
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
 
       // Admin role check
       const isAdmin = await checkAdminRole(userId);
       if (!isAdmin) {
-        throw new Error("Access denied: Admin role required");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied: Admin role required" });
       }
 
       await db

@@ -58,7 +58,7 @@ export default function FarmDetail() {
   if (!farmId) {
     return (
       <DashboardLayout>
-        <div className="p-8">
+        <div role="main" aria-label="Page content" className="p-8">
           <Card>
             <CardHeader>
               <CardTitle>Invalid Farm ID</CardTitle>

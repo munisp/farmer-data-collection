@@ -1,8 +1,10 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 /**
  * Comprehensive Farmer Features Router
  * Exposes all 10 strategic farmer features via tRPC endpoints
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base.js";
 import { cropInsuranceService } from "../services/crop-insurance-service.js";
@@ -16,6 +18,7 @@ import { postHarvestService } from "../services/post-harvest-service.js";
 import { voiceAdvisoryService } from "../services/voice-advisory-service.js";
 import { knowledgeSharingService } from "../services/knowledge-sharing-service.js";
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // ============= CROP INSURANCE ROUTER =============
 export const cropInsuranceRouter = router({
   getQuote: protectedProcedure
@@ -31,6 +34,11 @@ export const cropInsuranceRouter = router({
       coverageLevel: z.enum(['basic', 'standard', 'comprehensive']),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await cropInsuranceService.getQuote({
         farmerId: input.farmerId,
         farmId: input.farmId,
@@ -57,6 +65,11 @@ export const cropInsuranceRouter = router({
       coverageLevel: z.enum(['basic', 'standard', 'comprehensive']),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const quote = await cropInsuranceService.getQuote({
         farmerId: input.farmerId,
         farmId: input.farmId,
@@ -86,6 +99,11 @@ export const cropInsuranceRouter = router({
   checkTriggers: protectedProcedure
     .input(z.object({ policyId: z.string() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await cropInsuranceService.checkTriggers(input.policyId);
     }),
 
@@ -117,6 +135,11 @@ export const inputFinancingRouter = router({
       termMonths: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await inputFinancingService.createCreditLine({
         farmerId: input.farmerId,
         requestedAmount: input.approvedAmount,
@@ -133,6 +156,11 @@ export const inputFinancingRouter = router({
       bulkGroupId: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await inputFinancingService.requestDisbursement({
         creditLineId: input.creditLineId,
         supplierId: input.supplierId,
@@ -147,6 +175,11 @@ export const inputFinancingRouter = router({
       paymentMethod: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await inputFinancingService.recordRepayment({
         creditLineId: input.creditLineId,
         amount: input.amount,
@@ -174,6 +207,11 @@ export const inputFinancingRouter = router({
       inputId: z.string().default('seeds_maize_hybrid'),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await inputFinancingService.joinBulkPurchase({
         farmerId: input.farmerId,
         inputId: input.inputId,
@@ -196,6 +234,11 @@ export const harvestForecastingRouter = router({
       longitude: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await harvestForecastingService.generateHarvestForecast({
         farmerId: input.farmerId,
         farmId: input.farmId,
@@ -255,6 +298,11 @@ export const harvestForecastingRouter = router({
       proposedQuantity: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await harvestForecastingService.applyForContract({
         farmerId: input.farmerId,
         contractId: input.offerId,
@@ -305,6 +353,11 @@ export const pestDiseaseRouter = router({
       longitude: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await pestDiseaseWarningService.assessFarmRisk(input);
     }),
 
@@ -322,6 +375,11 @@ export const pestDiseaseRouter = router({
       longitude: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await pestDiseaseWarningService.reportOutbreak(input);
     }),
 
@@ -369,6 +427,11 @@ export const waterManagementRouter = router({
       daysAhead: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await waterManagementService.generateIrrigationSchedule(input);
     }),
 
@@ -435,6 +498,11 @@ export const carbonCreditRouter = router({
       treeCount: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await carbonCreditService.calculateCarbonFootprint(input as any);
     }),
 
@@ -457,6 +525,11 @@ export const carbonCreditRouter = router({
       projectType: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await carbonCreditService.generateCarbonCredits(input);
     }),
 
@@ -511,6 +584,11 @@ export const laborManagementRouter = router({
       endDate: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.registerWorker({
         ...input,
         startDate: new Date(input.startDate),
@@ -532,6 +610,11 @@ export const laborManagementRouter = router({
       equipment: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.createTask({
         ...input,
         scheduledDate: new Date(input.scheduledDate),
@@ -545,6 +628,11 @@ export const laborManagementRouter = router({
       workerIds: z.array(z.string()),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.assignWorkersToTask(input.taskId, input.workerIds);
     }),
 
@@ -557,6 +645,11 @@ export const laborManagementRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.completeTask(input);
     }),
 
@@ -567,6 +660,11 @@ export const laborManagementRouter = router({
       tasks: z.array(z.string()),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.generateWeekSchedule({
         ...input,
         weekStartDate: new Date(input.weekStartDate),
@@ -576,12 +674,22 @@ export const laborManagementRouter = router({
   checkInWorker: protectedProcedure
     .input(z.object({ shiftId: z.string() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.checkInWorker(input.shiftId);
     }),
 
   checkOutWorker: protectedProcedure
     .input(z.object({ shiftId: z.string() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.checkOutWorker(input.shiftId);
     }),
 
@@ -592,6 +700,11 @@ export const laborManagementRouter = router({
       periodEnd: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.generatePayroll({
         farmId: input.farmId,
         periodStart: new Date(input.periodStart),
@@ -602,6 +715,11 @@ export const laborManagementRouter = router({
   processPayrollPayment: protectedProcedure
     .input(z.object({ payrollId: z.string() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.processPayrollPayment(input.payrollId);
     }),
 
@@ -617,6 +735,11 @@ export const laborManagementRouter = router({
       moduleId: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.startTraining(input.workerId, input.moduleId);
     }),
 
@@ -627,6 +750,11 @@ export const laborManagementRouter = router({
       score: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await laborManagementService.completeTraining(input.workerId, input.moduleId, input.score);
     }),
 
@@ -687,6 +815,11 @@ export const postHarvestRouter = router({
       endDate: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await postHarvestService.bookStorage({
         ...input,
         startDate: new Date(input.startDate),
@@ -706,6 +839,11 @@ export const postHarvestRouter = router({
       photos: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await postHarvestService.performQualityAssessment(input);
     }),
 
@@ -740,6 +878,11 @@ export const postHarvestRouter = router({
       temperatureRequired: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await postHarvestService.bookLogistics({
         ...input,
         pickupDate: new Date(input.pickupDate),
@@ -766,6 +909,11 @@ export const postHarvestRouter = router({
       pricePerUnit: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await postHarvestService.assessLosses(input);
     }),
 
@@ -820,6 +968,11 @@ export const voiceAdvisoryRouter = router({
       targetRegions: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await voiceAdvisoryService.createAdvisory(input);
     }),
 
@@ -842,12 +995,22 @@ export const voiceAdvisoryRouter = router({
       language: z.enum(['english', 'yoruba', 'hausa', 'igbo', 'pidgin', 'fulfulde', 'kanuri', 'tiv']),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await voiceAdvisoryService.startCall(input);
     }),
 
   endCall: protectedProcedure
     .input(z.object({ callId: z.string() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await voiceAdvisoryService.endCall(input.callId);
     }),
 
@@ -862,6 +1025,11 @@ export const voiceAdvisoryRouter = router({
       voiceMessageUrl: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await voiceAdvisoryService.requestCallback(input);
     }),
 
@@ -874,6 +1042,11 @@ export const voiceAdvisoryRouter = router({
       category: z.enum(['weather', 'pest_alert', 'market_prices', 'planting_tips', 'harvesting_tips', 'storage_tips', 'livestock', 'finance', 'general']),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await voiceAdvisoryService.sendSMSAlert(input);
     }),
 
@@ -890,6 +1063,11 @@ export const voiceAdvisoryRouter = router({
       weeklyDigestEnabled: z.boolean(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await voiceAdvisoryService.setFarmerPreferences(input);
     }),
 
@@ -953,6 +1131,11 @@ export const knowledgeSharingRouter = router({
       crops: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.createPost(input);
     }),
 
@@ -981,6 +1164,11 @@ export const knowledgeSharingRouter = router({
       images: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.addComment(input);
     }),
 
@@ -992,6 +1180,11 @@ export const knowledgeSharingRouter = router({
       voteType: z.enum(['up', 'down']),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.vote(input);
     }),
 
@@ -1002,6 +1195,11 @@ export const knowledgeSharingRouter = router({
       acceptorId: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.acceptAnswer(input.postId, input.commentId, input.acceptorId);
     }),
 
@@ -1030,6 +1228,11 @@ export const knowledgeSharingRouter = router({
       lessonsLearned: z.array(z.string()),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.createSuccessStory(input);
     }),
 
@@ -1065,6 +1268,11 @@ export const knowledgeSharingRouter = router({
       duration: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.bookExpertSession({
         ...input,
         scheduledAt: new Date(input.scheduledAt),
@@ -1083,6 +1291,11 @@ export const knowledgeSharingRouter = router({
       yearsExperience: z.number(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.upsertFarmerProfile(input);
     }),
 
@@ -1117,6 +1330,11 @@ export const knowledgeSharingRouter = router({
       pathId: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.enrollInPath(input.farmerId, input.pathId);
     }),
 
@@ -1127,6 +1345,11 @@ export const knowledgeSharingRouter = router({
       moduleId: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("farmer_features", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("farmer_features", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       return await knowledgeSharingService.completeModule(input.farmerId, input.pathId, input.moduleId);
     }),
 

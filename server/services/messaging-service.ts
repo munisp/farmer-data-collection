@@ -605,7 +605,7 @@ export async function createOrder(
     .values({
       buyerId: buyerUserId,
       sellerId: listing.userId,
-      orderNumber: `ORD-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`,
+      orderNumber: `ORD-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
       totalAmount,
       deliveryAddress: data.deliveryAddress as any,
       status: "pending",
@@ -734,5 +734,5 @@ function normalizePhoneNumber(phone: string): string {
 }
 
 function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 999999).toString();
 }

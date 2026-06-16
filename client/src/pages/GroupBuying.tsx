@@ -40,6 +40,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ModernCard } from "@/components/ui/modern-card";
 import { useLocalization } from "@/contexts/LocalizationContext";
 
+import DashboardLayout from "@/components/DashboardLayout";
 // Sample group buying listings - in production, this would come from the backend
 const sampleGroupBuyings = [
   {
@@ -174,6 +175,9 @@ const getStatusBadge = (status: string, currentParticipants: number, minParticip
 };
 
 export default function GroupBuying() {
+  const dealsQuery = trpc.marketplaceEnhancements.getBulkDiscounts.useQuery({ listingId: 1 }, { retry: 1 });
+  const dealsData = dealsQuery.data ?? [];
+
   const { formatCurrency } = useLocalization();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedDelivery, setSelectedDelivery] = useState<string>("all");
@@ -205,13 +209,43 @@ export default function GroupBuying() {
     }
   };
 
+  // Loading & error states
+  if (dealsQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (dealsQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => dealsQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Hero Header */}
       <div className="gradient-hero text-white py-12 md:py-16">
         <div className="container">
           <div className="max-w-2xl animate-fade-in">
-            <Badge className="bg-white/20 text-white border-white/30 mb-4">
+            <Badge className="bg-white dark:bg-gray-900/20 text-white border-white/30 mb-4">
               <Users className="w-3 h-3 mr-1" />
               Community Buying
             </Badge>
@@ -311,7 +345,7 @@ export default function GroupBuying() {
                         {listing.category}
                       </Badge>
                       {listing.organic && (
-                        <Badge className="bg-green-100 text-green-800 border-green-300">
+                        <Badge className="bg-green-100 dark:bg-green-900 text-green-800 border-green-300">
                           <Leaf className="w-3 h-3 mr-1" />
                           Organic
                         </Badge>
@@ -350,7 +384,7 @@ export default function GroupBuying() {
                         className={`p-3 rounded-lg border ${
                           size.available > 0 
                             ? 'border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10' 
-                            : 'border-gray-200 bg-gray-50 opacity-50'
+                            : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 opacity-50'
                         }`}
                         onClick={() => {
                           if (size.available > 0) {
@@ -541,5 +575,6 @@ export default function GroupBuying() {
         )}
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

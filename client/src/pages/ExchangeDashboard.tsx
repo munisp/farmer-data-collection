@@ -57,6 +57,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatsCard, StatsGrid } from "@/components/ui/stats-card";
 import { ModernCard } from "@/components/ui/modern-card";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function ExchangeDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cropFilter, setCropFilter] = useState<string>("all");
@@ -87,13 +88,14 @@ export default function ExchangeDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Modern Hero Header */}
       <div className="gradient-hero text-white py-12">
         <div className="container">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 animate-fade-in">
             <div>
-              <Badge className="bg-white/20 text-white border-white/30 mb-3">
+              <Badge className="bg-white dark:bg-gray-900/20 text-white border-white/30 mb-3">
                 <Repeat className="w-3 h-3 mr-1" />
                 Live Trading
               </Badge>
@@ -183,7 +185,7 @@ export default function ExchangeDashboard() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search commodities..."
+                aria-label="Search" placeholder="Search commodities..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-background"
@@ -292,5 +294,6 @@ export default function ExchangeDashboard() {
         </ModernCard>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

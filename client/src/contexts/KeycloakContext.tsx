@@ -82,7 +82,7 @@ export function KeycloakProvider({ children }: { children: React.ReactNode }) {
               .then((refreshed) => {
                 if (refreshed && keycloakInstance.token) {
                   setToken(keycloakInstance.token);
-                  console.log("[Keycloak] Token refreshed");
+                  console.warn("[Keycloak] Token refreshed");
                 }
               })
               .catch(() => {

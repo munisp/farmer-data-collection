@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, RefreshCw, Settings, Activity, Database } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * ERPNext Integration Admin Page
  * 
@@ -107,7 +108,8 @@ export default function ERPNextIntegration() {
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <DashboardLayout>
+      <div className="container mx-auto py-8 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">ERPNext Integration</h1>
         <p className="text-muted-foreground mt-2">
@@ -438,5 +440,6 @@ export default function ERPNextIntegration() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

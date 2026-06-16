@@ -5,9 +5,11 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type SupportedLanguage = 
   | 'english'
@@ -298,11 +300,11 @@ const IVR_MENUS: Record<SupportedLanguage, IVRMenu> = {
 };
 
 class VoiceAdvisoryService {
-  private advisories: Map<string, VoiceAdvisory> = new Map();
-  private calls: Map<string, VoiceCall> = new Map();
-  private callbackRequests: Map<string, CallbackRequest> = new Map();
-  private smsAlerts: Map<string, SMSAlert> = new Map();
-  private farmerPreferences: Map<number, FarmerPreferences> = new Map();
+  private advisories: BoundedMap<string, VoiceAdvisory> = new BoundedMap(2000, 86400_000);
+  private calls: BoundedMap<string, VoiceCall> = new BoundedMap(5000, 43200_000);
+  private callbackRequests: BoundedMap<string, CallbackRequest> = new BoundedMap(1000, 86400_000);
+  private smsAlerts: BoundedMap<string, SMSAlert> = new BoundedMap(5000, 86400_000);
+  private farmerPreferences: BoundedMap<number, FarmerPreferences> = new BoundedMap(5000, 86400_000);
 
   /**
    * Get IVR menu for a language
@@ -341,7 +343,7 @@ class VoiceAdvisoryService {
   }): Promise<VoiceAdvisory> {
     const { category, title, content, priority, validDays, targetCrops, targetRegions } = params;
 
-    const advisoryId = `VA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const advisoryId = `VA-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     
     // Generate audio URLs for each language (would integrate with TTS service)
     const audioUrls: Record<SupportedLanguage, string> = {
@@ -386,7 +388,7 @@ class VoiceAdvisoryService {
         }],
       });
     } catch (error) {
-      console.warn('[VoiceAdvisory] Could not emit Kafka event:', error);
+      logger.warn('[VoiceAdvisory] Could not emit Kafka event:', error);
     }
 
     return advisory;
@@ -446,7 +448,7 @@ class VoiceAdvisoryService {
   }): Promise<VoiceCall> {
     const { farmerId, farmerPhone, language } = params;
 
-    const callId = `CALL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const callId = `CALL-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const call: VoiceCall = {
       id: callId,
       farmerId,
@@ -512,7 +514,7 @@ class VoiceAdvisoryService {
         }],
       });
     } catch (error) {
-      console.warn('[VoiceAdvisory] Could not emit Kafka event:', error);
+      logger.warn('[VoiceAdvisory] Could not emit Kafka event:', error);
     }
 
     return call;
@@ -532,7 +534,7 @@ class VoiceAdvisoryService {
   }): Promise<CallbackRequest> {
     const { farmerId, farmerPhone, farmerName, language, topic, urgency, voiceMessageUrl } = params;
 
-    const requestId = `CB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `CB-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const request: CallbackRequest = {
       id: requestId,
       farmerId,
@@ -563,7 +565,7 @@ class VoiceAdvisoryService {
   }): Promise<SMSAlert> {
     const { farmerId, phone, message, language, category } = params;
 
-    const alertId = `SMS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const alertId = `SMS-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const alert: SMSAlert = {
       id: alertId,
       farmerId,
@@ -619,7 +621,7 @@ class VoiceAdvisoryService {
       } else {
         weatherText = 'Weather data is currently unavailable. Please try again later.';
       }
-    } catch {
+    } catch (err) {
       weatherText = 'Weather data is currently unavailable. Please try again later.';
     }
 

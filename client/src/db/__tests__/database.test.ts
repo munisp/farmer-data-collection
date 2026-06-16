@@ -3,7 +3,7 @@ import { getDb, getClient } from '../index';
 import { farmers, farms, crops } from '../schema';
 import { eq } from 'drizzle-orm';
 
-describe('PGlite Database Operations', () => {
+describe('Database Operations', () => {
   let db: Awaited<ReturnType<typeof getDb>>;
 
   beforeAll(async () => {

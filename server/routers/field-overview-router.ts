@@ -1,3 +1,4 @@
+import { applyMiddleware, financialMiddleware, marketplaceMiddleware, dataMiddleware } from "../middleware/deep-integration.js";
 import { TRPCError } from '@trpc/server';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -13,6 +14,7 @@ import {
 import { workOrders } from '../../drizzle/financial-schema.js';
 import { protectedProcedure, router } from '../_core/trpc-base.js';
 import { getDb } from '../db.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 const fieldSelectorInput = z.object({
   farmId: z.number(),
@@ -47,7 +49,7 @@ const parseBoundary = (value: unknown): Record<string, unknown> | null => {
   if (typeof value === 'string') {
     try {
       return JSON.parse(value) as Record<string, unknown>;
-    } catch {
+    } catch (err) {
       return null;
     }
   }

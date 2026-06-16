@@ -5,8 +5,10 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type SustainablePractice = 
   | 'no_till_farming'
@@ -234,9 +236,9 @@ const CERTIFICATION_REQUIREMENTS: Record<CertificationType, CertificationRequire
 };
 
 class CarbonCreditService {
-  private carbonFootprints: Map<string, CarbonFootprint> = new Map();
-  private carbonCredits: Map<string, CarbonCredit> = new Map();
-  private sustainabilityScores: Map<number, SustainabilityScore> = new Map();
+  private carbonFootprints: BoundedMap<string, CarbonFootprint> = new BoundedMap(2000, 86400_000);
+  private carbonCredits: BoundedMap<string, CarbonCredit> = new BoundedMap(5000, 86400_000);
+  private sustainabilityScores: BoundedMap<number, SustainabilityScore> = new BoundedMap(5000, 86400_000);
 
   /**
    * Calculate carbon footprint for a farm
@@ -388,7 +390,7 @@ class CarbonCreditService {
     // Generate recommendations
     const recommendations = this.generateCarbonRecommendations(emissionsBySource, practices, netEmissions);
 
-    const footprintId = `CF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const footprintId = `CF-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const footprint: CarbonFootprint = {
       id: footprintId,
       farmId,
@@ -421,7 +423,7 @@ class CarbonCreditService {
         }],
       });
     } catch (error) {
-      console.warn('[CarbonCredit] Could not emit Kafka event:', error);
+      logger.warn('[CarbonCredit] Could not emit Kafka event:', error);
     }
 
     return footprint;
@@ -533,7 +535,7 @@ class CarbonCreditService {
       throw new Error('Minimum 1 ton CO2e required for credit generation');
     }
 
-    const creditId = `CC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const creditId = `CC-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const credit: CarbonCredit = {
       id: creditId,
       farmId,
@@ -563,7 +565,7 @@ class CarbonCreditService {
         }],
       });
     } catch (error) {
-      console.warn('[CarbonCredit] Could not emit Kafka event:', error);
+      logger.warn('[CarbonCredit] Could not emit Kafka event:', error);
     }
 
     return credit;
@@ -653,7 +655,7 @@ class CarbonCreditService {
     const overallRating: 'A' | 'B' | 'C' | 'D' | 'F' = 
       avgScore >= 80 ? 'A' : avgScore >= 60 ? 'B' : avgScore >= 40 ? 'C' : avgScore >= 20 ? 'D' : 'F';
 
-    const reportId = `EIR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const reportId = `EIR-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     return {
       id: reportId,
       farmId,

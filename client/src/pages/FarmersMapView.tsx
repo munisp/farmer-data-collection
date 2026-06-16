@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Loader2, MapPin, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 interface FarmerLocation {
   id: number;
   firstName: string;
@@ -25,6 +27,7 @@ interface FarmerLocation {
 
 export default function FarmersMapView() {
   const { isInitialized, db } = useDatabase();
+  const farmersQuery = trpc.coreFarms.list.useQuery({}, { enabled: false });
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [farmerLocations, setFarmerLocations] = useState<FarmerLocation[]>([]);
@@ -99,7 +102,7 @@ export default function FarmersMapView() {
   const mapMarkers: MarkerOptions[] = useMemo(() => {
     return farmerLocations.map((farmer) => ({
       position: { lat: farmer.latitude, lng: farmer.longitude },
-      color: "#3b82f6",
+      color: SEMANTIC_COLORS.info,
       title: `${farmer.firstName} ${farmer.lastName}`,
       popup: `
         <div style="padding: 8px; min-width: 200px;">
@@ -151,7 +154,7 @@ export default function FarmersMapView() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Farmers Map View</h1>

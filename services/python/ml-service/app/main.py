@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("ml-service")
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -18,6 +23,19 @@ app = FastAPI(
     description="Machine Learning service for crop yield prediction and price forecasting",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[ml-service] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[ml-service] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[ml-service] Shutdown complete")
+
 
 # CORS middleware
 app.add_middleware(
@@ -170,8 +188,8 @@ async def forecast_price(request: PriceForecastRequest):
 
 @app.get("/api/ml/models/status")
 async def get_models_status():
-    """Get status of all ML models"""
-    return {
+    """Get status of all ML models (sklearn + PyTorch)"""
+    status = {
         "crop_yield_predictor": {
             "loaded": crop_yield_predictor.is_loaded(),
             "model_type": "RandomForestRegressor",
@@ -179,10 +197,59 @@ async def get_models_status():
         },
         "price_forecaster": {
             "loaded": price_forecaster.is_loaded(),
-            "model_type": "ARIMA",
+            "model_type": "MovingAverage",
             "features": price_forecaster.get_features()
-        }
+        },
     }
+    # Check PyTorch models
+    pytorch_models = _get_pytorch_model_status()
+    status.update(pytorch_models)
+    return status
+
+
+def _get_pytorch_model_status() -> Dict:
+    """Check if trained PyTorch models are available."""
+    import os
+    weights_dir = os.path.join(
+        os.path.dirname(__file__), "../../../ml-models/weights"
+    )
+    models = {}
+    model_files = {
+        "pytorch_disease_cnn": ("crop_disease_cnn.pt", "CropDiseaseCNN (4-layer CNN, ~400K params)"),
+        "pytorch_yield_predictor": ("yield_predictor.pt", "YieldPredictor (deep tabular, ~52K params)"),
+        "pytorch_price_lstm": ("price_lstm.pt", "PriceLSTM (LSTM+attention, ~275K params)"),
+        "pytorch_credit_scorer": ("credit_scorer.pt", "CreditScorer (DNN, ~13K params)"),
+        "pytorch_fraud_detector": ("fraud_detector.pt", "FraudDetector (DNN+focal loss, ~13K params)"),
+        "pytorch_farmer_gnn": ("farmer_gnn.pt", "FarmerGraphNet (GAT, ~20K params)"),
+    }
+    for key, (filename, description) in model_files.items():
+        path = os.path.join(weights_dir, filename)
+        exists = os.path.exists(path)
+        info: Dict[str, Any] = {
+            "loaded": exists,
+            "model_type": description,
+            "framework": "pytorch",
+            "weights_path": path if exists else None,
+        }
+        if exists:
+            try:
+                import torch
+                ckpt = torch.load(path, map_location="cpu", weights_only=False)
+                if "val_accuracy" in ckpt:
+                    info["val_accuracy"] = ckpt["val_accuracy"]
+                if "val_rmse" in ckpt:
+                    info["val_rmse_kg_ha"] = ckpt["val_rmse"]
+                if "val_auc" in ckpt:
+                    info["val_auc"] = ckpt["val_auc"]
+                if "val_f1" in ckpt:
+                    info["val_f1"] = ckpt["val_f1"]
+                if "epoch" in ckpt:
+                    info["trained_epochs"] = ckpt["epoch"]
+            except Exception:
+                pass
+        models[key] = info
+    return models
+
 
 @app.post("/api/ml/models/retrain")
 async def retrain_models():
@@ -190,19 +257,112 @@ async def retrain_models():
     try:
         logger.info("Retraining ML models...")
         
-        # Retrain crop yield model
+        # Retrain sklearn models
         crop_yield_predictor.retrain()
-        
-        # Retrain price forecast model
         price_forecaster.retrain()
+
+        # Retrain PyTorch models
+        import subprocess
+        result = subprocess.run(
+            ["python", "-m", "training.train_all", "--epochs", "10"],
+            cwd=os.path.join(os.path.dirname(__file__), "../../../ml-models"),
+            capture_output=True, text=True, timeout=600,
+        )
+        pytorch_success = result.returncode == 0
         
         return {
             "success": True,
-            "message": "Models retrained successfully"
+            "message": "Models retrained successfully",
+            "sklearn_retrained": True,
+            "pytorch_retrained": pytorch_success,
+            "pytorch_output": result.stdout[-500:] if pytorch_success else result.stderr[-500:],
         }
     except Exception as e:
         logger.error(f"Model retraining error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Retraining failed: {str(e)}")
+
+
+@app.post("/api/ml/predict-disease")
+async def predict_disease(image: List[List[List[float]]]):
+    """Predict crop disease from image tensor using PyTorch CNN."""
+    try:
+        import torch
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../ml-models"))
+        from models.crop_disease_cnn import CropDiseaseCNN
+
+        weights_path = os.path.join(
+            os.path.dirname(__file__), "../../../ml-models/weights/crop_disease_cnn.pt"
+        )
+        ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
+        model = CropDiseaseCNN(num_classes=ckpt["num_classes"])
+        model.load_state_dict(ckpt["model_state_dict"])
+        
+        img_tensor = torch.tensor([image], dtype=torch.float32)
+        result = model.predict(img_tensor)
+        result["disease_name"] = ckpt["class_names"][result["predicted_class"]]
+        return {"success": True, **result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/ml/predict-credit")
+async def predict_credit(features: List[float]):
+    """Predict credit score using PyTorch model."""
+    try:
+        import torch
+        import numpy as np
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../ml-models"))
+        from models.credit_scorer import CreditScorer
+
+        weights_path = os.path.join(
+            os.path.dirname(__file__), "../../../ml-models/weights/credit_scorer.pt"
+        )
+        ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
+        model = CreditScorer()
+        model.load_state_dict(ckpt["model_state_dict"])
+
+        feat_arr = np.array(features, dtype=np.float32)
+        feat_mean = np.array(ckpt["feat_mean"])
+        feat_std = np.array(ckpt["feat_std"])
+        feat_norm = (feat_arr - feat_mean) / feat_std
+        
+        x = torch.tensor(feat_norm, dtype=torch.float32).unsqueeze(0)
+        result = model.predict(x)
+        return {"success": True, **result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/ml/detect-fraud")
+async def detect_fraud(features: List[float], threshold: float = 0.5):
+    """Detect marketplace fraud using PyTorch model."""
+    try:
+        import torch
+        import numpy as np
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../ml-models"))
+        from models.fraud_detector import FraudDetector
+
+        weights_path = os.path.join(
+            os.path.dirname(__file__), "../../../ml-models/weights/fraud_detector.pt"
+        )
+        ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
+        model = FraudDetector()
+        model.load_state_dict(ckpt["model_state_dict"])
+
+        feat_arr = np.array(features, dtype=np.float32)
+        feat_mean = np.array(ckpt["feat_mean"])
+        feat_std = np.array(ckpt["feat_std"])
+        feat_norm = (feat_arr - feat_mean) / feat_std
+
+        x = torch.tensor(feat_norm, dtype=torch.float32).unsqueeze(0)
+        result = model.predict(x, threshold=threshold)
+        return {"success": True, **result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

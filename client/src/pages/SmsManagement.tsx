@@ -14,6 +14,7 @@ import { Send, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Users } from
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function SmsManagement() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [messageType, setMessageType] = useState<"payment_reminder" | "loan_approval" | "disbursement" | "overdue_alert">("payment_reminder");
@@ -174,7 +175,8 @@ export default function SmsManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">SMS Management</h1>
@@ -625,5 +627,6 @@ export default function SmsManagement() {
         </Tabs>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc-base.js";
 import { protectedProcedure } from "../_core/trpc-base.js";
@@ -5,7 +6,9 @@ import { getDb } from "../db.js";
 import { mlModels, modelDownloads, modelBenchmarks, communityModels, modelSyncQueue, modelRatings } from "../../drizzle/schema-ml-models.js";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import axios from "axios";
+import { logger } from '../logger.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 /**
  * ML Models Router
  * 
@@ -130,7 +133,7 @@ export const mlModelsRouter = router({
     }).optional())
     .query(async ({ input }: { input?: { type?: string; variant?: string; targetDevice?: string; cropName?: string } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       let query = db
         .select()
@@ -162,7 +165,7 @@ export const mlModelsRouter = router({
     .input(z.object({ modelId: z.number() }))
     .query(async ({ input }: { input: { modelId: number } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const [model] = await db
         .select()
@@ -171,7 +174,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Get download stats
@@ -194,7 +197,7 @@ export const mlModelsRouter = router({
     .input(z.object({ limit: z.number().default(10) }))
     .query(async ({ input }: { input: { limit: number } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const models = await db
         .select()
@@ -213,7 +216,7 @@ export const mlModelsRouter = router({
     .input(z.object({ cropName: z.string() }))
     .query(async ({ input }: { input: { cropName: string } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const models = await db
         .select()
@@ -239,8 +242,8 @@ export const mlModelsRouter = router({
       const response = await axios.get(`${ML_SERVICE_URL}/model-packs`);
       return response.data;
     } catch (error) {
-      console.error("Failed to fetch model packs:", error);
-      throw new Error("Failed to fetch model packs from ML service");
+      logger.error("Failed to fetch model packs:", error);
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch model packs from ML service" });
     }
   }),
 
@@ -253,9 +256,14 @@ export const mlModelsRouter = router({
    */
   downloadModel: protectedProcedure
     .input(z.object({ modelId: z.number(), deviceInfo: z.record(z.string(), z.any()).optional() }))
-    .mutation(async ({ input, ctx }: { input: { modelId: number; deviceInfo?: Record<string, any> }; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: { modelId: number; deviceInfo?: Record<string, unknown> }; ctx: { user: { id: number } } }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Check if model exists
       const [model] = await db
@@ -265,7 +273,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Track download
@@ -296,9 +304,14 @@ export const mlModelsRouter = router({
    */
   markAsInstalled: protectedProcedure
     .input(z.object({ downloadId: z.number() }))
-    .mutation(async ({ input }: { input: { downloadId: number } }) => {
+    .mutation(async ({ input, ctx }: { input: { downloadId: number }; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String(ctx?.user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       await db
         .update(modelDownloads)
@@ -314,9 +327,9 @@ export const mlModelsRouter = router({
   /**
    * Get user's downloaded models
    */
-  getUserDownloads: protectedProcedure.query(async ({ ctx }: { ctx: any }) => {
+  getUserDownloads: protectedProcedure.query(async ({ ctx }: { ctx: { user: { id: number } } }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const downloads = await db
       .select({
@@ -340,9 +353,14 @@ export const mlModelsRouter = router({
    */
   runInference: protectedProcedure
     .input(inferenceRequestSchema)
-    .mutation(async ({ input, ctx }: { input: z.infer<typeof inferenceRequestSchema>; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof inferenceRequestSchema>; ctx: { user: { id: number } } }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get model from database
       const [model] = await db
@@ -352,7 +370,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Call Python ML Service for inference
@@ -385,14 +403,19 @@ export const mlModelsRouter = router({
 
         return response.data;
       } catch (error) {
-        console.error("Inference failed:", error);
-        throw new Error("Inference failed");
+        logger.error("Inference failed:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Inference failed" });
       }
     }),
 
   estimateBiomass: protectedProcedure
     .input(biomassRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof biomassRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof biomassRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const stageFactors: Record<string, number> = {
         seedling: 0.45,
         vegetative: 0.85,
@@ -434,7 +457,12 @@ export const mlModelsRouter = router({
 
   estimateCanopyHeight: protectedProcedure
     .input(canopyHeightRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof canopyHeightRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof canopyHeightRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const cropDailyGrowth: Record<string, number> = {
         maize: 0.031,
         rice: 0.018,
@@ -472,7 +500,12 @@ export const mlModelsRouter = router({
 
   analyzeLST: protectedProcedure
     .input(lstAnalysisRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof lstAnalysisRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof lstAnalysisRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const thermalGap = input.temperature - input.airTemperature;
       const cwsi = Number(Math.max(0, Math.min(1, (thermalGap / 12) * (1.15 - input.ndvi))).toFixed(3));
       const soilMoistureIndex = Number(Math.max(0, Math.min(100, (1 - cwsi) * 100)).toFixed(1));
@@ -496,7 +529,12 @@ export const mlModelsRouter = router({
 
   calculateNDVI: protectedProcedure
     .input(ndviCalculationRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof ndviCalculationRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof ndviCalculationRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const denominator = input.nir + input.red;
       const ndvi = denominator === 0 ? 0 : Number(((input.nir - input.red) / denominator).toFixed(3));
       const interpretation = ndvi >= 0.7
@@ -532,9 +570,14 @@ export const mlModelsRouter = router({
    */
   optimizeModel: protectedProcedure
     .input(optimizationRequestSchema)
-    .mutation(async ({ input }: { input: z.infer<typeof optimizationRequestSchema> }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof optimizationRequestSchema>; ctx: any }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get model
       const [model] = await db
@@ -544,7 +587,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Call Go Model Serving for optimization
@@ -558,8 +601,8 @@ export const mlModelsRouter = router({
 
         return response.data;
       } catch (error) {
-        console.error("Optimization failed:", error);
-        throw new Error("Optimization failed");
+        logger.error("Optimization failed:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Optimization failed" });
       }
     }),
 
@@ -571,7 +614,7 @@ export const mlModelsRouter = router({
       const response = await axios.get(`${MODEL_SERVING_URL}/device/capability`);
       return response.data;
     } catch (error) {
-      console.error("Device capability detection failed:", error);
+      logger.error("Device capability detection failed:", error);
       // Return default capability
       return {
         capability: {
@@ -597,9 +640,14 @@ export const mlModelsRouter = router({
    */
   benchmarkModel: protectedProcedure
     .input(benchmarkRequestSchema)
-    .mutation(async ({ input, ctx }: { input: z.infer<typeof benchmarkRequestSchema>; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof benchmarkRequestSchema>; ctx: { user: { id: number } } }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Get model
       const [model] = await db
@@ -609,7 +657,7 @@ export const mlModelsRouter = router({
         .limit(1);
 
       if (!model) {
-        throw new Error(`Model ${input.modelId} not found`);
+        throw new TRPCError({ code: "NOT_FOUND", message: `Model ${input.modelId} not found` });
       }
 
       // Call Python ML Service for benchmarking
@@ -650,8 +698,8 @@ export const mlModelsRouter = router({
 
         return { benchmark, benchmarkData };
       } catch (error) {
-        console.error("Benchmarking failed:", error);
-        throw new Error("Benchmarking failed");
+        logger.error("Benchmarking failed:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Benchmarking failed" });
       }
     }),
 
@@ -662,7 +710,7 @@ export const mlModelsRouter = router({
     .input(z.object({ modelId: z.number() }))
     .query(async ({ input }: { input: { modelId: number } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const benchmarks = await db
         .select()
@@ -683,9 +731,14 @@ export const mlModelsRouter = router({
    */
   rateModel: protectedProcedure
     .input(ratingSchema)
-    .mutation(async ({ input, ctx }: { input: z.infer<typeof ratingSchema>; ctx: any }) => {
+    .mutation(async ({ input, ctx }: { input: z.infer<typeof ratingSchema>; ctx: { user: { id: number } } }) => {
+      const rateCheck = await checkRateLimit("ml_models", String((ctx as any).user?.id ?? "anon"), 15, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("ml_models", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Check if user already rated this model
       const [existingRating] = await db
@@ -760,7 +813,7 @@ export const mlModelsRouter = router({
     .input(z.object({ modelId: z.number(), limit: z.number().default(10) }))
     .query(async ({ input }: { input: { modelId: number; limit: number } }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const ratings = await db
         .select()

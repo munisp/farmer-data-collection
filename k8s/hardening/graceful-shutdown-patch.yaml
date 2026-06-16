@@ -1,0 +1,362 @@
+# Graceful Shutdown Configuration for FarmConnect Platform
+# Applied as a strategic merge patch via Kustomize
+#
+# This ensures:
+# 1. terminationGracePeriodSeconds allows in-flight requests to complete
+# 2. preStop hooks provide connection draining time before SIGTERM
+# 3. K8s + KEDA + application-level shutdown work together seamlessly
+#
+# Restart Flow:
+#   1. K8s sends SIGTERM to pod
+#   2. preStop hook runs (sleep 5s for connection draining)
+#   3. Application handles SIGTERM (graceful shutdown in Go/Rust/Python)
+#   4. If still running after terminationGracePeriodSeconds, SIGKILL
+#   5. KEDA/HPA creates replacement pod based on scaling triggers
+#   6. New pod starts, passes readiness probe, receives traffic
+
+---
+# API Server — critical path, longest drain period
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: farmconnect-api
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: farmconnect-api
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+# Financial services — require longer shutdown for transaction completion
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mobile-money-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: mobile-money-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loan-orchestrator
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: loan-orchestrator
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tigerbeetle-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: tigerbeetle-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
+---
+# Go services — standard 30s shutdown
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blockchain-provenance-go
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: blockchain-provenance-go
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: delivery-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supply-chain-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: supply-chain-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contract-farming-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: contract-farming-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sync-orchestrator
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: sync-orchestrator
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-middleware
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: messaging-middleware
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+# Rust services — fast shutdown, short drain
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: urban-delivery-rust
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 20
+      containers:
+        - name: urban-delivery-rust
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 3"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iot-gateway-rust
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 20
+      containers:
+        - name: iot-gateway-rust
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 3"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openappsec-waf-rust
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 20
+      containers:
+        - name: openappsec-waf-rust
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 3"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tokenization-service-rust
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: tokenization-service-rust
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+# Python ML services — longer shutdown for model unloading
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-inference-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: ml-inference-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: price-prediction-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: price-prediction-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lakehouse-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: lakehouse-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agri-llm-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: agri-llm-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+# Aquaculture services
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aquaculture-pond-go
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: aquaculture-pond-go
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+# Realtime service — WebSocket connections need time to drain
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: realtime-service
+  namespace: farmconnect
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: realtime-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]

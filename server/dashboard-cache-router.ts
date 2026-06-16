@@ -3,6 +3,7 @@ import { z } from "zod";
 import { eq, and, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { cache } from "./redis.js";
+import { logger } from './logger.js';
 import {
   farmers,
   farms,
@@ -27,15 +28,13 @@ export const dashboardCacheRouter = router({
     .query(async ({ input }) => {
       const cacheKey = `dashboard:stats:user:${input.userId}`;
       
-      // Try to get from cache
       return await cache.getOrSet(
         cacheKey,
         async () => {
-          console.log(`[Dashboard] Fetching stats for user ${input.userId} from database`);
+          logger.info(`[Dashboard] Fetching platform-wide stats from database`);
           const db = await getDb();
           if (!db) throw new Error('Database not available');
 
-          // Fetch all counts in parallel
           const [
             farmerCount,
             farmCount,
@@ -46,60 +45,21 @@ export const dashboardCacheRouter = router({
             totalExpenses,
             totalHarvests,
           ] = await Promise.all([
-            // Count farmers
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(farmers)
-              .where(eq(farmers.userId, input.userId))
+            db.select({ count: sql<number>`count(*)` }).from(farmers)
               .then((rows) => Number(rows[0]?.count || 0)),
-
-            // Count farms
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(farms)
-              .where(eq(farms.userId, input.userId))
+            db.select({ count: sql<number>`count(*)` }).from(farms)
               .then((rows) => Number(rows[0]?.count || 0)),
-
-            // Count crops
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(crops)
-              .where(eq(crops.userId, input.userId))
+            db.select({ count: sql<number>`count(*)` }).from(crops)
               .then((rows) => Number(rows[0]?.count || 0)),
-
-            // Count livestock
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(livestock)
-              .where(eq(livestock.userId, input.userId))
+            db.select({ count: sql<number>`count(*)` }).from(livestock)
               .then((rows) => Number(rows[0]?.count || 0)),
-
-            // Count harvests
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(harvests)
-              .where(eq(harvests.userId, input.userId))
+            db.select({ count: sql<number>`count(*)` }).from(harvests)
               .then((rows) => Number(rows[0]?.count || 0)),
-
-            // Count expenses
-            db
-              .select({ count: sql<number>`count(*)` })
-              .from(expenses)
-              .where(eq(expenses.userId, input.userId))
+            db.select({ count: sql<number>`count(*)` }).from(expenses)
               .then((rows) => Number(rows[0]?.count || 0)),
-
-            // Sum total expenses
-            db
-              .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
-              .from(expenses)
-              .where(eq(expenses.userId, input.userId))
+            db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` }).from(expenses)
               .then((rows) => Number(rows[0]?.total || 0)),
-
-            // Sum total harvest quantity
-            db
-              .select({ total: sql<number>`COALESCE(SUM(quantity), 0)` })
-              .from(harvests)
-              .where(eq(harvests.userId, input.userId))
+            db.select({ total: sql<number>`COALESCE(SUM(quantity), 0)` }).from(harvests)
               .then((rows) => Number(rows[0]?.total || 0)),
           ]);
 
@@ -114,7 +74,7 @@ export const dashboardCacheRouter = router({
             totalHarvests,
           };
         },
-        60 // Cache for 60 seconds
+        60
       );
     }),
 
@@ -132,23 +92,20 @@ export const dashboardCacheRouter = router({
       return await cache.getOrSet(
         cacheKey,
         async () => {
-          console.log(`[Dashboard] Fetching recent activities for user ${input.userId} from database`);
+          logger.info(`[Dashboard] Fetching recent activities for user ${input.userId} from database`);
           const db = await getDb();
           if (!db) throw new Error('Database not available');
 
-          // Fetch recent harvests and expenses
           const [recentHarvests, recentExpenses] = await Promise.all([
             db
               .select()
               .from(harvests)
-              .where(eq(harvests.userId, input.userId))
               .orderBy(sql`${harvests.harvestDate} DESC`)
               .limit(input.limit),
 
             db
               .select()
               .from(expenses)
-              .where(eq(expenses.userId, input.userId))
               .orderBy(sql`${expenses.expenseDate} DESC`)
               .limit(input.limit),
           ]);
@@ -248,7 +205,7 @@ export const dashboardCacheRouter = router({
       userId: z.number(),
     }))
     .mutation(async ({ input }) => {
-      console.log(`[Dashboard] Invalidating cache for user ${input.userId}`);
+      logger.info(`[Dashboard] Invalidating cache for user ${input.userId}`);
       
       // Delete all dashboard cache keys for this user
       await cache.delPattern(`dashboard:*:user:${input.userId}*`);

@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("weather-service")
+
 """
 Real-Time Weather Service
 Integrates with OpenWeatherMap, Tomorrow.io, and Open-Meteo APIs
@@ -26,6 +31,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Weather Service")
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[weather-service] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[weather-service] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[weather-service] Shutdown complete")
+
 
 app.add_middleware(
     CORSMiddleware,

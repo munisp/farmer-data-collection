@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -12,7 +13,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -102,7 +103,7 @@ export default function BiometricSettingsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} accessibilityLabel="Biometric Settings screen">
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
           <Text style={styles.loadingText}>Loading security settings...</Text>
@@ -112,10 +113,10 @@ export default function BiometricSettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} accessibilityLabel="Biometric Settings screen">
+      <View style={styles.header} accessibilityRole="header">
         <Ionicons name="shield-checkmark" size={48} color="#2E7D32" />
-        <Text style={styles.title}>Security Settings</Text>
+        <Text accessibilityRole="header" style={styles.title}>Security Settings</Text>
         <Text style={styles.subtitle}>Protect your account with biometric authentication</Text>
       </View>
 
@@ -169,7 +170,8 @@ export default function BiometricSettingsScreen() {
                   : 'Biometric authentication is not available on this device.'}
               </Text>
               {capabilities?.hasHardware && (
-                <TouchableOpacity style={styles.setupButton}>
+                <TouchableOpacity
+          accessibilityRole="button" style={styles.setupButton}>
                   <Text style={styles.setupButtonText}>Open Device Settings</Text>
                 </TouchableOpacity>
               )}
@@ -284,7 +286,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

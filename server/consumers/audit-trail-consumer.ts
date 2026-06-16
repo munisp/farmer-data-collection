@@ -1,6 +1,7 @@
 import { createConsumer, getProducer, TOPICS } from '../kafka.js';
 import { getDb } from '../db.js';
 import { auditLogs } from '../../drizzle/schema.js';
+import { logger } from '../logger.js';
 
 /**
  * Audit Trail Consumer
@@ -10,7 +11,7 @@ import { auditLogs } from '../../drizzle/schema.js';
  */
 
 export async function startAuditTrailConsumer() {
-  console.log('[AuditTrailConsumer] Starting...');
+  logger.info('[AuditTrailConsumer] Starting...');
 
   try {
     const consumer = await createConsumer('audit-trail-group');
@@ -36,19 +37,19 @@ export async function startAuditTrailConsumer() {
       try {
         if (db) {
           await db.insert(auditLogs).values(currentBatch);
-          console.log(`[AuditTrailConsumer] Wrote ${currentBatch.length} audit logs to database`);
+          logger.info(`[AuditTrailConsumer] Wrote ${currentBatch.length} audit logs to database`);
         } else {
-          console.warn('[AuditTrailConsumer] Database not available, skipping batch');
+          logger.warn('[AuditTrailConsumer] Database not available, skipping batch');
         }
       } catch (error) {
-        console.error('[AuditTrailConsumer] Error writing batch:', error);
+        logger.error('[AuditTrailConsumer] Error writing batch:', error);
         
         // Implement dead letter queue for failed messages
         try {
           const producer = await getProducer();
           
           // Send each failed message to DLQ
-          for (const failedLog of currentBatch) {
+          if (producer) for (const failedLog of currentBatch) {
             await producer.send({
               topic: 'audit-trail-dlq',
               messages: [
@@ -64,11 +65,11 @@ export async function startAuditTrailConsumer() {
             });
           }
           
-          console.log(`[AuditTrailConsumer] Sent ${currentBatch.length} failed messages to DLQ`);
+          logger.info(`[AuditTrailConsumer] Sent ${currentBatch.length} failed messages to DLQ`);
         } catch (dlqError) {
-          console.error('[AuditTrailConsumer] Failed to send messages to DLQ:', dlqError);
+          logger.error('[AuditTrailConsumer] Failed to send messages to DLQ:', dlqError);
           // Last resort: write to error log file
-          console.error('[AuditTrailConsumer] Failed batch data:', JSON.stringify(currentBatch));
+          logger.error('[AuditTrailConsumer] Failed batch data:', JSON.stringify(currentBatch));
         }
       }
     };
@@ -110,7 +111,7 @@ export async function startAuditTrailConsumer() {
             }
           }
         } catch (error) {
-          console.error('[AuditTrailConsumer] Error processing message:', error);
+          logger.error('[AuditTrailConsumer] Error processing message:', error);
           // Don't throw - we don't want to stop the consumer on individual message errors
         }
       },
@@ -118,14 +119,14 @@ export async function startAuditTrailConsumer() {
 
     // Flush remaining batch on shutdown
     process.on('SIGTERM', async () => {
-      console.log('[AuditTrailConsumer] Flushing remaining batch on shutdown...');
+      logger.info('[AuditTrailConsumer] Flushing remaining batch on shutdown...');
       await flushBatch();
     });
 
-    console.log('[AuditTrailConsumer] Started successfully');
+    logger.info('[AuditTrailConsumer] Started successfully');
     return consumer;
   } catch (error) {
-    console.error('[AuditTrailConsumer] Failed to start:', error);
+    logger.error('[AuditTrailConsumer] Failed to start:', error);
     throw error;
   }
 }

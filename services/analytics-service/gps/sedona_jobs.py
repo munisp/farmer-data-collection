@@ -58,8 +58,8 @@ class SedonaConfig:
         self.lakehouse_path = os.getenv("LAKEHOUSE_PATH", "/tmp/lakehouse")
         self.s3_endpoint = os.getenv("S3_ENDPOINT", "http://localhost:9000")
         self.s3_bucket = os.getenv("LAKEHOUSE_BUCKET", "lakehouse")
-        self.s3_access_key = os.getenv("S3_ACCESS_KEY", "minioadmin")
-        self.s3_secret_key = os.getenv("S3_SECRET_KEY", "minioadmin")
+        self.s3_access_key = os.getenv("S3_ACCESS_KEY", "")
+        self.s3_secret_key = os.getenv("S3_SECRET_KEY", "")
         
         # Parse JDBC URL from DATABASE_URL
         self._parse_jdbc_url()

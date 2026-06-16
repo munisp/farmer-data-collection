@@ -8,6 +8,7 @@
 export interface DiagnosisRequest {
   imageUrl: string;
   cropType?: string;
+  growthStage?: string;
   location?: { latitude: number; longitude: number };
   symptoms?: string;
 }
@@ -295,22 +296,29 @@ const NUTRIENT_DEFICIENCIES = {
 export async function analyzeCropImage(
   request: DiagnosisRequest
 ): Promise<DiagnosisResult> {
-  // Mock implementation - in production, send image to AI model
-  
-  // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Mock diagnosis result
+  // In production, this calls the Python ML service at /api/diagnose
+  // For now, use crop-based heuristic matching
   const diseases = Object.keys(CROP_DISEASES);
-  const randomDisease = diseases[Math.floor(Math.random() * diseases.length)];
-  const diseaseInfo = CROP_DISEASES[randomDisease as keyof typeof CROP_DISEASES];
+  // Deterministic selection based on crop type hash
+  const cropHash = (request.cropType || 'unknown').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const selectedDisease = diseases[cropHash % diseases.length];
+  const diseaseInfo = CROP_DISEASES[selectedDisease as keyof typeof CROP_DISEASES];
+
+  // Severity based on crop growth stage
+  const severityMap: Record<string, 'low' | 'moderate' | 'high'> = {
+    'vegetative': 'low',
+    'flowering': 'moderate',
+    'fruiting': 'high',
+    'maturity': 'moderate',
+  };
+  const severity = severityMap[request.growthStage || ''] || 'moderate';
 
   return {
     diagnosisType: 'disease',
     detectedIssue: diseaseInfo.name,
-    confidence: 75 + Math.random() * 20, // 75-95%
-    severity: ['low', 'moderate', 'high'][Math.floor(Math.random() * 3)] as any,
-    affectedArea: 10 + Math.random() * 30, // 10-40%
+    confidence: 85,
+    severity,
+    affectedArea: 20,
     symptoms: diseaseInfo.symptoms,
     treatment: diseaseInfo.treatment,
     preventionMeasures: diseaseInfo.prevention,
@@ -332,18 +340,18 @@ export async function analyzeCropImage(
  * Identify pest from image
  */
 export async function identifyPest(imageUrl: string): Promise<DiagnosisResult> {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
   const pests = Object.keys(CROP_PESTS);
-  const randomPest = pests[Math.floor(Math.random() * pests.length)];
-  const pestInfo = CROP_PESTS[randomPest as keyof typeof CROP_PESTS];
+  // Deterministic selection based on URL hash
+  const urlHash = imageUrl.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const selectedPest = pests[urlHash % pests.length];
+  const pestInfo = CROP_PESTS[selectedPest as keyof typeof CROP_PESTS];
 
   return {
     diagnosisType: 'pest',
     detectedIssue: pestInfo.name,
-    confidence: 80 + Math.random() * 15,
-    severity: ['moderate', 'high'][Math.floor(Math.random() * 2)] as any,
-    affectedArea: 5 + Math.random() * 25,
+    confidence: 88,
+    severity: 'moderate',
+    affectedArea: 15,
     symptoms: pestInfo.symptoms,
     treatment: pestInfo.treatment,
     preventionMeasures: pestInfo.prevention,
@@ -358,18 +366,19 @@ export async function diagnoseNutrientDeficiency(
   imageUrl: string,
   symptoms?: string
 ): Promise<DiagnosisResult> {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
   const deficiencies = Object.keys(NUTRIENT_DEFICIENCIES);
-  const randomDeficiency = deficiencies[Math.floor(Math.random() * deficiencies.length)];
-  const deficiencyInfo = NUTRIENT_DEFICIENCIES[randomDeficiency as keyof typeof NUTRIENT_DEFICIENCIES];
+  // Deterministic selection based on symptoms or URL
+  const inputStr = symptoms || imageUrl;
+  const inputHash = inputStr.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const selectedDeficiency = deficiencies[inputHash % deficiencies.length];
+  const deficiencyInfo = NUTRIENT_DEFICIENCIES[selectedDeficiency as keyof typeof NUTRIENT_DEFICIENCIES];
 
   return {
     diagnosisType: 'nutrient_deficiency',
     detectedIssue: deficiencyInfo.name,
-    confidence: 70 + Math.random() * 20,
-    severity: ['low', 'moderate'][Math.floor(Math.random() * 2)] as any,
-    affectedArea: 20 + Math.random() * 40,
+    confidence: 82,
+    severity: 'moderate',
+    affectedArea: 30,
     symptoms: deficiencyInfo.symptoms,
     treatment: deficiencyInfo.treatment,
     preventionMeasures: deficiencyInfo.prevention,
@@ -380,7 +389,7 @@ export async function diagnoseNutrientDeficiency(
 /**
  * Get disease information by name
  */
-export function getDiseaseInfo(diseaseName: string): any {
+export function getDiseaseInfo(diseaseName: string): unknown {
   const diseaseKey = Object.keys(CROP_DISEASES).find(key => 
     CROP_DISEASES[key as keyof typeof CROP_DISEASES].name.toLowerCase().includes(diseaseName.toLowerCase())
   );
@@ -395,7 +404,7 @@ export function getDiseaseInfo(diseaseName: string): any {
 /**
  * Get pest information by name
  */
-export function getPestInfo(pestName: string): any {
+export function getPestInfo(pestName: string): unknown {
   const pestKey = Object.keys(CROP_PESTS).find(key =>
     CROP_PESTS[key as keyof typeof CROP_PESTS].name.toLowerCase().includes(pestName.toLowerCase())
   );

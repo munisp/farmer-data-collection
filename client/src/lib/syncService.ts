@@ -1,6 +1,6 @@
 import { getDb } from "@/db";
 import { sql } from "drizzle-orm";
-import type { PgliteDatabase } from "drizzle-orm/pglite";
+import type { LocalDb } from "@/db/localDb";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/trpc";
 

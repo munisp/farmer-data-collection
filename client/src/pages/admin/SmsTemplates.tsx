@@ -13,6 +13,7 @@ import { Plus, Edit, Trash2, Eye, Copy, CheckCircle, XCircle } from "lucide-reac
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 
+import DashboardLayout from "@/components/DashboardLayout";
 interface Template {
   id: number;
   name: string;
@@ -426,7 +427,8 @@ function TemplateForm({
   removeVariable: (varName: string) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Template Name *</Label>
         <Input
@@ -531,5 +533,6 @@ function TemplateForm({
         </div>
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

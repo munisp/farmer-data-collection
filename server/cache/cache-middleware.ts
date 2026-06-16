@@ -5,6 +5,7 @@
  */
 
 import axios from 'axios';
+import { logger } from '../logger.js';
 
 // ============================================================================
 // Configuration
@@ -39,7 +40,7 @@ export class CacheClient {
     
     // Test connection
     this.healthCheck().catch(() => {
-      console.warn('[Cache] Cache service not available, caching disabled');
+      logger.warn('[Cache] Cache service not available, caching disabled');
       this.enabled = false;
     });
   }
@@ -66,14 +67,14 @@ export class CacheClient {
       const response = await axios.get(`${this.baseURL}/cache/${key}`, { timeout: 3000 });
       
       if (response.data.success) {
-        console.log(`[Cache] HIT: ${key}`);
+        logger.info(`[Cache] HIT: ${key}`);
         return response.data.data as T;
       }
       
-      console.log(`[Cache] MISS: ${key}`);
+      logger.info(`[Cache] MISS: ${key}`);
       return null;
     } catch (error) {
-      console.warn(`[Cache] Error getting key ${key}:`, error);
+      logger.warn(`[Cache] Error getting key ${key}:`, error);
       return null;
     }
   }
@@ -92,13 +93,13 @@ export class CacheClient {
       );
       
       if (response.data.success) {
-        console.log(`[Cache] SET: ${key} (TTL: ${ttl || 'default'}s)`);
+        logger.info(`[Cache] SET: ${key} (TTL: ${ttl || 'default'}s)`);
         return true;
       }
       
       return false;
     } catch (error) {
-      console.warn(`[Cache] Error setting key ${key}:`, error);
+      logger.warn(`[Cache] Error setting key ${key}:`, error);
       return false;
     }
   }
@@ -113,13 +114,13 @@ export class CacheClient {
       const response = await axios.delete(`${this.baseURL}/cache/${key}`, { timeout: 3000 });
       
       if (response.data.success) {
-        console.log(`[Cache] DELETE: ${key}`);
+        logger.info(`[Cache] DELETE: ${key}`);
         return true;
       }
       
       return false;
     } catch (error) {
-      console.warn(`[Cache] Error deleting key ${key}:`, error);
+      logger.warn(`[Cache] Error deleting key ${key}:`, error);
       return false;
     }
   }
@@ -139,13 +140,13 @@ export class CacheClient {
       
       if (response.data.success) {
         const count = response.data.data?.count || 0;
-        console.log(`[Cache] INVALIDATE: ${pattern} (${count} keys)`);
+        logger.info(`[Cache] INVALIDATE: ${pattern} (${count} keys)`);
         return count;
       }
       
       return 0;
     } catch (error) {
-      console.warn(`[Cache] Error invalidating pattern ${pattern}:`, error);
+      logger.warn(`[Cache] Error invalidating pattern ${pattern}:`, error);
       return 0;
     }
   }
@@ -153,14 +154,14 @@ export class CacheClient {
   /**
    * Get cache statistics
    */
-  async stats(): Promise<any> {
+  async stats(): Promise<unknown> {
     if (!this.enabled) return null;
 
     try {
       const response = await axios.get(`${this.baseURL}/cache/stats`, { timeout: 3000 });
       return response.data.data;
     } catch (error) {
-      console.warn('[Cache] Error getting stats:', error);
+      logger.warn('[Cache] Error getting stats:', error);
       return null;
     }
   }
@@ -175,13 +176,13 @@ export class CacheClient {
       const response = await axios.post(`${this.baseURL}/cache/flush`, {}, { timeout: 5000 });
       
       if (response.data.success) {
-        console.log('[Cache] FLUSH: All cache cleared');
+        logger.info('[Cache] FLUSH: All cache cleared');
         return true;
       }
       
       return false;
     } catch (error) {
-      console.warn('[Cache] Error flushing cache:', error);
+      logger.warn('[Cache] Error flushing cache:', error);
       return false;
     }
   }

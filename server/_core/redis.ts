@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { logger } from '../logger.js';
 
 let redis: Redis | null = null;
 let redisAvailable = false;
@@ -15,7 +16,7 @@ export function initRedis() {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => {
         if (times > 3) {
-          console.warn("[Redis] Max retries reached, falling back to in-memory rate limiting");
+          logger.warn("[Redis] Max retries reached, falling back to in-memory rate limiting");
           redisAvailable = false;
           return null; // Stop retrying
         }
@@ -31,22 +32,22 @@ export function initRedis() {
     });
 
     redis.on("connect", () => {
-      console.log("[Redis] Connected successfully");
+      logger.info("[Redis] Connected successfully");
       redisAvailable = true;
     });
 
     redis.on("error", (err) => {
-      console.warn(`[Redis] Error: ${err.message}`);
+      logger.warn(`[Redis] Error: ${err.message}`);
       redisAvailable = false;
     });
 
     redis.on("close", () => {
-      console.warn("[Redis] Connection closed");
+      logger.warn("[Redis] Connection closed");
       redisAvailable = false;
     });
 
   } catch (error) {
-    console.warn("[Redis] Failed to initialize:", error);
+    logger.warn("[Redis] Failed to initialize:", error);
     redisAvailable = false;
   }
 }

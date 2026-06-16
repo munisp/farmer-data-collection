@@ -1,0 +1,124 @@
+# Ingress Configuration for FarmConnect
+# Routes external traffic to API and frontend services
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: farmconnect-ingress
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+  annotations:
+    # TLS via cert-manager
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    # NGINX Ingress Controller settings
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "Permissions-Policy: camera=(), microphone=(), geolocation=(self)";
+    # CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://farmconnect.app,https://admin.farmconnect.app"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Request-ID, X-Trace-ID"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.farmconnect.app
+        - farmconnect.app
+        - admin.farmconnect.app
+      secretName: farmconnect-tls-cert
+  rules:
+    # API subdomain
+    - host: api.farmconnect.app
+      http:
+        paths:
+          - path: /api/trpc
+            pathType: Prefix
+            backend:
+              service:
+                name: farmconnect-app
+                port:
+                  number: 3001
+          - path: /api/docs
+            pathType: Prefix
+            backend:
+              service:
+                name: farmconnect-app
+                port:
+                  number: 3001
+          - path: /api/service-health
+            pathType: Prefix
+            backend:
+              service:
+                name: farmconnect-app
+                port:
+                  number: 3001
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: farmconnect-app
+                port:
+                  number: 3001
+          - path: /metrics
+            pathType: Exact
+            backend:
+              service:
+                name: farmconnect-app
+                port:
+                  number: 3001
+
+    # Main application
+    - host: farmconnect.app
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: farmconnect-app
+                port:
+                  number: 3000
+
+    # Admin dashboard
+    - host: admin.farmconnect.app
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: farmconnect-app
+                port:
+                  number: 3000
+
+---
+# cert-manager ClusterIssuer for Let's Encrypt
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: devops@farmconnect.app
+    privateKeySecretRef:
+      name: letsencrypt-production-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx

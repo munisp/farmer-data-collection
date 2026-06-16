@@ -3,11 +3,14 @@
  * Provides endpoints for spatial operations on farms and boundaries
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base";
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
+import { logger } from '../logger.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 export const spatialRouter = router({
   /**
    * Find farms within a radius (in meters) of a point
@@ -22,7 +25,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { latitude, longitude, radiusMeters } = input;
 
@@ -64,7 +67,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { latitude, longitude, limit } = input;
 
@@ -102,7 +105,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { latitude, longitude } = input;
 
@@ -137,7 +140,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         SELECT 
@@ -169,7 +172,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         SELECT 
@@ -203,7 +206,7 @@ export const spatialRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         SELECT 
@@ -220,7 +223,7 @@ export const spatialRouter = router({
       `);
 
       if (!result.rows[0]) {
-        throw new Error("Boundary not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Boundary not found" });
       }
 
       const row = result.rows[0];
@@ -242,7 +245,7 @@ export const spatialRouter = router({
    */
   getAllBoundariesGeoJSON: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -291,8 +294,13 @@ export const spatialRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("spatial", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("spatial", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const { farmId, name, geoJSON } = input;
 
@@ -321,7 +329,7 @@ export const spatialRouter = router({
    */
   getTotalFarmArea: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -361,8 +369,13 @@ export const spatialRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("spatial", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("spatial", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const imported = [];
       const errors = [];
@@ -412,10 +425,10 @@ export const spatialRouter = router({
             farm_id: farmId,
             name: feature.properties.name || feature.properties.farm_name,
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({
             feature: feature.properties.farm_name || feature.properties.name || "Unknown",
-            error: error.message,
+            error: (error instanceof Error ? error.message : String(error)),
           });
         }
       }
@@ -433,7 +446,7 @@ export const spatialRouter = router({
    */
   getFarmDensityByRegion: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -458,7 +471,7 @@ export const spatialRouter = router({
    */
   getAreaByDistrict: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -492,8 +505,13 @@ export const spatialRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("spatial", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("spatial", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Convert coordinates to WKT
       const wkt = `POLYGON((${input.coordinates.map(coord => `${coord[0]} ${coord[1]}`).join(", ")}))`;
@@ -533,7 +551,7 @@ export const spatialRouter = router({
    */
   detectOverlappingBoundaries: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error("Database not available");
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -567,7 +585,7 @@ export const spatialRouter = router({
     .input(z.object({ farmId: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Note: This requires adding an audit table for boundary changes
       // For now, return the current boundary with timestamps
@@ -616,7 +634,7 @@ export const spatialRouter = router({
           limit: input.limit,
         });
       } catch (error) {
-        console.warn('[Spatial] GPS farm activity not available:', error);
+        logger.warn('[Spatial] GPS farm activity not available:', error);
         return [];
       }
     }),
@@ -641,7 +659,7 @@ export const spatialRouter = router({
           limit: input.limit,
         });
       } catch (error) {
-        console.warn('[Spatial] GPS device coverage not available:', error);
+        logger.warn('[Spatial] GPS device coverage not available:', error);
         return [];
       }
     }),
@@ -672,7 +690,7 @@ export const spatialRouter = router({
           limit: input.limit,
         });
       } catch (error) {
-        console.warn('[Spatial] GPS heatmap not available:', error);
+        logger.warn('[Spatial] GPS heatmap not available:', error);
         return [];
       }
     }),
@@ -686,7 +704,7 @@ export const spatialRouter = router({
       const service = getGPSAnalyticsService();
       return await service.getSummary();
     } catch (error) {
-      console.warn('[Spatial] GPS analytics summary not available:', error);
+      logger.warn('[Spatial] GPS analytics summary not available:', error);
       return {
         total_tracks: 0,
         total_devices: 0,
@@ -709,7 +727,7 @@ export const spatialRouter = router({
         const service = getGPSAnalyticsService();
         return await service.getTopFarmsByActivity(input.limit);
       } catch (error) {
-        console.warn('[Spatial] Top farms by GPS activity not available:', error);
+        logger.warn('[Spatial] Top farms by GPS activity not available:', error);
         return [];
       }
     }),
@@ -730,7 +748,7 @@ export const spatialRouter = router({
         const service = getGPSAnalyticsService();
         return await service.getFarmActivityTimeSeries(input.farmId, input.days);
       } catch (error) {
-        console.warn('[Spatial] GPS farm activity time series not available:', error);
+        logger.warn('[Spatial] GPS farm activity time series not available:', error);
         return [];
       }
     }),

@@ -1,7 +1,56 @@
 version: '3.8'
 
 services:
-  # Redis - In-memory cache and session store
+  # ============================================================================
+  # Core Infrastructure
+  # ============================================================================
+
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: farmer-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: farmer_data
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./drizzle/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  pgbouncer:
+    image: bitnami/pgbouncer:1.22.0
+    container_name: farmer-pgbouncer
+    ports:
+      - "6432:6432"
+    environment:
+      PGBOUNCER_DATABASE: farmer_data
+      PGBOUNCER_PORT: "6432"
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: "200"
+      PGBOUNCER_DEFAULT_POOL_SIZE: "25"
+      PGBOUNCER_MIN_POOL_SIZE: "5"
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_DATABASE: farmer_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6432"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: farmer-redis
@@ -9,7 +58,7 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -17,21 +66,161 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # APISIX API Gateway
+  # ============================================================================
+  # Message Brokers & Streaming
+  # ============================================================================
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: farmer-kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9094
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9094,EXTERNAL://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: 4
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka-data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  fluvio:
+    image: infinyon/fluvio:latest
+    container_name: farmer-fluvio
+    ports:
+      - "9003:9003"
+    environment:
+      - FLUVIO_NODE_BIND_ADDR=0.0.0.0:9003
+    volumes:
+      - fluvio-data:/var/lib/fluvio
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9003/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # Identity & Authorization
+  # ============================================================================
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: farmer-keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+    command: start-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  permify:
+    image: ghcr.io/permify/permify:latest
+    container_name: farmer-permify
+    ports:
+      - "3476:3476"  # HTTP
+      - "3478:3478"  # gRPC
+    command: serve
+    environment:
+      PERMIFY_DATABASE_ENGINE: postgres
+      PERMIFY_DATABASE_URI: "postgres://postgres:postgres@postgres:5432/permify"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3476/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # Search & Analytics
+  # ============================================================================
+
+  opensearch:
+    image: opensearchproject/opensearch:2.12.0
+    container_name: farmer-opensearch
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: "Admin123!"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.12.0
+    container_name: farmer-opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ============================================================================
+  # API Gateway & Security
+  # ============================================================================
+
   apisix:
     image: apache/apisix:3.7.0-debian
     container_name: farmer-apisix
     ports:
-      - "9080:9080"   # HTTP
-      - "9443:9443"   # HTTPS
-      - "9180:9180"   # Admin API
+      - "9080:9080"
+      - "9443:9443"
+      - "9180:9180"
     volumes:
       - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ./apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
     depends_on:
       - redis
     environment:
-      - APISIX_STAND_ALONE=true
+      APISIX_STAND_ALONE: "true"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
       interval: 10s
@@ -39,7 +228,87 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Prometheus - Metrics collection
+  openappsec:
+    image: ghcr.io/openappsec/smartsync:latest
+    container_name: farmer-openappsec
+    ports:
+      - "8085:8080"
+    environment:
+      LEARNING_MODE: "true"
+      LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # Financial Ledger
+  # ============================================================================
+
+  tigerbeetle:
+    image: ghcr.io/tigerbeetle/tigerbeetle:0.16.6
+    container_name: farmer-tigerbeetle
+    ports:
+      - "3000:3000"
+    command: start --addresses=0.0.0.0:3000 /data/0_0.tigerbeetle
+    volumes:
+      - tigerbeetle-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'tigerbeetle health check' && nc -z localhost 3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # Workflow Orchestration
+  # ============================================================================
+
+  temporal:
+    image: temporalio/auto-setup:1.23.1
+    container_name: farmer-temporal
+    ports:
+      - "7233:7233"
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PWD: postgres
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "tctl --address temporal:7233 cluster health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    container_name: farmer-temporal-ui
+    ports:
+      - "8233:8080"
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      - temporal
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # Observability
+  # ============================================================================
+
   prometheus:
     image: prom/prometheus:latest
     container_name: farmer-prometheus
@@ -47,12 +316,11 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 10s
@@ -60,36 +328,439 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # ML Service - IBM Granite Geospatial Models
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: farmer-grafana
+    ports:
+      - "3100:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - jaeger
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # Microservices — Go
+  # ============================================================================
+
+  feature-flags:
+    build: ./services/feature-flags
+    container_name: farmer-feature-flags
+    ports:
+      - "8101:8101"
+    environment:
+      FEATURE_FLAGS_PORT: "8101"
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8101/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  whatsapp-service:
+    build: ./services/whatsapp-service
+    container_name: farmer-whatsapp
+    ports:
+      - "8102:8102"
+    environment:
+      WHATSAPP_SERVICE_PORT: "8102"
+      META_WHATSAPP_ACCESS_TOKEN: ${META_WHATSAPP_ACCESS_TOKEN:-}
+      META_WHATSAPP_PHONE_NUMBER_ID: ${META_WHATSAPP_PHONE_NUMBER_ID:-}
+      META_WHATSAPP_VERIFY_TOKEN: ${META_WHATSAPP_VERIFY_TOKEN:-}
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - kafka
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8102/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  qr-traceability:
+    build: ./services/qr-traceability
+    container_name: farmer-qr-traceability
+    ports:
+      - "8103:8103"
+    environment:
+      QR_SERVICE_PORT: "8103"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8103/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  tile-cache:
+    build: ./services/tile-cache
+    container_name: farmer-tile-cache
+    ports:
+      - "8097:8097"
+    environment:
+      TILE_PORT: "8097"
+      REDIS_ADDR: redis:6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8097/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  gps-streaming:
+    build: ./services/gps-streaming
+    container_name: farmer-gps-streaming
+    ports:
+      - "8098:8098"
+    environment:
+      GPS_PORT: "8098"
+      REDIS_ADDR: redis:6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8098/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # Microservices — Rust
+  # ============================================================================
+
+  spatial-queries:
+    build: ./services/spatial-queries
+    container_name: farmer-spatial-queries
+    ports:
+      - "8099:8099"
+    environment:
+      SPATIAL_PORT: "8099"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/farmer_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8099/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  search-proxy:
+    build: ./services/search-proxy
+    container_name: farmer-search-proxy
+    ports:
+      - "8104:8104"
+    environment:
+      SEARCH_SERVICE_PORT: "8104"
+      OPENSEARCH_URL: http://opensearch:9200
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8104/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  waf-security:
+    build: ./services/waf-security
+    container_name: farmer-waf-security
+    ports:
+      - "8105:8105"
+    environment:
+      WAF_SERVICE_PORT: "8105"
+      OPENAPPSEC_URL: http://openappsec:8080
+    depends_on:
+      - openappsec
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8105/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  fluvio-streaming:
+    build: ./services/fluvio-streaming
+    container_name: farmer-fluvio-streaming
+    ports:
+      - "8106:8106"
+    environment:
+      FLUVIO_SERVICE_PORT: "8106"
+      FLUVIO_URL: fluvio:9003
+    depends_on:
+      - fluvio
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8106/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # Microservices — Python
+  # ============================================================================
+
+  geocoding:
+    build: ./services/geocoding
+    container_name: farmer-geocoding
+    ports:
+      - "8100:8100"
+    environment:
+      GEOCODING_PORT: "8100"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8100/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  weather-alerts:
+    build: ./services/weather-alerts
+    container_name: farmer-weather-alerts
+    ports:
+      - "8107:8107"
+    environment:
+      WEATHER_SERVICE_PORT: "8107"
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      KAFKA_BROKERS: kafka:9092
+      WHATSAPP_SERVICE_URL: http://whatsapp-service:8102
+    depends_on:
+      - kafka
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8107/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  credit-scoring:
+    build: ./services/credit-scoring
+    container_name: farmer-credit-scoring
+    ports:
+      - "8108:8108"
+    environment:
+      CREDIT_SCORING_PORT: "8108"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8108/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  voice-navigation:
+    build: ./services/voice-navigation
+    container_name: farmer-voice-navigation
+    ports:
+      - "8109:8109"
+    environment:
+      VOICE_SERVICE_PORT: "8109"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8109/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
   ml-service:
     build: ./ml-service
     container_name: farmer-ml-service
     ports:
       - "8001:8001"
     environment:
-      - SENTINEL_HUB_CLIENT_ID=${SENTINEL_HUB_CLIENT_ID}
-      - SENTINEL_HUB_CLIENT_SECRET=${SENTINEL_HUB_CLIENT_SECRET}
-      - SENTINEL_HUB_INSTANCE_ID=${SENTINEL_HUB_INSTANCE_ID}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - ML_SERVICE_PORT=8001
+      ML_SERVICE_PORT: "8001"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       - redis
     volumes:
-      - ./ml-service/cache:/app/cache
-      - ml-models:/root/.cache/huggingface  # Cache Hugging Face models
+      - ml-models:/root/.cache/huggingface
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8001/health')"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 60s
     restart: unless-stopped
 
+  # ============================================================================
+  # Mojaloop (Payment Interoperability)
+  # ============================================================================
+
+  mojaloop-simulator:
+    image: mojaloop/simulator:latest
+    container_name: farmer-mojaloop
+    ports:
+      - "8444:8444"
+    environment:
+      PARTIES_ENDPOINT: http://localhost:8444
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8444/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # Dapr Sidecar Runtime
+  # ============================================================================
+
+  dapr-placement:
+    image: daprio/dapr:1.13.0
+    container_name: farmer-dapr-placement
+    command: ["./placement", "--port", "50005"]
+    ports:
+      - "50005:50005"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 50005 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # Main Application
+  # ============================================================================
+
+  app:
+    build: .
+    container_name: farmer-app
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@pgbouncer:6432/farmer_data
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      KEYCLOAK_URL: http://keycloak:8080
+      PERMIFY_ENDPOINT: http://permify:3476
+      OPENSEARCH_URL: http://opensearch:9200
+      TEMPORAL_ADDRESS: temporal:7233
+      TIGERBEETLE_ADDRESS: tigerbeetle:3000
+      FEATURE_FLAGS_SERVICE_URL: http://feature-flags:8101
+      TILE_CACHE_URL: http://tile-cache:8097
+      GO_WEBSOCKET_SERVICE_URL: http://gps-streaming:8098
+      SPATIAL_QUERY_SERVICE_URL: http://spatial-queries:8099
+      GEOCODING_SERVICE_URL: http://geocoding:8100
+      SEARCH_SERVICE_URL: http://search-proxy:8104
+      WAF_SERVICE_URL: http://waf-security:8105
+      FLUVIO_SERVICE_URL: http://fluvio-streaming:8106
+      WEATHER_SERVICE_URL: http://weather-alerts:8107
+      CREDIT_SCORING_SERVICE_URL: http://credit-scoring:8108
+      VOICE_SERVICE_URL: http://voice-navigation:8109
+      WHATSAPP_SERVICE_URL: http://whatsapp-service:8102
+      ML_SERVICE_URL: http://ml-service:8001
+      MOJALOOP_API_URL: http://mojaloop-simulator:8444
+      DAPR_HOST: dapr-placement
+      DAPR_HTTP_PORT: 3500
+      DEFAULT_CURRENCY: NGN
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "14268:14268"   # Accept Jaeger format directly
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: memory
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:14269/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Log Aggregation
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: farmer-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: farmer-promtail
+    volumes:
+      - ./config/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Secrets Management
+  vault:
+    image: hashicorp/vault:1.15
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: farmconnect-dev-token
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    cap_add:
+      - IPC_LOCK
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
+  postgres-data:
   redis-data:
-    driver: local
+  kafka-data:
+  fluvio-data:
+  opensearch-data:
+  tigerbeetle-data:
   prometheus-data:
-    driver: local
+  grafana-data:
+  loki-data:
   ml-models:
-    driver: local

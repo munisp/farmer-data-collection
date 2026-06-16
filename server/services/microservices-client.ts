@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 /**
  * Microservices Client
  * 
@@ -60,7 +61,7 @@ async function httpRequest<T>(
     clearTimeout(timeoutId);
     
     if (!response.ok) {
-      console.error(`[MicroservicesClient] HTTP ${response.status} from ${url}`);
+      logger.error(`[MicroservicesClient] HTTP ${response.status} from ${url}`);
       return null;
     }
     
@@ -68,9 +69,9 @@ async function httpRequest<T>(
   } catch (error) {
     clearTimeout(timeoutId);
     if ((error as Error).name === 'AbortError') {
-      console.error(`[MicroservicesClient] Timeout calling ${url}`);
+      logger.error(`[MicroservicesClient] Timeout calling ${url}`);
     } else {
-      console.error(`[MicroservicesClient] Error calling ${url}:`, error);
+      logger.error(`[MicroservicesClient] Error calling ${url}:`, error);
     }
     return null;
   }

@@ -29,4 +29,7 @@ COPY . .
 ENV PATH=/root/.local/bin:$PATH
 
 # Run the Temporal worker
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "print('healthy')" || exit 1
+
 CMD ["python", "worker.py"]

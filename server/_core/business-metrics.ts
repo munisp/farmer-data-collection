@@ -13,6 +13,7 @@
 import { metrics } from '@opentelemetry/api';
 import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { logger } from '../logger.js';
 
 // Initialize Prometheus exporter
 const prometheusExporter = new PrometheusExporter(
@@ -21,7 +22,7 @@ const prometheusExporter = new PrometheusExporter(
     endpoint: '/metrics',
   },
   () => {
-    console.log('[Business Metrics] Prometheus exporter started on port 9464');
+    logger.info('[Business Metrics] Prometheus exporter started on port 9464');
   }
 );
 
@@ -362,8 +363,8 @@ export async function getBusinessMetrics() {
 export async function shutdownBusinessMetrics() {
   try {
     await meterProvider.shutdown();
-    console.log('[Business Metrics] Meter provider shut down successfully');
+    logger.info('[Business Metrics] Meter provider shut down successfully');
   } catch (error) {
-    console.error('[Business Metrics] Error shutting down meter provider:', error);
+    logger.error('[Business Metrics] Error shutting down meter provider:', error);
   }
 }

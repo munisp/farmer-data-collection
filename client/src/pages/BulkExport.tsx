@@ -27,7 +27,7 @@ interface ExportType {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   endpoint: string;
 }
 
@@ -113,7 +113,7 @@ export default function BulkExport() {
 
       // Call the appropriate tRPC endpoint
       const endpoint = exportType.endpoint as keyof typeof trpc.export;
-      const queryFn = (trpc.export[endpoint] as any).useQuery;
+      const queryFn = ((trpc.export as Record<string, { useQuery: unknown }>)[endpoint]).useQuery;
       
       // For now, we'll use a workaround since we can't dynamically call hooks
       // In production, you'd want to implement this differently
@@ -157,7 +157,7 @@ export default function BulkExport() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Bulk Data Export</h1>
@@ -168,7 +168,7 @@ export default function BulkExport() {
 
         {/* Last Export Info */}
         {lastExport && (
-          <Card className="border-2 border-green-200 bg-green-50">
+          <Card className="border-2 border-green-200 bg-green-50 dark:bg-green-950">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-8 h-8 text-green-600" />

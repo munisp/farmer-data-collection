@@ -9,6 +9,8 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter, createContext } from "./trpc.js";
 import { getMetrics, metricsMiddleware } from "./metrics.js";
 import { getRedisClient, closeRedis } from "./redis.js";
+import { httpCacheHeaders, staticCacheHeaders } from "./cache/http-cache-headers.js";
+import { getCacheStats } from "./cache/cache-layer.js";
 import { initRedis, closeRedis as closeRateLimitRedis } from "./_core/redis.js";
 import { startAllConsumers, stopAllConsumers, getConsumerHealth } from "./consumers/consumer-manager.js";
 import { startAllConsumers as startKafkaConsumers, stopAllConsumers as stopKafkaConsumers } from "./kafka-consumers.js";
@@ -23,6 +25,9 @@ import smsRouter from "./routes/sms.routes.js";
 import whatsappRouter from "./routes/whatsapp.routes.js";
 import { initializeLakehouse, shutdownLakehouse, getLakehouseStatus } from "./services/lakehouse/index.js";
 import { rateLimiters } from "./middleware/rate-limiter.js";
+import { tracingMiddleware } from './services/tracing.js';
+import { startPoolMonitor, getPoolMetrics, getPrometheusMetrics as getPoolPrometheusMetrics } from './services/db-pool-monitor.js';
+import { logger } from './logger.js';
 
 // Load environment variables from .env.local (override system env vars)
 config({ path: ".env.local", override: true });
@@ -39,8 +44,14 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS
 
 function isAllowedOrigin(origin?: string | null) {
   if (!origin) return true;
-  if (!isProduction && (origin.includes('manusvm.computer') || origin.includes('manus.computer'))) {
-    return true;
+  if (!isProduction) {
+    if (origin.includes('manusvm.computer') || origin.includes('manus.computer')) {
+      return true;
+    }
+    // Allow any localhost origin in development (Vite may use varying ports)
+    if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+      return true;
+    }
   }
   return allowedOrigins.includes(origin);
 }
@@ -96,32 +107,83 @@ async function startServer() {
   
   // Metrics middleware
   app.use(metricsMiddleware());
+
+  // Distributed tracing (OpenTelemetry → Jaeger)
+  app.use(tracingMiddleware() as express.RequestHandler);
+  
+  // HTTP cache headers (Cache-Control, ETag, 304 Not Modified)
+  app.use(httpCacheHeaders());
   
   // Initialize Redis connection for caching
   try {
     const redis = getRedisClient();
-    console.log('[Server] Redis client initialized for caching');
+    if (redis) {
+      logger.info('[Server] Redis client initialized for caching');
+    } else {
+      logger.warn('[Server] Redis unavailable — running without cache');
+    }
   } catch (error) {
-    console.warn('[Server] Redis caching connection failed, continuing without cache:', error);
+    logger.warn('[Server] Redis caching connection failed, continuing without cache:', error);
   }
 
   // Initialize Redis connection for rate limiting (with fallback to in-memory)
   try {
     initRedis();
-    console.log('[Server] Redis rate limiting initialized (will fallback to in-memory if unavailable)');
+    logger.info('[Server] Redis rate limiting initialized (will fallback to in-memory if unavailable)');
   } catch (error) {
-    console.warn('[Server] Redis rate limiting initialization failed, using in-memory fallback:', error);
+    logger.warn('[Server] Redis rate limiting initialization failed, using in-memory fallback:', error);
   }
+
+  // ============ Service Health Aggregator ============
+  try {
+    const { registerHealthAggregator } = await import('./services/service-health-aggregator.js');
+    registerHealthAggregator(app);
+  } catch (err) {
+    logger.warn('[Server] Health aggregator registration failed:', err);
+  }
+
+  // ============ API Documentation (OpenAPI/Swagger) ============
+  try {
+    const { registerOpenAPIDocs } = await import('./services/openapi-generator.js');
+    registerOpenAPIDocs(app);
+  } catch (err) {
+    logger.warn('[Server] OpenAPI generator registration failed:', err);
+  }
+  app.get('/docs/openapi.json', (_req, res) => {
+    import('./openapi-docs.js').then(({ generateOpenAPISpec }) => {
+      res.json(generateOpenAPISpec());
+    }).catch(() => res.status(500).json({ error: 'Failed to generate spec' }));
+  });
+
+  app.get('/docs', (_req, res) => {
+    import('./openapi-docs.js').then(({ getSwaggerUIHTML }) => {
+      res.setHeader('Content-Type', 'text/html');
+      res.send(getSwaggerUIHTML('/docs/openapi.json'));
+    }).catch(() => res.status(500).send('Failed to load docs'));
+  });
+
+  // ============ GraphQL Gateway ============
+  app.get('/graphql/schema', (_req, res) => {
+    import('./graphql-gateway.js').then(({ generateGraphQLSchema }) => {
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(generateGraphQLSchema());
+    }).catch(() => res.status(500).send('Failed to generate schema'));
+  });
 
   // Liveness probe - basic health check
   app.get('/health', async (_req, res) => {
     try {
       const redis = getRedisClient();
-      await redis.ping();
+      let redisStatus = 'disconnected';
+      if (redis) {
+        await redis.ping();
+        redisStatus = 'connected';
+      }
       const consumerHealth = getConsumerHealth();
       res.json({ 
         status: 'ok', 
-        redis: 'connected',
+        version: process.env.APP_VERSION || '1.0.0',
+        redis: redisStatus,
         consumers: consumerHealth
       });
     } catch (error) {
@@ -132,6 +194,12 @@ async function startServer() {
   // Kubernetes liveness probe alias
   app.get('/healthz', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Cache stats endpoint
+  app.get('/cache/stats', (_req, res) => {
+    const stats = getCacheStats();
+    res.json({ status: 'ok', ...stats, timestamp: new Date().toISOString() });
   });
 
   // Kubernetes readiness probe - checks if app is ready to receive traffic
@@ -159,8 +227,12 @@ async function startServer() {
     try {
       const start = Date.now();
       const redis = getRedisClient();
-      await redis.ping();
-      checks.redis = { status: 'ok', latency: Date.now() - start };
+      if (redis) {
+        await redis.ping();
+        checks.redis = { status: 'ok', latency: Date.now() - start };
+      } else {
+        checks.redis = { status: 'unavailable' };
+      }
     } catch (error) {
       checks.redis = { status: 'unavailable' };
       // Redis is optional, don't fail readiness
@@ -188,9 +260,20 @@ async function startServer() {
     try {
       res.set('Content-Type', 'text/plain');
       const metrics = await getMetrics();
-      res.send(metrics);
+      const poolMetrics = getPoolPrometheusMetrics();
+      res.send(metrics + '\n' + poolMetrics);
     } catch (error) {
       res.status(500).send('Error collecting metrics');
+    }
+  });
+
+  // DB pool metrics endpoint
+  app.get('/api/pool-metrics', (_req, res) => {
+    const metrics = getPoolMetrics();
+    if (metrics) {
+      res.json(metrics);
+    } else {
+      res.json({ status: 'monitor_not_started', message: 'Pool monitor starts after DB connection' });
     }
   });
   
@@ -233,69 +316,79 @@ async function startServer() {
 
   // Initialize WebSocket server
   const wsServer = initWebSocketServer(server);
-  console.log('[Server] WebSocket server initialized');
+  logger.info('[Server] WebSocket server initialized');
   
   server.listen(port, async () => {
-    console.log(`Server running on http://localhost:${port}/`);
-    console.log(`tRPC endpoint available at http://localhost:${port}/api/trpc`);
-    console.log(`WebSocket server available at ws://localhost:${port}/socket.io/`);
-    console.log(`WebSocket API available at http://localhost:${port}/api/websocket`);
-    console.log(`Health check available at http://localhost:${port}/health`);
-    console.log(`Metrics available at http://localhost:${port}/metrics`);
+    logger.info(`Server running on http://localhost:${port}/`);
+    logger.info(`tRPC endpoint available at http://localhost:${port}/api/trpc`);
+    logger.info(`WebSocket server available at ws://localhost:${port}/socket.io/`);
+    logger.info(`WebSocket API available at http://localhost:${port}/api/websocket`);
+    logger.info(`Health check available at http://localhost:${port}/health`);
+    logger.info(`Metrics available at http://localhost:${port}/metrics`);
     
     // Initialize Kafka topics
     try {
       await initializeTopics();
-      console.log('[Server] Kafka topics initialized');
+      logger.info('[Server] Kafka topics initialized');
     } catch (error) {
-      console.error('[Server] Failed to initialize Kafka topics:', error);
-      console.warn('[Server] Continuing without Kafka');
+      logger.error('[Server] Failed to initialize Kafka topics:', error);
+      logger.warn('[Server] Continuing without Kafka');
     }
     
     // Start Kafka event consumers
     try {
       await startKafkaConsumers();
-      console.log('[Server] Kafka event consumers started');
+      logger.info('[Server] Kafka event consumers started');
     } catch (error) {
-      console.error('[Server] Failed to start Kafka event consumers:', error);
-      console.warn('[Server] Continuing without Kafka event consumers');
+      logger.error('[Server] Failed to start Kafka event consumers:', error);
+      logger.warn('[Server] Continuing without Kafka event consumers');
     }
     
     // Start Dapr consumers
     try {
       await startAllConsumers();
-      console.log('[Server] Dapr consumers started');
+      logger.info('[Server] Dapr consumers started');
     } catch (error) {
-      console.error('[Server] Failed to start Dapr consumers:', error);
-      console.warn('[Server] Continuing without Dapr consumers');
+      logger.error('[Server] Failed to start Dapr consumers:', error);
+      logger.warn('[Server] Continuing without Dapr consumers');
     }
     
     // Start agricultural monitoring cron jobs
     try {
       initializeCronJobs();
-      console.log('[Server] Agricultural monitoring cron jobs started');
+      logger.info('[Server] Agricultural monitoring cron jobs started');
     } catch (error) {
-      console.error('[Server] Failed to start cron jobs:', error);
-      console.warn('[Server] Continuing without cron jobs');
+      logger.error('[Server] Failed to start cron jobs:', error);
+      logger.warn('[Server] Continuing without cron jobs');
     }
 
         // Start SMS scheduler
         try {
           startSmsScheduler();
-          console.log('[Server] SMS scheduler started');
+          logger.info('[Server] SMS scheduler started');
         } catch (error) {
-          console.error('[Server] Failed to start SMS scheduler:', error);
-          console.warn('[Server] Continuing without SMS scheduler');
+          logger.error('[Server] Failed to start SMS scheduler:', error);
+          logger.warn('[Server] Continuing without SMS scheduler');
         }
 
         // Initialize Lakehouse for analytics and ML
         try {
           await initializeLakehouse();
           const lakehouseStatus = getLakehouseStatus();
-          console.log('[Server] Lakehouse initialized:', lakehouseStatus);
+          logger.info('[Server] Lakehouse initialized:', lakehouseStatus);
         } catch (error) {
-          console.error('[Server] Failed to initialize Lakehouse:', error);
-          console.warn('[Server] Continuing without Lakehouse - analytics/ML features will be limited');
+          logger.error('[Server] Failed to initialize Lakehouse:', error);
+          logger.warn('[Server] Continuing without Lakehouse - analytics/ML features will be limited');
+        }
+
+        // Start database backup scheduler
+        try {
+          const { startBackupScheduler } = await import('./services/database-backup-service.js');
+          startBackupScheduler();
+          logger.info('[Server] Database backup scheduler started');
+        } catch (error) {
+          logger.error('[Server] Failed to start backup scheduler:', error);
+          logger.warn('[Server] Continuing without automated backups');
         }
 
         // Seed database with test data (only in development)
@@ -303,40 +396,67 @@ async function startServer() {
     // if (process.env.NODE_ENV !== 'production') {
     //   try {
     //     await seedDatabase();
-    //     console.log('[Server] Database seeded with test data');
+    //     logger.info('[Server] Database seeded with test data');
     //   } catch (error) {
-    //     console.error('[Server] Failed to seed database:', error);
-    //     console.warn('[Server] Continuing without seed data');
+    //     logger.error('[Server] Failed to seed database:', error);
+    //     logger.warn('[Server] Continuing without seed data');
     //   }
     // }
   });
   
-    // Graceful shutdown
-    process.on('SIGTERM', async () => {
-      console.log('[Server] SIGTERM received, closing connections...');
-      shutdownCronJobs();
-      await stopKafkaConsumers();
-      await stopAllConsumers();
-      await shutdownLakehouse();
-      await closeRedis();
-      server.close(() => {
-        console.log('[Server] Server closed');
-        process.exit(0);
-      });
-    });
-  
-    process.on('SIGINT', async () => {
-      console.log('[Server] SIGINT received, closing connections...');
-      shutdownCronJobs();
-      await stopKafkaConsumers();
-      await stopAllConsumers();
-      await shutdownLakehouse();
-      await closeRedis();
-      server.close(() => {
-        console.log('[Server] Server closed');
-        process.exit(0);
-      });
-    });
+    // Graceful shutdown — close ALL connections
+    async function gracefulShutdown(signal: string) {
+      logger.info(`[Server] ${signal} received, shutting down gracefully...`);
+      const timeout = setTimeout(() => {
+        logger.error('[Server] Graceful shutdown timed out, forcing exit');
+        process.exit(1);
+      }, 15_000);
+
+      try {
+        shutdownCronJobs();
+        try {
+          const { stopBackupScheduler } = await import('./services/database-backup-service.js');
+          stopBackupScheduler();
+        } catch (err) { /* backup scheduler may not be loaded */ }
+        await Promise.allSettled([
+          stopKafkaConsumers(),
+          stopAllConsumers(),
+          shutdownLakehouse(),
+        ]);
+
+        // Close Redis
+        await closeRedis().catch((e) => logger.debug('[Shutdown] Redis close error (non-fatal)', { err: e }));
+
+        // Close Kafka
+        const { disconnectKafka } = await import('./kafka.js');
+        await disconnectKafka().catch((e) => logger.debug('[Shutdown] Kafka disconnect error (non-fatal)', { err: e }));
+
+        // Close database pool
+        const { closeDb } = await import('./db.js');
+        await closeDb().catch((e) => logger.debug('[Shutdown] DB close error (non-fatal)', { err: e }));
+
+        // Close TigerBeetle
+        const { closeTigerBeetle } = await import('./tigerbeetle-client.js');
+        if (typeof closeTigerBeetle === 'function') await closeTigerBeetle().catch((e) => logger.debug('[Shutdown] TigerBeetle close error (non-fatal)', { err: e }));
+
+        // Close Dapr
+        const { stopDaprServer } = await import('./dapr-client.js');
+        await stopDaprServer().catch((e) => logger.debug('[Shutdown] Dapr stop error (non-fatal)', { err: e }));
+
+        server.close(() => {
+          clearTimeout(timeout);
+          logger.info('[Server] All connections closed');
+          process.exit(0);
+        });
+      } catch (err) {
+        logger.error('[Server] Error during shutdown:', err);
+        clearTimeout(timeout);
+        process.exit(1);
+      }
+    }
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
-startServer().catch(console.error);
+startServer().catch((err) => logger.error("Server startup failed", { error: String(err) }));

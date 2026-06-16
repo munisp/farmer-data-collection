@@ -27,4 +27,7 @@ COPY .env* ./
 # EXPOSE 8080
 
 # Run the orchestrator
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q --spider http://localhost:8080/health || exit 1
+
 CMD ["./orchestrator"]

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Package, Users, TrendingDown, DollarSign, Plus, Edit, Trash2, AlertTriangle } from "lucide-react";
+import { Package, Users, TrendingDown, DollarSign, Plus, Edit, Trash2, AlertTriangle, Clock, ClipboardCheck, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { useLocalization } from "@/contexts/LocalizationContext";
 
@@ -25,12 +25,19 @@ export default function InventoryDashboard() {
   const { formatCurrency, getCurrencySymbol } = useLocalization();
 
   // Queries
-  const { data: stats, refetch: refetchStats } = trpc.inventory.getInventoryStats.useQuery();
+  const { data: stats, refetch: refetchStats, isPending: statsLoading } = trpc.inventory.getInventoryStats.useQuery();
   const { data: items, refetch: refetchItems } = trpc.inventory.getInventoryItems.useQuery();
   const { data: suppliers, refetch: refetchSuppliers } = trpc.inventory.getSuppliers.useQuery();
   const { data: transactions, refetch: refetchTransactions } = trpc.inventory.getInventoryTransactions.useQuery({});
   const { data: lowStockItems } = trpc.inventory.getLowStockItems.useQuery();
   const { data: valuation } = trpc.inventory.getInventoryValuation.useQuery();
+  const { data: expiringItems } = trpc.inventoryEnhancements.getExpiringItems.useQuery({ daysAhead: 30 });
+  const { data: expiredItems } = trpc.inventoryEnhancements.getExpiredItems.useQuery();
+  const { data: demandForecast } = trpc.inventoryEnhancements.getDemandForecast.useQuery();
+  const stockTakeMutation = trpc.inventoryEnhancements.recordStockTake.useMutation({
+    onSuccess: () => { toast.success("Stock take recorded"); refetchItems(); refetchStats(); },
+    onError: (err) => toast.error(err.message),
+  });
 
   // Mutations
   const createItem = trpc.inventory.createInventoryItem.useMutation({
@@ -182,9 +189,22 @@ export default function InventoryDashboard() {
     createTransaction.mutate(data);
   };
 
+  if (statsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">Track stock levels, manage suppliers, and monitor inventory value</p>
@@ -276,6 +296,8 @@ export default function InventoryDashboard() {
             <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="expiry">Expiry Alerts</TabsTrigger>
+            <TabsTrigger value="demand">Demand Forecast</TabsTrigger>
           </TabsList>
 
           {/* Inventory Items Tab */}
@@ -295,7 +317,7 @@ export default function InventoryDashboard() {
                       <DialogTitle>Record Inventory Transaction</DialogTitle>
                       <DialogDescription>Add purchase, usage, or adjustment</DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleTransactionSubmit} className="space-y-4">
+                    <form aria-label="Submit form" onSubmit={handleTransactionSubmit} className="space-y-4">
                       <div>
                         <Label htmlFor="itemId">Item</Label>
                         <Select name="itemId" required>
@@ -395,7 +417,7 @@ export default function InventoryDashboard() {
                         {selectedItem ? "Update item information" : "Enter item details"}
                       </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleItemSubmit} className="space-y-4">
+                    <form aria-label="Submit form" onSubmit={handleItemSubmit} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="itemType">Item Type</Label>
@@ -634,7 +656,7 @@ export default function InventoryDashboard() {
                       {selectedSupplier ? "Update supplier information" : "Enter supplier details"}
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleSupplierSubmit} className="space-y-4">
+                  <form aria-label="Submit form" onSubmit={handleSupplierSubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="name">Supplier Name</Label>
                       <Input
@@ -921,6 +943,96 @@ export default function InventoryDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Expiry Alerts Tab */}
+          <TabsContent value="expiry" className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-yellow-600" />Expiring Soon (30 days)</CardTitle>
+                  <CardDescription>{expiringItems?.length || 0} items expiring within 30 days</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {!expiringItems || expiringItems.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">No items expiring soon</p>
+                  ) : (
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Expiry</TableHead><TableHead>Days Left</TableHead><TableHead>Qty</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {expiringItems.map((item: any) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.itemName}</TableCell>
+                            <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : '-'}</TableCell>
+                            <TableCell><Badge className={item.daysUntilExpiry <= 7 ? 'bg-red-100 dark:bg-red-900 text-red-800' : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800'}>{item.daysUntilExpiry}d</Badge></TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-red-600" />Expired Items</CardTitle>
+                  <CardDescription>{expiredItems?.length || 0} items past expiry date</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {!expiredItems || expiredItems.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">No expired items</p>
+                  ) : (
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Expired On</TableHead><TableHead>Days Ago</TableHead><TableHead>Qty</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {expiredItems.map((item: any) => (
+                          <TableRow key={item.id} className="bg-red-50 dark:bg-red-950">
+                            <TableCell className="font-medium">{item.itemName}</TableCell>
+                            <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : '-'}</TableCell>
+                            <TableCell><Badge className="bg-red-100 dark:bg-red-900 text-red-800">{item.daysExpired}d ago</Badge></TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Demand Forecast Tab */}
+          <TabsContent value="demand" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Demand Forecast & Reorder Alerts</CardTitle>
+                <CardDescription>AI-powered demand prediction based on usage patterns</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!demandForecast || demandForecast.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">Not enough transaction data for forecasting</p>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Current Stock</TableHead><TableHead>Avg Daily Use</TableHead><TableHead>Days Until Stockout</TableHead><TableHead>Reorder Alert</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {demandForecast.map((item: any) => (
+                        <TableRow key={item.itemId}>
+                          <TableCell className="font-medium">{item.itemName}</TableCell>
+                          <TableCell>{item.currentStock}</TableCell>
+                          <TableCell>{item.avgDailyUsage.toFixed(1)}</TableCell>
+                          <TableCell>
+                            <Badge className={item.daysUntilStockout <= 7 ? 'bg-red-100 dark:bg-red-900 text-red-800' : item.daysUntilStockout <= 14 ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800' : 'bg-green-100 dark:bg-green-900 text-green-800'}>
+                              {item.daysUntilStockout === Infinity ? '∞' : item.daysUntilStockout.toFixed(0)} days
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.reorderAlert ? <Badge className="bg-red-100 dark:bg-red-900 text-red-800">Reorder Now</Badge> : <Badge className="bg-green-100 dark:bg-green-900 text-green-800">OK</Badge>}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

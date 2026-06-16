@@ -11,6 +11,7 @@ import { pythonMLClient, validateYieldRequest, validatePriceForecastRequest } fr
 import { getDb } from "./db.js";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { crops, harvests, produceListings, farms, farmInputs } from "../drizzle/schema.js";
+import { logger } from './logger.js';
 
 // ============================================================================
 // Input Schemas
@@ -68,7 +69,7 @@ export const mlPredictionsRouter = router({
           data: prediction,
         };
       } catch (error) {
-        console.error('[ML] Yield prediction error:', error);
+        logger.error('[ML] Yield prediction error:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to predict yield',
@@ -142,7 +143,7 @@ export const mlPredictionsRouter = router({
           data: prediction,
         };
       } catch (error) {
-        console.error('[ML] Crop yield prediction error:', error);
+        logger.error('[ML] Crop yield prediction error:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to predict yield for crop',
@@ -216,7 +217,7 @@ export const mlPredictionsRouter = router({
           historicalDataPoints: historicalListings.length,
         };
       } catch (error) {
-        console.error('[ML] Price forecast error:', error);
+        logger.error('[ML] Price forecast error:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to forecast prices',
@@ -349,7 +350,7 @@ export const mlPredictionsRouter = router({
               prediction,
             };
           } catch (error) {
-            console.error(`[ML] Failed to predict yield for crop ${crop.id}:`, error);
+            logger.error(`[ML] Failed to predict yield for crop ${crop.id}:`, error);
             return null;
           }
         })
@@ -365,7 +366,7 @@ export const mlPredictionsRouter = router({
         successful: successfulPredictions.length,
       };
     } catch (error) {
-      console.error('[ML] Batch prediction error:', error);
+      logger.error('[ML] Batch prediction error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get predictions',

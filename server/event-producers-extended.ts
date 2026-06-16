@@ -1,7 +1,7 @@
 import { publishEvent, createEvent, TOPICS, EVENT_TYPES } from './kafka';
 
 // Farm event producers
-export async function publishFarmCreated(farmId: number, userId: number, data: any) {
+export async function publishFarmCreated(farmId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.CREATED,
     'farm',
@@ -12,7 +12,7 @@ export async function publishFarmCreated(farmId: number, userId: number, data: a
   await publishEvent(TOPICS.FARM_EVENTS, event);
 }
 
-export async function publishFarmUpdated(farmId: number, userId: number, data: any) {
+export async function publishFarmUpdated(farmId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.UPDATED,
     'farm',
@@ -23,7 +23,7 @@ export async function publishFarmUpdated(farmId: number, userId: number, data: a
   await publishEvent(TOPICS.FARM_EVENTS, event);
 }
 
-export async function publishFarmDeleted(farmId: number, userId: number, data: any) {
+export async function publishFarmDeleted(farmId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.DELETED,
     'farm',
@@ -35,7 +35,7 @@ export async function publishFarmDeleted(farmId: number, userId: number, data: a
 }
 
 // Crop event producers
-export async function publishCropCreated(cropId: number, userId: number, data: any) {
+export async function publishCropCreated(cropId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.CREATED,
     'crop',
@@ -46,7 +46,7 @@ export async function publishCropCreated(cropId: number, userId: number, data: a
   await publishEvent(TOPICS.CROP_EVENTS, event);
 }
 
-export async function publishCropUpdated(cropId: number, userId: number, data: any) {
+export async function publishCropUpdated(cropId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.UPDATED,
     'crop',
@@ -57,7 +57,7 @@ export async function publishCropUpdated(cropId: number, userId: number, data: a
   await publishEvent(TOPICS.CROP_EVENTS, event);
 }
 
-export async function publishCropDeleted(cropId: number, userId: number, data: any) {
+export async function publishCropDeleted(cropId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.DELETED,
     'crop',
@@ -69,7 +69,7 @@ export async function publishCropDeleted(cropId: number, userId: number, data: a
 }
 
 // Livestock event producers
-export async function publishLivestockCreated(livestockId: number, userId: number, data: any) {
+export async function publishLivestockCreated(livestockId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.CREATED,
     'livestock',
@@ -80,7 +80,7 @@ export async function publishLivestockCreated(livestockId: number, userId: numbe
   await publishEvent(TOPICS.LIVESTOCK_EVENTS, event);
 }
 
-export async function publishLivestockUpdated(livestockId: number, userId: number, data: any) {
+export async function publishLivestockUpdated(livestockId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.UPDATED,
     'livestock',
@@ -91,7 +91,7 @@ export async function publishLivestockUpdated(livestockId: number, userId: numbe
   await publishEvent(TOPICS.LIVESTOCK_EVENTS, event);
 }
 
-export async function publishLivestockDeleted(livestockId: number, userId: number, data: any) {
+export async function publishLivestockDeleted(livestockId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.DELETED,
     'livestock',
@@ -103,7 +103,7 @@ export async function publishLivestockDeleted(livestockId: number, userId: numbe
 }
 
 // Harvest event producers
-export async function publishHarvestCreated(harvestId: number, userId: number, data: any) {
+export async function publishHarvestCreated(harvestId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.CREATED,
     'harvest',
@@ -114,7 +114,7 @@ export async function publishHarvestCreated(harvestId: number, userId: number, d
   await publishEvent(TOPICS.HARVEST_EVENTS, event);
 }
 
-export async function publishHarvestUpdated(harvestId: number, userId: number, data: any) {
+export async function publishHarvestUpdated(harvestId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.UPDATED,
     'harvest',
@@ -125,7 +125,7 @@ export async function publishHarvestUpdated(harvestId: number, userId: number, d
   await publishEvent(TOPICS.HARVEST_EVENTS, event);
 }
 
-export async function publishHarvestDeleted(harvestId: number, userId: number, data: any) {
+export async function publishHarvestDeleted(harvestId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.DELETED,
     'harvest',
@@ -137,7 +137,7 @@ export async function publishHarvestDeleted(harvestId: number, userId: number, d
 }
 
 // Expense event producers
-export async function publishExpenseCreated(expenseId: number, userId: number, data: any) {
+export async function publishExpenseCreated(expenseId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.CREATED,
     'expense',
@@ -148,7 +148,7 @@ export async function publishExpenseCreated(expenseId: number, userId: number, d
   await publishEvent(TOPICS.EXPENSE_EVENTS, event);
 }
 
-export async function publishExpenseUpdated(expenseId: number, userId: number, data: any) {
+export async function publishExpenseUpdated(expenseId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.UPDATED,
     'expense',
@@ -159,7 +159,7 @@ export async function publishExpenseUpdated(expenseId: number, userId: number, d
   await publishEvent(TOPICS.EXPENSE_EVENTS, event);
 }
 
-export async function publishExpenseDeleted(expenseId: number, userId: number, data: any) {
+export async function publishExpenseDeleted(expenseId: number, userId: number, data: Record<string, unknown>) {
   const event = createEvent(
     EVENT_TYPES.DELETED,
     'expense',

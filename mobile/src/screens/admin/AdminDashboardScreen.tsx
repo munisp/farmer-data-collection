@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl ,useColorScheme } from 'react-native';
 import { Card } from '../../components/ui/Card';
 
 export default function AdminDashboardScreen({ navigation }: any) {
@@ -19,6 +19,8 @@ export default function AdminDashboardScreen({ navigation }: any) {
 
   return (
     <ScrollView
+      accessibilityLabel="Admin Dashboard screen"
+      accessibilityRole="scrollbar"
       className="flex-1 bg-gray-50"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
@@ -50,12 +52,14 @@ export default function AdminDashboardScreen({ navigation }: any) {
         <Card className="p-4 mb-4">
           <Text className="text-lg font-bold mb-4">Quick Actions</Text>
           <TouchableOpacity
+          accessibilityRole="button"
             className="bg-blue-500 p-4 rounded-lg mb-3"
             onPress={() => navigation.navigate('WorkflowList')}
           >
             <Text className="text-white text-center font-semibold">View All Workflows</Text>
           </TouchableOpacity>
           <TouchableOpacity
+          accessibilityRole="button"
             className="bg-white border border-gray-300 p-4 rounded-lg mb-3"
             onPress={() => navigation.navigate('AdminAnalytics')}
           >

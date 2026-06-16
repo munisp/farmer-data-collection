@@ -2,622 +2,520 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/gorilla/websocket"
 )
 
-// ============================================================================
-// Configuration
-// ============================================================================
+// Real-time GPS Delivery Tracking via WebSocket
+//
+// Drivers push GPS updates via POST /gps/update or WebSocket /ws/driver/{id}.
+// Buyers subscribe to delivery tracking via WebSocket /ws/track/{delivery_id}.
+// All positions are broadcast to subscribers in real-time.
+//
+// Features:
+// - WebSocket pub/sub for live driver positions
+// - Redis for cross-instance position sharing
+// - Geofence alerts (arrival detection)
+// - Position history buffer for reconnection
+// - Haversine ETA estimation
 
-type Config struct {
-	Port           string
-	DatabaseURL    string
-	KafkaBrokers   string
-	BatchSize      int
-	FlushInterval  time.Duration
-	MaxSpeedMS     float64 // Maximum realistic speed in m/s
-	MinAccuracyM   float64 // Minimum acceptable accuracy in meters
-	RateLimitPerMin int
-}
-
-func LoadConfig() *Config {
-	return &Config{
-		Port:           getEnv("PORT", "8085"),
-		DatabaseURL:    getEnv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/farmer_db"),
-		KafkaBrokers:   getEnv("KAFKA_BROKERS", "localhost:9092"),
-		BatchSize:      getEnvInt("GPS_BATCH_SIZE", 100),
-		FlushInterval:  time.Duration(getEnvInt("GPS_FLUSH_INTERVAL_MS", 5000)) * time.Millisecond,
-		MaxSpeedMS:     getEnvFloat("GPS_MAX_SPEED_MS", 55.56),    // 200 km/h
-		MinAccuracyM:   getEnvFloat("GPS_MIN_ACCURACY_M", 100.0),  // 100 meters
-		RateLimitPerMin: getEnvInt("GPS_RATE_LIMIT_PER_MIN", 60),
-	}
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func getEnvInt(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		if i, err := strconv.Atoi(value); err == nil {
-			return i
-		}
-	}
-	return defaultValue
-}
-
-func getEnvFloat(key string, defaultValue float64) float64 {
-	if value := os.Getenv(key); value != "" {
-		if f, err := strconv.ParseFloat(value, 64); err == nil {
-			return f
-		}
-	}
-	return defaultValue
-}
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type GPSPoint struct {
-	DeviceID  string    `json:"device_id"`
-	UserID    int       `json:"user_id"`
-	FarmID    *int      `json:"farm_id,omitempty"`
-	Latitude  float64   `json:"latitude"`
-	Longitude float64   `json:"longitude"`
-	Altitude  *float64  `json:"altitude,omitempty"`
-	Accuracy  *float64  `json:"accuracy,omitempty"`
-	Speed     *float64  `json:"speed,omitempty"`
-	Heading   *float64  `json:"heading,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
-	Activity  *string   `json:"activity,omitempty"`
-	Metadata  *string   `json:"metadata,omitempty"`
-}
-
-type BatchIngestRequest struct {
-	Points []GPSPoint `json:"points"`
-}
-
-type IngestResponse struct {
-	Success       bool   `json:"success"`
-	PointsIngested int   `json:"points_ingested"`
-	PointsRejected int   `json:"points_rejected"`
-	Message       string `json:"message,omitempty"`
-}
-
-type DeviceRateLimit struct {
-	Count     int
-	ResetTime time.Time
-}
-
-// ============================================================================
-// Prometheus Metrics
-// ============================================================================
-
-var (
-	gpsPointsIngested = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "gps_points_ingested_total",
-			Help: "Total GPS points ingested",
-		},
-		[]string{"status"},
-	)
-	gpsPointsRejected = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "gps_points_rejected_total",
-			Help: "Total GPS points rejected",
-		},
-		[]string{"reason"},
-	)
-	gpsBatchDuration = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:    "gps_batch_insert_duration_seconds",
-			Help:    "Duration of batch insert operations",
-			Buckets: prometheus.DefBuckets,
-		},
-	)
-	gpsBufferSize = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "gps_buffer_size",
-			Help: "Current size of GPS point buffer",
-		},
-	)
+const (
+	defaultPort       = "8098"
+	wsReadBufferSize  = 1024
+	wsWriteBufferSize = 1024
+	positionHistoryN  = 100
+	geofenceRadiusM   = 200.0
+	pongWait          = 60 * time.Second
+	pingPeriod        = 50 * time.Second
+	writeWait         = 10 * time.Second
 )
 
-func init() {
-	prometheus.MustRegister(gpsPointsIngested)
-	prometheus.MustRegister(gpsPointsRejected)
-	prometheus.MustRegister(gpsBatchDuration)
-	prometheus.MustRegister(gpsBufferSize)
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  wsReadBufferSize,
+	WriteBufferSize: wsWriteBufferSize,
+	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-// ============================================================================
-// GPS Streaming Service
-// ============================================================================
+type Position struct {
+	DriverID    int     `json:"driver_id"`
+	DeliveryID  int     `json:"delivery_id,omitempty"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+	Accuracy    float64 `json:"accuracy,omitempty"`
+	Speed       float64 `json:"speed,omitempty"`
+	Heading     float64 `json:"heading,omitempty"`
+	Altitude    float64 `json:"altitude,omitempty"`
+	Timestamp   string  `json:"timestamp"`
+	BatteryPct  float64 `json:"battery_pct,omitempty"`
+}
+
+type TrackingUpdate struct {
+	Type       string    `json:"type"`
+	Position   *Position `json:"position,omitempty"`
+	ETA        *ETAInfo  `json:"eta,omitempty"`
+	Geofence   *GeofenceAlert `json:"geofence,omitempty"`
+}
+
+type ETAInfo struct {
+	DistanceM    float64 `json:"distance_m"`
+	EstMinutes   float64 `json:"est_minutes"`
+	AvgSpeedKmh  float64 `json:"avg_speed_kmh"`
+}
+
+type GeofenceAlert struct {
+	DeliveryID int     `json:"delivery_id"`
+	DistanceM  float64 `json:"distance_m"`
+	Message    string  `json:"message"`
+}
+
+type Destination struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
 
 type GPSStreamingService struct {
-	config     *Config
-	db         *sql.DB
-	buffer     []GPSPoint
-	bufferMu   sync.Mutex
-	rateLimits map[string]*DeviceRateLimit
-	rateMu     sync.RWMutex
-	lastPoints map[string]GPSPoint // For quality filtering
-	lastMu     sync.RWMutex
-	ctx        context.Context
-	cancel     context.CancelFunc
+	mu             sync.RWMutex
+	redis          *redis.Client
+	redisOK        bool
+	subscribers    map[int]map[*websocket.Conn]bool // deliveryID -> set of ws connections
+	driverConns    map[int]*websocket.Conn          // driverID -> ws connection
+	positions      map[int][]Position               // deliveryID -> position history
+	destinations   map[int]Destination              // deliveryID -> destination coords
+	stats          StreamStats
 }
 
-func NewGPSStreamingService(config *Config) (*GPSStreamingService, error) {
-	db, err := sql.Open("postgres", config.DatabaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
-
-	// Configure connection pool
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(10)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	svc := &GPSStreamingService{
-		config:     config,
-		db:         db,
-		buffer:     make([]GPSPoint, 0, config.BatchSize),
-		rateLimits: make(map[string]*DeviceRateLimit),
-		lastPoints: make(map[string]GPSPoint),
-		ctx:        ctx,
-		cancel:     cancel,
-	}
-
-	// Start background flush goroutine
-	go svc.backgroundFlush()
-
-	log.Printf("[GPS] Service initialized with batch_size=%d, flush_interval=%v", config.BatchSize, config.FlushInterval)
-	return svc, nil
+type StreamStats struct {
+	ActiveDrivers     int `json:"active_drivers"`
+	ActiveSubscribers int `json:"active_subscribers"`
+	PositionsRecv     int64 `json:"positions_received"`
+	PositionsBcast    int64 `json:"positions_broadcast"`
+	GeofenceAlerts    int64 `json:"geofence_alerts"`
 }
 
-func (s *GPSStreamingService) Close() {
-	s.cancel()
-	s.Flush() // Final flush
-	s.db.Close()
-}
-
-// ============================================================================
-// Quality Filtering
-// ============================================================================
-
-func (s *GPSStreamingService) validatePoint(point GPSPoint) (bool, string) {
-	// Check accuracy threshold
-	if point.Accuracy != nil && *point.Accuracy > s.config.MinAccuracyM {
-		return false, "accuracy_too_low"
+func NewGPSStreamingService() *GPSStreamingService {
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		redisURL = "redis://localhost:6379"
 	}
 
-	// Check for valid coordinates
-	if point.Latitude < -90 || point.Latitude > 90 {
-		return false, "invalid_latitude"
-	}
-	if point.Longitude < -180 || point.Longitude > 180 {
-		return false, "invalid_longitude"
-	}
-
-	// Check for impossible speed jumps
-	s.lastMu.RLock()
-	lastPoint, exists := s.lastPoints[point.DeviceID]
-	s.lastMu.RUnlock()
-
-	if exists {
-		timeDiff := point.Timestamp.Sub(lastPoint.Timestamp).Seconds()
-		if timeDiff > 0 {
-			distance := haversineDistance(lastPoint.Latitude, lastPoint.Longitude, point.Latitude, point.Longitude)
-			speed := distance / timeDiff
-			if speed > s.config.MaxSpeedMS {
-				return false, "impossible_speed"
-			}
+	var rdb *redis.Client
+	redisOK := false
+	opts, err := redis.ParseURL(redisURL)
+	if err == nil {
+		rdb = redis.NewClient(opts)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if rdb.Ping(ctx).Err() == nil {
+			redisOK = true
+			log.Printf("[GPSStream] Redis connected")
 		}
 	}
 
-	return true, ""
+	return &GPSStreamingService{
+		redis:       rdb,
+		redisOK:     redisOK,
+		subscribers: make(map[int]map[*websocket.Conn]bool),
+		driverConns: make(map[int]*websocket.Conn),
+		positions:   make(map[int][]Position),
+		destinations: make(map[int]Destination),
+	}
 }
 
-func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
-	const R = 6371000 // Earth radius in meters
-	
-	lat1Rad := lat1 * math.Pi / 180
-	lat2Rad := lat2 * math.Pi / 180
-	deltaLat := (lat2 - lat1) * math.Pi / 180
-	deltaLon := (lon2 - lon1) * math.Pi / 180
-
-	a := math.Sin(deltaLat/2)*math.Sin(deltaLat/2) +
-		math.Cos(lat1Rad)*math.Cos(lat2Rad)*
-			math.Sin(deltaLon/2)*math.Sin(deltaLon/2)
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-
-	return R * c
+// Haversine distance in meters
+func haversine(lat1, lng1, lat2, lng2 float64) float64 {
+	const R = 6371000.0
+	toRad := func(d float64) float64 { return d * math.Pi / 180.0 }
+	dLat := toRad(lat2 - lat1)
+	dLng := toRad(lng2 - lng1)
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(toRad(lat1))*math.Cos(toRad(lat2))*
+			math.Sin(dLng/2)*math.Sin(dLng/2)
+	return 2 * R * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 }
 
-// ============================================================================
-// Rate Limiting
-// ============================================================================
+func (s *GPSStreamingService) processPosition(pos Position) {
+	s.mu.Lock()
+	s.stats.PositionsRecv++
 
-func (s *GPSStreamingService) checkRateLimit(deviceID string) bool {
-	s.rateMu.Lock()
-	defer s.rateMu.Unlock()
-
-	now := time.Now()
-	limit, exists := s.rateLimits[deviceID]
-
-	if !exists || now.After(limit.ResetTime) {
-		s.rateLimits[deviceID] = &DeviceRateLimit{
-			Count:     1,
-			ResetTime: now.Add(time.Minute),
+	// Store in history buffer
+	if pos.DeliveryID > 0 {
+		history := s.positions[pos.DeliveryID]
+		history = append(history, pos)
+		if len(history) > positionHistoryN {
+			history = history[len(history)-positionHistoryN:]
 		}
-		return true
+		s.positions[pos.DeliveryID] = history
+	}
+	s.mu.Unlock()
+
+	// Persist to Redis
+	if s.redisOK && pos.DeliveryID > 0 {
+		ctx := context.Background()
+		data, _ := json.Marshal(pos)
+		key := fmt.Sprintf("gps:delivery:%d:latest", pos.DeliveryID)
+		s.redis.Set(ctx, key, data, 24*time.Hour)
+
+		histKey := fmt.Sprintf("gps:delivery:%d:history", pos.DeliveryID)
+		s.redis.LPush(ctx, histKey, data)
+		s.redis.LTrim(ctx, histKey, 0, positionHistoryN-1)
+		s.redis.Expire(ctx, histKey, 24*time.Hour)
 	}
 
-	if limit.Count >= s.config.RateLimitPerMin {
-		return false
+	// Calculate ETA if destination known
+	var eta *ETAInfo
+	s.mu.RLock()
+	if dest, ok := s.destinations[pos.DeliveryID]; ok && pos.DeliveryID > 0 {
+		dist := haversine(pos.Latitude, pos.Longitude, dest.Latitude, dest.Longitude)
+		speedKmh := pos.Speed * 3.6 // m/s to km/h
+		if speedKmh < 5 { speedKmh = 20 } // default to 20 km/h if stationary
+		eta = &ETAInfo{
+			DistanceM:   dist,
+			EstMinutes:  (dist / 1000.0) / speedKmh * 60.0,
+			AvgSpeedKmh: speedKmh,
+		}
+	}
+	s.mu.RUnlock()
+
+	// Check geofence
+	var geofence *GeofenceAlert
+	if eta != nil && eta.DistanceM <= geofenceRadiusM {
+		geofence = &GeofenceAlert{
+			DeliveryID: pos.DeliveryID,
+			DistanceM:  eta.DistanceM,
+			Message:    fmt.Sprintf("Driver is %.0fm away from delivery location", eta.DistanceM),
+		}
+		s.mu.Lock()
+		s.stats.GeofenceAlerts++
+		s.mu.Unlock()
 	}
 
-	limit.Count++
-	return true
+	// Broadcast to subscribers
+	update := TrackingUpdate{
+		Type:     "position",
+		Position: &pos,
+		ETA:      eta,
+		Geofence: geofence,
+	}
+	s.broadcast(pos.DeliveryID, update)
 }
 
-// ============================================================================
-// Geofencing with PostGIS
-// ============================================================================
+func (s *GPSStreamingService) broadcast(deliveryID int, update TrackingUpdate) {
+	s.mu.RLock()
+	subs := s.subscribers[deliveryID]
+	s.mu.RUnlock()
 
-func (s *GPSStreamingService) findFarmContainingPoint(ctx context.Context, userID int, lon, lat float64) (*int, error) {
-	var farmID int
-	err := s.db.QueryRowContext(ctx, `
-		SELECT fb.farm_id
-		FROM farm_boundaries fb
-		WHERE fb.user_id = $1
-		  AND ST_Contains(
-			fb.boundary,
-			ST_SetSRID(ST_MakePoint($2, $3), 4326)
-		  )
-		ORDER BY fb.area_hectares ASC
-		LIMIT 1
-	`, userID, lon, lat).Scan(&farmID)
-
-	if err == sql.ErrNoRows {
-		return nil, nil
+	if len(subs) == 0 {
+		return
 	}
+
+	data, err := json.Marshal(update)
 	if err != nil {
-		return nil, err
-	}
-	return &farmID, nil
-}
-
-// ============================================================================
-// Buffer Management
-// ============================================================================
-
-func (s *GPSStreamingService) AddPoint(point GPSPoint) (bool, string) {
-	// Rate limiting
-	if !s.checkRateLimit(point.DeviceID) {
-		gpsPointsRejected.WithLabelValues("rate_limited").Inc()
-		return false, "rate_limited"
+		return
 	}
 
-	// Quality validation
-	valid, reason := s.validatePoint(point)
-	if !valid {
-		gpsPointsRejected.WithLabelValues(reason).Inc()
-		return false, reason
-	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	// Auto-detect farm using PostGIS geofencing
-	if point.FarmID == nil {
-		farmID, err := s.findFarmContainingPoint(s.ctx, point.UserID, point.Longitude, point.Latitude)
-		if err != nil {
-			log.Printf("[GPS] Geofencing error: %v", err)
+	for conn := range subs {
+		conn.SetWriteDeadline(time.Now().Add(writeWait))
+		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+			conn.Close()
+			delete(subs, conn)
 		} else {
-			point.FarmID = farmID
+			s.stats.PositionsBcast++
 		}
 	}
-
-	// Update last known point for quality filtering
-	s.lastMu.Lock()
-	s.lastPoints[point.DeviceID] = point
-	s.lastMu.Unlock()
-
-	// Add to buffer
-	s.bufferMu.Lock()
-	s.buffer = append(s.buffer, point)
-	bufferLen := len(s.buffer)
-	s.bufferMu.Unlock()
-
-	gpsBufferSize.Set(float64(bufferLen))
-
-	// Flush if buffer is full
-	if bufferLen >= s.config.BatchSize {
-		go s.Flush()
-	}
-
-	gpsPointsIngested.WithLabelValues("buffered").Inc()
-	return true, ""
 }
 
-func (s *GPSStreamingService) Flush() error {
-	s.bufferMu.Lock()
-	if len(s.buffer) == 0 {
-		s.bufferMu.Unlock()
+// HandleDriverWS handles WebSocket connections from drivers
+func (s *GPSStreamingService) HandleDriverWS(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	driverID, _ := strconv.Atoi(vars["id"])
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("[GPSStream] Driver WS upgrade error: %v", err)
+		return
+	}
+
+	s.mu.Lock()
+	s.driverConns[driverID] = conn
+	s.stats.ActiveDrivers++
+	s.mu.Unlock()
+
+	log.Printf("[GPSStream] Driver %d connected via WebSocket", driverID)
+
+	defer func() {
+		s.mu.Lock()
+		delete(s.driverConns, driverID)
+		s.stats.ActiveDrivers--
+		s.mu.Unlock()
+		conn.Close()
+	}()
+
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
-	}
-
-	points := s.buffer
-	s.buffer = make([]GPSPoint, 0, s.config.BatchSize)
-	s.bufferMu.Unlock()
-
-	gpsBufferSize.Set(0)
-
-	start := time.Now()
-	err := s.batchInsert(points)
-	duration := time.Since(start)
-	gpsBatchDuration.Observe(duration.Seconds())
-
-	if err != nil {
-		log.Printf("[GPS] Batch insert failed: %v", err)
-		// Re-add points to buffer on failure
-		s.bufferMu.Lock()
-		s.buffer = append(points, s.buffer...)
-		s.bufferMu.Unlock()
-		return err
-	}
-
-	log.Printf("[GPS] Flushed %d points in %v", len(points), duration)
-	gpsPointsIngested.WithLabelValues("inserted").Add(float64(len(points)))
-	return nil
-}
-
-func (s *GPSStreamingService) batchInsert(points []GPSPoint) error {
-	if len(points) == 0 {
-		return nil
-	}
-
-	tx, err := s.db.BeginTx(s.ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	stmt, err := tx.PrepareContext(s.ctx, `
-		INSERT INTO gps_tracks (
-			user_id, device_id, farm_id, latitude, longitude, altitude,
-			accuracy, speed, heading, timestamp, activity, metadata, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-	`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	for _, p := range points {
-		// Get device_id as integer from gps_devices table
-		var deviceIDInt int
-		err := tx.QueryRowContext(s.ctx, `
-			SELECT id FROM gps_devices WHERE device_id = $1 AND user_id = $2
-		`, p.DeviceID, p.UserID).Scan(&deviceIDInt)
-		
-		if err == sql.ErrNoRows {
-			// Auto-register device
-			err = tx.QueryRowContext(s.ctx, `
-				INSERT INTO gps_devices (user_id, device_id, name, status, created_at, updated_at)
-				VALUES ($1, $2, $3, 'active', NOW(), NOW())
-				RETURNING id
-			`, p.UserID, p.DeviceID, "Auto-registered device").Scan(&deviceIDInt)
-		}
-		if err != nil {
-			log.Printf("[GPS] Device lookup/registration failed: %v", err)
-			continue
-		}
-
-		_, err = stmt.ExecContext(s.ctx,
-			p.UserID, deviceIDInt, p.FarmID, p.Latitude, p.Longitude, p.Altitude,
-			p.Accuracy, p.Speed, p.Heading, p.Timestamp, p.Activity, p.Metadata,
-		)
-		if err != nil {
-			log.Printf("[GPS] Insert failed for point: %v", err)
-		}
-	}
-
-	return tx.Commit()
-}
-
-func (s *GPSStreamingService) backgroundFlush() {
-	ticker := time.NewTicker(s.config.FlushInterval)
-	defer ticker.Stop()
+	})
 
 	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-ticker.C:
-			if err := s.Flush(); err != nil {
-				log.Printf("[GPS] Background flush error: %v", err)
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+
+		var pos Position
+		if err := json.Unmarshal(msg, &pos); err != nil {
+			continue
+		}
+		pos.DriverID = driverID
+		if pos.Timestamp == "" {
+			pos.Timestamp = time.Now().UTC().Format(time.RFC3339)
+		}
+
+		s.processPosition(pos)
+	}
+}
+
+// HandleTrackWS handles WebSocket connections from buyers tracking deliveries
+func (s *GPSStreamingService) HandleTrackWS(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	deliveryID, _ := strconv.Atoi(vars["delivery_id"])
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("[GPSStream] Track WS upgrade error: %v", err)
+		return
+	}
+
+	s.mu.Lock()
+	if s.subscribers[deliveryID] == nil {
+		s.subscribers[deliveryID] = make(map[*websocket.Conn]bool)
+	}
+	s.subscribers[deliveryID][conn] = true
+	s.stats.ActiveSubscribers++
+	s.mu.Unlock()
+
+	log.Printf("[GPSStream] Subscriber connected for delivery %d", deliveryID)
+
+	// Send position history on connect
+	s.mu.RLock()
+	history := s.positions[deliveryID]
+	s.mu.RUnlock()
+
+	if len(history) > 0 {
+		historyUpdate := map[string]interface{}{
+			"type":    "history",
+			"positions": history,
+		}
+		data, _ := json.Marshal(historyUpdate)
+		conn.WriteMessage(websocket.TextMessage, data)
+	}
+
+	defer func() {
+		s.mu.Lock()
+		if subs, ok := s.subscribers[deliveryID]; ok {
+			delete(subs, conn)
+			if len(subs) == 0 {
+				delete(s.subscribers, deliveryID)
+			}
+		}
+		s.stats.ActiveSubscribers--
+		s.mu.Unlock()
+		conn.Close()
+	}()
+
+	// Keep connection alive with ping/pong
+	ticker := time.NewTicker(pingPeriod)
+	defer ticker.Stop()
+
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	go func() {
+		for range ticker.C {
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}()
+
+	// Read loop (subscribers mostly listen, but can send destination updates)
+	for {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+
+		var cmd map[string]interface{}
+		if json.Unmarshal(msg, &cmd) == nil {
+			if cmd["type"] == "set_destination" {
+				lat, _ := cmd["latitude"].(float64)
+				lng, _ := cmd["longitude"].(float64)
+				if lat != 0 && lng != 0 {
+					s.mu.Lock()
+					s.destinations[deliveryID] = Destination{Latitude: lat, Longitude: lng}
+					s.mu.Unlock()
+				}
 			}
 		}
 	}
 }
 
-// ============================================================================
-// HTTP Handlers
-// ============================================================================
-
-func (s *GPSStreamingService) HandleIngest(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// HandlePositionUpdate handles REST GPS position updates from drivers
+func (s *GPSStreamingService) HandlePositionUpdate(w http.ResponseWriter, r *http.Request) {
+	var pos Position
+	if err := json.NewDecoder(r.Body).Decode(&pos); err != nil {
+		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
 
-	var point GPSPoint
-	if err := json.NewDecoder(r.Body).Decode(&point); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+	if pos.Timestamp == "" {
+		pos.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	}
 
-	success, reason := s.AddPoint(point)
-	
-	w.Header().Set("Content-Type", "application/json")
-	if !success {
-		w.WriteHeader(http.StatusTooManyRequests)
-		json.NewEncoder(w).Encode(IngestResponse{
-			Success: false,
-			Message: reason,
-		})
-		return
-	}
-
-	json.NewEncoder(w).Encode(IngestResponse{
-		Success:        true,
-		PointsIngested: 1,
-	})
-}
-
-func (s *GPSStreamingService) HandleBatchIngest(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req BatchIngestRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	ingested := 0
-	rejected := 0
-
-	for _, point := range req.Points {
-		success, _ := s.AddPoint(point)
-		if success {
-			ingested++
-		} else {
-			rejected++
-		}
-	}
+	s.processPosition(pos)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(IngestResponse{
-		Success:        ingested > 0,
-		PointsIngested: ingested,
-		PointsRejected: rejected,
-	})
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-func (s *GPSStreamingService) HandleFlush(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// HandleSetDestination sets the delivery destination for geofence/ETA
+func (s *GPSStreamingService) HandleSetDestination(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	deliveryID, _ := strconv.Atoi(vars["delivery_id"])
+
+	var dest Destination
+	if err := json.NewDecoder(r.Body).Decode(&dest); err != nil {
+		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
 
-	err := s.Flush()
+	s.mu.Lock()
+	s.destinations[deliveryID] = dest
+	s.mu.Unlock()
+
 	w.Header().Set("Content-Type", "application/json")
-	
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Buffer flushed",
-	})
+	json.NewEncoder(w).Encode(map[string]string{"status": "destination_set"})
 }
 
-func (s *GPSStreamingService) HandleHealth(w http.ResponseWriter, r *http.Request) {
-	s.bufferMu.Lock()
-	bufferSize := len(s.buffer)
-	s.bufferMu.Unlock()
+// HandleGetHistory returns position history for a delivery
+func (s *GPSStreamingService) HandleGetHistory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	deliveryID, _ := strconv.Atoi(vars["delivery_id"])
+
+	s.mu.RLock()
+	history := s.positions[deliveryID]
+	s.mu.RUnlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":      "healthy",
-		"service":     "gps-streaming",
-		"version":     "1.0.0",
-		"buffer_size": bufferSize,
+		"delivery_id": deliveryID,
+		"positions":   history,
+		"count":       len(history),
 	})
 }
 
 func (s *GPSStreamingService) HandleStats(w http.ResponseWriter, r *http.Request) {
-	s.bufferMu.Lock()
-	bufferSize := len(s.buffer)
-	s.bufferMu.Unlock()
-
-	s.rateMu.RLock()
-	activeDevices := len(s.rateLimits)
-	s.rateMu.RUnlock()
+	s.mu.RLock()
+	stats := s.stats
+	s.mu.RUnlock()
 
 	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
+}
+
+func (s *GPSStreamingService) HandleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"buffer_size":    bufferSize,
-		"active_devices": activeDevices,
-		"batch_size":     s.config.BatchSize,
-		"flush_interval": s.config.FlushInterval.String(),
+		"status":  "healthy",
+		"service": "gps-streaming",
+		"redis":   s.redisOK,
+		"features": []string{
+			"websocket-driver-tracking",
+			"websocket-buyer-subscription",
+			"rest-position-update",
+			"geofence-alerts",
+			"eta-calculation",
+			"position-history",
+		},
 	})
 }
 
-// ============================================================================
-// Main
-// ============================================================================
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func main() {
-	config := LoadConfig()
-
-	svc, err := NewGPSStreamingService(config)
-	if err != nil {
-		log.Fatalf("[GPS] Failed to initialize service: %v", err)
+	port := os.Getenv("GPS_STREAMING_PORT")
+	if port == "" {
+		port = defaultPort
 	}
-	defer svc.Close()
 
-	router := mux.NewRouter()
+	svc := NewGPSStreamingService()
 
-	// GPS endpoints
-	router.HandleFunc("/api/v1/gps/ingest", svc.HandleIngest).Methods("POST")
-	router.HandleFunc("/api/v1/gps/batch", svc.HandleBatchIngest).Methods("POST")
-	router.HandleFunc("/api/v1/gps/flush", svc.HandleFlush).Methods("POST")
-	router.HandleFunc("/api/v1/gps/stats", svc.HandleStats).Methods("GET")
+	r := mux.NewRouter()
+	r.Use(corsMiddleware)
 
-	// Health and metrics
-	router.HandleFunc("/health", svc.HandleHealth).Methods("GET")
-	router.Handle("/metrics", promhttp.Handler())
+	// WebSocket endpoints
+	r.HandleFunc("/ws/driver/{id}", svc.HandleDriverWS)
+	r.HandleFunc("/ws/track/{delivery_id}", svc.HandleTrackWS)
 
-	// Start server
-	addr := ":" + config.Port
-	log.Printf("[GPS] Starting GPS streaming service on %s", addr)
-	log.Printf("[GPS] Ingest endpoint: POST http://localhost%s/api/v1/gps/ingest", addr)
-	log.Printf("[GPS] Batch endpoint: POST http://localhost%s/api/v1/gps/batch", addr)
+	// REST endpoints
+	r.HandleFunc("/gps/update", svc.HandlePositionUpdate).Methods("POST")
+	r.HandleFunc("/gps/destination/{delivery_id}", svc.HandleSetDestination).Methods("POST")
+	r.HandleFunc("/gps/history/{delivery_id}", svc.HandleGetHistory).Methods("GET")
+	r.HandleFunc("/gps/stats", svc.HandleStats).Methods("GET")
+	r.HandleFunc("/health", svc.HandleHealth).Methods("GET")
 
-	if err := http.ListenAndServe(addr, router); err != nil {
-		log.Fatalf("[GPS] Server failed: %v", err)
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
+
+	go func() {
+		log.Printf("[GPSStream] Starting WebSocket GPS streaming on :%s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("[GPSStream] Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("[GPSStream] Shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	srv.Shutdown(ctx)
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, FlatList, TouchableOpacity, Text, StyleSheet ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { database } from '@/services/database';
 import type { Expense } from '@/types/models';
@@ -29,7 +29,8 @@ export default function ExpenseListScreen() {
   if (loading) return <Loading message="Loading expenses..." />;
 
   return (
-    <View style={styles.container}>
+    <View
+      accessibilityLabel="Expense List screen" style={styles.container}>
       <Header title="Expenses" rightAction={{ label: '+ Add', onPress: () => navigation.navigate('ExpenseCreate' as never) }} />
       {expenses.length === 0 ? (
         <EmptyState title="No Expenses" message="Start tracking your farm expenses" actionLabel="Add Expense" onAction={() => navigation.navigate('ExpenseCreate' as never)} />
@@ -38,7 +39,8 @@ export default function ExpenseListScreen() {
           data={expenses}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => navigation.navigate('ExpenseDetail' as never, { id: item.id } as never)}>
+            <TouchableOpacity
+          accessibilityRole="button" onPress={() => navigation.navigate('ExpenseDetail' as never, { id: item.id } as never)}>
               <Card style={styles.card}>
                 <View style={styles.row}>
                   <Text style={styles.category}>{item.category}</Text>

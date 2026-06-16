@@ -9,6 +9,7 @@ import { Consumer } from 'kafkajs';
 import { createConsumer, TOPICS } from '../../kafka.js';
 import { getLakehouseClient, type WriteOptions } from './lakehouse-client.js';
 import { LAKEHOUSE_TABLES, PARTITION_STRATEGIES } from './lakehouse-config.js';
+import { logger } from '../../logger.js';
 
 // ============================================================================
 // Types
@@ -61,7 +62,7 @@ export class KafkaSinkConnector {
    * Start the sink connector
    */
   async start(): Promise<void> {
-    console.log(`[KafkaSink] Starting connector for ${this.config.topic} -> ${this.config.targetTable}`);
+    logger.info(`[KafkaSink] Starting connector for ${this.config.topic} -> ${this.config.targetTable}`);
 
     try {
       // Create consumer
@@ -87,9 +88,9 @@ export class KafkaSinkConnector {
         },
       });
 
-      console.log(`[KafkaSink] Connector started for ${this.config.topic}`);
+      logger.info(`[KafkaSink] Connector started for ${this.config.topic}`);
     } catch (error) {
-      console.error(`[KafkaSink] Failed to start connector:`, error);
+      logger.error(`[KafkaSink] Failed to start connector:`, error);
       throw error;
     }
   }
@@ -130,7 +131,7 @@ export class KafkaSinkConnector {
         await this.flush();
       }
     } catch (error) {
-      console.error(`[KafkaSink] Error processing message:`, error);
+      logger.error(`[KafkaSink] Error processing message:`, error);
       this.metrics.errors++;
     }
   }
@@ -169,9 +170,9 @@ export class KafkaSinkConnector {
       this.metrics.lastWriteTime = new Date();
       this.lastFlushTime = Date.now();
 
-      console.log(`[KafkaSink] Flushed ${batch.length} records to ${this.config.targetTable}`);
+      logger.info(`[KafkaSink] Flushed ${batch.length} records to ${this.config.targetTable}`);
     } catch (error) {
-      console.error(`[KafkaSink] Error flushing to lakehouse:`, error);
+      logger.error(`[KafkaSink] Error flushing to lakehouse:`, error);
       this.metrics.errors++;
       
       // Re-add failed batch to buffer for retry
@@ -183,7 +184,7 @@ export class KafkaSinkConnector {
    * Stop the sink connector
    */
   async stop(): Promise<void> {
-    console.log(`[KafkaSink] Stopping connector for ${this.config.topic}`);
+    logger.info(`[KafkaSink] Stopping connector for ${this.config.topic}`);
 
     this.running = false;
 
@@ -200,7 +201,7 @@ export class KafkaSinkConnector {
       this.consumer = null;
     }
 
-    console.log(`[KafkaSink] Connector stopped for ${this.config.topic}`);
+    logger.info(`[KafkaSink] Connector stopped for ${this.config.topic}`);
   }
 
   /**
@@ -476,7 +477,7 @@ export class SinkConnectorManager {
    * Start all sink connectors
    */
   async startAll(): Promise<void> {
-    console.log('[SinkManager] Starting all sink connectors...');
+    logger.info('[SinkManager] Starting all sink connectors...');
 
     const bronzeConnectors = createBronzeSinkConnectors();
 
@@ -486,21 +487,21 @@ export class SinkConnectorManager {
       await connector.start();
     }
 
-    console.log(`[SinkManager] Started ${this.connectors.size} sink connectors`);
+    logger.info(`[SinkManager] Started ${this.connectors.size} sink connectors`);
   }
 
   /**
    * Stop all sink connectors
    */
   async stopAll(): Promise<void> {
-    console.log('[SinkManager] Stopping all sink connectors...');
+    logger.info('[SinkManager] Stopping all sink connectors...');
 
     for (const connector of Array.from(this.connectors.values())) {
       await connector.stop();
     }
 
     this.connectors.clear();
-    console.log('[SinkManager] All sink connectors stopped');
+    logger.info('[SinkManager] All sink connectors stopped');
   }
 
   /**

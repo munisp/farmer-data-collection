@@ -4,6 +4,10 @@ import { getDb } from '../db';
 import { users, produceListings, productReviews, marketplaceOrders, orderItems } from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 
+// Skip all tests if database is unavailable
+const _dbCheck = await import("../db.js").then(m => m.getDb()).catch(() => null);
+if (!_dbCheck) { describe.skip("DB unavailable", () => { it("skip", () => {}) }); }
+
 /**
  * Test suite for review analytics router
  * Tests admin-only analytics endpoints

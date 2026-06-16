@@ -8,6 +8,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { logger } from '../logger.js';
 
 // ============================================================================
 // Types
@@ -144,8 +145,8 @@ export class PythonMLClient {
    *   fertilizer: 'NPK',
    *   season: 'Wet'
    * });
-   * console.log(`Predicted yield: ${prediction.predictedYield} ${prediction.unit}`);
-   * console.log(`Confidence: ${prediction.confidence}%`);
+   * logger.info(`Predicted yield: ${prediction.predictedYield} ${prediction.unit}`);
+   * logger.info(`Confidence: ${prediction.confidence}%`);
    * ```
    */
   async predictYield(
@@ -180,8 +181,8 @@ export class PythonMLClient {
    *     // ... more historical data
    *   ]
    * });
-   * console.log(`Trend: ${forecast.trend}`);
-   * console.log(`Recommendation: ${forecast.recommendation}`);
+   * logger.info(`Trend: ${forecast.trend}`);
+   * logger.info(`Recommendation: ${forecast.recommendation}`);
    * ```
    */
   async forecastPrice(
@@ -239,7 +240,7 @@ export class PythonMLClient {
         health.models.crop_yield === 'loaded' &&
         health.models.price_forecast === 'loaded'
       );
-    } catch {
+    } catch (err) {
       return false;
     }
   }

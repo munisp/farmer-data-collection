@@ -14,6 +14,7 @@ import { messagingSessions } from "../../drizzle/schema.js";
 import { eq, lt, and, sql } from "drizzle-orm";
 import { Redis } from "ioredis";
 import crypto from "crypto";
+import { logger } from '../logger.js';
 
 // Session configuration
 export const SESSION_CONFIG = {
@@ -28,7 +29,7 @@ export interface USSDSession {
   sessionId: string;
   phoneNumber: string;
   step: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;
   expiresAt: number;
@@ -85,11 +86,11 @@ export class USSDSessionManager {
     });
 
     this.redis.on("error", (err) => {
-      console.error("[USSDSessionManager] Redis error:", err);
+      logger.error("[USSDSessionManager] Redis error:", err);
     });
 
     this.redis.on("connect", () => {
-      console.log("[USSDSessionManager] Redis connected");
+      logger.info("[USSDSessionManager] Redis connected");
     });
   }
 
@@ -126,7 +127,7 @@ export class USSDSessionManager {
     sessionId: string,
     phoneNumber: string,
     step: string,
-    data: Record<string, any> = {}
+    data: Record<string, unknown> = {}
   ): Promise<USSDSession> {
     const now = Date.now();
     const session: USSDSession = {
@@ -150,7 +151,7 @@ export class USSDSessionManager {
     await this.redis.hincrby(this.KEYS.stepCounts, step, 1);
     await this.redis.hincrby(this.KEYS.metrics, "total_sessions", 1);
 
-    console.log(`[USSDSessionManager] Session created: ${sessionId} (phone: ${phoneNumber})`);
+    logger.info(`[USSDSessionManager] Session created: ${sessionId} (phone: ${phoneNumber})`);
     return session;
   }
 
@@ -184,7 +185,7 @@ export class USSDSessionManager {
     );
 
     if (!lockAcquired) {
-      console.warn(`[USSDSessionManager] Failed to acquire lock for session: ${sessionId}`);
+      logger.warn(`[USSDSessionManager] Failed to acquire lock for session: ${sessionId}`);
       // Wait and retry once
       await new Promise((resolve) => setTimeout(resolve, 100));
       const retryLock = await this.redis.set(
@@ -271,7 +272,7 @@ export class USSDSessionManager {
       await this.redis.hincrby(`ussd:dropoff:${session.step}`, "count", 1);
     }
     await this.redis.del(this.KEYS.session(sessionId));
-    console.log(`[USSDSessionManager] Session expired: ${sessionId}`);
+    logger.info(`[USSDSessionManager] Session expired: ${sessionId}`);
   }
 
   /**
@@ -280,14 +281,14 @@ export class USSDSessionManager {
   async checkIdempotency(
     sessionId: string,
     action: string,
-    params: Record<string, any>
+    params: Record<string, unknown>
   ): Promise<{ isDuplicate: boolean; previousResult?: any }> {
     const key = this.generateIdempotencyKey(sessionId, action, params);
     const existing = await this.redis.get(this.KEYS.idempotency(key));
 
     if (existing) {
       const record: IdempotencyRecord = JSON.parse(existing);
-      console.log(`[USSDSessionManager] Duplicate action detected: ${action} for session ${sessionId}`);
+      logger.info(`[USSDSessionManager] Duplicate action detected: ${action} for session ${sessionId}`);
       return { isDuplicate: true, previousResult: record.result };
     }
 
@@ -300,7 +301,7 @@ export class USSDSessionManager {
   async recordIdempotency(
     sessionId: string,
     action: string,
-    params: Record<string, any>,
+    params: Record<string, unknown>,
     result: any
   ): Promise<void> {
     const key = this.generateIdempotencyKey(sessionId, action, params);
@@ -326,7 +327,7 @@ export class USSDSessionManager {
   async executeWithIdempotency<T>(
     sessionId: string,
     action: string,
-    params: Record<string, any>,
+    params: Record<string, unknown>,
     executor: () => Promise<T>
   ): Promise<T> {
     // Check for duplicate
@@ -347,7 +348,7 @@ export class USSDSessionManager {
   /**
    * Generate idempotency key
    */
-  private generateIdempotencyKey(sessionId: string, action: string, params: Record<string, any>): string {
+  private generateIdempotencyKey(sessionId: string, action: string, params: Record<string, unknown>): string {
     const data = JSON.stringify({ sessionId, action, params });
     return crypto.createHash("sha256").update(data).digest("hex").substring(0, 32);
   }
@@ -358,7 +359,7 @@ export class USSDSessionManager {
   startCleanupJob(): void {
     if (this.cleanupInterval) return;
 
-    console.log("[USSDSessionManager] Starting cleanup job");
+    logger.info("[USSDSessionManager] Starting cleanup job");
     this.cleanupInterval = setInterval(async () => {
       await this.cleanupExpiredSessions();
     }, SESSION_CONFIG.cleanupIntervalMs);
@@ -371,7 +372,7 @@ export class USSDSessionManager {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
-      console.log("[USSDSessionManager] Cleanup job stopped");
+      logger.info("[USSDSessionManager] Cleanup job stopped");
     }
   }
 
@@ -398,13 +399,13 @@ export class USSDSessionManager {
 
       const count = result.length;
       if (count > 0) {
-        console.log(`[USSDSessionManager] Cleaned up ${count} expired sessions from database`);
+        logger.info(`[USSDSessionManager] Cleaned up ${count} expired sessions from database`);
         await this.redis.hincrby(this.KEYS.metrics, "cleaned_sessions", count);
       }
 
       return count;
     } catch (error) {
-      console.error("[USSDSessionManager] Cleanup error:", error);
+      logger.error("[USSDSessionManager] Cleanup error:", error);
       return 0;
     }
   }

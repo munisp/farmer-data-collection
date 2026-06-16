@@ -25,6 +25,7 @@ export const users = pgTable("users", {
   phoneNumber: varchar("phone_number", { length: 20 }),
   role: varchar("role", { length: 50 }).default("farmer").notNull(), // farmer, admin, etc.
   isActive: boolean("is_active").default(true).notNull(),
+  language: varchar("language", { length: 20 }).default("english"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -713,3 +714,9 @@ export * from './financial-schema';
 // Export SMS templates schema
 export * from './sms-templates-schema';
 export * from './sms-responses-schema';
+
+// Export supply chain & delivery schema
+export * from './supply-chain-schema';
+
+// Export subsidy & extension worker schema
+export * from './schema-subsidy';

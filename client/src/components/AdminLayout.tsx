@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </p>
         </div>
 
-        <nav className="flex-1 p-4">
+        <nav role="navigation" aria-label="Navigation" className="flex-1 p-4">
           <ul className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;

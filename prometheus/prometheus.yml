@@ -1,0 +1,77 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: farmconnect-app
+    static_configs:
+      - targets: ['app:3001']
+    metrics_path: /metrics
+
+  - job_name: feature-flags
+    static_configs:
+      - targets: ['feature-flags:8101']
+    metrics_path: /metrics
+
+  - job_name: whatsapp-service
+    static_configs:
+      - targets: ['whatsapp-service:8102']
+    metrics_path: /metrics
+
+  - job_name: qr-traceability
+    static_configs:
+      - targets: ['qr-traceability:8103']
+    metrics_path: /metrics
+
+  - job_name: search-proxy
+    static_configs:
+      - targets: ['search-proxy:8104']
+    metrics_path: /metrics
+
+  - job_name: waf-security
+    static_configs:
+      - targets: ['waf-security:8105']
+    metrics_path: /metrics
+
+  - job_name: fluvio-streaming
+    static_configs:
+      - targets: ['fluvio-streaming:8106']
+    metrics_path: /metrics
+
+  - job_name: weather-alerts
+    static_configs:
+      - targets: ['weather-alerts:8107']
+    metrics_path: /metrics
+
+  - job_name: credit-scoring
+    static_configs:
+      - targets: ['credit-scoring:8108']
+    metrics_path: /health
+
+  - job_name: voice-navigation
+    static_configs:
+      - targets: ['voice-navigation:8109']
+    metrics_path: /health
+
+  - job_name: tile-cache
+    static_configs:
+      - targets: ['tile-cache:8097']
+    metrics_path: /metrics
+
+  - job_name: gps-streaming
+    static_configs:
+      - targets: ['gps-streaming:8098']
+    metrics_path: /metrics
+
+  - job_name: spatial-queries
+    static_configs:
+      - targets: ['spatial-queries:8099']
+    metrics_path: /metrics
+
+  - job_name: geocoding
+    static_configs:
+      - targets: ['geocoding:8100']
+    metrics_path: /health

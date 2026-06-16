@@ -48,6 +48,7 @@ import { useLocalization } from '@/contexts/LocalizationContext';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function NotificationCenter() {
   const { formatCurrency } = useLocalization();
   const { toast } = useToast();
@@ -165,13 +166,13 @@ export default function NotificationCenter() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 dark:bg-red-900 text-red-800 border-red-200';
       case 'high':
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'normal':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 dark:bg-blue-900 text-blue-800 border-blue-200';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -195,7 +196,7 @@ export default function NotificationCenter() {
 
     const deleteNotification = (id: number) => {
       // Note: Delete functionality would need a separate mutation
-      console.log('Delete notification:', id);
+      console.warn('Delete notification:', id);
     };
 
   const formatTime = (dateString: string) => {
@@ -212,7 +213,8 @@ export default function NotificationCenter() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Notifications</h1>
@@ -434,7 +436,7 @@ export default function NotificationCenter() {
                         <CardContent className="p-4">
                           <div className="flex items-start gap-4">
                             <div className={`p-2 rounded-full ${
-                              alert.severity === 'warning' ? 'bg-orange-100' : 'bg-blue-100'
+                              alert.severity === 'warning' ? 'bg-orange-100' : 'bg-blue-100 dark:bg-blue-900'
                             }`}>
                               {alert.alertType === 'rain' ? (
                                 <Cloud className={`w-5 h-5 ${alert.severity === 'warning' ? 'text-orange-600' : 'text-blue-600'}`} />
@@ -538,7 +540,7 @@ export default function NotificationCenter() {
                   />
                 </div>
                 {preferences.quietHoursEnabled && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label>Start Time</Label>
                       <Input
@@ -565,5 +567,6 @@ export default function NotificationCenter() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -39,7 +39,7 @@ setInterval(() => {
  * @returns Middleware function for tRPC
  */
 export function createRateLimitMiddleware(config: RateLimitConfig) {
-  return async function rateLimitMiddleware({ ctx, next }: any) {
+  return async function rateLimitMiddleware({ ctx, next }: { ctx: { user?: { id?: string | number }; req?: { ip?: string }; [key: string]: unknown }; next: () => Promise<unknown> }) {
     // Get identifier (IP address or user ID)
     const identifier = (ctx.user?.id?.toString() || ctx.req?.ip || 'unknown');
     const key = `ratelimit:${identifier}`;

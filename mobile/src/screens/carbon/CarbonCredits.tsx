@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -7,8 +8,9 @@ import {
   RefreshControl,
   TouchableOpacity,
   FlatList,
-} from 'react-native';
+  useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiClient } from '@/services/api/client';
 
 interface CarbonProject {
   id: string;
@@ -175,7 +177,7 @@ export default function CarbonCredits() {
       </View>
 
       <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>How Carbon Credits Work</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>How Carbon Credits Work</Text>
         <View style={styles.infoCard}>
           <View style={styles.infoStep}>
             <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
@@ -208,14 +210,16 @@ export default function CarbonCredits() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.ctaButton}>
+      <TouchableOpacity
+          accessibilityRole="button" style={styles.ctaButton}>
         <Text style={styles.ctaButtonText}>Register New Project</Text>
       </TouchableOpacity>
     </View>
   );
 
   const renderProjectItem = ({ item }: { item: CarbonProject }) => (
-    <TouchableOpacity style={styles.projectCard}>
+    <TouchableOpacity
+          accessibilityRole="button" style={styles.projectCard}>
       <View style={styles.projectHeader}>
         <View>
           <Text style={styles.projectName}>{item.name}</Text>
@@ -268,7 +272,7 @@ export default function CarbonCredits() {
   const renderMarketplace = () => (
     <View style={styles.marketplaceContainer}>
       <View style={styles.marketHeader}>
-        <Text style={styles.sectionTitle}>Carbon Credit Marketplace</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Carbon Credit Marketplace</Text>
         <Text style={styles.marketSubtitle}>Buy and sell verified carbon credits</Text>
       </View>
 
@@ -278,14 +282,15 @@ export default function CarbonCredits() {
         <Text style={styles.priceChange}>+2.5% from last week</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Available for Sale</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>Available for Sale</Text>
       <View style={styles.listingCard}>
         <View style={styles.listingHeader}>
           <Text style={styles.listingTitle}>Cocoa Agroforestry Credits</Text>
           <Text style={styles.listingCredits}>500 credits</Text>
         </View>
         <Text style={styles.listingPrice}>{formatCurrency(5200)} per credit</Text>
-        <TouchableOpacity style={styles.buyButton}>
+        <TouchableOpacity
+          accessibilityRole="button" style={styles.buyButton}>
           <Text style={styles.buyButtonText}>Contact Seller</Text>
         </TouchableOpacity>
       </View>
@@ -296,12 +301,14 @@ export default function CarbonCredits() {
           <Text style={styles.listingCredits}>1,200 credits</Text>
         </View>
         <Text style={styles.listingPrice}>{formatCurrency(4800)} per credit</Text>
-        <TouchableOpacity style={styles.buyButton}>
+        <TouchableOpacity
+          accessibilityRole="button" style={styles.buyButton}>
           <Text style={styles.buyButtonText}>Contact Seller</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.sellButton}>
+      <TouchableOpacity
+          accessibilityRole="button" style={styles.sellButton}>
         <Text style={styles.sellButtonText}>List Your Credits for Sale</Text>
       </TouchableOpacity>
     </View>
@@ -310,12 +317,13 @@ export default function CarbonCredits() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Carbon Credits</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Carbon Credits</Text>
       </View>
 
       <View style={styles.tabBar}>
         {(['overview', 'projects', 'marketplace'] as const).map((tab) => (
           <TouchableOpacity
+          accessibilityRole="button"
             key={tab}
             style={[styles.tab, activeTab === tab && styles.activeTab]}
             onPress={() => setActiveTab(tab)}
@@ -328,6 +336,8 @@ export default function CarbonCredits() {
       </View>
 
       <ScrollView
+      accessibilityLabel="Carbon Credits screen"
+      accessibilityRole="scrollbar"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -353,11 +363,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -399,7 +409,7 @@ const styles = StyleSheet.create({
   heroValue: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
   },
   heroLabel: {
     fontSize: 16,
@@ -416,7 +426,7 @@ const styles = StyleSheet.create({
   heroStatValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
   heroStatLabel: {
     fontSize: 12,
@@ -429,11 +439,11 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -459,7 +469,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
   },
@@ -477,7 +487,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   stepNumberText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: 'bold',
   },
   stepContent: {
@@ -501,7 +511,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ctaButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
     fontSize: 16,
   },
@@ -509,11 +519,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   projectCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -591,12 +601,12 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   priceCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -617,11 +627,11 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   listingCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -655,11 +665,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buyButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '500',
   },
   sellButton: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: '#2E7D32',
     borderRadius: 8,

@@ -5,10 +5,12 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
-const kafkaProducer = { send: async (payload: any) => (await getProducer()).send(payload) };
+import { logger } from '../logger.js';
+const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
 
 export type IrrigationType = 
   | 'drip' 
@@ -307,8 +309,8 @@ const CONSERVATION_TIPS: WaterConservationTip[] = [
 ];
 
 class WaterManagementService {
-  private irrigationSystems: Map<string, IrrigationSystem> = new Map();
-  private schedules: Map<string, IrrigationSchedule> = new Map();
+  private irrigationSystems: BoundedMap<string, IrrigationSystem> = new BoundedMap(2000, 86400_000);
+  private schedules: BoundedMap<string, IrrigationSchedule> = new BoundedMap(5000, 86400_000);
 
   /**
    * Calculate crop water requirements
@@ -380,7 +382,7 @@ class WaterManagementService {
         adjustedForWeather = true;
       }
     } catch (error) {
-      console.warn('[WaterManagement] Could not get weather data:', error);
+      logger.warn('[WaterManagement] Could not get weather data:', error);
       recommendations.push('Weather data unavailable - using standard calculations');
     }
 
@@ -465,7 +467,7 @@ class WaterManagementService {
       },
     };
 
-    const scheduleId = `IS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const scheduleId = `IS-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const schedule: IrrigationSchedule = {
       id: scheduleId,
       farmId,
@@ -494,7 +496,7 @@ class WaterManagementService {
         }],
       });
     } catch (error) {
-      console.warn('[WaterManagement] Could not emit Kafka event:', error);
+      logger.warn('[WaterManagement] Could not emit Kafka event:', error);
     }
 
     return schedule;
@@ -570,7 +572,7 @@ class WaterManagementService {
     const waterSavings = Math.round((Math.min(potentialHarvest, irrigationNeeds * 12) / (irrigationNeeds * 12)) * 100);
 
     return {
-      id: `RWH-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `RWH-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
       farmId,
       catchmentArea: roofArea,
       annualRainfall,
@@ -612,6 +614,7 @@ class WaterManagementService {
   async getSoilMoistureStatus(params: {
     farmId: number;
     cropName: string;
+    sensorMoisture?: number;
   }): Promise<{
     currentMoisture: number;
     optimalRange: { min: number; max: number };
@@ -620,15 +623,15 @@ class WaterManagementService {
     irrigationNeeded: boolean;
     urgency: 'immediate' | 'soon' | 'not_needed';
   }> {
-    const { farmId, cropName } = params;
+    const { farmId, cropName, sensorMoisture } = params;
 
     const cropKey = cropName.toLowerCase().replace(/\s+/g, '_');
     const cropReq = CROP_WATER_REQUIREMENTS[cropKey] || {
       optimalSoilMoisture: { min: 50, max: 70 },
     };
 
-    // Simulate sensor reading (would come from actual sensors)
-    const currentMoisture = 40 + Math.random() * 40; // 40-80%
+    // Use real sensor data if provided, otherwise use crop midpoint as baseline
+    const currentMoisture = sensorMoisture ?? (cropReq.optimalSoilMoisture.min + cropReq.optimalSoilMoisture.max) / 2;
 
     let status: 'too_dry' | 'optimal' | 'too_wet';
     let recommendation: string;
@@ -677,7 +680,7 @@ class WaterManagementService {
     coverageArea: number;
     flowRate: number;
   }): Promise<IrrigationSystem> {
-    const systemId = `IRRIG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const systemId = `IRRIG-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     // Calculate efficiency based on type
     const efficiencyByType: Record<IrrigationType, number> = {

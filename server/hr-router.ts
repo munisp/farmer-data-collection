@@ -146,7 +146,7 @@ export const hrRouter = router({
       const userId = Number(ctx.user.id);
       const { id, hourlyRate, terminationDate, ...updateData } = input;
       
-      const finalUpdateData: any = { ...updateData };
+      const finalUpdateData: Record<string, unknown> = { ...updateData };
       if (hourlyRate !== undefined) {
         finalUpdateData.hourlyRate = Math.round(hourlyRate * 100); // Convert to cents
       }
@@ -290,7 +290,7 @@ export const hrRouter = router({
       }
       
       const entry = existing[0].timeEntry;
-      const finalUpdateData: any = { ...updateData };
+      const finalUpdateData: Record<string, unknown> = { ...updateData };
       
       // Recalculate hours if clockOut provided
       if (input.clockOut) {
@@ -396,7 +396,7 @@ export const hrRouter = router({
       
       const grossPay = basicSalary + totalAllowances;
       
-      // Calculate NSSF (Kenya rates: 6% of pensionable pay, max 1080 KES)
+      // Calculate pension contribution (6% of pensionable pay, capped)
       const nssf = Math.min(Math.round(grossPay * 0.06), 1080);
       
       // Calculate taxable income

@@ -1,7 +1,9 @@
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function AnalyticsDashboard() {
   const [, setLocation] = useLocation();
 
@@ -35,7 +37,8 @@ export default function AnalyticsDashboard() {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <DashboardLayout>
+      <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Analytics & Reports</h1>
         <Button onClick={() => setLocation("/admin")}>Back to Dashboard</Button>
@@ -96,7 +99,7 @@ export default function AnalyticsDashboard() {
                     <span className="font-semibold">{data.month}</span>
                     <span className="text-muted-foreground">{data.rate}%</span>
                   </div>
-                  <div className="h-3 bg-gray-200 rounded-full">
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full">
                     <div
                       className="h-3 bg-green-500 rounded-full"
                       style={{ width: `${data.rate}%` }}
@@ -149,7 +152,7 @@ export default function AnalyticsDashboard() {
                     <span>{crop.completed} / {crop.journeys} completed</span>
                     <span className="font-semibold">{crop.rate}%</span>
                   </div>
-                  <div className="h-2 bg-gray-200 rounded-full">
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
                     <div
                       className="h-2 bg-blue-500 rounded-full"
                       style={{ width: `${crop.rate}%` }}
@@ -182,5 +185,6 @@ export default function AnalyticsDashboard() {
         </CardContent>
       </Card>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

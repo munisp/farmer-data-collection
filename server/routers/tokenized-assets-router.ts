@@ -1,0 +1,101 @@
+/**
+ * Tokenized Assets Router — DB-backed
+ * Fractional farm investment, carbon credits, harvest futures.
+ */
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { router, publicProcedure, protectedProcedure } from "../_core/trpc-base.js";
+import { requireDb } from "../utils/require-db.js";
+import { eq, and, desc } from "drizzle-orm";
+import { tokenizedAssets, tokenHoldings } from "../../drizzle/platform-extensions-schema.js";
+
+import { logger } from '../logger.js';
+import { checkRateLimit, scanForThreats, checkPermission } from "../integrations/middleware-router-hooks.js";
+export const tokenizedAssetsRouter = router({
+  listAssets: publicProcedure
+    .input(z.object({
+      assetType: z.string().optional(), limit: z.number().default(50), offset: z.number().default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const conds = [];
+      if (input?.assetType) conds.push(eq(tokenizedAssets.assetType, input.assetType));
+      const rows = await db.select().from(tokenizedAssets)
+        .where(conds.length > 0 ? and(...conds) : undefined)
+        .orderBy(desc(tokenizedAssets.createdAt)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      return rows.map(r => ({ ...r, pricePerToken: Number(r.pricePerToken), yieldRate: Number(r.yieldRate) }));
+    }),
+
+  getAsset: publicProcedure
+    .input(z.object({ assetId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const [row] = await db.select().from(tokenizedAssets).where(eq(tokenizedAssets.id, input.assetId));
+      if (!row) return null;
+      const marketCap = row.totalSupply * Number(row.pricePerToken);
+      return { ...row, pricePerToken: Number(row.pricePerToken), yieldRate: Number(row.yieldRate), marketCap, percentSold: Math.round(((row.totalSupply - row.availableSupply) / row.totalSupply) * 100) };
+    }),
+
+  purchaseTokens: protectedProcedure
+    .input(z.object({ assetId: z.number(), userId: z.number(), quantity: z.number().min(1) }))
+    .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("tokenized_assets", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("tokenized_assets", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+      const permCheck = await checkPermission("anon", "tokenized_assets", "write");
+      if (!permCheck) throw new TRPCError({ code: "FORBIDDEN", message: "Permission denied" });
+
+      const db = await requireDb();
+      const result = await db.transaction(async (tx) => {
+        const [asset] = await tx.select().from(tokenizedAssets).where(eq(tokenizedAssets.id, input.assetId));
+        if (!asset) throw new TRPCError({ code: "NOT_FOUND", message: "Asset not found" });
+        if (asset.availableSupply < input.quantity) throw new TRPCError({ code: "BAD_REQUEST", message: `Only ${asset.availableSupply} tokens available` });
+
+        const price = Number(asset.pricePerToken);
+        const totalCost = price * input.quantity;
+
+        const existing = await tx.select().from(tokenHoldings).where(and(eq(tokenHoldings.tokenId, input.assetId), eq(tokenHoldings.userId, input.userId)));
+        let newBalance: number;
+        if (existing.length > 0) {
+          newBalance = existing[0].quantity + input.quantity;
+          await tx.update(tokenHoldings).set({ quantity: newBalance }).where(eq(tokenHoldings.id, existing[0].id));
+        } else {
+          newBalance = input.quantity;
+          await tx.insert(tokenHoldings).values({ tokenId: input.assetId, userId: input.userId, quantity: input.quantity, purchasePrice: String(price) });
+        }
+
+        await tx.update(tokenizedAssets).set({ availableSupply: asset.availableSupply - input.quantity, updatedAt: new Date() }).where(eq(tokenizedAssets.id, input.assetId));
+
+        return { tokensPurchased: input.quantity, totalCost, newBalance };
+      });
+
+      logger.info("[TokenizedAssets] Purchase", { assetId: input.assetId, userId: input.userId, quantity: input.quantity, totalCost: result.totalCost });
+      return { success: true, ...result };
+    }),
+
+  getHoldings: protectedProcedure
+    .input(z.object({ userId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await requireDb();
+      const holdings = await db.select().from(tokenHoldings).where(eq(tokenHoldings.userId, input.userId));
+      let totalValue = 0;
+      const enriched = [];
+      for (const h of holdings) {
+        const [asset] = await db.select().from(tokenizedAssets).where(eq(tokenizedAssets.id, h.tokenId));
+        const currentValue = asset ? h.quantity * Number(asset.pricePerToken) : 0;
+        const invested = h.quantity * Number(h.purchasePrice);
+        totalValue += currentValue;
+        enriched.push({ ...h, assetName: asset?.assetName, assetType: asset?.assetType, currentValue, invested, unrealizedGain: currentValue - invested });
+      }
+      return { holdings: enriched, totalValue, totalInvested: enriched.reduce((s, h) => s + h.invested, 0) };
+    }),
+
+  getAssetTypes: publicProcedure.query(() => [
+    { type: "farmland", name: "Farmland Investment", description: "Fractional ownership of productive farmland" },
+    { type: "harvest_future", name: "Harvest Futures", description: "Pre-purchase future harvest at fixed price" },
+    { type: "carbon_credit", name: "Carbon Credits", description: "Verified carbon offset from agroforestry" },
+    { type: "equipment", name: "Equipment Shares", description: "Shared ownership of farm equipment" },
+    { type: "water_rights", name: "Water Rights", description: "Tradeable irrigation water allocation" },
+  ]),
+});

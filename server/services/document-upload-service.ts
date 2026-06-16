@@ -6,6 +6,7 @@
  */
 
 import { storagePut, storageGet } from "../storage.js";
+import { logger } from '../logger.js';
 
 export interface UploadDocumentOptions {
   applicationId: number;
@@ -40,7 +41,7 @@ export class DocumentUploadService {
       // Upload to S3 using Manus storage helper
       const result = await storagePut(s3Key, fileBuffer, mimeType);
 
-      console.log(`[DocumentUpload] Uploaded document: ${s3Key}`);
+      logger.info(`[DocumentUpload] Uploaded document: ${s3Key}`);
 
       return {
         s3Key: result.key,
@@ -50,7 +51,7 @@ export class DocumentUploadService {
         mimeType,
       };
     } catch (error) {
-      console.error(`[DocumentUpload] Failed to upload document:`, error);
+      logger.error(`[DocumentUpload] Failed to upload document:`, error);
       throw new Error(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -63,7 +64,7 @@ export class DocumentUploadService {
       const result = await storageGet(s3Key, expiresIn);
       return result.url;
     } catch (error) {
-      console.error(`[DocumentUpload] Failed to get document URL:`, error);
+      logger.error(`[DocumentUpload] Failed to get document URL:`, error);
       throw new Error(`Failed to get document URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

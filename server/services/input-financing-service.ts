@@ -5,9 +5,11 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
 import { createTemporalService, TemporalWorkflowService } from "./temporal-workflow-service.js";
 import { publishEvent, createEvent } from "../kafka.js";
+import { logger } from '../logger.js';
 
 let tigerBeetleLedger: TigerBeetleLedger | null = null;
 
@@ -16,7 +18,7 @@ async function getTigerBeetleLedger(): Promise<TigerBeetleLedger | null> {
     try {
       tigerBeetleLedger = createTigerBeetleLedger();
     } catch (error) {
-      console.warn('[InputFinancing] TigerBeetle not available:', error);
+      logger.warn('[InputFinancing] TigerBeetle not available:', error);
     }
   }
   return tigerBeetleLedger;
@@ -249,8 +251,8 @@ const INPUT_CATALOG: Record<InputCategory, Array<{
 };
 
 class InputFinancingService {
-  private creditLines: Map<string, CreditLine> = new Map();
-  private bulkGroups: Map<string, BulkPurchaseGroup> = new Map();
+  private creditLines: BoundedMap<string, CreditLine> = new BoundedMap(5000, 86400_000);
+  private bulkGroups: BoundedMap<string, BulkPurchaseGroup> = new BoundedMap(2000, 86400_000);
 
   /**
    * Check pre-approval eligibility for a farmer
@@ -345,7 +347,7 @@ class InputFinancingService {
     const approvedAmount = Math.min(requestedAmount, preApproval.maxAmount);
     const approvedCategories = categories.filter(c => preApproval.approvedCategories.includes(c));
 
-    const creditLineId = `CL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const creditLineId = `CL-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + preApproval.termMonths);
 
@@ -382,7 +384,7 @@ class InputFinancingService {
         });
       }
     } catch (error) {
-      console.warn('[InputFinancing] Could not record in TigerBeetle:', error);
+      logger.warn('[InputFinancing] Could not record in TigerBeetle:', error);
     }
 
     // Emit event
@@ -395,7 +397,7 @@ class InputFinancingService {
         creditLine
       ));
     } catch (error) {
-      console.warn('[InputFinancing] Could not emit Kafka event:', error);
+      logger.warn('[InputFinancing] Could not emit Kafka event:', error);
     }
 
     return creditLine;
@@ -462,7 +464,7 @@ class InputFinancingService {
       throw new Error('Insufficient credit available');
     }
 
-    const disbursementId = `DIS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const disbursementId = `DIS-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const disbursement: InputDisbursement = {
       id: disbursementId,
       creditLineId,
@@ -496,7 +498,7 @@ class InputFinancingService {
         disbursement.transactionId = txResult?.transactionId;
       }
     } catch (error) {
-      console.warn('[InputFinancing] Could not disburse:', error);
+      logger.warn('[InputFinancing] Could not disburse:', error);
     }
 
     // Update credit line
@@ -535,7 +537,7 @@ class InputFinancingService {
     const interest = Math.min(amount, interestPortion);
     const principal = amount - interest;
 
-    const repaymentId = `REP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const repaymentId = `REP-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const repayment: InputRepayment = {
       id: repaymentId,
       creditLineId,
@@ -560,7 +562,7 @@ class InputFinancingService {
         repayment.transactionId = txResult?.transactionId;
       }
     } catch (error) {
-      console.warn('[InputFinancing] Could not record repayment:', error);
+      logger.warn('[InputFinancing] Could not record repayment:', error);
     }
 
     creditLine.repayments.push(repayment);
@@ -636,7 +638,7 @@ class InputFinancingService {
     );
 
     if (!group) {
-      const groupId = `BG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const groupId = `BG-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + 7); // 7 days to form group
 
@@ -703,8 +705,14 @@ class InputFinancingService {
   // Private helper methods
 
   private async getFarmerCreditScore(farmerId: number): Promise<number> {
-    // Would integrate with credit scoring service
-    return 650 + Math.floor(Math.random() * 150);
+    try {
+      const { CreditScoringService } = await import("./credit-scoring.js");
+      const scorer = new CreditScoringService();
+      const result = await scorer.calculateCreditScore(farmerId);
+      return result.score;
+    } catch (err) {
+      return 600; // conservative default if scoring unavailable
+    }
   }
 
   private async getFarmerData(farmerId: number): Promise<{
@@ -713,13 +721,35 @@ class InputFinancingService {
     previousLoansRepaid: number;
     defaultRate: number;
   }> {
-    // Would fetch from database
-    return {
-      totalHectares: 3 + Math.random() * 10,
-      cooperativeMember: Math.random() > 0.5,
-      previousLoansRepaid: Math.floor(Math.random() * 5),
-      defaultRate: Math.random() > 0.9 ? 0.1 : 0,
-    };
+    try {
+      const { getDb } = await import("../db.js");
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const { farms, loans } = await import("../../drizzle/schema.js");
+      const { eq, sql } = await import("drizzle-orm");
+      
+      const farmerFarms = await db.select({ totalArea: sql<number>`COALESCE(SUM(${farms.farmSize}), 0)` }).from(farms).where(eq(farms.farmerId, farmerId));
+      const totalHectares = Number(farmerFarms[0]?.totalArea ?? 2);
+      
+      const loanHistory = await db.select({
+        total: sql<number>`COUNT(*)`,
+        repaid: sql<number>`COUNT(*) FILTER (WHERE status = 'repaid')`,
+        defaulted: sql<number>`COUNT(*) FILTER (WHERE status = 'defaulted')`,
+      }).from(loans).where(eq(loans.userId, farmerId));
+      
+      const total = Number(loanHistory[0]?.total ?? 0);
+      const repaid = Number(loanHistory[0]?.repaid ?? 0);
+      const defaulted = Number(loanHistory[0]?.defaulted ?? 0);
+
+      return {
+        totalHectares,
+        cooperativeMember: false,
+        previousLoansRepaid: repaid,
+        defaultRate: total > 0 ? defaulted / total : 0,
+      };
+    } catch (err) {
+      return { totalHectares: 2, cooperativeMember: false, previousLoansRepaid: 0, defaultRate: 0 };
+    }
   }
 
   private calculateBulkDiscount(supplier: Supplier, items: InputItem[]): number {

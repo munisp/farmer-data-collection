@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: farmconnect
+  labels:
+    app.kubernetes.io/name: farmconnect
+    app.kubernetes.io/part-of: farmconnect-platform

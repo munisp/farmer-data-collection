@@ -19,7 +19,7 @@ export default function SpatialAnalytics() {
   const [searchLng, setSearchLng] = useState("");
   const [searchRadius, setSearchRadius] = useState("5000");
 
-  const { data: totalArea } = trpc.spatial.getTotalFarmArea.useQuery();
+  const { data: totalArea, isPending: areaLoading } = trpc.spatial.getTotalFarmArea.useQuery();
 
   const [nearbyFarms, setNearbyFarms] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -75,6 +75,19 @@ export default function SpatialAnalytics() {
     );
   };
 
+  if (areaLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -89,7 +102,7 @@ export default function SpatialAnalytics() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
+              <div role="main" aria-label="Page content" className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
                 <MapPin className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <div>

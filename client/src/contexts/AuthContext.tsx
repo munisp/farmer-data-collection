@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     const storedToken = localStorage.getItem("auth_token");
-    console.log("[AuthContext] Initial token from localStorage:", storedToken ? "exists" : "null");
+    console.warn("[AuthContext] Initial token from localStorage:", storedToken ? "exists" : "null");
     return storedToken;
   });
 
@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    console.log("[AuthContext] Token/user effect:", {
+    console.warn("[AuthContext] Token/user effect:", {
       token: !!token,
       isLoadingUser,
       hasUserData: !!userData,
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (isSuccess && userData) {
-      console.log("[AuthContext] User data loaded, setting user");
+      console.warn("[AuthContext] User data loaded, setting user");
       setUser(userData);
       setIsLoading(false);
       return;
@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (userError) {
       const shouldClear = shouldClearTokenFromError(userError.message);
-      console.log("[AuthContext] Query error while restoring session:", {
+      console.warn("[AuthContext] Query error while restoring session:", {
         message: userError.message,
         shouldClear,
         hasFallbackUser: !!fallbackUser,

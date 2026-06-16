@@ -21,7 +21,7 @@ export function PageHeader({
   return (
     <div className={cn("page-header animate-fade-in", className)}>
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+        <nav role="navigation" aria-label="Navigation" className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
           {breadcrumbs.map((crumb, index) => (
             <span key={index} className="flex items-center gap-2">
               {index > 0 && <span className="text-border">/</span>}

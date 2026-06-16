@@ -1,24 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDatabase } from "@/hooks/useDatabase";
-import { farmers, farms, crops, livestock, harvests, expenses } from "@/db/schema";
-import { count, eq } from "drizzle-orm";
-import { Users, Tractor, Sprout, Beef, TrendingUp, Receipt, DollarSign, TrendingDown, Brain, Target, ArrowRight, Activity, Zap, Satellite, Droplets, Leaf } from "lucide-react";
+import { Users, Tractor, Sprout, Beef, TrendingUp, Receipt, DollarSign, TrendingDown, Brain, Target, ArrowRight, Activity, Zap, Satellite, Droplets, Leaf, ShoppingCart, Truck, ArrowRightLeft, CreditCard, Snowflake, Building2, Store, Mic, Warehouse, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTutorial } from "@/contexts/TutorialContext";
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { tutorialSteps } from "@/config/tutorialSteps";
 import { Loader2 } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
+import { WeatherAlertsWidget } from "@/components/WeatherAlertsWidget";
 import MLInsightsWidget from "@/components/MLInsightsWidget";
 import { NearbyFarmsWidget } from "@/components/NearbyFarmsWidget";
 import { WebSocketStatusWidget, RecentEventsWidget, ActiveAlertsWidget } from "@/components/RealtimeWidgets";
+
 import { PageHeader, PageSection } from "@/components/ui/page-header";
 import { StatsCard, StatsGrid } from "@/components/ui/stats-card";
 import { ModernCard, CardHeader as ModernCardHeader } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
 import { useLocalization } from "@/contexts/LocalizationContext";
+import { trpc } from "@/lib/trpc";
 
 interface Stats {
   totalFarmers: number;
@@ -33,99 +33,56 @@ interface Stats {
 }
 
 export default function Dashboard() {
-  const { isInitialized, error, db } = useDatabase();
   const { user } = useAuth();
   const { showTutorial, completeTutorial, skipTutorial } = useTutorial();
   const { formatCurrency } = useLocalization();
-  const [stats, setStats] = useState<Stats>({
-    totalFarmers: 0,
-    totalFarms: 0,
-    totalCrops: 0,
-    totalLivestock: 0,
-    totalHarvests: 0,
-    totalExpenses: 0,
-    totalRevenue: 0,
-    netProfit: 0,
-    profitMargin: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  const userId = Number(user?.id || 0);
 
-  useEffect(() => {
-    if (!isInitialized || !user) return;
+  const statsQuery = trpc.dashboard.getStats.useQuery(
+    { userId },
+    { enabled: userId > 0, retry: false, staleTime: 10_000 }
+  );
 
-    const fetchStats = async () => {
-      try {
-        const [farmerCount, farmCount, cropCount, livestockCount, harvestCount, expenseCount] = await Promise.all([
-          db.select({ count: count() }).from(farmers).where(eq(farmers.userId, Number(user.id))),
-          db.select({ count: count() }).from(farms).where(eq(farms.userId, Number(user.id))),
-          db.select({ count: count() }).from(crops).where(eq(crops.userId, Number(user.id))),
-          db.select({ count: count() }).from(livestock).where(eq(livestock.userId, Number(user.id))),
-          db.select({ count: count() }).from(harvests).where(eq(harvests.userId, Number(user.id))),
-          db.select({ count: count() }).from(expenses).where(eq(expenses.userId, Number(user.id))),
-        ]);
+  const activityQuery = trpc.dashboard.getRecentActivities.useQuery(
+    { userId, limit: 6 },
+    { enabled: userId > 0, retry: false, staleTime: 10_000 }
+  );
 
-        // Calculate financial metrics
-        const expensesData = await db.select().from(expenses).where(eq(expenses.userId, Number(user.id)));
-        const totalExpensesAmount = expensesData.reduce((sum: number, exp: any) => sum + exp.amount, 0) / 100;
-
-        const harvestsData = await db
-          .select({
-            quantity: harvests.quantity,
-            pricePerUnit: crops.pricePerUnit,
-          })
-          .from(harvests)
-          .innerJoin(crops, eq(harvests.cropId, crops.id))
-          .where(eq(harvests.userId, Number(user.id)));
-
-        const totalRevenue = harvestsData.reduce((sum: number, h: any) => {
-          const quantity = parseFloat(h.quantity as string) || 0;
-          const price = (h.pricePerUnit || 1000) / 100;
-          return sum + (quantity * price);
-        }, 0);
-
-        const netProfit = totalRevenue - totalExpensesAmount;
-        const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-
-        setStats({
-          totalFarmers: farmerCount[0]?.count || 0,
-          totalFarms: farmCount[0]?.count || 0,
-          totalCrops: cropCount[0]?.count || 0,
-          totalLivestock: livestockCount[0]?.count || 0,
-          totalHarvests: harvestCount[0]?.count || 0,
-          totalExpenses: expenseCount[0]?.count || 0,
-          totalRevenue,
-          netProfit,
-          profitMargin,
-        });
-      } catch (err) {
-        console.error("Failed to fetch stats:", err);
-      } finally {
-        setLoading(false);
-      }
+  const stats = useMemo<Stats>(() => {
+    const data = statsQuery.data;
+    const totalExpensesAmount = (data?.totalExpenses || 0) / 100;
+    const totalRevenue = (data?.totalHarvests || 0) * 10;
+    const netProfit = totalRevenue - totalExpensesAmount;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    return {
+      totalFarmers: data?.farmers || 0,
+      totalFarms: data?.farms || 0,
+      totalCrops: data?.crops || 0,
+      totalLivestock: data?.livestock || 0,
+      totalHarvests: data?.harvests || 0,
+      totalExpenses: data?.expenses || 0,
+      totalRevenue,
+      netProfit,
+      profitMargin,
     };
+  }, [statsQuery.data]);
 
-    fetchStats();
-  }, [isInitialized, db]);
+  const loading = statsQuery.isLoading && !statsQuery.data;
 
-  if (error) {
+  if (!user) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-destructive">Database Error</CardTitle>
-              <CardDescription>Failed to initialize the database</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{error.message}</p>
-            </CardContent>
-          </Card>
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+            <p className="mt-4 text-muted-foreground">Authenticating...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
   }
 
-  if (!isInitialized || loading) {
+  if (loading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">
@@ -294,7 +251,36 @@ export default function Dashboard() {
           <PageSection title="Real-time Activity">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <WebSocketStatusWidget />
-              <RecentEventsWidget />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+                  <CardDescription>Latest events from your farm operations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(activityQuery.data && activityQuery.data.length > 0) ? (
+                    <div className="space-y-3">
+                      {activityQuery.data.map((activity, index: number) => (
+                        <div key={index} className="flex items-start gap-3">
+                          <div className={`p-1.5 rounded-full bg-muted ${activity.type === 'harvest' ? 'text-green-500' : 'text-orange-500'}`}>
+                            {activity.type === 'harvest' ? <TrendingUp className="w-3 h-3" /> : <Receipt className="w-3 h-3" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{activity.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(activity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <Activity className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                      <p className="text-sm">No recent activity</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
               <ActiveAlertsWidget />
             </div>
           </PageSection>
@@ -302,10 +288,11 @@ export default function Dashboard() {
           {/* Weather & AI Insights - Modern Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <WeatherCard 
-              latitude={40.7128} 
-              longitude={-74.0060} 
-              locationName="Default Location" 
+              latitude={7.3775} 
+              longitude={3.9470} 
+              locationName="Ibadan, Oyo State" 
             />
+            <WeatherAlertsWidget />
             <MLInsightsWidget />
             
             {/* AI/ML Models Quick Access - Modern Card */}
@@ -319,7 +306,7 @@ export default function Dashboard() {
                 <div className="flex flex-col gap-3">
                   <a href="/yield-prediction" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 hover:from-green-500/20 hover:to-emerald-500/20 transition-colors group border border-green-500/20">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-500/20 text-green-600">
+                      <div role="main" aria-label="Page content" className="p-2 rounded-lg bg-green-500/20 text-green-600">
                         <TrendingUp className="h-4 w-4" />
                       </div>
                       <span className="text-sm font-medium text-green-700 dark:text-green-400">Yield Prediction & Analytics</span>
@@ -430,6 +417,218 @@ export default function Dashboard() {
 
                         {/* Nearby Farms Widget */}
                         <NearbyFarmsWidget />
+
+          {/* Marketplace & Commerce */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5">
+            <ModernCardHeader
+              title="Marketplace & Commerce"
+              description="Buy, sell, and trade agricultural produce across Nigeria"
+              icon={<ShoppingCart className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/marketplace" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 hover:from-green-500/20 hover:to-emerald-500/20 transition-colors group border border-green-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/20 text-green-600"><ShoppingCart className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-green-700 dark:text-green-400">Browse Marketplace</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-green-600 group-hover:text-green-500 transition-colors" />
+                </a>
+                <a href="/marketplace/create" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600"><Sprout className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Create Listing</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/group-buying" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600"><Users className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Group Buying</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/price-discovery" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600"><BarChart3 className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Price Discovery</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Delivery & Supply Chain */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5">
+            <ModernCardHeader
+              title="Delivery & Supply Chain"
+              description="Manage deliveries, logistics, cold chain, and traceability"
+              icon={<Truck className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/delivery" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-amber-500/10 hover:from-orange-500/20 hover:to-amber-500/20 transition-colors group border border-orange-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/20 text-orange-600"><Truck className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-orange-700 dark:text-orange-400">Delivery Dashboard</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-orange-600 group-hover:text-orange-500 transition-colors" />
+                </a>
+                <a href="/delivery/tracking" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600"><Activity className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Live Tracking</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/cold-chain" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-600"><Snowflake className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Cold Chain Monitoring</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/freshness" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10 text-green-600"><Leaf className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Freshness Tracking</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/traceability" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600"><Target className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Produce Traceability</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Financial Services */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5">
+            <ModernCardHeader
+              title="Financial Services"
+              description="Payments, credit scoring, loans, and reconciliation"
+              icon={<DollarSign className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/payment-reconciliation" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-indigo-500/10 hover:from-purple-500/20 hover:to-indigo-500/20 transition-colors group border border-purple-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-500/20 text-purple-600"><ArrowRightLeft className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-purple-700 dark:text-purple-400">Payment Reconciliation</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-purple-600 group-hover:text-purple-500 transition-colors" />
+                </a>
+                <a href="/credit-score" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600"><CreditCard className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Credit Scoring</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/mobile-money" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10 text-green-600"><DollarSign className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Mobile Money</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/chama" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600"><Users className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Chama Groups & Lending</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Retail & B2B / Cooperatives */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-rose-500/5 via-transparent to-pink-500/5">
+            <ModernCardHeader
+              title="Retail, B2B & Cooperatives"
+              description="Retail store integration, bulk ordering, and cooperative management"
+              icon={<Store className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/retail/store" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-rose-500/10 to-pink-500/10 hover:from-rose-500/20 hover:to-pink-500/20 transition-colors group border border-rose-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-rose-500/20 text-rose-600"><Store className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-rose-700 dark:text-rose-400">Retail Store Dashboard</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-rose-600 group-hover:text-rose-500 transition-colors" />
+                </a>
+                <a href="/cooperative-dashboard" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600"><Building2 className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Cooperative Dashboard</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/exchange" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600"><BarChart3 className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Commodity Exchange</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/aggregation-hub" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-500/10 text-orange-600"><Warehouse className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Aggregation Hub</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/retail/bulk-ordering" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600"><Receipt className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Bulk Ordering & Invoices</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Voice & Accessibility */}
+          <ModernCard variant="elevated" className="bg-gradient-to-br from-violet-500/5 via-transparent to-fuchsia-500/5">
+            <ModernCardHeader
+              title="Voice & Accessibility"
+              description="Voice navigation, multilingual support, and accessible farming tools"
+              icon={<Mic className="w-5 h-5" />}
+            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <a href="/voice-navigation" className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 hover:from-violet-500/20 hover:to-fuchsia-500/20 transition-colors group border border-violet-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-violet-500/20 text-violet-600"><Mic className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium text-violet-700 dark:text-violet-400">Voice Navigation</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-violet-600 group-hover:text-violet-500 transition-colors" />
+                </a>
+                <a href="/weather-alerts" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-600"><Droplets className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Weather Alerts</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+                <a href="/returns" className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-red-500/10 text-red-600"><ArrowRightLeft className="h-4 w-4" /></div>
+                    <span className="text-sm font-medium">Returns & Refunds</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </a>
+              </div>
+            </div>
+          </ModernCard>
 
             {/* Get Started Card - Modern Empty State */}
             {stats.totalFarmers === 0 && (

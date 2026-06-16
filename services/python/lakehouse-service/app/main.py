@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("lakehouse-service")
+
 """
 Lakehouse Analytics Service
 Data warehouse for analytics, reporting, and ML training
@@ -28,6 +33,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Lakehouse Analytics Service")
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[lakehouse-service] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[lakehouse-service] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[lakehouse-service] Shutdown complete")
+
 
 # CORS
 app.add_middleware(

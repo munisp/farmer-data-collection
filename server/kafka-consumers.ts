@@ -3,6 +3,7 @@ import { createConsumer, TOPICS, KafkaEvent } from './kafka';
 import { getDb } from './db';
 import { auditLogs } from '../drizzle/schema.js';
 import { eq } from 'drizzle-orm';
+import { logger } from './logger.js';
 
 // Consumer instances
 let cacheConsumer: Consumer | null = null;
@@ -42,14 +43,14 @@ export async function startCacheConsumer(): Promise<void> {
         try {
           const event: KafkaEvent = JSON.parse(message.value?.toString() || '{}');
           
-          console.log(`[Cache Consumer] Processing: ${event.entityType} ${event.eventType}`);
+          logger.info(`[Cache Consumer] Processing: ${event.entityType} ${event.eventType}`);
           
           // Get cache patterns for this entity type
           const patterns = CACHE_PATTERNS[event.entityType] || [];
           
           // In a real implementation, this would invalidate Redis/Memcached
           // For now, we just log the patterns that should be invalidated
-          console.log(`[Cache Consumer] Would invalidate patterns:`, patterns);
+          logger.info(`[Cache Consumer] Would invalidate patterns:`, patterns);
           
           // Example: If using Redis
           // for (const pattern of patterns) {
@@ -60,14 +61,14 @@ export async function startCacheConsumer(): Promise<void> {
           // }
           
         } catch (error) {
-          console.error('[Cache Consumer] Error processing message:', error);
+          logger.error('[Cache Consumer] Error processing message:', error);
         }
       },
     });
 
-    console.log('[Cache Consumer] Started successfully');
+    logger.info('[Cache Consumer] Started successfully');
   } catch (error) {
-    console.error('[Cache Consumer] Failed to start:', error);
+    logger.error('[Cache Consumer] Failed to start:', error);
   }
 }
 
@@ -94,12 +95,12 @@ export async function startAuditConsumer(): Promise<void> {
         try {
           const event: KafkaEvent = JSON.parse(message.value?.toString() || '{}');
           
-          console.log(`[Audit Consumer] Logging: ${event.entityType} ${event.eventType}`);
+          logger.info(`[Audit Consumer] Logging: ${event.entityType} ${event.eventType}`);
           
           // Write to audit_logs table
           const db = await getDb();
           if (!db) {
-            console.error('[Audit Consumer] Database not available');
+            logger.error('[Audit Consumer] Database not available');
             return;
           }
           
@@ -114,17 +115,17 @@ export async function startAuditConsumer(): Promise<void> {
             metadata: event.metadata || {},
           });
           
-          console.log(`[Audit Consumer] Logged event: ${event.eventId}`);
+          logger.info(`[Audit Consumer] Logged event: ${event.eventId}`);
           
         } catch (error) {
-          console.error('[Audit Consumer] Error processing message:', error);
+          logger.error('[Audit Consumer] Error processing message:', error);
         }
       },
     });
 
-    console.log('[Audit Consumer] Started successfully');
+    logger.info('[Audit Consumer] Started successfully');
   } catch (error) {
-    console.error('[Audit Consumer] Failed to start:', error);
+    logger.error('[Audit Consumer] Failed to start:', error);
   }
 }
 
@@ -143,7 +144,7 @@ export async function startNotificationConsumer(): Promise<void> {
         try {
           const event: KafkaEvent = JSON.parse(message.value?.toString() || '{}');
           
-          console.log(`[Notification Consumer] Processing notification:`, event.data);
+          logger.info(`[Notification Consumer] Processing notification:`, event.data);
           
           // In a real implementation, this would:
           // 1. Send push notifications via Firebase/OneSignal
@@ -152,23 +153,23 @@ export async function startNotificationConsumer(): Promise<void> {
           // 4. Store in-app notifications in database
           
           // For now, we just log
-          console.log(`[Notification Consumer] Would send notification to user ${event.userId}`);
+          logger.info(`[Notification Consumer] Would send notification to user ${event.userId}`);
           
         } catch (error) {
-          console.error('[Notification Consumer] Error processing message:', error);
+          logger.error('[Notification Consumer] Error processing message:', error);
         }
       },
     });
 
-    console.log('[Notification Consumer] Started successfully');
+    logger.info('[Notification Consumer] Started successfully');
   } catch (error) {
-    console.error('[Notification Consumer] Failed to start:', error);
+    logger.error('[Notification Consumer] Failed to start:', error);
   }
 }
 
 // Start all consumers
 export async function startAllConsumers(): Promise<void> {
-  console.log('[Kafka Consumers] Starting all consumers...');
+  logger.info('[Kafka Consumers] Starting all consumers...');
   
   await Promise.all([
     startCacheConsumer(),
@@ -176,12 +177,12 @@ export async function startAllConsumers(): Promise<void> {
     startNotificationConsumer(),
   ]);
   
-  console.log('[Kafka Consumers] All consumers started');
+  logger.info('[Kafka Consumers] All consumers started');
 }
 
 // Stop all consumers
 export async function stopAllConsumers(): Promise<void> {
-  console.log('[Kafka Consumers] Stopping all consumers...');
+  logger.info('[Kafka Consumers] Stopping all consumers...');
   
   const disconnectPromises: Promise<void>[] = [];
   
@@ -203,7 +204,7 @@ export async function stopAllConsumers(): Promise<void> {
   auditConsumer = null;
   notificationConsumer = null;
   
-  console.log('[Kafka Consumers] All consumers stopped');
+  logger.info('[Kafka Consumers] All consumers stopped');
 }
 
 // Handle process termination

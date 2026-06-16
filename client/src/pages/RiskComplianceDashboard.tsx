@@ -41,6 +41,7 @@ import {
   Loader2,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type Severity = "critical" | "high" | "medium" | "low";
 
 function getDateBounds(range: string) {
@@ -108,7 +109,7 @@ function getStatusIcon(status: string) {
       return <Clock className="h-4 w-4 text-yellow-600" />;
     case "dismissed":
     case "rejected":
-      return <XCircle className="h-4 w-4 text-gray-600" />;
+      return <XCircle className="h-4 w-4 text-gray-600 dark:text-gray-300" />;
     default:
       return <AlertCircle className="h-4 w-4" />;
   }
@@ -236,14 +237,15 @@ export default function RiskComplianceDashboard() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4 flex min-h-[50vh] items-center justify-center">
+      <div role="main" aria-label="Page content" className="container mx-auto p-4 flex min-h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <DashboardLayout>
+      <div className="container mx-auto p-4 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -468,7 +470,7 @@ export default function RiskComplianceDashboard() {
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search logs..."
+                    aria-label="Search" placeholder="Search logs..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -604,5 +606,6 @@ export default function RiskComplianceDashboard() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

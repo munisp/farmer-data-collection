@@ -10,8 +10,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -1392,15 +1394,33 @@ func main() {
 	router.HandleFunc("/ws", handleWebSocket)
 	router.HandleFunc("/health", handleHealth)
 
-	// Start server
+	// Start server with graceful shutdown
 	addr := fmt.Sprintf(":%s", config.Port)
-	log.Printf("[SyncOrchestrator] Starting server on %s", addr)
-	log.Printf("[SyncOrchestrator] Push endpoint: POST http://localhost%s/api/sync/push", addr)
-	log.Printf("[SyncOrchestrator] Pull endpoint: POST http://localhost%s/api/sync/pull", addr)
-	log.Printf("[SyncOrchestrator] WebSocket: ws://localhost%s/ws", addr)
-	log.Printf("[SyncOrchestrator] Health: http://localhost%s/health", addr)
-
-	if err := http.ListenAndServe(addr, router); err != nil {
-		log.Fatalf("[SyncOrchestrator] Server failed: %v", err)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	go func() {
+		log.Printf("[SyncOrchestrator] Server starting on %s", addr)
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("[SyncOrchestrator] Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("[SyncOrchestrator] Shutting down gracefully...")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	orchestrator.Stop()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("[SyncOrchestrator] Forced shutdown: %v", err)
+	}
+	log.Println("[SyncOrchestrator] Server stopped")
 }

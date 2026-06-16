@@ -1,56 +1,94 @@
-import { cn } from "@/lib/utils";
-import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Component, ReactNode } from "react";
+import React, { Component, type ErrorInfo, type ReactNode } from 'react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface Props {
+interface ErrorBoundaryProps {
   children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  resetKeys?: unknown[];
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
-  render() {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    this.setState({ errorInfo });
+    this.props.onError?.(error, errorInfo);
+  }
+
+  componentDidUpdate(prevProps: ErrorBoundaryProps): void {
+    if (this.state.hasError && this.props.resetKeys) {
+      const changed = this.props.resetKeys.some(
+        (key, i) => key !== prevProps.resetKeys?.[i]
+      );
+      if (changed) {
+        this.setState({ hasError: false, error: null, errorInfo: null });
+      }
+    }
+  }
+
+  handleReset = (): void => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
+  };
+
+  render(): ReactNode {
     if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
+
       return (
-        <div className="flex items-center justify-center min-h-screen p-8 bg-background">
-          <div className="flex flex-col items-center w-full max-w-2xl p-8">
-            <AlertTriangle
-              size={48}
-              className="text-destructive mb-6 flex-shrink-0"
-            />
-
-            <h2 className="text-xl mb-4">An unexpected error occurred.</h2>
-
-            <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
-              <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.stack}
-              </pre>
-            </div>
-
-            <button
-              onClick={() => window.location.reload()}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-primary text-primary-foreground",
-                "hover:opacity-90 cursor-pointer"
+        <div className="flex items-center justify-center min-h-[400px] p-6">
+          <Card className="max-w-lg w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Something went wrong
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                An unexpected error occurred. Please try refreshing the page or
+                contact support if the problem persists.
+              </p>
+              {this.state.error && (
+                <details className="text-xs bg-muted p-3 rounded-md">
+                  <summary className="cursor-pointer font-medium">
+                    Error details
+                  </summary>
+                  <pre className="mt-2 whitespace-pre-wrap break-words">
+                    {this.state.error.message}
+                  </pre>
+                </details>
               )}
-            >
-              <RotateCcw size={16} />
-              Reload Page
-            </button>
-          </div>
+              <div className="flex gap-2">
+                <Button onClick={this.handleReset} variant="outline" size="sm">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="default"
+                  size="sm"
+                >
+                  Reload Page
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       );
     }
@@ -59,4 +97,15 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-export default ErrorBoundary;
+export function withErrorBoundary<P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  fallback?: ReactNode
+) {
+  const WithErrorBoundary = (props: P) => (
+    <ErrorBoundary fallback={fallback}>
+      <WrappedComponent {...props} />
+    </ErrorBoundary>
+  );
+  WithErrorBoundary.displayName = `WithErrorBoundary(${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
+  return WithErrorBoundary;
+}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -8,7 +9,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { database } from '@/services/database';
@@ -289,6 +290,7 @@ export default function LoanApplicationScreen() {
         <View style={styles.purposeGrid}>
           {LOAN_PURPOSES.map((purpose) => (
             <TouchableOpacity
+          accessibilityRole="button"
               key={purpose}
               style={[
                 styles.purposeChip,
@@ -323,10 +325,13 @@ export default function LoanApplicationScreen() {
 
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Loan Term</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView
+      accessibilityLabel="Loan Application screen"
+      accessibilityRole="scrollbar" horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.termContainer}>
             {LOAN_TERMS.map((term) => (
               <TouchableOpacity
+          accessibilityRole="button"
                 key={term.value}
                 style={[
                   styles.termChip,
@@ -353,6 +358,7 @@ export default function LoanApplicationScreen() {
         <View style={styles.frequencyContainer}>
           {REPAYMENT_FREQUENCIES.map((freq) => (
             <TouchableOpacity
+          accessibilityRole="button"
               key={freq.value}
               style={[
                 styles.frequencyChip,
@@ -476,10 +482,11 @@ export default function LoanApplicationScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          accessibilityRole="button" onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Loan Application</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Loan Application</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -503,12 +510,14 @@ export default function LoanApplicationScreen() {
 
       <View style={styles.footer}>
         {step > 1 && (
-          <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+          <TouchableOpacity
+          accessibilityRole="button" style={styles.backBtn} onPress={handleBack}>
             <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
         )}
         {step < 3 ? (
           <TouchableOpacity
+          accessibilityRole="button"
             style={[styles.nextBtn, step === 1 && styles.nextBtnFull]}
             onPress={handleNext}
           >
@@ -516,6 +525,7 @@ export default function LoanApplicationScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
+          accessibilityRole="button"
             style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
             onPress={handleSubmit}
             disabled={loading}
@@ -543,13 +553,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
   backButton: {
     fontSize: 16,
-    color: '#166534',
+    color: colors.primaryDark,
   },
   headerTitle: {
     fontSize: 18,
@@ -564,7 +574,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   progressStep: {
     flex: 1,
@@ -573,7 +583,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressStepActive: {
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
   },
   content: {
     flex: 1,
@@ -599,13 +609,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.gray700,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -619,7 +629,7 @@ const styles = StyleSheet.create({
   amountText: {
     marginTop: 4,
     fontSize: 12,
-    color: '#166534',
+    color: colors.primaryDark,
     fontWeight: '500',
   },
   purposeGrid: {
@@ -631,20 +641,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   purposeChipActive: {
-    borderColor: '#166534',
-    backgroundColor: '#f0fdf4',
+    borderColor: colors.primaryDark,
+    backgroundColor: colors.primaryLight,
   },
   purposeChipText: {
     fontSize: 13,
     color: '#64748b',
   },
   purposeChipTextActive: {
-    color: '#166534',
+    color: colors.primaryDark,
     fontWeight: '600',
   },
   termContainer: {
@@ -656,20 +666,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   termChipActive: {
-    borderColor: '#166534',
-    backgroundColor: '#f0fdf4',
+    borderColor: colors.primaryDark,
+    backgroundColor: colors.primaryLight,
   },
   termChipText: {
     fontSize: 14,
     color: '#64748b',
   },
   termChipTextActive: {
-    color: '#166534',
+    color: colors.primaryDark,
     fontWeight: '600',
   },
   frequencyContainer: {
@@ -681,24 +691,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   frequencyChipActive: {
-    borderColor: '#166534',
-    backgroundColor: '#f0fdf4',
+    borderColor: colors.primaryDark,
+    backgroundColor: colors.primaryLight,
   },
   frequencyChipText: {
     fontSize: 14,
     color: '#64748b',
   },
   frequencyChipTextActive: {
-    color: '#166534',
+    color: colors.primaryDark,
     fontWeight: '600',
   },
   summaryCard: {
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -706,7 +716,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
     marginBottom: 12,
   },
   summaryRow: {
@@ -730,12 +740,12 @@ const styles = StyleSheet.create({
   summaryLabelTotal: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#fff',
+    color: colors.white,
   },
   summaryValueHighlight: {
     fontSize: 16,
@@ -745,10 +755,10 @@ const styles = StyleSheet.create({
   summaryValueTotal: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.white,
   },
   reviewCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -758,7 +768,7 @@ const styles = StyleSheet.create({
   reviewSection: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#166534',
+    color: colors.primaryDark,
     marginBottom: 12,
   },
   reviewRow: {
@@ -783,7 +793,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
   },
@@ -791,7 +801,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray300,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -803,7 +813,7 @@ const styles = StyleSheet.create({
   nextBtn: {
     flex: 1,
     paddingVertical: 14,
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -813,12 +823,12 @@ const styles = StyleSheet.create({
   nextBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
   submitBtn: {
     flex: 1,
     paddingVertical: 14,
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -828,6 +838,6 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
 });

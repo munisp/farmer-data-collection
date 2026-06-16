@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,7 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Target, Calendar, DollarSign, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function YieldPrediction() {
+  const yieldPredictionQuery = trpc.predictiveAnalytics.predictYield.useQuery({ farmId: 1, cropType: "maize", plantingDate: new Date().toISOString().split("T")[0], areaHectares: 1 }, { retry: 1 });
+  const yieldPredictionData = yieldPredictionQuery.data ?? null;
+
   const [selectedField, setSelectedField] = useState("field-1");
   const [selectedCrop, setSelectedCrop] = useState("maize");
 
@@ -73,22 +78,52 @@ export default function YieldPrediction() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "low": return "bg-green-100 text-green-800";
-      case "medium": return "bg-yellow-100 text-yellow-800";
-      case "high": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "low": return "bg-green-100 dark:bg-green-900 text-green-800";
+      case "medium": return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800";
+      case "high": return "bg-red-100 dark:bg-red-900 text-red-800";
+      default: return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100";
     }
   };
 
+  // Loading & error states
+  if (yieldPredictionQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (yieldPredictionQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => yieldPredictionQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 shadow-sm dark:shadow-gray-900/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Yield Prediction & Analytics</h1>
-              <p className="text-sm text-gray-600">AI-powered yield forecasting and performance analysis</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Yield Prediction & Analytics</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300">AI-powered yield forecasting and performance analysis</p>
             </div>
             <Link href="/precision-agriculture">
               <a className="text-sm text-blue-600 hover:text-blue-800">← Back</a>
@@ -100,7 +135,7 @@ export default function YieldPrediction() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Field Selection */}
-        <Card className="mb-6 bg-white">
+        <Card className="mb-6 bg-white dark:bg-gray-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5 text-emerald-600" />
@@ -146,7 +181,7 @@ export default function YieldPrediction() {
           {/* Main Prediction Card */}
           <div className="lg:col-span-2 space-y-6">
             {/* Yield Forecast */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-emerald-600" />
@@ -158,11 +193,11 @@ export default function YieldPrediction() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Predicted Yield */}
                   <div className="text-center p-6 bg-gradient-to-br from-emerald-50 to-green-100 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-2">Predicted Yield</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Predicted Yield</p>
                     <p className="text-4xl font-bold text-emerald-700">
                       {prediction.predictedYield.toLocaleString()}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">{prediction.unit}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{prediction.unit}</p>
                     <Badge className="mt-3 bg-emerald-600">
                       {prediction.confidence}% Confidence
                     </Badge>
@@ -172,23 +207,23 @@ export default function YieldPrediction() {
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-600">Minimum</span>
+                        <span className="text-gray-600 dark:text-gray-300">Minimum</span>
                         <span className="font-semibold">{prediction.minYield.toLocaleString()} {prediction.unit}</span>
                       </div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-600">Expected</span>
+                        <span className="text-gray-600 dark:text-gray-300">Expected</span>
                         <span className="font-semibold text-emerald-600">{prediction.predictedYield.toLocaleString()} {prediction.unit}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Maximum</span>
+                        <span className="text-gray-600 dark:text-gray-300">Maximum</span>
                         <span className="font-semibold">{prediction.maxYield.toLocaleString()} {prediction.unit}</span>
                       </div>
                     </div>
 
                     <div className="border-t pt-4">
                       <div className="flex items-center gap-2 text-sm mb-2">
-                        <Calendar className="h-4 w-4 text-gray-600" />
-                        <span className="text-gray-600">Est. Harvest Date:</span>
+                        <Calendar className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                        <span className="text-gray-600 dark:text-gray-300">Est. Harvest Date:</span>
                       </div>
                       <p className="font-semibold">
                         {new Date(prediction.estimatedHarvestDate).toLocaleDateString()}
@@ -197,8 +232,8 @@ export default function YieldPrediction() {
 
                     <div className="border-t pt-4">
                       <div className="flex items-center gap-2 text-sm mb-2">
-                        <DollarSign className="h-4 w-4 text-gray-600" />
-                        <span className="text-gray-600">Est. Revenue:</span>
+                        <DollarSign className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                        <span className="text-gray-600 dark:text-gray-300">Est. Revenue:</span>
                       </div>
                       <p className="font-semibold text-green-600">
                         ${prediction.estimatedRevenue.toLocaleString()}
@@ -210,7 +245,7 @@ export default function YieldPrediction() {
             </Card>
 
             {/* Contributing Factors */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle>Contributing Factors</CardTitle>
                 <CardDescription>Impact on predicted yield</CardDescription>
@@ -228,7 +263,7 @@ export default function YieldPrediction() {
                           <span className="text-sm font-semibold">{factor.contribution}%</span>
                         </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className="bg-emerald-600 h-2 rounded-full transition-all"
                           style={{ width: `${factor.contribution}%` }}
@@ -241,7 +276,7 @@ export default function YieldPrediction() {
             </Card>
 
             {/* Historical Performance */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle>Historical Performance</CardTitle>
                 <CardDescription>Past 5 seasons</CardDescription>
@@ -249,10 +284,10 @@ export default function YieldPrediction() {
               <CardContent>
                 <div className="space-y-2">
                   {historicalYields.map((record, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
                       <div>
                         <p className="font-medium">{record.year} {record.season}</p>
-                        <p className="text-sm text-gray-600">{record.yield.toLocaleString()} kg/ha</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{record.yield.toLocaleString()} kg/ha</p>
                       </div>
                       {index > 0 && (
                         <div className="flex items-center gap-1">
@@ -280,7 +315,7 @@ export default function YieldPrediction() {
             </Card>
 
             {/* Yield Gap Analysis */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle>Yield Gap Analysis</CardTitle>
                 <CardDescription>Potential for improvement</CardDescription>
@@ -288,19 +323,19 @@ export default function YieldPrediction() {
               <CardContent>
                 <div className="mb-6">
                   <div className="flex justify-between mb-2">
-                    <span className="text-sm text-gray-600">Current Yield</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Current Yield</span>
                     <span className="font-semibold">{yieldGap.actual} kg/ha</span>
                   </div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-sm text-gray-600">Potential Yield</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Potential Yield</span>
                     <span className="font-semibold">{yieldGap.potential} kg/ha</span>
                   </div>
                   <div className="flex justify-between mb-4">
-                    <span className="text-sm font-medium text-gray-900">Yield Gap</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Yield Gap</span>
                     <span className="font-bold text-orange-600">{yieldGap.gap}%</span>
                   </div>
                   
-                  <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
                     <div
                       className="bg-emerald-600 h-4 rounded-full"
                       style={{ width: `${(yieldGap.actual / yieldGap.potential) * 100}%` }}
@@ -319,7 +354,7 @@ export default function YieldPrediction() {
                             -{factor.impact}%
                           </Badge>
                         </div>
-                        <p className="text-xs text-gray-600">💡 {factor.solution}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">💡 {factor.solution}</p>
                       </div>
                     ))}
                   </div>
@@ -331,7 +366,7 @@ export default function YieldPrediction() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Recommendations */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Recommendations</CardTitle>
                 <CardDescription>Actions to optimize yield</CardDescription>
@@ -349,34 +384,34 @@ export default function YieldPrediction() {
             </Card>
 
             {/* Quick Stats */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Quick Stats</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-xs text-gray-600">Total Production</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">Total Production</p>
                   <p className="text-2xl font-bold">{(prediction.totalProduction / 1000).toFixed(1)} tons</p>
                 </div>
                 <div className="border-t pt-4">
-                  <p className="text-xs text-gray-600">Avg Yield (5 years)</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">Avg Yield (5 years)</p>
                   <p className="text-2xl font-bold">
                     {Math.round(historicalYields.reduce((sum, r) => sum + r.yield, 0) / historicalYields.length)} kg/ha
                   </p>
                 </div>
                 <div className="border-t pt-4">
-                  <p className="text-xs text-gray-600">Yield Trend</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">Yield Trend</p>
                   <div className="flex items-center gap-2 mt-1">
                     <TrendingUp className="h-5 w-5 text-green-600" />
                     <p className="text-xl font-bold text-green-600">+17.7%</p>
                   </div>
-                  <p className="text-xs text-gray-500">vs 5-year average</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400">vs 5-year average</p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Actions */}
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Actions</CardTitle>
               </CardHeader>
@@ -396,5 +431,6 @@ export default function YieldPrediction() {
         </div>
       </main>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

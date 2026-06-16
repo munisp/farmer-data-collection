@@ -1,0 +1,421 @@
+# Kubernetes CronJobs for Automated Database Backups
+# Schedules PostgreSQL, Redis, and TigerBeetle backups
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup-full
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+    component: backup
+    target: postgres
+spec:
+  schedule: "0 2 * * *"  # Daily at 2:00 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app: farmconnect
+            component: backup
+            target: postgres
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-sa
+          containers:
+            - name: pg-backup
+              image: postgres:16-alpine
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  BACKUP_FILE="/backups/pg_full_${TIMESTAMP}.sql.gz"
+                  echo "[$(date)] Starting PostgreSQL full backup..."
+                  pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+                    --format=custom --compress=6 --verbose \
+                    -f "$BACKUP_FILE"
+                  echo "[$(date)] Backup complete: $(du -h $BACKUP_FILE | cut -f1)"
+                  # Upload to S3 if configured
+                  if [ -n "${S3_BUCKET:-}" ]; then
+                    aws s3 cp "$BACKUP_FILE" "s3://${S3_BUCKET}/postgres/${TIMESTAMP}.sql.gz"
+                    echo "[$(date)] Uploaded to S3"
+                  fi
+                  # Cleanup backups older than 30 days
+                  find /backups -name "pg_full_*.sql.gz" -mtime +30 -delete 2>/dev/null || true
+                  echo "[$(date)] Backup job complete"
+              env:
+                - name: DB_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: farmconnect-db-credentials
+                      key: host
+                - name: DB_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: farmconnect-db-credentials
+                      key: port
+                - name: DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: farmconnect-db-credentials
+                      key: username
+                - name: DB_NAME
+                  value: farmer_data
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: farmconnect-db-credentials
+                      key: password
+                - name: S3_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backup-config
+                      key: s3-bucket
+                      optional: true
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 1Gi
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-backup
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+    component: backup
+    target: redis
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: farmconnect
+            component: backup
+            target: redis
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-sa
+          containers:
+            - name: redis-backup
+              image: redis:7-alpine
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  echo "[$(date)] Starting Redis backup..."
+                  # Trigger BGSAVE and wait
+                  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" BGSAVE
+                  sleep 5
+                  WAITED=0
+                  while [ $WAITED -lt 120 ]; do
+                    BG=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" INFO persistence | grep rdb_bgsave_in_progress | tr -d '\r' | cut -d: -f2)
+                    [ "$BG" = "0" ] && break
+                    sleep 2
+                    WAITED=$((WAITED + 2))
+                  done
+                  # Copy RDB file
+                  RDB_DIR=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" CONFIG GET dir | tail -1 | tr -d '\r')
+                  RDB_FILE=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" CONFIG GET dbfilename | tail -1 | tr -d '\r')
+                  cp "${RDB_DIR}/${RDB_FILE}" "/backups/redis_${TIMESTAMP}.rdb"
+                  gzip "/backups/redis_${TIMESTAMP}.rdb"
+                  echo "[$(date)] Backup: $(du -h /backups/redis_${TIMESTAMP}.rdb.gz | cut -f1)"
+                  DBSIZE=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" DBSIZE | tr -d '\r')
+                  echo "[$(date)] DB size: $DBSIZE"
+                  # Cleanup old backups
+                  find /backups -name "redis_*.rdb.gz" -mtime +14 -delete 2>/dev/null || true
+                  echo "[$(date)] Redis backup complete"
+              env:
+                - name: REDIS_HOST
+                  value: redis-master.farmconnect.svc.cluster.local
+                - name: REDIS_PORT
+                  value: "6379"
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+                - name: redis-data
+                  mountPath: /data
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 200m
+                  memory: 512Mi
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+            - name: redis-data
+              persistentVolumeClaim:
+                claimName: redis-data-pvc
+                readOnly: true
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tigerbeetle-backup
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+    component: backup
+    target: tigerbeetle
+spec:
+  schedule: "0 4 * * *"  # Daily at 4:00 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app: farmconnect
+            component: backup
+            target: tigerbeetle
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-sa
+          containers:
+            - name: tb-backup
+              image: alpine:3.19
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  apk add --no-cache gzip aws-cli 2>/dev/null || true
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  TB_FILE="/tb-data/0_0.tigerbeetle"
+                  echo "[$(date)] Starting TigerBeetle backup..."
+                  if [ ! -f "$TB_FILE" ]; then
+                    echo "[$(date)] ERROR: TigerBeetle data file not found"
+                    exit 1
+                  fi
+                  ORIG_SIZE=$(du -h "$TB_FILE" | cut -f1)
+                  echo "[$(date)] Data file: $ORIG_SIZE"
+                  # Copy and compress
+                  cp "$TB_FILE" "/backups/tigerbeetle_${TIMESTAMP}.data"
+                  gzip "/backups/tigerbeetle_${TIMESTAMP}.data"
+                  COMP_SIZE=$(du -h "/backups/tigerbeetle_${TIMESTAMP}.data.gz" | cut -f1)
+                  echo "[$(date)] Compressed: $COMP_SIZE"
+                  # Write checksum
+                  sha256sum "/backups/tigerbeetle_${TIMESTAMP}.data.gz" > "/backups/tigerbeetle_${TIMESTAMP}.sha256"
+                  # Upload to S3 if configured
+                  if [ -n "${S3_BUCKET:-}" ]; then
+                    aws s3 cp "/backups/tigerbeetle_${TIMESTAMP}.data.gz" "s3://${S3_BUCKET}/tigerbeetle/"
+                    echo "[$(date)] Uploaded to S3"
+                  fi
+                  # Cleanup
+                  find /backups -name "tigerbeetle_*.data.gz" -mtime +30 -delete 2>/dev/null || true
+                  find /backups -name "tigerbeetle_*.sha256" -mtime +30 -delete 2>/dev/null || true
+                  echo "[$(date)] TigerBeetle backup complete"
+              env:
+                - name: S3_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backup-config
+                      key: s3-bucket
+                      optional: true
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+                - name: tb-data
+                  mountPath: /tb-data
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 1Gi
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+            - name: tb-data
+              persistentVolumeClaim:
+                claimName: tigerbeetle-data-pvc
+                readOnly: true
+
+---
+# Backup verification job — runs after all backups complete
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-verify
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+    component: backup
+    target: verification
+spec:
+  schedule: "0 6 * * *"  # Daily at 6:00 AM UTC (after all backups)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app: farmconnect
+            component: backup
+            target: verification
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-sa
+          containers:
+            - name: verify
+              image: alpine:3.19
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  echo "=== Backup Verification Report ==="
+                  echo "Date: $(date)"
+                  echo ""
+                  FAILURES=0
+                  # Check PostgreSQL backup (should be < 24h old)
+                  PG=$(ls -t /backups/pg_full_*.sql.gz 2>/dev/null | head -1)
+                  if [ -n "$PG" ]; then
+                    AGE=$(( ($(date +%s) - $(stat -c %Y "$PG")) / 3600 ))
+                    SIZE=$(du -h "$PG" | cut -f1)
+                    echo "PostgreSQL: OK ($SIZE, ${AGE}h ago)"
+                    [ "$AGE" -gt 26 ] && echo "  WARNING: Older than 26h" && FAILURES=$((FAILURES+1))
+                  else
+                    echo "PostgreSQL: MISSING"
+                    FAILURES=$((FAILURES+1))
+                  fi
+                  # Check Redis backup (should be < 8h old)
+                  RD=$(ls -t /backups/redis_*.rdb.gz 2>/dev/null | head -1)
+                  if [ -n "$RD" ]; then
+                    AGE=$(( ($(date +%s) - $(stat -c %Y "$RD")) / 3600 ))
+                    SIZE=$(du -h "$RD" | cut -f1)
+                    echo "Redis: OK ($SIZE, ${AGE}h ago)"
+                    [ "$AGE" -gt 8 ] && echo "  WARNING: Older than 8h" && FAILURES=$((FAILURES+1))
+                  else
+                    echo "Redis: MISSING"
+                    FAILURES=$((FAILURES+1))
+                  fi
+                  # Check TigerBeetle backup (should be < 26h old)
+                  TB=$(ls -t /backups/tigerbeetle_*.data.gz 2>/dev/null | head -1)
+                  if [ -n "$TB" ]; then
+                    AGE=$(( ($(date +%s) - $(stat -c %Y "$TB")) / 3600 ))
+                    SIZE=$(du -h "$TB" | cut -f1)
+                    echo "TigerBeetle: OK ($SIZE, ${AGE}h ago)"
+                    [ "$AGE" -gt 26 ] && echo "  WARNING: Older than 26h" && FAILURES=$((FAILURES+1))
+                    # Verify checksum
+                    SHA_FILE="${TB%.data.gz}.sha256"
+                    if [ -f "$SHA_FILE" ]; then
+                      if sha256sum -c "$SHA_FILE" >/dev/null 2>&1; then
+                        echo "  Checksum: VALID"
+                      else
+                        echo "  Checksum: INVALID"
+                        FAILURES=$((FAILURES+1))
+                      fi
+                    fi
+                  else
+                    echo "TigerBeetle: MISSING"
+                    FAILURES=$((FAILURES+1))
+                  fi
+                  echo ""
+                  echo "Disk usage: $(du -sh /backups | cut -f1)"
+                  echo "Total files: $(find /backups -type f | wc -l)"
+                  echo "Failures: $FAILURES"
+                  [ "$FAILURES" -gt 0 ] && exit 1
+                  echo "=== All backups verified ==="
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+                readOnly: true
+
+---
+# Shared backup PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-pvc
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+    component: backup
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: gp3
+
+---
+# Backup config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: farmconnect
+data:
+  s3-bucket: "farmconnect-backups"
+  s3-region: "us-east-1"
+  pg-retention-days: "30"
+  redis-retention-days: "14"
+  tb-retention-days: "30"
+
+---
+# ServiceAccount for backup jobs
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-sa
+  namespace: farmconnect
+  labels:
+    app: farmconnect
+    component: backup
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::role/farmconnect-backup-role

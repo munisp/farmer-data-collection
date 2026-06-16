@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 type PolygonBoundary = {
   type: "Polygon";
   coordinates: number[][][];
@@ -30,14 +31,14 @@ const isPolygonBoundary = (value: unknown): value is PolygonBoundary => {
 const getHealthColor = (status: string) => {
   switch (status) {
     case "excellent":
-      return "bg-green-100 text-green-800 border-green-300";
+      return "bg-green-100 dark:bg-green-900 text-green-800 border-green-300";
     case "good":
       return "bg-emerald-100 text-emerald-800 border-emerald-300";
     case "moderate":
-      return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 border-yellow-300";
     case "poor":
     case "critical":
-      return "bg-red-100 text-red-800 border-red-300";
+      return "bg-red-100 dark:bg-red-900 text-red-800 border-red-300";
     default:
       return "bg-slate-100 text-slate-700 border-slate-300";
   }
@@ -52,7 +53,7 @@ const formatDate = (value: string | Date | null | undefined) => {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <Card className="bg-white">
+    <Card className="bg-white dark:bg-gray-900">
       <CardContent className="py-12 text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
           <Info className="h-6 w-6" />
@@ -180,7 +181,7 @@ export default function SatelliteImagery() {
 
   if (fieldsQuery.isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-emerald-50">
+      <div role="main" aria-label="Page content" className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-emerald-50">
         <main className="container mx-auto px-4 py-8">
           <p className="text-slate-600">Loading live field geometry for satellite analysis.</p>
         </main>
@@ -202,14 +203,15 @@ export default function SatelliteImagery() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-emerald-50">
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white shadow-sm">
+    <DashboardLayout>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-emerald-50">
+      <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-gray-900/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Satellite Imagery</h1>
-                <p className="text-sm text-gray-600">Live vegetation analysis for your persisted field boundaries</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Satellite Imagery</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Live vegetation analysis for your persisted field boundaries</p>
               </div>
               {serviceHealthQuery.data ? (
                 <Badge variant="outline" className={getHealthColor(serviceHealthQuery.data.status)}>
@@ -230,7 +232,7 @@ export default function SatelliteImagery() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Card className="mb-6 bg-white">
+        <Card className="mb-6 bg-white dark:bg-gray-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Satellite className="h-5 w-5 text-blue-600" />
@@ -298,7 +300,7 @@ export default function SatelliteImagery() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -339,7 +341,7 @@ export default function SatelliteImagery() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-emerald-600" />
@@ -389,7 +391,7 @@ export default function SatelliteImagery() {
           </div>
 
           <div className="space-y-6">
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Vegetation Indices</CardTitle>
                 <CardDescription>Current live field statistics</CardDescription>
@@ -430,7 +432,7 @@ export default function SatelliteImagery() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Recommendations</CardTitle>
                 <CardDescription>Live guidance derived from satellite analyses</CardDescription>
@@ -451,7 +453,7 @@ export default function SatelliteImagery() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white">
+            <Card className="bg-white dark:bg-gray-900">
               <CardHeader>
                 <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
@@ -470,5 +472,6 @@ export default function SatelliteImagery() {
         </div>
       </main>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -1,0 +1,285 @@
+# PodDisruptionBudgets for FarmConnect Platform
+# Ensures minimum availability during voluntary disruptions (upgrades, drains)
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: farmconnect-api-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: api
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: farmconnect-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: delivery-service-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: delivery
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: delivery-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mobile-money-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: payments
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: mobile-money-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ml-inference-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: ml
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: ml-inference-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: exchange-service-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: exchange
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: exchange-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: aquaculture-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: aquaculture
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: aquaculture-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: blockchain-provenance-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: blockchain
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: blockchain-provenance-service
+---
+# Go Services — critical financial and coordination
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: loan-orchestrator-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: loans
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: loan-orchestrator
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tigerbeetle-svc-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: ledger
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: tigerbeetle-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: supply-chain-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: supply-chain
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: supply-chain-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: contract-farming-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: contracts
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: contract-farming-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sync-orchestrator-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: sync
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sync-orchestrator
+---
+# Rust Services — latency-sensitive
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: iot-gateway-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: iot
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: iot-gateway-rust
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: openappsec-waf-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: security
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: openappsec-waf-rust
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: urban-delivery-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: delivery
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: urban-delivery-rust
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tokenization-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: tokenization
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: tokenization-service-rust
+---
+# Python ML Services — tolerant of brief disruption
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: price-prediction-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: ml
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: price-prediction-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: lakehouse-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: data
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: lakehouse-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: messaging-middleware-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: messaging
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: messaging-middleware
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: realtime-service-pdb
+  namespace: farmconnect
+  labels:
+    app.kubernetes.io/part-of: farmconnect
+    app.kubernetes.io/component: realtime
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: realtime-service

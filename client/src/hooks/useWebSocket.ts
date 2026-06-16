@@ -1,13 +1,25 @@
 /**
  * WebSocket Hook for Real-time Updates
- * 
- * Provides real-time event updates from the server
+ *
+ * Uses the ResilientConnectionManager for automatic:
+ * - Exponential backoff with jitter reconnection
+ * - Transport fallback: WebSocket → SSE → polling
+ * - Offline message queue (IndexedDB-backed, up to 5000 messages)
+ * - Bandwidth detection and adaptive protocol switching
+ * - Heartbeat/keepalive (15s interval, 10s timeout)
+ *
+ * Designed for low-bandwidth, intermittent connectivity in rural Africa.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  useResilientConnection,
+  type ConnectionStatus,
+  type NetworkQuality,
+} from '@/services/resilient-connectivity';
 
 // ============================================================================
 // Types
@@ -18,17 +30,21 @@ export interface RealtimeEvent {
         'crop_planted' | 'livestock_added' | 'harvest_recorded' | 'expense_logged' |
         'dashboard_update' | 'notification';
   userId: number;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: string;
 }
 
 export interface WebSocketStatus {
   connected: boolean;
   socketId?: string;
+  transport?: string;
+  networkQuality?: NetworkQuality;
+  queueSize?: number;
+  reconnectAttempts?: number;
 }
 
 // ============================================================================
-// WebSocket Hook
+// WebSocket Hook (with Resilient Connectivity)
 // ============================================================================
 
 export function useWebSocket() {
@@ -37,77 +53,93 @@ export function useWebSocket() {
   const [status, setStatus] = useState<WebSocketStatus>({ connected: false });
   const [lastEvent, setLastEvent] = useState<RealtimeEvent | null>(null);
 
+  // Resilient connection for offline queueing and bandwidth adaptation
+  const clientId = user ? `user-${user.id}-${Date.now()}` : undefined;
+  const { status: resilientStatus, send: resilientSend, subscribe: resilientSubscribe } =
+    useResilientConnection(clientId);
+
+  // Map resilient status to WebSocket status
+  useEffect(() => {
+    setStatus(prev => ({
+      ...prev,
+      transport: resilientStatus.transport,
+      networkQuality: resilientStatus.network.quality,
+      queueSize: resilientStatus.queueSize,
+      reconnectAttempts: resilientStatus.reconnectAttempts,
+    }));
+  }, [resilientStatus]);
+
+  // Subscribe to resilient connection messages and forward as events
+  useEffect(() => {
+    const unsub = resilientSubscribe('realtime_event', (data) => {
+      const event = data as RealtimeEvent;
+      setLastEvent(event);
+      handleEventNotification(event);
+    });
+    return unsub;
+  }, [resilientSubscribe]);
+
   useEffect(() => {
     if (!user) {
-      // Disconnect if user logs out
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
-        setStatus({ connected: false });
+        setStatus(prev => ({ ...prev, connected: false }));
       }
       return;
     }
 
-    // Connect to WebSocket server
     const socket = io({
       path: '/socket.io/',
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionDelayMax: 30000,
+      reconnectionAttempts: Infinity,
+      randomizationFactor: 0.5,
+      timeout: 20000,
     });
 
     socketRef.current = socket;
 
-    // Connection event handlers
     socket.on('connect', () => {
-      console.log('[WebSocket] Connected:', socket.id);
-      setStatus({ connected: true, socketId: socket.id });
-      
-      // Authenticate with user ID
+      setStatus(prev => ({ ...prev, connected: true, socketId: socket.id }));
       socket.emit('authenticate', user.id);
-      
-      toast.success('Real-time updates enabled', {
-        description: 'You will receive live notifications',
-        duration: 3000,
-      });
+
+      // Only show toast on first connect, not reconnects
+      if (!socketRef.current?.recovered) {
+        toast.success('Real-time updates enabled', {
+          description: 'You will receive live notifications',
+          duration: 3000,
+        });
+      }
     });
 
-    socket.on('disconnect', () => {
-      console.log('[WebSocket] Disconnected');
-      setStatus({ connected: false });
+    socket.on('disconnect', (reason) => {
+      setStatus(prev => ({ ...prev, connected: false }));
+      if (reason === 'io server disconnect') {
+        socket.connect();
+      }
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('[WebSocket] Connection error:', error);
-      setStatus({ connected: false });
+    socket.on('connect_error', () => {
+      setStatus(prev => ({ ...prev, connected: false }));
     });
 
-    // Welcome message
-    socket.on('connected', (data) => {
-      console.log('[WebSocket] Welcome:', data);
+    socket.on('connected', () => {
+      // Welcome message received
     });
 
-    // Real-time events
     socket.on('realtime_event', (event: RealtimeEvent) => {
-      console.log('[WebSocket] Received event:', event);
       setLastEvent(event);
-      
-      // Show toast notification for important events
       handleEventNotification(event);
     });
 
-    // Cleanup on unmount
     return () => {
-      if (socket) {
-        socket.disconnect();
-      }
+      socket.disconnect();
     };
   }, [user]);
 
-  /**
-   * Handle event notifications
-   */
   const handleEventNotification = (event: RealtimeEvent) => {
     switch (event.type) {
       case 'farmer_created':
@@ -128,37 +160,37 @@ export function useWebSocket() {
         });
         break;
       
-      case 'notification':
-        const notif = event.data;
+      case 'notification': {
+        const notif = event.data as { type?: string; title?: string; message?: string };
         const toastType = notif.type === 'alert' ? toast.warning : 
                          notif.type === 'error' ? toast.error : toast.info;
         
-        toastType(notif.title, {
+        toastType(notif.title || 'Notification', {
           description: notif.message,
         });
         break;
+      }
     }
   };
 
-  /**
-   * Subscribe to specific channel
-   */
-  const subscribe = (channel: string) => {
+  const subscribe = useCallback((channel: string) => {
     if (socketRef.current) {
       socketRef.current.emit('subscribe', channel);
-      console.log('[WebSocket] Subscribed to:', channel);
     }
-  };
+  }, []);
 
-  /**
-   * Unsubscribe from channel
-   */
-  const unsubscribe = (channel: string) => {
+  const unsubscribe = useCallback((channel: string) => {
     if (socketRef.current) {
       socketRef.current.emit('unsubscribe', channel);
-      console.log('[WebSocket] Unsubscribed from:', channel);
     }
-  };
+  }, []);
+
+  const sendQueued = useCallback(
+    (channel: string, payload: unknown, priority?: 'high' | 'normal' | 'low') => {
+      return resilientSend(channel, payload, priority);
+    },
+    [resilientSend],
+  );
 
   return {
     status,
@@ -166,6 +198,10 @@ export function useWebSocket() {
     subscribe,
     unsubscribe,
     socket: socketRef.current,
+    sendQueued,
+    networkQuality: resilientStatus.network.quality,
+    isOffline: resilientStatus.state === 'offline',
+    pendingMessages: resilientStatus.queueSize,
   };
 }
 
@@ -173,12 +209,9 @@ export function useWebSocket() {
 // Event-specific Hooks
 // ============================================================================
 
-/**
- * Hook for listening to specific event types
- */
 export function useRealtimeEvent(
   eventType: RealtimeEvent['type'],
-  callback: (data: any) => void
+  callback: (data: Record<string, unknown>) => void
 ) {
   const { lastEvent } = useWebSocket();
 
@@ -189,17 +222,11 @@ export function useRealtimeEvent(
   }, [lastEvent, eventType, callback]);
 }
 
-/**
- * Hook for dashboard real-time updates
- */
-export function useDashboardUpdates(onUpdate: (update: any) => void) {
+export function useDashboardUpdates(onUpdate: (update: Record<string, unknown>) => void) {
   useRealtimeEvent('dashboard_update', onUpdate);
 }
 
-/**
- * Hook for farmer events
- */
-export function useFarmerEvents(onFarmerEvent: (farmer: any) => void) {
+export function useFarmerEvents(onFarmerEvent: (farmer: Record<string, unknown>) => void) {
   const { lastEvent } = useWebSocket();
 
   useEffect(() => {
@@ -209,16 +236,10 @@ export function useFarmerEvents(onFarmerEvent: (farmer: any) => void) {
   }, [lastEvent, onFarmerEvent]);
 }
 
-/**
- * Hook for harvest events
- */
-export function useHarvestEvents(onHarvestEvent: (harvest: any) => void) {
+export function useHarvestEvents(onHarvestEvent: (harvest: Record<string, unknown>) => void) {
   useRealtimeEvent('harvest_recorded', onHarvestEvent);
 }
 
-/**
- * Hook for expense events
- */
-export function useExpenseEvents(onExpenseEvent: (expense: any) => void) {
+export function useExpenseEvents(onExpenseEvent: (expense: Record<string, unknown>) => void) {
   useRealtimeEvent('expense_logged', onExpenseEvent);
 }

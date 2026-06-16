@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Request } from "express";
+import { logger } from './logger.js';
 
 // Keycloak configuration
 const KEYCLOAK_ENABLED = process.env.KEYCLOAK_ENABLED === "true";
@@ -7,7 +8,7 @@ const KEYCLOAK_URL = process.env.KEYCLOAK_URL || "http://localhost:8080";
 const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || "farmer-data-collection";
 const KEYCLOAK_PUBLIC_KEY = process.env.KEYCLOAK_PUBLIC_KEY || "";
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
+  logger.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
   return "dev-only-secret-do-not-use-in-production";
 })();
 
@@ -81,7 +82,7 @@ export async function verifyKeycloakToken(token: string): Promise<KeycloakToken 
 
     return decoded;
   } catch (error) {
-    console.error("[Keycloak] Token verification failed:", error);
+    logger.error("[Keycloak] Token verification failed:", error);
     return null;
   }
 }
@@ -94,7 +95,7 @@ export function verifyLegacyToken(token: string): LegacyToken | null {
     const decoded = jwt.verify(token, JWT_SECRET) as LegacyToken;
     return decoded;
   } catch (error) {
-    console.error("[JWT] Token verification failed:", error);
+    logger.error("[JWT] Token verification failed:", error);
     return null;
   }
 }

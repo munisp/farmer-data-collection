@@ -16,6 +16,7 @@ import { sendSMS } from '../services/africas-talking.js';
 import { users, expenses, notificationQueue } from '../../drizzle/schema.js';
 import { eq, and, gte, sql, avg } from 'drizzle-orm';
 import nodemailer from 'nodemailer';
+import { logger } from '../logger.js';
 
 // ============================================================================
 // Types
@@ -111,7 +112,7 @@ export class SmartNotificationsService {
         await this.sendNotification(notification);
       }
     } catch (error) {
-      console.error('[Smart Notifications] Error checking yield alerts:', error);
+      logger.error('[Smart Notifications] Error checking yield alerts:', error);
     }
   }
 
@@ -125,7 +126,7 @@ export class SmartNotificationsService {
       // Get expense statistics for the user from database
       const db = await getDb();
       if (!db) {
-        console.warn('[Smart Notifications] Database not available');
+        logger.warn('[Smart Notifications] Database not available');
         return;
       }
       
@@ -173,7 +174,7 @@ export class SmartNotificationsService {
         await this.sendNotification(notification);
       }
     } catch (error) {
-      console.error('[Smart Notifications] Error checking expense alerts:', error);
+      logger.error('[Smart Notifications] Error checking expense alerts:', error);
     }
   }
 
@@ -249,7 +250,7 @@ export class SmartNotificationsService {
       }
       */
     } catch (error) {
-      console.error('[Smart Notifications] Error checking price alerts:', error);
+      logger.error('[Smart Notifications] Error checking price alerts:', error);
     }
   }
 
@@ -262,7 +263,7 @@ export class SmartNotificationsService {
       
       if (wsServer) {
         wsServer.emitNotification(notification.userId, notification);
-        console.log(`[Smart Notifications] Sent ${notification.category} notification to user ${notification.userId}`);
+        logger.info(`[Smart Notifications] Sent ${notification.category} notification to user ${notification.userId}`);
       }
 
       // Check user preferences and send via SMS/Email if enabled
@@ -279,7 +280,7 @@ export class SmartNotificationsService {
       // Store notification in queue for persistence
       await this.storeNotification(notification);
     } catch (error) {
-      console.error('[Smart Notifications] Error sending notification:', error);
+      logger.error('[Smart Notifications] Error sending notification:', error);
     }
   }
 
@@ -309,7 +310,7 @@ export class SmartNotificationsService {
         status: 'sent'
       });
     } catch (error) {
-      console.error('[Smart Notifications] Error storing notification:', error);
+      logger.error('[Smart Notifications] Error storing notification:', error);
     }
   }
 
@@ -329,7 +330,7 @@ export class SmartNotificationsService {
       
       const phoneNumber = userRecord[0]?.phoneNumber;
       if (!phoneNumber) {
-        console.warn(`[Smart Notifications] No phone number for user ${notification.userId}`);
+        logger.warn(`[Smart Notifications] No phone number for user ${notification.userId}`);
         return;
       }
       
@@ -339,9 +340,9 @@ export class SmartNotificationsService {
         message: `${notification.title}\n\n${notification.message}`
       });
       
-      console.log(`[Smart Notifications] SMS sent to ${phoneNumber}`);
+      logger.info(`[Smart Notifications] SMS sent to ${phoneNumber}`);
     } catch (error) {
-      console.error('[Smart Notifications] Error sending SMS:', error);
+      logger.error('[Smart Notifications] Error sending SMS:', error);
     }
   }
 
@@ -361,7 +362,7 @@ export class SmartNotificationsService {
       
       const email = userRecord[0]?.email;
       if (!email) {
-        console.warn(`[Smart Notifications] No email for user ${notification.userId}`);
+        logger.warn(`[Smart Notifications] No email for user ${notification.userId}`);
         return;
       }
       
@@ -373,7 +374,7 @@ export class SmartNotificationsService {
       const fromEmail = process.env.SMTP_FROM || 'notifications@farmer-data-collection.com';
       
       if (!smtpUser || !smtpPass) {
-        console.warn('[Smart Notifications] SMTP credentials not configured');
+        logger.warn('[Smart Notifications] SMTP credentials not configured');
         return;
       }
       
@@ -407,9 +408,9 @@ export class SmartNotificationsService {
         `
       });
       
-      console.log(`[Smart Notifications] Email sent to ${email}`);
+      logger.info(`[Smart Notifications] Email sent to ${email}`);
     } catch (error) {
-      console.error('[Smart Notifications] Error sending email:', error);
+      logger.error('[Smart Notifications] Error sending email:', error);
     }
   }
 
@@ -442,7 +443,7 @@ export class SmartNotificationsService {
       // In production, this would query a user_notification_preferences table
       return this.getDefaultPreferences();
     } catch (error) {
-      console.error('[Smart Notifications] Error fetching user preferences:', error);
+      logger.error('[Smart Notifications] Error fetching user preferences:', error);
       return this.getDefaultPreferences();
     }
   }

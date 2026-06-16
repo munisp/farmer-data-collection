@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { getDb } from "../db.js";
 import {
   loanDisbursements,
@@ -7,6 +8,7 @@ import {
 import { loans } from "../../drizzle/financial-schema.js";
 import { eq, and, desc } from "drizzle-orm";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
+import { logger } from '../logger.js';
 
 // TigerBeetle ledger instance (lazy initialization)
 let ledgerInstance: TigerBeetleLedger | null = null;
@@ -19,7 +21,7 @@ async function getLedger(): Promise<TigerBeetleLedger> {
   const addresses = process.env.TIGERBEETLE_ADDRESSES?.split(',') || ['127.0.0.1:3000'];
   await ledger.connect(addresses);
   ledgerInstance = ledger;
-  console.log('[Disbursement] TigerBeetle ledger connected - REQUIRED for all monetary flows');
+  logger.info('[Disbursement] TigerBeetle ledger connected - REQUIRED for all monetary flows');
   return ledger;
 }
 
@@ -78,7 +80,7 @@ export class DisbursementService {
    */
   private generateDisbursementNumber(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const random = crypto.randomUUID().slice(0, 6).toUpperCase();
     return `DISB-${timestamp}-${random}`;
   }
 
@@ -227,7 +229,7 @@ export class DisbursementService {
       
       // Record the loan disbursement in the ledger (uses linked transfers for atomicity)
       await ledger.recordLoanDisbursement(farmerId, amount, reference);
-      console.log(`[Disbursement] Recorded in TigerBeetle ledger: ${reference}`);
+      logger.info(`[Disbursement] Recorded in TigerBeetle ledger: ${reference}`);
 
       await this.recordStatusChange(
         disbursementId,

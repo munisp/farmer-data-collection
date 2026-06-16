@@ -134,7 +134,7 @@ export function useOfflineSync(): UseOfflineSyncReturn {
   const syncNow = useCallback(async () => {
     // This is a placeholder - in real usage, you'd pass the actual API client
     // For now, we'll just return a mock result
-    console.log('[useOfflineSync] syncNow called - implement with actual API client');
+    console.warn('[useOfflineSync] syncNow called - implement with actual API client');
     return { success: 0, failed: 0 };
   }, []);
 

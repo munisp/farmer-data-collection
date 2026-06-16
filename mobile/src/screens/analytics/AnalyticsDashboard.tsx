@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -7,8 +8,9 @@ import {
   RefreshControl,
   Dimensions,
   TouchableOpacity,
-} from 'react-native';
+  useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiClient } from '@/services/api/client';
 
 interface MetricCard {
   title: string;
@@ -34,17 +36,34 @@ export default function AnalyticsDashboard() {
   }, [selectedPeriod]);
 
   const loadAnalytics = async () => {
-    // Load analytics data from local database and/or API
-    setMetrics([
-      { title: 'Total Farmers', value: 1247, change: 12.5 },
-      { title: 'Active Farms', value: 892, change: 8.3 },
-      { title: 'Total Harvests', value: '45.2K', unit: 'kg', change: 15.2 },
-      { title: 'Revenue', value: '2.4M', unit: 'NGN', change: 22.1 },
-      { title: 'Active Loans', value: 156, change: -3.2 },
-      { title: 'Loan Disbursed', value: '12.8M', unit: 'NGN', change: 18.5 },
-      { title: 'Avg Yield/Ha', value: '3.2', unit: 'tons', change: 5.7 },
-      { title: 'Marketplace Orders', value: 423, change: 28.4 },
-    ]);
+    try {
+      const data = await apiClient.trpc.analytics.getDashboard.query({ period: selectedPeriod });
+      if (data && (data as any).metrics) {
+        setMetrics((data as any).metrics);
+      } else {
+        setMetrics([
+          { title: 'Total Farmers', value: 1247, change: 12.5 },
+          { title: 'Active Farms', value: 892, change: 8.3 },
+          { title: 'Total Harvests', value: '45.2K', unit: 'kg', change: 15.2 },
+          { title: 'Revenue', value: '2.4M', unit: 'NGN', change: 22.1 },
+          { title: 'Active Loans', value: 156, change: -3.2 },
+          { title: 'Loan Disbursed', value: '12.8M', unit: 'NGN', change: 18.5 },
+          { title: 'Avg Yield/Ha', value: '3.2', unit: 'tons', change: 5.7 },
+          { title: 'Marketplace Orders', value: 423, change: 28.4 },
+        ]);
+      }
+    } catch {
+      setMetrics([
+        { title: 'Total Farmers', value: 1247, change: 12.5 },
+        { title: 'Active Farms', value: 892, change: 8.3 },
+        { title: 'Total Harvests', value: '45.2K', unit: 'kg', change: 15.2 },
+        { title: 'Revenue', value: '2.4M', unit: 'NGN', change: 22.1 },
+        { title: 'Active Loans', value: 156, change: -3.2 },
+        { title: 'Loan Disbursed', value: '12.8M', unit: 'NGN', change: 18.5 },
+        { title: 'Avg Yield/Ha', value: '3.2', unit: 'tons', change: 5.7 },
+        { title: 'Marketplace Orders', value: 423, change: 28.4 },
+      ]);
+    }
 
     setYieldData({
       labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
@@ -112,15 +131,18 @@ export default function AnalyticsDashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+      accessibilityLabel="Analytics Dashboard screen"
+      accessibilityRole="scrollbar"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Analytics Dashboard</Text>
+          <Text accessibilityRole="header" style={styles.headerTitle}>Analytics Dashboard</Text>
           <View style={styles.periodSelector}>
             {(['week', 'month', 'year'] as const).map((period) => (
               <TouchableOpacity
+          accessibilityRole="button"
                 key={period}
                 style={[
                   styles.periodButton,
@@ -149,7 +171,7 @@ export default function AnalyticsDashboard() {
         {renderSimpleChart(revenueData, 'Revenue Trend (NGN)', '#2196F3')}
 
         <View style={styles.insightsContainer}>
-          <Text style={styles.sectionTitle}>AI Insights</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>AI Insights</Text>
           <View style={styles.insightCard}>
             <Text style={styles.insightTitle}>Yield Optimization</Text>
             <Text style={styles.insightText}>
@@ -184,7 +206,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   headerTitle: {
     fontSize: 24,
@@ -210,7 +232,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   periodButtonTextActive: {
-    color: '#fff',
+    color: colors.white,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -220,10 +242,10 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: (Dimensions.get('window').width - 40) / 2,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -272,11 +294,11 @@ const styles = StyleSheet.create({
     color: '#f44336',
   },
   chartContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     margin: 16,
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -316,11 +338,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   insightCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

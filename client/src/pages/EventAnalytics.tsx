@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc";
 /**
  * Event Analytics Dashboard
  * 
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
+import DashboardLayout from "@/components/DashboardLayout";
 // ============================================================================
 // Types
 // ============================================================================
@@ -24,7 +26,7 @@ interface EventRecord {
   id: string;
   type: string;
   timestamp: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 interface EventStats {
@@ -39,6 +41,9 @@ interface EventStats {
 // ============================================================================
 
 export default function EventAnalytics() {
+  const eventsQuery = trpc.analytics.getDashboardSummary.useQuery({ startDate: new Date(Date.now() - 30*24*60*60*1000).toISOString().split("T")[0], endDate: new Date().toISOString().split("T")[0] }, { retry: 1 });
+  const eventsData = eventsQuery.data ?? null;
+
   const { status, lastEvent } = useWebSocket();
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [stats, setStats] = useState<EventStats>({
@@ -80,8 +85,37 @@ export default function EventAnalytics() {
     return true;
   });
 
+  // Loading & error states
+  if (eventsQuery.isPending) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (eventsQuery.isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-destructive font-medium mb-2">Failed to load data</p>
+            <button onClick={() => eventsQuery.refetch()} className="text-sm text-primary hover:underline">
+              Try again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div role="main" aria-label="Page content" className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -264,14 +298,15 @@ function EventCard({ event }: { event: EventRecord }) {
   };
 
   const getEventColor = (type: string) => {
-    if (type.includes('farmer')) return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300';
-    if (type === 'harvest_recorded') return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
+    if (type.includes('farmer')) return 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:bg-blue-900 dark:text-blue-300';
+    if (type === 'harvest_recorded') return 'bg-green-100 dark:bg-green-900 text-green-700 dark:bg-green-900 dark:text-green-300';
     if (type === 'expense_logged') return 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300';
-    return 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300';
+    return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:bg-gray-900 dark:text-gray-300';
   };
 
   return (
-    <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+    <DashboardLayout>
+      <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
       <div className={`p-2 rounded-lg ${getEventColor(event.type)}`}>
         {getEventIcon(event.type)}
       </div>
@@ -294,7 +329,8 @@ function EventCard({ event }: { event: EventRecord }) {
         )}
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }
 
 // ============================================================================

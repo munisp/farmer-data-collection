@@ -1,3 +1,8 @@
+import signal
+import logging
+
+logger = logging.getLogger("satellite-service")
+
 """
 Real-Time Satellite Imagery Service
 Integrates with Sentinel Hub, NASA Earthdata, and Planet Labs APIs
@@ -31,6 +36,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Satellite Imagery Service")
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("[satellite-service] Service started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[satellite-service] Graceful shutdown initiated — cleaning up resources...")
+    # Allow in-flight requests to complete
+    import asyncio
+    await asyncio.sleep(0.5)
+    logger.info("[satellite-service] Shutdown complete")
+
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,9 +1,11 @@
+import crypto from "crypto";
 /**
  * TigerBeetle Ledger Service
  * High-performance financial ledger for double-entry accounting
  */
 
 import { createClient, Account, Transfer, CreateAccountError, CreateTransferError } from 'tigerbeetle-node';
+import { logger } from '../logger.js';
 
 // Account types for the ag-fintech platform
 export enum AccountType {
@@ -81,7 +83,7 @@ export class TigerBeetleLedger {
       });
       this.connected = true;
     } catch (error) {
-      console.error('Failed to connect to TigerBeetle:', error);
+      logger.error('Failed to connect to TigerBeetle:', error);
       throw error;
     }
   }
@@ -153,7 +155,7 @@ export class TigerBeetleLedger {
       type: AccountType.CASH,
       ledger: LedgerCode.FARMER,
       entityId: farmerId,
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const loansPayable = await this.createAccount({
@@ -161,7 +163,7 @@ export class TigerBeetleLedger {
       type: AccountType.LOANS_PAYABLE,
       ledger: LedgerCode.FARMER,
       entityId: farmerId,
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const inventory = await this.createAccount({
@@ -169,7 +171,7 @@ export class TigerBeetleLedger {
       type: AccountType.INVENTORY,
       ledger: LedgerCode.FARMER,
       entityId: farmerId,
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     return { cash, loansPayable, inventory };
@@ -187,7 +189,7 @@ export class TigerBeetleLedger {
       type: AccountType.CASH,
       ledger: LedgerCode.PLATFORM,
       entityId: 'platform',
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const loansReceivable = await this.createAccount({
@@ -195,7 +197,7 @@ export class TigerBeetleLedger {
       type: AccountType.LOANS_RECEIVABLE,
       ledger: LedgerCode.PLATFORM,
       entityId: 'platform',
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const interestIncome = await this.createAccount({
@@ -203,7 +205,7 @@ export class TigerBeetleLedger {
       type: AccountType.INTEREST_INCOME,
       ledger: LedgerCode.PLATFORM,
       entityId: 'platform',
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     const feeIncome = await this.createAccount({
@@ -211,7 +213,7 @@ export class TigerBeetleLedger {
       type: AccountType.FEE_INCOME,
       ledger: LedgerCode.PLATFORM,
       entityId: 'platform',
-      currency: 'KES',
+      currency: 'NGN',
     });
 
     return { cash, loansReceivable, interestIncome, feeIncome };
@@ -262,7 +264,7 @@ export class TigerBeetleLedger {
 
   async recordTransaction(input: LegacyTransactionInput): Promise<{ transactionId: string }> {
     const ledger = this.inferLedgerFromAccount(input.fromAccountId);
-    const transferId = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    const transferId = BigInt(Date.now()) * 1000n + BigInt(parseInt(crypto.randomUUID().slice(0, 3), 16) % 1000);
 
     await this.createTransfer({
       id: transferId,
@@ -311,7 +313,7 @@ export class TigerBeetleLedger {
     amount: bigint,
     reference: string
   ): Promise<bigint> {
-    const transferId = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    const transferId = BigInt(Date.now()) * 1000n + BigInt(parseInt(crypto.randomUUID().slice(0, 3), 16) % 1000);
 
     // Debit: Platform Loans Receivable (asset increases)
     // Credit: Platform Cash (asset decreases)
@@ -347,7 +349,7 @@ export class TigerBeetleLedger {
     interestAmount: bigint,
     reference: string
   ): Promise<bigint> {
-    const transferId = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    const transferId = BigInt(Date.now()) * 1000n + BigInt(parseInt(crypto.randomUUID().slice(0, 3), 16) % 1000);
     const totalAmount = principalAmount + interestAmount;
 
     // Debit: Platform Cash (asset increases)
@@ -398,7 +400,7 @@ export class TigerBeetleLedger {
     feeAmount: bigint,
     reference: string
   ): Promise<bigint> {
-    const transferId = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    const transferId = BigInt(Date.now()) * 1000n + BigInt(parseInt(crypto.randomUUID().slice(0, 3), 16) % 1000);
     const sellerAmount = amount - feeAmount;
 
     // Buyer pays

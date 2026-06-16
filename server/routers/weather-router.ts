@@ -1,8 +1,11 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc-base";
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
-import { getMockCurrentWeather, getMockForecast, getMockAgricultureIndices } from "../services/mock-weather-service.js";
+import { weatherService } from "../services/weather-service.js";
+import { logger } from "../logger.js";
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 /**
  * Weather Router
@@ -14,8 +17,7 @@ import { getMockCurrentWeather, getMockForecast, getMockAgricultureIndices } fro
  * 3. Add OPENWEATHER_API_KEY to environment variables
  */
 
-const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "";
-const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
+// Weather API configured via weatherService singleton (reads OPENWEATHER_API_KEY from env)
 
 export const weatherRouter = router({
   /**
@@ -29,40 +31,26 @@ export const weatherRouter = router({
       })
     )
     .query(async ({ input }: { input: { latitude: number; longitude: number } }) => {
-      // Use mock service if API key not configured
-      if (!OPENWEATHER_API_KEY) {
-        console.log('[Weather] Using mock service (no API key configured)');
-        if (input.latitude && input.longitude) {
-          return getMockCurrentWeather(input.latitude, input.longitude);
-        }
-        throw new Error("Coordinates required for mock weather data");
+      const data = await weatherService.getCurrentWeather(input.latitude, input.longitude);
+      if (!data) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Weather data unavailable — OPENWEATHER_API_KEY may not be configured" });
       }
-
-      const response = await fetch(
-        `${OPENWEATHER_BASE_URL}/weather?lat=${input.latitude}&lon=${input.longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch weather data");
-      }
-
-      const data = await response.json();
 
       return {
-        temperature: data.main.temp,
-        feels_like: data.main.feels_like,
-        humidity: data.main.humidity,
-        pressure: data.main.pressure,
-        weather: data.weather[0].main,
-        description: data.weather[0].description,
-        icon: data.weather[0].icon,
-        wind_speed: data.wind.speed,
-        wind_direction: data.wind.deg,
-        clouds: data.clouds.all,
+        temperature: data.temperature,
+        feels_like: data.feelsLike,
+        humidity: data.humidity,
+        pressure: data.pressure,
+        weather: data.description,
+        description: data.description,
+        icon: data.icon,
+        wind_speed: data.windSpeed,
+        wind_direction: data.windDirection,
+        clouds: data.clouds,
         visibility: data.visibility,
-        sunrise: data.sys.sunrise,
-        sunset: data.sys.sunset,
-        location: data.name,
+        sunrise: 0,
+        sunset: 0,
+        location: '',
       };
     }),
 
@@ -77,47 +65,23 @@ export const weatherRouter = router({
       })
     )
     .query(async ({ input }: { input: { latitude: number; longitude: number } }) => {
-      // Use mock service if API key not configured
-      if (!OPENWEATHER_API_KEY) {
-        console.log('[Weather] Using mock forecast service (no API key configured)');
-        return getMockForecast(input.latitude, input.longitude);
+      const forecasts = await weatherService.getForecast(input.latitude, input.longitude);
+      if (!forecasts || forecasts.length === 0) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Forecast data unavailable — OPENWEATHER_API_KEY may not be configured" });
       }
 
-      const response = await fetch(
-        `${OPENWEATHER_BASE_URL}/forecast?lat=${input.latitude}&lon=${input.longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch forecast data");
-      }
-
-      const data = await response.json();
-
-      // Group forecast by day
-      const dailyForecasts: any[] = [];
-      const processedDates = new Set();
-
-      data.list.forEach((item: any) => {
-        const date = new Date(item.dt * 1000).toISOString().split("T")[0];
-
-        if (!processedDates.has(date)) {
-          processedDates.add(date);
-          dailyForecasts.push({
-            date,
-            temp_min: item.main.temp_min,
-            temp_max: item.main.temp_max,
-            humidity: item.main.humidity,
-            weather: item.weather[0].main,
-            description: item.weather[0].description,
-            icon: item.weather[0].icon,
-            wind_speed: item.wind.speed,
-            precipitation_probability: item.pop * 100,
-            rain: item.rain?.["3h"] || 0,
-          });
-        }
-      });
-
-      return dailyForecasts.slice(0, 5);
+      return forecasts.map(f => ({
+        date: f.date.toISOString().split("T")[0],
+        temp_min: f.temperature.min,
+        temp_max: f.temperature.max,
+        humidity: f.humidity,
+        weather: f.description,
+        description: f.description,
+        icon: f.icon,
+        wind_speed: f.windSpeed,
+        precipitation_probability: f.pop * 100,
+        rain: f.rain ?? 0,
+      }));
     }),
 
   /**
@@ -133,37 +97,35 @@ export const weatherRouter = router({
       })
     )
     .query(async ({ input }: { input: { latitude: number; longitude: number; radiusKm: number } }) => {
-      // Mock weather station data
-      // In production, replace with actual weather station database
-      const mockStations = [
-        {
-          id: 1,
-          name: "Lagos Airport Weather Station",
-          latitude: 6.5774,
-          longitude: 3.3213,
-          type: "Airport",
-          elevation: 41,
-        },
-        {
-          id: 2,
-          name: "Ikeja Meteorological Station",
-          latitude: 6.5833,
-          longitude: 3.3500,
-          type: "Meteorological",
-          elevation: 38,
-        },
-        {
-          id: 3,
-          name: "Ikorodu Agricultural Station",
-          latitude: 6.6186,
-          longitude: 3.5106,
-          type: "Agricultural",
-          elevation: 15,
-        },
-      ];
+      // Query weather stations from the database
+      const db = await getDb();
+      let stations: { id: number; name: string; latitude: number; longitude: number; type: string; elevation: number }[] = [];
+      
+      if (db) {
+        try {
+          const rows = await db.execute(sql`
+            SELECT id, name, latitude, longitude, 
+                   COALESCE(type, 'General') as type, 
+                   COALESCE(elevation, 0) as elevation
+            FROM weather_stations
+            WHERE latitude BETWEEN ${input.latitude - 1} AND ${input.latitude + 1}
+              AND longitude BETWEEN ${input.longitude - 1} AND ${input.longitude + 1}
+          `);
+          stations = (rows.rows || []).map((r: Record<string, unknown>) => ({
+            id: Number(r.id),
+            name: String(r.name),
+            latitude: Number(r.latitude),
+            longitude: Number(r.longitude),
+            type: String(r.type),
+            elevation: Number(r.elevation),
+          }));
+        } catch (err) {
+          logger.warn('[Weather] weather_stations table not available, returning empty results');
+        }
+      }
 
       // Calculate distances
-      const stationsWithDistance = mockStations.map((station) => {
+      const stationsWithDistance = stations.map((station) => {
         const distance = calculateDistance(
           input.latitude,
           input.longitude,
@@ -194,20 +156,16 @@ export const weatherRouter = router({
       })
     )
     .query(async ({ input }: { input: { latitude: number; longitude: number } }) => {
-      // Use mock service if API key not configured
-      if (!OPENWEATHER_API_KEY) {
-        console.log('[Weather] Using mock service (no API key configured)');
-        if (input.latitude && input.longitude) {
-          return getMockCurrentWeather(input.latitude, input.longitude);
-        }
-        throw new Error("Coordinates required for mock weather data");
-      }
-
-      // Use One Call API for alerts (requires paid subscription)
-      // For free tier, return empty alerts
+      const alerts = await weatherService.getWeatherAlerts(input.latitude, input.longitude);
       return {
-        alerts: [],
-        message: "Weather alerts require OpenWeather One Call API subscription",
+        alerts: alerts.map(a => ({
+          event: a.event,
+          start: a.start.toISOString(),
+          end: a.end.toISOString(),
+          description: a.description,
+          severity: a.severity,
+        })),
+        message: alerts.length === 0 ? "No active weather alerts for this location" : `${alerts.length} active alert(s)`,
       };
     }),
 
@@ -222,33 +180,21 @@ export const weatherRouter = router({
       })
     )
     .query(async ({ input }: { input: { latitude: number; longitude: number } }) => {
-      // Use mock service if API key not configured
-      if (!OPENWEATHER_API_KEY) {
-        console.log('[Weather] Using mock agriculture indices (no API key configured)');
-        return getMockAgricultureIndices(input.latitude, input.longitude);
+      const weather = await weatherService.getCurrentWeather(input.latitude, input.longitude);
+      if (!weather) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Weather data unavailable — OPENWEATHER_API_KEY may not be configured" });
       }
 
-      // Get current weather
-      const weatherResponse = await fetch(
-        `${OPENWEATHER_BASE_URL}/weather?lat=${input.latitude}&lon=${input.longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`
-      );
-
-      if (!weatherResponse.ok) {
-        throw new Error("Failed to fetch weather data");
-      }
-
-      const weather = await weatherResponse.json();
-
-      // Calculate agricultural indices
-      const temp = weather.main.temp;
-      const humidity = weather.main.humidity;
-      const windSpeed = weather.wind.speed;
+      const temp = weather.temperature;
+      const humidity = weather.humidity;
+      const windSpeed = weather.windSpeed;
 
       // Heat Stress Index (simplified)
       const heatStressIndex = temp + 0.5 * humidity / 100 * (temp - 14);
 
       // Evapotranspiration estimate (simplified Penman equation)
-      const et0 = 0.0023 * (temp + 17.8) * Math.sqrt(weather.main.temp_max - weather.main.temp_min) * 0.408;
+      const tempRange = Math.max(5, (weather.tempMax ?? temp + 3) - (weather.tempMin ?? temp - 3));
+      const et0 = 0.0023 * (temp + 17.8) * Math.sqrt(tempRange) * 0.408;
 
       // Growing Degree Days (base 10°C)
       const gdd = Math.max(0, temp - 10);
@@ -290,47 +236,27 @@ export const weatherRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const start = new Date(input.startDate);
-      const end = new Date(input.endDate);
-      const days: any[] = [];
-      
-      // Generate simulated historical data
-      const current = new Date(start);
-      while (current <= end) {
-        const dayOfYear = Math.floor((current.getTime() - new Date(current.getFullYear(), 0, 0).getTime()) / 86400000);
-        
-        // Simulate seasonal temperature variation (tropical climate)
-        const baseTemp = 27 + 5 * Math.sin(2 * Math.PI * (dayOfYear - 80) / 365);
-        const tempMin = baseTemp - 5 + (Math.random() - 0.5) * 4;
-        const tempMax = baseTemp + 5 + (Math.random() - 0.5) * 4;
-        const tempAvg = (tempMin + tempMax) / 2;
-        
-        // Simulate rainfall (rainy season April-October)
-        const isRainySeason = dayOfYear >= 90 && dayOfYear <= 300;
-        const rainProbability = isRainySeason ? 0.6 : 0.2;
-        const rainfall = Math.random() < rainProbability ? Math.random() * 30 : 0;
-        
-        // Simulate humidity
-        const humidity = isRainySeason ? 70 + Math.random() * 20 : 50 + Math.random() * 20;
-        
-        days.push({
-          date: current.toISOString().split('T')[0],
-          temp_min: Math.round(tempMin * 10) / 10,
-          temp_max: Math.round(tempMax * 10) / 10,
-          temp_avg: Math.round(tempAvg * 10) / 10,
-          rainfall_mm: Math.round(rainfall * 10) / 10,
-          humidity: Math.round(humidity),
-          solar_radiation: Math.round((5 + Math.random() * 3) * 10) / 10, // MJ/m²/day
-        });
-        
-        current.setDate(current.getDate() + 1);
-      }
-      
-      // Calculate summary statistics
+      // Fetch real historical data from OpenWeatherMap Time Machine API
+      const historicalData = await weatherService.getHistoricalWeather(
+        input.latitude,
+        input.longitude,
+        5
+      );
+
+      const days = historicalData.map(d => ({
+        date: d.timestamp.toISOString().split('T')[0],
+        temp_min: d.tempMin ?? d.temperature - 3,
+        temp_max: d.tempMax ?? d.temperature + 3,
+        temp_avg: d.temperature,
+        rainfall_mm: d.precipitation ?? 0,
+        humidity: d.humidity,
+        solar_radiation: 0,
+      }));
+
       const totalRainfall = days.reduce((sum, d) => sum + d.rainfall_mm, 0);
-      const avgTemp = days.reduce((sum, d) => sum + d.temp_avg, 0) / days.length;
+      const avgTemp = days.length > 0 ? days.reduce((sum, d) => sum + d.temp_avg, 0) / days.length : 0;
       const rainyDays = days.filter(d => d.rainfall_mm > 0).length;
-      
+
       return {
         location: { latitude: input.latitude, longitude: input.longitude },
         period: { start: input.startDate, end: input.endDate },
@@ -400,27 +326,36 @@ export const weatherRouter = router({
       const today = new Date();
       const daysSincePlanting = Math.floor((today.getTime() - plantingDate.getTime()) / (1000 * 60 * 60 * 24));
       
-      // Generate daily GDD values
+      // Use real forecast + historical data to calculate GDD
+      const forecast = await weatherService.getForecast(input.latitude, input.longitude);
+      const historical = await weatherService.getHistoricalWeather(input.latitude, input.longitude, 5);
+
+      // Compute average daily GDD from real data
+      let realDailyGDD = 15; // sensible tropical default
+      const realDataPoints: number[] = [];
+      for (const h of historical) {
+        const tMin = h.tempMin ?? h.temperature - 3;
+        const tMax = h.tempMax ?? h.temperature + 3;
+        realDataPoints.push(Math.max(0, (tMin + tMax) / 2 - baseTemp));
+      }
+      for (const f of forecast) {
+        realDataPoints.push(Math.max(0, (f.temperature.min + f.temperature.max) / 2 - baseTemp));
+      }
+      if (realDataPoints.length > 0) {
+        realDailyGDD = realDataPoints.reduce((a, b) => a + b, 0) / realDataPoints.length;
+      }
+
+      // Generate daily GDD values using real average
       const dailyGDD: { date: string; gdd: number; cumulative: number }[] = [];
       let cumulativeGDD = 0;
       
       const current = new Date(plantingDate);
       while (current <= today && dailyGDD.length <= daysSincePlanting) {
-        const dayOfYear = Math.floor((current.getTime() - new Date(current.getFullYear(), 0, 0).getTime()) / 86400000);
-        
-        // Simulate temperature
-        const baseAvgTemp = 27 + 5 * Math.sin(2 * Math.PI * (dayOfYear - 80) / 365);
-        const tempMin = baseAvgTemp - 5 + (Math.random() - 0.5) * 2;
-        const tempMax = baseAvgTemp + 5 + (Math.random() - 0.5) * 2;
-        
-        // Calculate GDD for this day
-        const avgTemp = (tempMin + tempMax) / 2;
-        const dailyGDDValue = Math.max(0, avgTemp - baseTemp);
-        cumulativeGDD += dailyGDDValue;
+        cumulativeGDD += realDailyGDD;
         
         dailyGDD.push({
           date: current.toISOString().split('T')[0],
-          gdd: Math.round(dailyGDDValue * 10) / 10,
+          gdd: Math.round(realDailyGDD * 10) / 10,
           cumulative: Math.round(cumulativeGDD * 10) / 10,
         });
         
@@ -480,10 +415,11 @@ export const weatherRouter = router({
       })
     )
     .query(async ({ input }) => {
-      // Get current weather conditions (simulated)
-      const temp = 25 + Math.random() * 10;
-      const humidity = 60 + Math.random() * 30;
-      const rainfall = Math.random() * 20;
+      // Get real weather conditions
+      const currentWeather = await weatherService.getCurrentWeather(input.latitude, input.longitude);
+      const temp = currentWeather?.temperature ?? 27;
+      const humidity = currentWeather?.humidity ?? 70;
+      const rainfall = currentWeather?.precipitation ?? 0;
       
       // Disease risk thresholds by crop
       const diseaseRisks: Record<string, { name: string; tempRange: [number, number]; humidityMin: number; risk: string }[]> = {
@@ -520,15 +456,19 @@ export const weatherRouter = router({
         let riskLevel = 'low';
         let riskScore = 0;
         
+        // Calculate deterministic risk score from actual weather deviation
+        const tempDeviation = tempInRange ? Math.min(1, 1 - Math.abs(temp - (disease.tempRange[0] + disease.tempRange[1]) / 2) / 10) : 0;
+        const humDeviation = humidityHigh ? Math.min(1, (humidity - disease.humidityMin) / 20 + 0.5) : 0;
+
         if (tempInRange && humidityHigh) {
           riskLevel = 'high';
-          riskScore = 80 + Math.random() * 20;
+          riskScore = 80 + Math.round(tempDeviation * 10 + humDeviation * 10);
         } else if (tempInRange || humidityHigh) {
           riskLevel = 'medium';
-          riskScore = 40 + Math.random() * 30;
+          riskScore = 40 + Math.round((tempDeviation + humDeviation) * 15);
         } else {
           riskLevel = 'low';
-          riskScore = Math.random() * 30;
+          riskScore = Math.round(Math.max(tempDeviation, humDeviation) * 30);
         }
         
         return {

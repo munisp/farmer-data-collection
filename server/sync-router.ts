@@ -9,6 +9,7 @@ import {
   publishFarmerUpdated, 
   publishFarmerDeleted 
 } from "./event-producers.js";
+import { logger } from './logger.js';
 import {
   publishFarmCreated,
   publishFarmUpdated,
@@ -32,7 +33,7 @@ import {
 // ============================================================================
 
 // In-memory idempotency store (in production, use Redis)
-const idempotencyStore = new Map<string, { result: any; expiresAt: Date }>();
+const idempotencyStore = new Map<string, { result: unknown; expiresAt: Date }>();
 
 // Clean up expired idempotency keys every 5 minutes
 setInterval(() => {
@@ -51,7 +52,7 @@ function generateIdempotencyKey(clientId: string, table: string, recordId: strin
 }
 
 // Check if operation was already processed
-function checkIdempotency(key: string): { exists: boolean; result?: any } {
+function checkIdempotency(key: string): { exists: boolean; result?: unknown } {
   const record = idempotencyStore.get(key);
   if (!record) {
     return { exists: false };
@@ -64,7 +65,7 @@ function checkIdempotency(key: string): { exists: boolean; result?: any } {
 }
 
 // Record idempotency key after successful operation
-function recordIdempotency(key: string, result: any, ttlHours: number = 24): void {
+function recordIdempotency(key: string, result: unknown, ttlHours: number = 24): void {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + ttlHours);
   idempotencyStore.set(key, { result, expiresAt });
@@ -84,7 +85,7 @@ interface LedgerEntry {
   clientId: string;
   version: number;
   checksum: string;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: Date;
   status: string;
 }
@@ -112,7 +113,7 @@ function recordInLedger(entry: Omit<LedgerEntry, 'id' | 'transactionId' | 'check
     syncLedger.shift();
   }
   
-  console.log(`[Ledger] Recorded: ${entry.entityType}/${entry.entityId} ${entry.operation} (tx: ${transactionId})`);
+  logger.info(`[Ledger] Recorded: ${entry.entityType}/${entry.entityId} ${entry.operation} (tx: ${transactionId})`);
 }
 
 // Get ledger entries for a user
@@ -148,11 +149,11 @@ const pullChangesSchema = z.object({
 export interface SyncRouter {
   pushChanges: (input: z.infer<typeof syncRequestSchema>) => Promise<{
     success: boolean;
-    conflicts: any[];
+    conflicts: Array<Record<string, unknown>>;
     synced: number;
   }>;
   pullChanges: (input: z.infer<typeof pullChangesSchema>) => Promise<{
-    records: any[];
+    records: Array<Record<string, unknown>>;
     serverTime: Date;
   }>;
 }
@@ -163,7 +164,7 @@ export async function pushChanges(input: z.infer<typeof syncRequestSchema>, user
     throw new Error("Database not available");
   }
 
-  const conflicts: any[] = [];
+  const conflicts: Array<Record<string, unknown>> = [];
   let synced = 0;
   const skippedDueToIdempotency: string[] = [];
 
@@ -185,14 +186,14 @@ export async function pushChanges(input: z.infer<typeof syncRequestSchema>, user
   for (const record of input.records) {
     try {
       // Generate idempotency key for this operation
-      const recordId = record.id || `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const recordId = record.id || `new-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
       const operation = record.id ? 'update' : 'create';
       const idempotencyKey = generateIdempotencyKey(input.clientId, input.table, recordId, operation);
       
       // Check if this operation was already processed (idempotency check)
       const idempotencyCheck = checkIdempotency(idempotencyKey);
       if (idempotencyCheck.exists) {
-        console.log(`[Sync] Idempotent operation detected, skipping: ${input.table}/${recordId}`);
+        logger.info(`[Sync] Idempotent operation detected, skipping: ${input.table}/${recordId}`);
         skippedDueToIdempotency.push(String(recordId));
         synced++; // Count as synced since it was already processed
         continue;
@@ -281,7 +282,7 @@ export async function pushChanges(input: z.infer<typeof syncRequestSchema>, user
         synced++;
       }
     } catch (error) {
-      console.error(`Error syncing record:`, error);
+      logger.error(`Error syncing record:`, error);
       conflicts.push({
         id: record.id,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -336,7 +337,7 @@ export async function pullChanges(input: z.infer<typeof pullChangesSchema>, user
 }
 
 // Helper function to emit WebSocket events for real-time sync
-function emitWebSocketSyncEvent(userId: number, entityType: string, entityId: number, action: string, data: any, clientId: string) {
+function emitWebSocketSyncEvent(userId: number, entityType: string, entityId: number, action: string, data: Record<string, unknown>, clientId: string) {
   try {
     const wsServer = getWebSocketServer();
     if (wsServer) {
@@ -354,16 +355,16 @@ function emitWebSocketSyncEvent(userId: number, entityType: string, entityId: nu
         },
         timestamp: new Date().toISOString(),
       });
-      console.log(`[WebSocket] Emitted sync event: ${entityType}/${entityId} ${action} to user ${userId}`);
+      logger.info(`[WebSocket] Emitted sync event: ${entityType}/${entityId} ${action} to user ${userId}`);
     }
   } catch (error) {
-    console.error(`[WebSocket] Failed to emit sync event:`, error);
+    logger.error(`[WebSocket] Failed to emit sync event:`, error);
     // Don't throw - WebSocket emission should not block sync operations
   }
 }
 
 // Helper function to publish events based on table name
-async function publishEventForTable(table: string, action: 'created' | 'updated' | 'deleted', data: any) {
+async function publishEventForTable(table: string, action: 'created' | 'updated' | 'deleted', data: Record<string, any>) {
   try {
     const entityId = data.id || 0;
     const userId = data.userId || 0;
@@ -404,13 +405,13 @@ async function publishEventForTable(table: string, action: 'created' | 'updated'
         break;
       case 'farmInputs':
         // Farm inputs can be published as farm events or create a separate producer
-        console.log(`[Event] FarmInput ${action}:`, data.id);
+        logger.info(`[Event] FarmInput ${action}:`, data.id);
         break;
       default:
-        console.warn(`[Event] No event producer for table: ${table}`);
+        logger.warn(`[Event] No event producer for table: ${table}`);
     }
   } catch (error) {
-    console.error(`[Event] Failed to publish ${action} event for ${table}:`, error);
+    logger.error(`[Event] Failed to publish ${action} event for ${table}:`, error);
     // Don't throw - event publishing should not block sync operations
   }
 }

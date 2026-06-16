@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { useLocalization } from "@/contexts/LocalizationContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,15 +97,10 @@ const TIER_INFO: TierInfo[] = [
   },
 ];
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+
 
 export default function KycVerification() {
+  const { formatCurrency } = useLocalization();
   const utils = trpc.useUtils();
   const { data, isLoading, refetch } = trpc.kyc.getProfile.useQuery();
   const profile = data?.profile;
@@ -300,7 +296,7 @@ export default function KycVerification() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">KYC Verification</h1>

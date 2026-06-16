@@ -113,13 +113,13 @@ class OfflineSyncService {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('[OfflineSync] Database initialized');
+        console.warn('[OfflineSync] Database initialized');
         resolve();
       };
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        console.log('[OfflineSync] Upgrading database schema');
+        console.warn('[OfflineSync] Upgrading database schema');
 
         // Harvests store
         if (!db.objectStoreNames.contains(STORES.HARVESTS)) {
@@ -196,7 +196,7 @@ class OfflineSyncService {
       const request = store.add(record);
 
       request.onsuccess = () => {
-        console.log('[OfflineSync] Harvest saved:', record.id);
+        console.warn('[OfflineSync] Harvest saved:', record.id);
         this.addToSyncQueue('HARVESTS', record.id, 'create', record);
         resolve(record);
       };
@@ -282,7 +282,7 @@ class OfflineSyncService {
       const request = store.add(record);
 
       request.onsuccess = () => {
-        console.log('[OfflineSync] Expense saved:', record.id);
+        console.warn('[OfflineSync] Expense saved:', record.id);
         this.addToSyncQueue('EXPENSES', record.id, 'create', record);
         resolve(record);
       };
@@ -368,7 +368,7 @@ class OfflineSyncService {
       const request = store.add(record);
 
       request.onsuccess = () => {
-        console.log('[OfflineSync] Order saved:', record.id);
+        console.warn('[OfflineSync] Order saved:', record.id);
         this.addToSyncQueue('ORDERS', record.id, 'create', record);
         resolve(record);
       };
@@ -446,7 +446,7 @@ class OfflineSyncService {
       const request = store.add(item);
 
       request.onsuccess = () => {
-        console.log('[OfflineSync] Added to sync queue:', item.id);
+        console.warn('[OfflineSync] Added to sync queue:', item.id);
         this.notifyListeners();
         this.requestBackgroundSync();
         resolve();
@@ -510,7 +510,7 @@ class OfflineSyncService {
       try {
         const registration = await navigator.serviceWorker.ready;
         await (registration as any).sync.register('sync-all');
-        console.log('[OfflineSync] Background sync registered');
+        console.warn('[OfflineSync] Background sync registered');
       } catch (error) {
         console.warn('[OfflineSync] Background sync not available:', error);
       }
@@ -526,12 +526,12 @@ class OfflineSyncService {
     syncOrder: (data: OfflineOrder) => Promise<void>;
   }): Promise<{ success: number; failed: number }> {
     if (this.syncInProgress) {
-      console.log('[OfflineSync] Sync already in progress');
+      console.warn('[OfflineSync] Sync already in progress');
       return { success: 0, failed: 0 };
     }
 
     if (!navigator.onLine) {
-      console.log('[OfflineSync] Offline, skipping sync');
+      console.warn('[OfflineSync] Offline, skipping sync');
       return { success: 0, failed: 0 };
     }
 
@@ -543,7 +543,7 @@ class OfflineSyncService {
 
     try {
       const queue = await this.getSyncQueue();
-      console.log(`[OfflineSync] Processing ${queue.length} items`);
+      console.warn(`[OfflineSync] Processing ${queue.length} items`);
 
       for (const item of queue) {
         if (item.retryCount >= 3) {
@@ -573,7 +573,7 @@ class OfflineSyncService {
 
           await this.removeSyncQueueItem(item.id);
           success++;
-          console.log(`[OfflineSync] Synced ${item.entityType} ${item.entityId}`);
+          console.warn(`[OfflineSync] Synced ${item.entityType} ${item.entityId}`);
         } catch (error) {
           console.error(`[OfflineSync] Failed to sync ${item.id}:`, error);
           item.retryCount++;
@@ -588,7 +588,7 @@ class OfflineSyncService {
       this.notifyListeners();
     }
 
-    console.log(`[OfflineSync] Sync complete: ${success} success, ${failed} failed`);
+    console.warn(`[OfflineSync] Sync complete: ${success} success, ${failed} failed`);
     return { success, failed };
   }
 
@@ -603,7 +603,8 @@ class OfflineSyncService {
     try {
       const queue = await this.getSyncQueue();
       return queue.length;
-    } catch {
+    } catch (err) {
+      console.warn('[OfflineSync] Failed to get pending count:', String(err));
       return 0;
     }
   }
@@ -686,7 +687,7 @@ class OfflineSyncService {
         request.onsuccess = () => {
           completed++;
           if (completed === storeNames.length) {
-            console.log('[OfflineSync] All stores cleared');
+            console.warn('[OfflineSync] All stores cleared');
             this.notifyListeners();
             resolve();
           }
@@ -709,19 +710,19 @@ if (typeof window !== 'undefined') {
 
   // Listen for online events to trigger sync
   window.addEventListener('online', () => {
-    console.log('[OfflineSync] Back online, will sync on next API call');
+    console.warn('[OfflineSync] Back online, will sync on next API call');
   });
 
   // Listen for service worker sync messages
   window.addEventListener('sync-harvests', () => {
-    console.log('[OfflineSync] Received sync-harvests event');
+    console.warn('[OfflineSync] Received sync-harvests event');
   });
 
   window.addEventListener('sync-expenses', () => {
-    console.log('[OfflineSync] Received sync-expenses event');
+    console.warn('[OfflineSync] Received sync-expenses event');
   });
 
   window.addEventListener('sync-orders', () => {
-    console.log('[OfflineSync] Received sync-orders event');
+    console.warn('[OfflineSync] Received sync-orders event');
   });
 }

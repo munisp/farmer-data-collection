@@ -1,19 +1,17 @@
 /**
  * Comprehensive Regression Test Suite for LocalDb
  * 
- * Tests both SQLite WASM + OPFS and PGlite backends for:
+ * Tests SQLite WASM + OPFS backend for:
  * - Schema and CRUD operations
  * - Sync operations (pending changes, checkpoints)
  * - Conflict resolution
  * - Reactive queries
- * - Migration from PGlite to SQLite WASM
  * - Crash recovery and durability
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LocalDb, PendingChange, ReplicationCheckpoint, generateId, generateIdempotencyKey, getClientId } from '../localDb';
 import { SqliteWasmDb } from '../sqliteWasmDb';
-import { PgliteDb } from '../pgliteDb';
 import { getDatabase, migrateToSqliteWasm, resetMigrationStatus, getDatabaseStats } from '../dbFactory';
 
 // Mock localStorage for tests
@@ -413,13 +411,6 @@ describe('LocalDb Tests', () => {
     return db;
   });
 
-  // Note: PGlite tests would require actual PGlite setup
-  // Uncomment when running in environment with PGlite available
-  // createDbTestSuite('PGlite', async () => {
-  //   const db = new PgliteDb(`idb://test-${Date.now()}`);
-  //   await db.init();
-  //   return db;
-  // });
 });
 
 // Helper function tests

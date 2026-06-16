@@ -1,0 +1,19 @@
+[package]
+name = "spatial-query-service"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance PostGIS spatial query microservice for FarmConnect"
+
+[dependencies]
+actix-web = "4"
+actix-cors = "0.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tokio-postgres = { version = "0.7", features = ["with-serde_json-1", "with-geo-types-0_7"] }
+deadpool-postgres = { version = "0.12", features = ["serde"] }
+geo = "0.27"
+geo-types = "0.7"
+geojson = "0.24"
+log = "0.4"
+env_logger = "0.10"

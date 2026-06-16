@@ -3,7 +3,7 @@
  * Push notifications, alerts, and notification preferences
  */
 
-import { router, publicProcedure } from '../_core/trpc-base.js';
+import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { eq, and, desc, sql, isNull } from 'drizzle-orm';
@@ -16,10 +16,12 @@ import {
   weatherAlerts,
   notificationTemplates,
 } from '../../drizzle/notification-schema.js';
+import { logger } from '../logger.js';
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 
 export const notificationRouter = router({
   // Get user notifications
-  list: publicProcedure
+  list: protectedProcedure
     .input(z.object({
       userId: z.number(),
       limit: z.number().default(50),
@@ -53,7 +55,7 @@ export const notificationRouter = router({
     }),
 
   // Get unread count
-  getUnreadCount: publicProcedure
+  getUnreadCount: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -71,9 +73,14 @@ export const notificationRouter = router({
     }),
 
   // Mark notification as read
-  markAsRead: publicProcedure
+  markAsRead: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -87,9 +94,14 @@ export const notificationRouter = router({
     }),
 
   // Mark all as read
-  markAllAsRead: publicProcedure
+  markAllAsRead: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -105,7 +117,7 @@ export const notificationRouter = router({
     }),
 
   // Create notification
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       userId: z.number(),
       title: z.string(),
@@ -120,6 +132,11 @@ export const notificationRouter = router({
       scheduledFor: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -137,7 +154,7 @@ export const notificationRouter = router({
     }),
 
   // Get notification preferences
-  getPreferences: publicProcedure
+  getPreferences: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -168,7 +185,7 @@ export const notificationRouter = router({
     }),
 
   // Update notification preferences
-  updatePreferences: publicProcedure
+  updatePreferences: protectedProcedure
     .input(z.object({
       userId: z.number(),
       pushEnabled: z.boolean().optional(),
@@ -186,6 +203,11 @@ export const notificationRouter = router({
       categoryPreferences: z.any().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -214,7 +236,7 @@ export const notificationRouter = router({
     }),
 
   // Register push token
-  registerPushToken: publicProcedure
+  registerPushToken: protectedProcedure
     .input(z.object({
       userId: z.number(),
       token: z.string(),
@@ -223,6 +245,11 @@ export const notificationRouter = router({
       deviceName: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -250,7 +277,7 @@ export const notificationRouter = router({
     }),
 
   // Get price alerts
-  getPriceAlerts: publicProcedure
+  getPriceAlerts: protectedProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -266,7 +293,7 @@ export const notificationRouter = router({
     }),
 
   // Create price alert
-  createPriceAlert: publicProcedure
+  createPriceAlert: protectedProcedure
     .input(z.object({
       userId: z.number(),
       cropType: z.string(),
@@ -277,6 +304,11 @@ export const notificationRouter = router({
       cooldownMinutes: z.number().default(60),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -293,7 +325,7 @@ export const notificationRouter = router({
     }),
 
   // Update price alert
-  updatePriceAlert: publicProcedure
+  updatePriceAlert: protectedProcedure
     .input(z.object({
       id: z.number(),
       isActive: z.boolean().optional(),
@@ -301,6 +333,11 @@ export const notificationRouter = router({
       percentageChange: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -316,9 +353,14 @@ export const notificationRouter = router({
     }),
 
   // Delete price alert
-  deletePriceAlert: publicProcedure
+  deletePriceAlert: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -327,7 +369,7 @@ export const notificationRouter = router({
     }),
 
   // Get weather alerts
-  getWeatherAlerts: publicProcedure
+  getWeatherAlerts: protectedProcedure
     .input(z.object({
       userId: z.number().optional(),
       region: z.string().optional(),
@@ -359,7 +401,7 @@ export const notificationRouter = router({
     }),
 
   // Create weather alert
-  createWeatherAlert: publicProcedure
+  createWeatherAlert: protectedProcedure
     .input(z.object({
       userId: z.number().optional(),
       farmId: z.number().optional(),
@@ -376,6 +418,11 @@ export const notificationRouter = router({
       source: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -393,9 +440,14 @@ export const notificationRouter = router({
     }),
 
   // Acknowledge weather alert
-  acknowledgeWeatherAlert: publicProcedure
+  acknowledgeWeatherAlert: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
+      const rateCheck = await checkRateLimit("notification", "anon", 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("notification", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       
@@ -409,7 +461,7 @@ export const notificationRouter = router({
     }),
 
   // Get notification templates
-  getTemplates: publicProcedure
+  getTemplates: protectedProcedure
     .input(z.object({
       category: z.string().optional(),
       language: z.string().default('en'),

@@ -20,6 +20,7 @@ import {
   type JournalEntryLine,
 } from '../../../drizzle/financial-schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
+import { logger } from '../../logger.js';
 import { 
   AccountType, 
   FARMER_COA, 
@@ -114,7 +115,7 @@ export class AccountingService {
       }))
     );
 
-    console.log(`[Accounting] Created journal entry ${entryNumber} for user ${input.userId}`);
+    logger.info(`[Accounting] Created journal entry ${entryNumber} for user ${input.userId}`);
     return entry.id;
   }
 
@@ -186,7 +187,7 @@ export class AccountingService {
       })
       .where(eq(journalEntries.id, entryId));
 
-    console.log(`[Accounting] Posted journal entry ${entry.entryNumber}`);
+    logger.info(`[Accounting] Posted journal entry ${entry.entryNumber}`);
   }
 
   /**
@@ -229,7 +230,7 @@ export class AccountingService {
       entryDate: new Date(),
       description: `REVERSAL: ${originalEntry.description}`,
       reference: `REV-${originalEntry.entryNumber}`,
-      lines: originalLines.map((line: any) => ({
+      lines: originalLines.map((line: Record<string, any>) => ({
         accountCode: line.accountCode,
         debit: line.credit, // Swap
         credit: line.debit, // Swap
@@ -253,7 +254,7 @@ export class AccountingService {
       })
       .where(eq(journalEntries.id, entryId));
 
-    console.log(`[Accounting] Reversed journal entry ${originalEntry.entryNumber}`);
+    logger.info(`[Accounting] Reversed journal entry ${originalEntry.entryNumber}`);
     return reversingEntry;
   }
 
@@ -289,7 +290,7 @@ export class AccountingService {
       };
     }
 
-    const entryIds = entries.map((e: any) => e.id);
+    const entryIds = entries.map((e: Record<string, any>) => e.id);
 
     // Get all lines for these entries
     const lines = await database
@@ -426,7 +427,7 @@ export class AccountingService {
       };
     }
 
-    const entryIds = entries.map((e: any) => e.id);
+    const entryIds = entries.map((e: Record<string, any>) => e.id);
 
     // Get all lines for these entries
     const lines = await database
@@ -530,7 +531,7 @@ export class AccountingService {
       });
     }
 
-    console.log(`[Accounting] Closed financial period ${period.periodName}`);
+    logger.info(`[Accounting] Closed financial period ${period.periodName}`);
   }
 
   /**

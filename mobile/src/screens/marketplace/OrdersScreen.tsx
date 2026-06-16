@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Text, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, FlatList, TouchableOpacity, Text, StyleSheet, RefreshControl, Alert ,useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '@/components/shared/Header';
 import { Loading } from '@/components/shared/Loading';
@@ -44,7 +44,8 @@ export default function OrdersScreen() {
   if (loading) return <Loading message="Loading orders..." />;
 
   return (
-    <View style={styles.container}>
+    <View
+      accessibilityLabel="Orders screen" style={styles.container}>
       <Header title="My Orders" />
       {orders.length === 0 ? (
         <EmptyState

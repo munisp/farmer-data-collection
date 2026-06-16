@@ -12,13 +12,16 @@
  * - GPS ingestion monitoring and metrics
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from 'zod';
 import { router, protectedProcedure } from '../_core/trpc-base.js';
 import { getDb } from '../db.js';
 import { sql, eq, and, desc, gte, lte } from 'drizzle-orm';
 import { rateLimiter, GPS_ACCURACY_THRESHOLDS } from '../services/redis-rate-limiter.js';
 import { gpsMetrics } from '../services/gps-monitoring.js';
+import { logger } from '../logger.js';
 
+import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 // Constants for track quality filtering
 const MAX_SPEED_MS = 55.56; // 200 km/h in m/s - reject points faster than this
 const DEFAULT_RATE_LIMIT_POINTS_PER_MINUTE = 60; // Max GPS points per device per minute
@@ -70,7 +73,7 @@ async function findFarmContainingPointPostGIS(
     }
     return undefined;
   } catch (error) {
-    console.warn('[GPS] PostGIS geofencing failed, falling back to JSON boundaries:', error);
+    logger.warn('[GPS] PostGIS geofencing failed, falling back to JSON boundaries:', error);
     return undefined;
   }
 }
@@ -110,8 +113,13 @@ export const gpsTrackingRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("gps_tracking", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("gps_tracking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         INSERT INTO gps_devices (
@@ -132,7 +140,7 @@ export const gpsTrackingRouter = router({
    */
   getDevices: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new Error('Database not available');
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
     const result = await db.execute(sql`
       SELECT 
@@ -154,7 +162,7 @@ export const gpsTrackingRouter = router({
     .input(z.object({ deviceId: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const result = await db.execute(sql`
         SELECT 
@@ -169,7 +177,7 @@ export const gpsTrackingRouter = router({
       `);
 
       if (result.rows.length === 0) {
-        throw new Error('Device not found');
+        throw new TRPCError({ code: "NOT_FOUND", message: "Device not found" });
       }
 
       return result.rows[0];
@@ -186,8 +194,13 @@ export const gpsTrackingRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("gps_tracking", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("gps_tracking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       await db.execute(sql`
         UPDATE gps_devices
@@ -224,8 +237,13 @@ export const gpsTrackingRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("gps_tracking", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("gps_tracking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
         const db = await getDb();
-        if (!db) throw new Error('Database not available');
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
         // Record metric
         gpsMetrics.recordTrackReceived();
@@ -238,7 +256,7 @@ export const gpsTrackingRouter = router({
         const rateLimit = await rateLimiter.checkGPSRateLimit(ctx.user.id, input.deviceId, rateLimitPerMinute);
         if (!rateLimit.allowed) {
           gpsMetrics.recordTrackRejected('rate_limit');
-          throw new Error(`Rate limit exceeded. Maximum ${rateLimitPerMinute} GPS points per minute per device.`);
+          throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Rate limit exceeded. Maximum ${rateLimitPerMinute} GPS points per minute per device.` });
         }
 
         // 2. Duplicate detection via clientId (idempotency)
@@ -253,7 +271,7 @@ export const gpsTrackingRouter = router({
           
           if (duplicateCheck.rows.length > 0) {
             gpsMetrics.recordTrackRejected('duplicate');
-            console.log(`[GPS] Duplicate track detected: clientId=${input.clientId}`);
+            logger.info(`[GPS] Duplicate track detected: clientId=${input.clientId}`);
             return {
               id: (duplicateCheck.rows[0] as any).id,
               rejected: false,
@@ -272,7 +290,7 @@ export const gpsTrackingRouter = router({
         `);
         
         if (deviceCheck.rows.length === 0) {
-          throw new Error('Device not found or access denied');
+          throw new TRPCError({ code: "NOT_FOUND", message: "Device not found or access denied" });
         }
 
         const device = deviceCheck.rows[0] as any;
@@ -280,7 +298,7 @@ export const gpsTrackingRouter = router({
         // 4. Track quality filtering - accuracy check (using configurable threshold)
         if (input.accuracy && input.accuracy > accuracyThreshold) {
           gpsMetrics.recordTrackRejected('accuracy');
-          console.log(`[GPS] Rejected point: accuracy ${input.accuracy}m > ${accuracyThreshold}m threshold`);
+          logger.info(`[GPS] Rejected point: accuracy ${input.accuracy}m > ${accuracyThreshold}m threshold`);
           return { 
             id: null, 
             rejected: true, 
@@ -304,7 +322,7 @@ export const gpsTrackingRouter = router({
 
             if (impliedSpeed > MAX_SPEED_MS) {
               gpsMetrics.recordTrackRejected('speed');
-              console.log(`[GPS] Rejected point: implied speed ${(impliedSpeed * 3.6).toFixed(1)} km/h > 200 km/h threshold`);
+              logger.info(`[GPS] Rejected point: implied speed ${(impliedSpeed * 3.6).toFixed(1)} km/h > 200 km/h threshold`);
               return { 
                 id: null, 
                 rejected: true, 
@@ -424,7 +442,7 @@ export const gpsTrackingRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       let query = sql`
         SELECT 
@@ -463,7 +481,7 @@ export const gpsTrackingRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       let query = sql`
         SELECT 
@@ -503,7 +521,7 @@ export const gpsTrackingRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       let whereClause = sql`user_id = ${ctx.user.id}`;
 
@@ -546,8 +564,13 @@ export const gpsTrackingRouter = router({
   deleteDevice: protectedProcedure
     .input(z.object({ deviceId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const rateCheck = await checkRateLimit("gps_tracking", String(ctx.user?.id ?? "anon"), 20, 60);
+      if (!rateCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded" });
+      const wafScan = await scanForThreats("gps_tracking", input);
+      if (!wafScan.safe) throw new TRPCError({ code: "FORBIDDEN", message: `Request blocked: ${wafScan.threats.join(", ")}` });
+
       const db = await getDb();
-      if (!db) throw new Error('Database not available');
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // Delete associated tracks first
       await db.execute(sql`

@@ -45,7 +45,7 @@ export default function CreditScoreDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Credit Score Dashboard</h1>
           <p className="text-muted-foreground">Monitor your creditworthiness and track improvements</p>
@@ -62,7 +62,7 @@ export default function CreditScoreDashboard() {
               <p>Loading credit score...</p>
             ) : (
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4 md:gap-6">
                   <div className="text-center">
                     <div className={`text-6xl font-bold ${getScoreColor(currentScore)}`}>
                       {currentScore}

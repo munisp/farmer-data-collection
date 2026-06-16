@@ -1,0 +1,830 @@
+# KEDA ScaledObjects for FarmConnect Platform
+# Event-driven autoscaling based on Kafka consumer lag, HTTP request rate,
+# and scheduled scaling for batch workloads.
+#
+# Prerequisites:
+#   - KEDA operator installed: helm install keda kedacore/keda --namespace keda-system
+#   - TriggerAuthentication for Kafka broker credentials
+#   - Prometheus adapter for HTTP metrics
+---
+# TriggerAuthentication — shared Kafka credentials
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: kafka-trigger-auth
+  namespace: farmconnect
+spec:
+  secretTargetRef:
+    - parameter: sasl
+      name: kafka-credentials
+      key: sasl-mechanism
+    - parameter: username
+      name: kafka-credentials
+      key: username
+    - parameter: password
+      name: kafka-credentials
+      key: password
+    - parameter: tls
+      name: kafka-credentials
+      key: tls-enabled
+
+---
+# TriggerAuthentication — Prometheus for HTTP metrics
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: prometheus-trigger-auth
+  namespace: farmconnect
+spec:
+  secretTargetRef: []
+
+# ============================================================================
+# 1. API Server — HTTP request rate + Kafka consumer lag
+# ============================================================================
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: farmconnect-api-keda
+  namespace: farmconnect
+  labels:
+    app: farmconnect-api
+    tier: api
+spec:
+  scaleTargetRef:
+    name: farmconnect-api
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 3
+  maxReplicaCount: 25
+  fallback:
+    failureThreshold: 3
+    replicas: 5
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:9090
+        metricName: http_requests_total
+        query: sum(rate(http_requests_total{app="farmconnect-api"}[2m]))
+        threshold: "100"
+        activationThreshold: "20"
+      authenticationRef:
+        name: prometheus-trigger-auth
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: farmconnect-api-group
+        topic: farmconnect.events
+        lagThreshold: "50"
+        activationLagThreshold: "10"
+        offsetResetPolicy: latest
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
+    - type: memory
+      metricType: Utilization
+      metadata:
+        value: "80"
+  advanced:
+    restoreToOriginalReplicaCount: true
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 30
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 30
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Percent
+              value: 25
+              periodSeconds: 120
+
+# ============================================================================
+# 2. Go Services — Kafka consumer lag driven
+# ============================================================================
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: mobile-money-keda
+  namespace: farmconnect
+  labels:
+    app: mobile-money-service
+    tier: go
+spec:
+  scaleTargetRef:
+    name: mobile-money-service
+  pollingInterval: 10
+  cooldownPeriod: 120
+  minReplicaCount: 2
+  maxReplicaCount: 15
+  fallback:
+    failureThreshold: 3
+    replicas: 3
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: mobile-money-consumer
+        topic: farmconnect.payments
+        lagThreshold: "30"
+        activationLagThreshold: "5"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:9090
+        metricName: mobile_money_tx_rate
+        query: sum(rate(grpc_server_handled_total{grpc_service="MobileMoneyService"}[2m]))
+        threshold: "50"
+      authenticationRef:
+        name: prometheus-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "65"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: loan-orchestrator-keda
+  namespace: farmconnect
+  labels:
+    app: loan-orchestrator
+    tier: go
+spec:
+  scaleTargetRef:
+    name: loan-orchestrator
+  pollingInterval: 15
+  cooldownPeriod: 180
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  fallback:
+    failureThreshold: 3
+    replicas: 2
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: loan-orchestrator-consumer
+        topic: farmconnect.loans
+        lagThreshold: "20"
+        activationLagThreshold: "5"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: blockchain-provenance-keda
+  namespace: farmconnect
+  labels:
+    app: blockchain-provenance-go
+    tier: go
+spec:
+  scaleTargetRef:
+    name: blockchain-provenance-go
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 2
+  maxReplicaCount: 8
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: provenance-consumer
+        topic: farmconnect.provenance
+        lagThreshold: "40"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: delivery-service-keda
+  namespace: farmconnect
+  labels:
+    app: delivery-service
+    tier: go
+spec:
+  scaleTargetRef:
+    name: delivery-service
+  pollingInterval: 10
+  cooldownPeriod: 120
+  minReplicaCount: 2
+  maxReplicaCount: 12
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: delivery-consumer
+        topic: farmconnect.delivery
+        lagThreshold: "30"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:9090
+        metricName: delivery_active_orders
+        query: delivery_active_orders_total{app="delivery-service"}
+        threshold: "100"
+      authenticationRef:
+        name: prometheus-trigger-auth
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: supply-chain-keda
+  namespace: farmconnect
+  labels:
+    app: supply-chain-service
+    tier: go
+spec:
+  scaleTargetRef:
+    name: supply-chain-service
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 2
+  maxReplicaCount: 8
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: supply-chain-consumer
+        topic: farmconnect.supply-chain
+        lagThreshold: "40"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: drone-service-keda
+  namespace: farmconnect
+  labels:
+    app: drone-service
+    tier: go
+spec:
+  scaleTargetRef:
+    name: drone-service
+  pollingInterval: 10
+  cooldownPeriod: 60
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: drone-telemetry-consumer
+        topic: farmconnect.drone-telemetry
+        lagThreshold: "100"
+      authenticationRef:
+        name: kafka-trigger-auth
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: equipment-fleet-keda
+  namespace: farmconnect
+  labels:
+    app: equipment-fleet-service
+    tier: go
+spec:
+  scaleTargetRef:
+    name: equipment-fleet-service
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: equipment-consumer
+        topic: farmconnect.equipment
+        lagThreshold: "50"
+      authenticationRef:
+        name: kafka-trigger-auth
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: aquaculture-pond-keda
+  namespace: farmconnect
+  labels:
+    app: aquaculture-pond-go
+    tier: go
+spec:
+  scaleTargetRef:
+    name: aquaculture-pond-go
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: pond-telemetry-consumer
+        topic: farmconnect.pond-telemetry
+        lagThreshold: "50"
+      authenticationRef:
+        name: kafka-trigger-auth
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: gps-streaming-keda
+  namespace: farmconnect
+  labels:
+    app: gps-streaming-service
+    tier: go
+spec:
+  scaleTargetRef:
+    name: gps-streaming-service
+  pollingInterval: 10
+  cooldownPeriod: 60
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: gps-consumer
+        topic: farmconnect.gps-positions
+        lagThreshold: "200"
+      authenticationRef:
+        name: kafka-trigger-auth
+
+# ============================================================================
+# 3. Rust Services — latency-sensitive, lower thresholds
+# ============================================================================
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: urban-delivery-keda
+  namespace: farmconnect
+  labels:
+    app: urban-delivery-rust
+    tier: rust
+spec:
+  scaleTargetRef:
+    name: urban-delivery-rust
+  pollingInterval: 10
+  cooldownPeriod: 120
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:9090
+        metricName: urban_delivery_p99_latency
+        query: histogram_quantile(0.99, sum(rate(grpc_server_handling_seconds_bucket{grpc_service="UrbanDeliveryService"}[5m])) by (le))
+        threshold: "2"
+      authenticationRef:
+        name: prometheus-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "60"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: iot-gateway-keda
+  namespace: farmconnect
+  labels:
+    app: iot-gateway-rust
+    tier: rust
+spec:
+  scaleTargetRef:
+    name: iot-gateway-rust
+  pollingInterval: 10
+  cooldownPeriod: 60
+  minReplicaCount: 2
+  maxReplicaCount: 12
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: iot-gateway-consumer
+        topic: farmconnect.iot-readings
+        lagThreshold: "500"
+        activationLagThreshold: "50"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "60"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: openappsec-waf-keda
+  namespace: farmconnect
+  labels:
+    app: openappsec-waf-rust
+    tier: rust
+spec:
+  scaleTargetRef:
+    name: openappsec-waf-rust
+  pollingInterval: 10
+  cooldownPeriod: 60
+  minReplicaCount: 2
+  maxReplicaCount: 8
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:9090
+        metricName: waf_requests_per_second
+        query: sum(rate(waf_requests_total{app="openappsec-waf"}[2m]))
+        threshold: "200"
+      authenticationRef:
+        name: prometheus-trigger-auth
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: tokenization-keda
+  namespace: farmconnect
+  labels:
+    app: tokenization-service-rust
+    tier: rust
+spec:
+  scaleTargetRef:
+    name: tokenization-service-rust
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 2
+  maxReplicaCount: 6
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:9090
+        metricName: tokenization_requests
+        query: sum(rate(grpc_server_handled_total{grpc_service="TokenizationService"}[2m]))
+        threshold: "50"
+      authenticationRef:
+        name: prometheus-trigger-auth
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: spatial-query-keda
+  namespace: farmconnect
+  labels:
+    app: spatial-query-rust
+    tier: rust
+spec:
+  scaleTargetRef:
+    name: spatial-query-rust
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  triggers:
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "60"
+
+# ============================================================================
+# 4. Python ML Services — scale on GPU/CPU utilization, slower cooldown
+# ============================================================================
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ml-inference-keda
+  namespace: farmconnect
+  labels:
+    app: ml-inference-service
+    tier: python-ml
+spec:
+  scaleTargetRef:
+    name: ml-inference-service
+  pollingInterval: 30
+  cooldownPeriod: 600
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  fallback:
+    failureThreshold: 3
+    replicas: 2
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:9090
+        metricName: ml_inference_queue_length
+        query: ml_inference_queue_length{app="ml-inference-service"}
+        threshold: "10"
+      authenticationRef:
+        name: prometheus-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "75"
+    - type: memory
+      metricType: Utilization
+      metadata:
+        value: "85"
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 60
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 120
+        scaleDown:
+          stabilizationWindowSeconds: 600
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 300
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: price-prediction-keda
+  namespace: farmconnect
+  labels:
+    app: price-prediction-service
+    tier: python-ml
+spec:
+  scaleTargetRef:
+    name: price-prediction-service
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  triggers:
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "75"
+    - type: memory
+      metricType: Utilization
+      metadata:
+        value: "85"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: agri-llm-keda
+  namespace: farmconnect
+  labels:
+    app: agri-llm-service
+    tier: python-ml
+spec:
+  scaleTargetRef:
+    name: agri-llm-service
+  pollingInterval: 30
+  cooldownPeriod: 600
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:9090
+        metricName: llm_concurrent_requests
+        query: llm_concurrent_requests{app="agri-llm-service"}
+        threshold: "3"
+      authenticationRef:
+        name: prometheus-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "80"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: aquaculture-ai-keda
+  namespace: farmconnect
+  labels:
+    app: aquaculture-ai-service
+    tier: python-ml
+spec:
+  scaleTargetRef:
+    name: aquaculture-ai-service
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  triggers:
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "75"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: satellite-service-keda
+  namespace: farmconnect
+  labels:
+    app: satellite-service
+    tier: python-ml
+spec:
+  scaleTargetRef:
+    name: satellite-service
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  triggers:
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "75"
+
+# ============================================================================
+# 5. Python Data Services — Kafka consumer + CPU driven
+# ============================================================================
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: lakehouse-keda
+  namespace: farmconnect
+  labels:
+    app: lakehouse-service
+    tier: python-data
+spec:
+  scaleTargetRef:
+    name: lakehouse-service
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: 1
+  maxReplicaCount: 6
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: lakehouse-consumer
+        topic: farmconnect.raw-events
+        lagThreshold: "500"
+        activationLagThreshold: "100"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: messaging-analytics-keda
+  namespace: farmconnect
+  labels:
+    app: messaging-analytics-service
+    tier: python-data
+spec:
+  scaleTargetRef:
+    name: messaging-analytics-service
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: messaging-analytics-consumer
+        topic: farmconnect.messages
+        lagThreshold: "100"
+      authenticationRef:
+        name: kafka-trigger-auth
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: opensearch-service-keda
+  namespace: farmconnect
+  labels:
+    app: opensearch-service
+    tier: python-data
+spec:
+  scaleTargetRef:
+    name: opensearch-service
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: opensearch-indexer-consumer
+        topic: farmconnect.search-index
+        lagThreshold: "200"
+      authenticationRef:
+        name: kafka-trigger-auth
+
+# ============================================================================
+# 6. Batch/Cron ScaledJobs — scheduled scaling for periodic workloads
+# ============================================================================
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: loan-worker-keda
+  namespace: farmconnect
+  labels:
+    app: loan-worker
+    tier: python-batch
+spec:
+  scaleTargetRef:
+    name: loan-worker
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: loan-worker-consumer
+        topic: farmconnect.loan-applications
+        lagThreshold: "5"
+        activationLagThreshold: "1"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: cron
+      metadata:
+        timezone: Africa/Nairobi
+        start: 0 6 * * *
+        end: 0 22 * * *
+        desiredReplicas: "2"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sync-analytics-keda
+  namespace: farmconnect
+  labels:
+    app: sync-analytics-service
+    tier: python-batch
+spec:
+  scaleTargetRef:
+    name: sync-analytics-service
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: 0
+  maxReplicaCount: 3
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.farmconnect.svc.cluster.local:9092
+        consumerGroup: sync-analytics-consumer
+        topic: farmconnect.sync-events
+        lagThreshold: "100"
+      authenticationRef:
+        name: kafka-trigger-auth
+    - type: cron
+      metadata:
+        timezone: Africa/Nairobi
+        start: 0 0 * * *
+        end: 0 6 * * *
+        desiredReplicas: "1"

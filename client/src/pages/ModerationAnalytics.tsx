@@ -22,6 +22,7 @@ import {
   Activity,
 } from "lucide-react";
 
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Moderation Analytics Dashboard
  * Real-time insights into automated moderation performance
@@ -37,7 +38,7 @@ export default function ModerationAnalytics() {
 
   if (overviewLoading) {
     return (
-      <div className="container py-8">
+      <div role="main" aria-label="Page content" className="container py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-muted-foreground">Loading analytics...</div>
         </div>
@@ -46,7 +47,8 @@ export default function ModerationAnalytics() {
   }
 
   return (
-    <div className="container py-8 space-y-6">
+    <DashboardLayout>
+      <div className="container py-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Moderation Analytics</h1>
         <p className="text-muted-foreground mt-2">
@@ -371,5 +373,6 @@ export default function ModerationAnalytics() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -8,18 +8,19 @@ import { AlertTriangle, TrendingDown, TrendingUp, Shield, AlertCircle } from "lu
 import { trpc } from "@/lib/trpc";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
+import { CHART_COLORS, SEMANTIC_COLORS, getChartColor } from "@/lib/chartTheme";
 type RiskCategory = 'low' | 'medium' | 'high' | 'critical';
 
 const getRiskColor = (category: RiskCategory) => {
   switch (category) {
     case 'low':
-      return 'text-green-600 bg-green-100';
+      return 'text-green-600 bg-green-100 dark:bg-green-900';
     case 'medium':
-      return 'text-blue-600 bg-blue-100';
+      return 'text-blue-600 bg-blue-100 dark:bg-blue-900';
     case 'high':
       return 'text-orange-600 bg-orange-100';
     case 'critical':
-      return 'text-red-600 bg-red-100';
+      return 'text-red-600 bg-red-100 dark:bg-red-900';
   }
 };
 
@@ -37,10 +38,10 @@ const getRiskIcon = (category: RiskCategory) => {
 };
 
 const COLORS = {
-  low: '#10b981',
-  medium: '#3b82f6',
-  high: '#f59e0b',
-  critical: '#ef4444',
+  low: SEMANTIC_COLORS.success,
+  medium: SEMANTIC_COLORS.info,
+  high: SEMANTIC_COLORS.warning,
+  critical: SEMANTIC_COLORS.danger,
 };
 
 export default function BorrowerRiskAssessment() {
@@ -86,7 +87,7 @@ export default function BorrowerRiskAssessment() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div role="main" aria-label="Page content" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Borrower Risk Assessment</h1>
           <p className="text-muted-foreground">
@@ -164,7 +165,7 @@ export default function BorrowerRiskAssessment() {
                   labelLine={false}
                   label={({ category, count }) => `${category}: ${count}`}
                   outerRadius={100}
-                  fill="#8884d8"
+                  fill={CHART_COLORS[4]}
                   dataKey="count"
                 >
                   {distributionData.map((entry, index) => (

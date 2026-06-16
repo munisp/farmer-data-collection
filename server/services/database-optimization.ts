@@ -4,6 +4,7 @@
  */
 
 import { Pool, PoolConfig, QueryResult, QueryResultRow } from 'pg';
+import { logger } from '../logger.js';
 
 interface DatabaseConfig {
   primary: PoolConfig;
@@ -37,7 +38,7 @@ export class DatabasePoolManager {
 
     // Set up error handling
     this.primaryPool.on('error', (err) => {
-      console.error('Primary pool error:', err);
+      logger.error('Primary pool error:', err);
     });
 
     // Read replica pools
@@ -51,7 +52,7 @@ export class DatabasePoolManager {
         });
 
         pool.on('error', (err) => {
-          console.error('Replica pool error:', err);
+          logger.error('Replica pool error:', err);
         });
 
         this.replicaPools.push(pool);
@@ -78,7 +79,7 @@ export class DatabasePoolManager {
   // Execute query with automatic pool selection
   async query<T extends QueryResultRow = QueryResultRow>(
     sql: string,
-    params?: any[],
+    params?: unknown[],
     options: QueryOptions = {}
   ): Promise<QueryResult<T>> {
     const pool = options.useReadReplica ? this.getReadPool() : this.primaryPool;
@@ -134,7 +135,7 @@ export class DatabasePoolManager {
       await client.query('SELECT 1');
       client.release();
       return true;
-    } catch {
+    } catch (err) {
       return false;
     }
   }
@@ -320,8 +321,8 @@ export async function applyRecommendedIndexes(pool: Pool): Promise<{
     try {
       await pool.query(index.sql);
       applied.push(index.name);
-    } catch (error: any) {
-      failed.push({ name: index.name, error: error.message });
+    } catch (error: unknown) {
+      failed.push({ name: index.name, error: (error instanceof Error ? error.message : String(error)) });
     }
   }
 
@@ -344,7 +345,7 @@ export class QueryAnalyzer {
   async analyzeQuery<T extends QueryResultRow = QueryResultRow>(
     pool: Pool,
     sql: string,
-    params?: any[]
+    params?: unknown[]
   ): Promise<{ result: QueryResult<T>; duration: number; explain?: any }> {
     const start = Date.now();
     const result = await pool.query<T>(sql, params);
@@ -361,7 +362,7 @@ export class QueryAnalyzer {
       try {
         const explainResult = await pool.query(`EXPLAIN ANALYZE ${sql}`, params);
         return { result, duration, explain: explainResult.rows };
-      } catch {
+      } catch (err) {
         return { result, duration };
       }
     }

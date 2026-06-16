@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { colors, darkColors } from '@/lib/theme';
 import {
   View,
   Text,
@@ -7,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-} from 'react-native';
+,useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { database } from '@/services/database';
@@ -177,10 +178,11 @@ export default function FarmerProfileScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+          accessibilityRole="button" onPress={() => navigation.goBack()}>
             <Text style={styles.backButton}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Farmer Profile</Text>
+          <Text accessibilityRole="header" style={styles.headerTitle}>Farmer Profile</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.errorContainer}>
@@ -193,14 +195,17 @@ export default function FarmerProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          accessibilityRole="button" onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Farmer Profile</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Farmer Profile</Text>
         <View style={styles.headerRight} />
       </View>
 
       <ScrollView
+      accessibilityLabel="Farmer Profile screen"
+      accessibilityRole="scrollbar"
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -232,7 +237,7 @@ export default function FarmerProfileScreen() {
 
         {/* Credit Score Card */}
         <View style={styles.creditCard}>
-          <Text style={styles.sectionTitle}>Credit Standing</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Credit Standing</Text>
           <View style={styles.creditScoreContainer}>
             <View style={[styles.creditScoreBadge, { backgroundColor: getCreditScoreColor() }]}>
               <Text style={styles.creditScoreText}>{getCreditScoreLabel()}</Text>
@@ -252,7 +257,7 @@ export default function FarmerProfileScreen() {
 
         {/* Loan Summary Card */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Loan Summary</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Loan Summary</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{loanSummary?.totalLoans || 0}</Text>
@@ -286,7 +291,7 @@ export default function FarmerProfileScreen() {
 
         {/* Farm Summary Card */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Farm Summary</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Farm Summary</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{farmSummary?.totalFarms || 0}</Text>
@@ -316,7 +321,7 @@ export default function FarmerProfileScreen() {
 
         {/* Harvest Summary Card */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Harvest History</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Harvest History</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{harvestSummary?.totalHarvests || 0}</Text>
@@ -348,8 +353,9 @@ export default function FarmerProfileScreen() {
 
         {/* Quick Actions */}
         <View style={styles.actionsCard}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Quick Actions</Text>
           <TouchableOpacity
+          accessibilityRole="button"
             style={styles.actionButton}
             onPress={() => navigation.navigate('LoanApplication' as never, { 
               farmerId: farmer.id,
@@ -360,6 +366,7 @@ export default function FarmerProfileScreen() {
             <Text style={styles.actionButtonText}>Apply for Loan</Text>
           </TouchableOpacity>
           <TouchableOpacity
+          accessibilityRole="button"
             style={[styles.actionButton, styles.actionButtonSecondary]}
             onPress={() => navigation.navigate('FarmRegistration' as never, { 
               farmerId: farmer.id 
@@ -370,6 +377,7 @@ export default function FarmerProfileScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+          accessibilityRole="button"
             style={[styles.actionButton, styles.actionButtonSecondary]}
             onPress={() => navigation.navigate('CreateHarvest' as never, { 
               farmerId: farmer.id 
@@ -398,13 +406,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
   backButton: {
     fontSize: 16,
-    color: '#166534',
+    color: colors.primaryDark,
   },
   headerTitle: {
     fontSize: 18,
@@ -437,7 +445,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileCard: {
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     padding: 24,
     alignItems: 'center',
   },
@@ -453,12 +461,12 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.white,
   },
   farmerName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.white,
     marginBottom: 4,
   },
   farmerLocation: {
@@ -488,10 +496,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
   },
   statusTextActive: {
-    color: '#fff',
+    color: colors.white,
   },
   creditCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     margin: 16,
     marginBottom: 8,
     borderRadius: 12,
@@ -512,7 +520,7 @@ const styles = StyleSheet.create({
   creditScoreText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.white,
   },
   creditDetails: {
     flex: 1,
@@ -532,7 +540,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
@@ -543,7 +551,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#166534',
+    color: colors.primaryDark,
     marginBottom: 12,
   },
   statsGrid: {
@@ -616,17 +624,17 @@ const styles = StyleSheet.create({
   cropChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: colors.primaryLight,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#bbf7d0',
   },
   cropChipText: {
     fontSize: 13,
-    color: '#166534',
+    color: colors.primaryDark,
   },
   actionsCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     marginHorizontal: 16,
     marginTop: 8,
     borderRadius: 12,
@@ -635,24 +643,24 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   actionButton: {
-    backgroundColor: '#166534',
+    backgroundColor: colors.primaryDark,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 8,
   },
   actionButtonSecondary: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#166534',
+    borderColor: colors.primaryDark,
   },
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.white,
   },
   actionButtonTextSecondary: {
-    color: '#166534',
+    color: colors.primaryDark,
   },
   bottomPadding: {
     height: 24,

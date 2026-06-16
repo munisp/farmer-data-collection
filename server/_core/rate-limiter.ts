@@ -7,6 +7,7 @@
 
 import { TRPCError } from '@trpc/server';
 import { getRedis } from './redis.js';
+import { logger } from '../logger.js';
 
 interface RateLimitConfig {
   windowMs: number;
@@ -72,7 +73,7 @@ export function createRateLimiter(config: RateLimitConfig) {
         throw error; // Re-throw rate limit errors
       }
 
-      console.warn('[RateLimiter] Redis unavailable, using in-memory fallback');
+      logger.warn('[RateLimiter] Redis unavailable, using in-memory fallback');
       
       let entry = memoryStore.get(key);
       
@@ -135,7 +136,6 @@ export const rateLimiters = {
 };
 
 // Helper to get identifier from context
-export function getIdentifier(ctx: any): string {
-  // Use userId if authenticated, otherwise use IP address
-  return ctx.user?.id || ctx.req?.ip || 'anonymous';
+export function getIdentifier(ctx: { user?: { id?: string | number }; req?: { ip?: string }; [key: string]: unknown }): string {
+  return String(ctx.user?.id || ctx.req?.ip || 'anonymous');
 }

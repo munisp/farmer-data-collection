@@ -82,7 +82,7 @@ class OpfsPersistence {
     try {
       this.directoryHandle = await navigator.storage.getDirectory();
       this.fileHandle = await this.directoryHandle.getFileHandle(this.dbName, { create: true });
-      console.log('[OPFS] Initialized OPFS storage for:', this.dbName);
+      console.warn('[OPFS] Initialized OPFS storage for:', this.dbName);
     } catch (error) {
       console.error('[OPFS] Failed to initialize OPFS:', error);
     }
@@ -114,7 +114,7 @@ class OpfsPersistence {
       const writable = await this.fileHandle.createWritable();
       await writable.write(data);
       await writable.close();
-      console.log('[OPFS] Database saved successfully');
+      console.warn('[OPFS] Database saved successfully');
     } catch (error) {
       console.error('[OPFS] Failed to save database, falling back to IndexedDB:', error);
       await this.saveToIndexedDB(data);
@@ -188,7 +188,7 @@ export class SqliteWasmDb implements LocalDb {
   async init(): Promise<void> {
     if (this.ready) return;
     
-    console.log('[SQLite WASM] Initializing database...');
+    console.warn('[SQLite WASM] Initializing database...');
     
     // Load SQLite WASM module
     const SQL = await loadSqliteWasm();
@@ -204,10 +204,10 @@ export class SqliteWasmDb implements LocalDb {
     
     // Create database instance
     if (existingData) {
-      console.log('[SQLite WASM] Loading existing database from storage');
+      console.warn('[SQLite WASM] Loading existing database from storage');
       this.db = new SQL.Database(existingData as any);
     } else {
-      console.log('[SQLite WASM] Creating new database');
+      console.warn('[SQLite WASM] Creating new database');
       this.db = new SQL.Database(':memory:' as any);
     }
     
@@ -216,7 +216,7 @@ export class SqliteWasmDb implements LocalDb {
       this.db.run('PRAGMA journal_mode=WAL;');
     } catch (e) {
       // WAL might not be supported in all configurations
-      console.log('[SQLite WASM] WAL mode not available, using default journal mode');
+      console.warn('[SQLite WASM] WAL mode not available, using default journal mode');
     }
     
     // Enable foreign keys
@@ -241,7 +241,7 @@ export class SqliteWasmDb implements LocalDb {
     await this.saveDatabase();
     
     this.ready = true;
-    console.log('[SQLite WASM] Database initialized successfully');
+    console.warn('[SQLite WASM] Database initialized successfully');
   }
   
   async close(): Promise<void> {
@@ -258,7 +258,7 @@ export class SqliteWasmDb implements LocalDb {
     }
     
     this.ready = false;
-    console.log('[SQLite WASM] Database closed');
+    console.warn('[SQLite WASM] Database closed');
   }
   
   isReady(): boolean {

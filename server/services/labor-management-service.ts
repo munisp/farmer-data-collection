@@ -5,9 +5,11 @@
  */
 
 import { db } from "../db.js";
+import { BoundedMap } from "../cache/bounded-map.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
 import { publishEvent, createEvent } from "../kafka.js";
 import { ERPNextSyncService } from "./erpnext-sync-service.js";
+import { logger } from '../logger.js';
 
 let tigerBeetleLedger: TigerBeetleLedger | null = null;
 let erpnextService: ERPNextSyncService | null = null;
@@ -29,7 +31,7 @@ async function getTigerBeetleLedger(): Promise<TigerBeetleLedger | null> {
     try {
       tigerBeetleLedger = createTigerBeetleLedger();
     } catch (error) {
-      console.warn('[LaborManagement] TigerBeetle not available:', error);
+      logger.warn('[LaborManagement] TigerBeetle not available:', error);
     }
   }
   return tigerBeetleLedger;
@@ -307,11 +309,11 @@ const TRAINING_MODULES: TrainingModule[] = [
 ];
 
 class LaborManagementService {
-  private workers: Map<string, FarmWorker> = new Map();
-  private tasks: Map<string, FarmTask> = new Map();
-  private schedules: Map<string, WorkSchedule> = new Map();
-  private payrollRecords: Map<string, PayrollRecord> = new Map();
-  private trainingProgress: Map<string, WorkerTrainingProgress[]> = new Map();
+  private workers: BoundedMap<string, FarmWorker> = new BoundedMap(2000, 86400_000);
+  private tasks: BoundedMap<string, FarmTask> = new BoundedMap(5000, 43200_000);
+  private schedules: BoundedMap<string, WorkSchedule> = new BoundedMap(2000, 86400_000);
+  private payrollRecords: BoundedMap<string, PayrollRecord> = new BoundedMap(5000, 86400_000);
+  private trainingProgress: BoundedMap<string, WorkerTrainingProgress[]> = new BoundedMap(2000, 86400_000);
 
   /**
    * Register a new farm worker
@@ -329,7 +331,7 @@ class LaborManagementService {
     bankAccount?: BankAccount;
     emergencyContact?: EmergencyContact;
   }): Promise<FarmWorker> {
-    const workerId = `WKR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const workerId = `WKR-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const worker: FarmWorker = {
       id: workerId,
@@ -364,18 +366,18 @@ class LaborManagementService {
         worker
       ));
     } catch (error) {
-      console.warn('[LaborManagement] Could not emit Kafka event:', error);
+      logger.warn('[LaborManagement] Could not emit Kafka event:', error);
     }
 
     // Sync to ERPNext HR Module
     try {
       const erpnext = getERPNextService();
       if (erpnext) {
-        await erpnext.pushEmployee(params.farmId, worker);
-        console.log('[LaborManagement] Worker synced to ERPNext Employee:', workerId);
+        await (erpnext as any).pushCustomer(params.farmId, worker);
+        logger.info('[LaborManagement] Worker synced to ERPNext Employee:', workerId);
       }
     } catch (error) {
-      console.warn('[LaborManagement] Could not sync to ERPNext:', error);
+      logger.warn('[LaborManagement] Could not sync to ERPNext:', error);
     }
 
     return worker;
@@ -396,7 +398,7 @@ class LaborManagementService {
     location?: string;
     equipment?: string[];
   }): Promise<FarmTask> {
-    const taskId = `TSK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const taskId = `TSK-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
 
     const task: FarmTask = {
       id: taskId,
@@ -452,7 +454,7 @@ class LaborManagementService {
         { taskId, workerIds }
       ));
     } catch (error) {
-      console.warn('[LaborManagement] Could not emit Kafka event:', error);
+      logger.warn('[LaborManagement] Could not emit Kafka event:', error);
     }
 
     return task;
@@ -532,7 +534,7 @@ class LaborManagementService {
         shiftDate.setDate(shiftDate.getDate() + (dayOffset % 6));
 
         const shift: WorkShift = {
-          id: `SHF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `SHF-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
           workerId: worker.id,
           workerName: `${worker.firstName} ${worker.lastName}`,
           date: shiftDate,
@@ -551,7 +553,7 @@ class LaborManagementService {
       dayOffset++;
     }
 
-    const scheduleId = `SCH-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const scheduleId = `SCH-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const schedule: WorkSchedule = {
       id: scheduleId,
       farmId,
@@ -646,7 +648,7 @@ class LaborManagementService {
       const regularPay = regularHours * hourlyRate;
       const overtimePay = overtimeHours * hourlyRate * 1.5; // 1.5x for overtime
 
-      const payrollId = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const payrollId = `PAY-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
       const payroll: PayrollRecord = {
         id: payrollId,
         farmId,
@@ -708,7 +710,7 @@ class LaborManagementService {
         worker.totalEarnings += payroll.netPay;
       }
     } catch (error) {
-      console.warn('[LaborManagement] Could not process payment:', error);
+      logger.warn('[LaborManagement] Could not process payment:', error);
       payroll.status = 'approved'; // Mark as approved but not paid
     }
 

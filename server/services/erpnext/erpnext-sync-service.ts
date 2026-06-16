@@ -9,6 +9,7 @@ import {
   erpnextSyncConfig,
 } from "../../../drizzle/erpnext-schema.js";
 import { eq, and, desc } from "drizzle-orm";
+import { logger } from '../../logger.js';
 
 /**
  * ERPNext Sync Service
@@ -86,7 +87,7 @@ export class ERPNextSyncService {
       const response = await this.client.get("/api/method/frappe.auth.get_logged_user");
       return response.status === 200;
     } catch (error) {
-      console.error("ERPNext connection test failed:", error);
+      logger.error("ERPNext connection test failed:", error);
       return false;
     }
   }
@@ -261,9 +262,9 @@ export class ERPNextSyncService {
         erpnextId,
         operation,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = ((error as Record<string, any>).response?.data)?.message || (error instanceof Error ? error.message : String(error));
 
       await this.logSync(
         userId,
@@ -274,7 +275,7 @@ export class ERPNextSyncService {
         "error",
         errorMessage,
         undefined,
-        error.response?.data,
+        ((error as Record<string, any>).response?.data),
         duration
       );
 
@@ -344,9 +345,9 @@ export class ERPNextSyncService {
         erpnextId,
         operation,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = ((error as Record<string, any>).response?.data)?.message || (error instanceof Error ? error.message : String(error));
 
       await this.logSync(
         userId,
@@ -357,7 +358,7 @@ export class ERPNextSyncService {
         "error",
         errorMessage,
         undefined,
-        error.response?.data,
+        ((error as Record<string, any>).response?.data),
         duration
       );
 
@@ -428,9 +429,9 @@ export class ERPNextSyncService {
         erpnextId,
         operation,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = ((error as Record<string, any>).response?.data)?.message || (error instanceof Error ? error.message : String(error));
 
       await this.logSync(
         userId,
@@ -441,7 +442,7 @@ export class ERPNextSyncService {
         "error",
         errorMessage,
         undefined,
-        error.response?.data,
+        ((error as Record<string, any>).response?.data),
         duration
       );
 
@@ -481,7 +482,7 @@ export class ERPNextSyncService {
         due_date: invoice.dueDate
           ? new Date(invoice.dueDate).toISOString().split("T")[0]
           : undefined,
-        items: invoice.items.map((item: any) => ({
+        items: invoice.items.map((item: Record<string, any>) => ({
           item_code: item.itemCode,
           qty: item.quantity,
           rate: item.price,
@@ -527,9 +528,9 @@ export class ERPNextSyncService {
         erpnextId,
         operation,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = ((error as Record<string, any>).response?.data)?.message || (error instanceof Error ? error.message : String(error));
 
       await this.logSync(
         userId,
@@ -540,7 +541,7 @@ export class ERPNextSyncService {
         "error",
         errorMessage,
         undefined,
-        error.response?.data,
+        ((error as Record<string, any>).response?.data),
         duration
       );
 
@@ -622,9 +623,9 @@ export class ERPNextSyncService {
         erpnextId,
         operation,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = ((error as Record<string, any>).response?.data)?.message || (error instanceof Error ? error.message : String(error));
 
       await this.logSync(
         userId,
@@ -635,7 +636,7 @@ export class ERPNextSyncService {
         "error",
         errorMessage,
         undefined,
-        error.response?.data,
+        ((error as Record<string, any>).response?.data),
         duration
       );
 
@@ -663,7 +664,7 @@ export class ERPNextSyncService {
         posting_date: new Date(entry.entryDate).toISOString().split("T")[0],
         voucher_type: "Journal Entry",
         user_remark: entry.description,
-        accounts: entry.lines.map((line: any) => ({
+        accounts: entry.lines.map((line: Record<string, any>) => ({
           account: line.accountCode,
           debit_in_account_currency: line.debit / 100, // Convert from cents
           credit_in_account_currency: line.credit / 100,
@@ -709,9 +710,9 @@ export class ERPNextSyncService {
         erpnextId,
         operation,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = ((error as Record<string, any>).response?.data)?.message || (error instanceof Error ? error.message : String(error));
 
       await this.logSync(
         userId,
@@ -722,7 +723,7 @@ export class ERPNextSyncService {
         "error",
         errorMessage,
         undefined,
-        error.response?.data,
+        ((error as Record<string, any>).response?.data),
         duration
       );
 
@@ -752,7 +753,7 @@ export class ERPNextSyncService {
       );
 
       const entities = response.data.data;
-      console.log(`Pulled ${entities.length} ${entityType} from ERPNext`);
+      logger.info(`Pulled ${entities.length} ${entityType} from ERPNext`);
 
       // Update platform entities based on ERPNext data
       let updatedCount = 0;
@@ -766,18 +767,18 @@ export class ERPNextSyncService {
           await this.updateLocalEntity(entityType, platformId, entity);
           updatedCount++;
         } catch (entityError) {
-          console.error(`Error updating ${entityType} entity:`, entityError);
+          logger.error(`Error updating ${entityType} entity:`, entityError);
         }
       }
 
-      console.log(`Updated ${updatedCount} ${entityType} entities in platform`);
+      logger.info(`Updated ${updatedCount} ${entityType} entities in platform`);
 
       return {
         success: true,
         count: updatedCount,
       };
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message;
+    } catch (error: unknown) {
+      const errorMessage = ((error as Record<string, any>).response?.data)?.message || (error instanceof Error ? error.message : String(error));
       return {
         success: false,
         count: 0,
@@ -855,7 +856,7 @@ export class ERPNextSyncService {
         break;
 
       default:
-        console.log(`No update handler for entity type: ${entityType}`);
+        logger.info(`No update handler for entity type: ${entityType}`);
     }
   }
 

@@ -19,6 +19,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ModernCard } from "@/components/ui/modern-card";
 import { useLocalization } from "@/contexts/LocalizationContext";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function MarketplaceBrowse() {
   const [, setWouterLocation] = useWouterLocation();
   const { formatCurrency, getCurrencySymbol } = useLocalization();
@@ -80,12 +81,13 @@ export default function MarketplaceBrowse() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <div role="main" aria-label="Page content" className="min-h-screen bg-background">
       {/* Modern Hero Header */}
       <div className="gradient-hero text-white py-12 md:py-16">
         <div className="container">
           <div className="max-w-2xl animate-fade-in">
-            <Badge className="bg-white/20 text-white border-white/30 mb-4">
+            <Badge className="bg-white dark:bg-gray-900/20 text-white border-white/30 mb-4">
               <Leaf className="w-3 h-3 mr-1" />
               Farm Fresh
             </Badge>
@@ -110,7 +112,7 @@ export default function MarketplaceBrowse() {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search products..."
+                    aria-label="Search" placeholder="Search products..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -279,7 +281,7 @@ export default function MarketplaceBrowse() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {listings.map((listing: any, index: number) => (
+              {listings.map((listing, index: number) => (
                 <ModernCard 
                   key={listing.id} 
                   className={`flex flex-col overflow-hidden group stagger-${(index % 6) + 1} animate-slide-up`}
@@ -412,5 +414,6 @@ export default function MarketplaceBrowse() {
         )}
       </div>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { format, subDays } from "date-fns";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function SmsAnalytics() {
   const [dateRange, setDateRange] = useState("30");
   const [trendGroupBy, setTrendGroupBy] = useState<"hour" | "day" | "week" | "month">("day");
@@ -74,7 +75,8 @@ export default function SmsAnalytics() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <DashboardLayout>
+      <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -574,5 +576,6 @@ export default function SmsAnalytics() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  
+    </DashboardLayout>);
 }

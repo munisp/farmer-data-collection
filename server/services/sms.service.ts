@@ -5,6 +5,7 @@ let AfricasTalking: any = null;
 
 // Twilio SDK (using axios for REST API)
 import axios from "axios";
+import { logger } from '../logger.js';
 
 // Provider types
 export type SMSProvider = "africas_talking" | "twilio";
@@ -69,7 +70,7 @@ export class SMSService {
         const module = await import("africastalking");
         AfricasTalking = module.default;
       } catch (error) {
-        console.warn("[SMS] Africa's Talking SDK not available");
+        logger.warn("[SMS] Africa's Talking SDK not available");
       }
     }
     
@@ -79,10 +80,10 @@ export class SMSService {
           apiKey: process.env.AFRICAS_TALKING_API_KEY,
           username: process.env.AFRICAS_TALKING_USERNAME,
         });
-        console.log("[SMS] Africa's Talking initialized");
+        logger.info("[SMS] Africa's Talking initialized");
         this.defaultProvider = "africas_talking";
       } catch (error) {
-        console.warn("[SMS] Failed to initialize Africa's Talking:", error);
+        logger.warn("[SMS] Failed to initialize Africa's Talking:", error);
       }
     }
 
@@ -91,7 +92,7 @@ export class SMSService {
       this.twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
       this.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
       this.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
-      console.log("[SMS] Twilio initialized");
+      logger.info("[SMS] Twilio initialized");
       
       // Use Twilio as default if Africa's Talking not available
       if (!this.africasTalkingClient) {
@@ -100,7 +101,7 @@ export class SMSService {
     }
 
     if (!this.africasTalkingClient && !this.twilioAccountSid) {
-      console.warn("[SMS] No SMS provider configured. SMS functionality will be disabled.");
+      logger.warn("[SMS] No SMS provider configured. SMS functionality will be disabled.");
     }
   }
 
@@ -131,7 +132,7 @@ export class SMSService {
 
     if (availableProviders.length === 0) {
       // All providers unhealthy, try default anyway
-      console.warn("[SMS] All providers unhealthy, attempting default provider");
+      logger.warn("[SMS] All providers unhealthy, attempting default provider");
       return this.sendWithProvider(message, this.defaultProvider);
     }
 
@@ -149,12 +150,12 @@ export class SMSService {
         // Provider returned failure, try next
         lastError = result.error || "Unknown error";
         this.recordFailure(provider, lastError);
-        console.warn(`[SMS] Provider ${provider} failed: ${lastError}, trying next...`);
+        logger.warn(`[SMS] Provider ${provider} failed: ${lastError}, trying next...`);
 
-      } catch (error: any) {
-        lastError = error.message || "Unknown error";
+      } catch (error: unknown) {
+        lastError = (error instanceof Error ? error.message : String(error));
         this.recordFailure(provider, lastError);
-        console.warn(`[SMS] Provider ${provider} threw error: ${lastError}, trying next...`);
+        logger.warn(`[SMS] Provider ${provider} threw error: ${lastError}, trying next...`);
       }
 
       // Small delay before trying next provider
@@ -182,11 +183,11 @@ export class SMSService {
           error: `Provider ${provider} not available`,
         };
       }
-    } catch (error: any) {
-      console.error(`[SMS] Send error (${provider}):`, error);
+    } catch (error: unknown) {
+      logger.error(`[SMS] Send error (${provider}):`, error);
       return {
         success: false,
-        error: error.message || "Failed to send SMS",
+        error: (error instanceof Error ? error.message : String(error)),
         provider,
       };
     }
@@ -216,7 +217,7 @@ export class SMSService {
           health.isHealthy = true;
           health.consecutiveFailures = 0;
           healthy.push(provider);
-          console.log(`[SMS] Provider ${provider} marked healthy after cooldown`);
+          logger.info(`[SMS] Provider ${provider} marked healthy after cooldown`);
         }
       }
     }
@@ -250,7 +251,7 @@ export class SMSService {
       // Mark unhealthy after 3 consecutive failures
       if (health.consecutiveFailures >= 3) {
         health.isHealthy = false;
-        console.warn(`[SMS] Provider ${provider} marked unhealthy after ${health.consecutiveFailures} failures`);
+        logger.warn(`[SMS] Provider ${provider} marked unhealthy after ${health.consecutiveFailures} failures`);
       }
     }
   }
@@ -297,8 +298,8 @@ export class SMSService {
         error: "No recipients processed",
         provider: "africas_talking",
       };
-    } catch (error: any) {
-      throw new Error(`Africa's Talking error: ${error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Africa's Talking error: ${(error instanceof Error ? error.message : String(error))}`);
     }
   }
 
@@ -332,8 +333,8 @@ export class SMSService {
         messageId: response.data.sid,
         provider: "twilio",
       };
-    } catch (error: any) {
-      throw new Error(`Twilio error: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Twilio error: ${(error instanceof Error ? error.message : String(error))}`);
     }
   }
 

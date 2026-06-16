@@ -41,7 +41,7 @@ groups:
         execErrState: Alerting
         for: 5m
         annotations:
-          description: Workflow failure rate is above 10% ({{ $values.A.Value }})
+          description: "Workflow failure rate is above 10% ({{ $values.A.Value }})"
           summary: High workflow failure rate detected
         labels:
           severity: critical
@@ -79,7 +79,7 @@ groups:
         execErrState: Alerting
         for: 2m
         annotations:
-          description: Service {{ $labels.job }} is down
+          description: "Service {{ $labels.job }} is down"
           summary: Critical service unavailable
         labels:
           severity: critical
@@ -120,7 +120,7 @@ groups:
               type: threshold
         for: 10m
         annotations:
-          description: P95 latency is {{ $values.A.Value }}s (threshold: 2s)
+          description: "P95 latency is {{ $values.A.Value }}s (threshold: 2s)"
           summary: API response time degraded
         labels:
           severity: warning

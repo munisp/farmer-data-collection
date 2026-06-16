@@ -3,9 +3,10 @@ import { Route, Switch, Redirect, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, lazy, useState } from "react";
 
-import ErrorBoundary from "./components/ErrorBoundary";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { PWAInstallPrompt, OnlineStatusIndicator, PWAUpdatePrompt } from "./components/PWAInstallPrompt";
+import { LowBandwidthProvider, ConnectionBanner } from "./components/LowBandwidthProvider";
 import { AuthProvider } from "./contexts/AuthContext";
 import { trpc, queryClient, getTRPCClient } from "./lib/trpc";
 import { WebSocketProvider } from "./contexts/WebSocketNotificationContext";
@@ -126,9 +127,40 @@ const PortfolioAtRiskDashboard = lazy(() => import("./pages/PortfolioAtRiskDashb
 const InputYieldAnalytics = lazy(() => import("./pages/InputYieldAnalytics"));
 const LandSuitabilityAssessment = lazy(() => import("./pages/LandSuitabilityAssessment"));
 const FarmGeotagging = lazy(() => import("./pages/FarmGeotagging"));
+const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
+const MobileMoneyDashboard = lazy(() => import("./pages/MobileMoneyDashboard"));
+const ChamaGroupLending = lazy(() => import("./pages/ChamaGroupLending"));
+const DistributorNetwork = lazy(() => import("./pages/DistributorNetwork"));
+const DistributorMap = lazy(() => import("./pages/DistributorMap"));
+const DistributorOnboarding = lazy(() => import("./pages/DistributorOnboarding"));
+const ColdChainMonitoring = lazy(() => import("./pages/ColdChainMonitoring"));
+const PriceAlertsDashboard = lazy(() => import("./pages/PriceAlertsDashboard"));
+const SubscriptionBoxes = lazy(() => import("./pages/SubscriptionBoxes"));
+const DroneFlightDashboard = lazy(() => import("./pages/DroneFlightDashboard"));
+const EquipmentFleetDashboard = lazy(() => import("./pages/EquipmentFleetDashboard"));
+const IoTSensorDashboard = lazy(() => import("./pages/IoTSensorDashboard"));
+const AIAdvisorDashboard = lazy(() => import("./pages/AIAdvisorDashboard"));
+const KycVerification = lazy(() => import("./pages/KycVerification"));
+const KycAdminDashboard = lazy(() => import("./pages/KycAdminDashboard"));
+const SoilAnalysis = lazy(() => import("./pages/SoilAnalysis"));
+const RetailStoreDashboard = lazy(() => import("./pages/RetailStoreDashboard"));
+const OrderReturns = lazy(() => import("./pages/OrderReturns"));
+const FreshnessTracking = lazy(() => import("./pages/FreshnessTracking"));
+const WeatherAlerts = lazy(() => import("./pages/WeatherAlerts"));
+const PaymentReconciliation = lazy(() => import("./pages/PaymentReconciliation"));
+const VoiceNavigation = lazy(() => import("./pages/VoiceNavigation"));
+const AggregationHub = lazy(() => import("./pages/AggregationHub"));
+const AquacultureDashboard = lazy(() => import("./pages/AquacultureDashboard"));
+const AquacultureFeed = lazy(() => import("./pages/AquacultureFeed"));
+const AquacultureAI = lazy(() => import("./pages/AquacultureAI"));
+const FarmerOnboardingWizard = lazy(() => import("./pages/FarmerOnboardingWizard"));
+const HomeDashboard = lazy(() => import("./pages/Home"));
+const LoginKeycloak = lazy(() => import("./pages/LoginKeycloak"));
+const OfflineConflictResolution = lazy(() => import("./pages/OfflineConflictResolution"));
 
 function Router() {
   return (
+    <ErrorBoundary>
     <Suspense fallback={null}>
       <Switch>
         <Route path="/login" component={Login} />
@@ -205,6 +237,7 @@ function Router() {
         <Route path="/disbursement-analytics" component={DisbursementAnalytics} />
         <Route path="/repayment-tracking" component={RepaymentTracking} />
         <Route path="/credit-score" component={CreditScoreDashboard} />
+        <Route path="/credit-scores">{() => <Redirect to="/credit-score" />}</Route>
         <Route path="/lender-comparison" component={LenderComparison} />
         <Route path="/loan-calculator" component={LoanCalculator} />
         <Route path="/admin/risk-assessment" component={BorrowerRiskAssessment} />
@@ -245,10 +278,51 @@ function Router() {
         <Route path="/portfolio-risk" component={PortfolioAtRiskDashboard} />
         <Route path="/input-yield-analytics" component={InputYieldAnalytics} />
         <Route path="/land-suitability" component={LandSuitabilityAssessment} />
+        <Route path="/delivery" component={DeliveryDashboard} />
+        <Route path="/delivery/tracking" component={DeliveryDashboard} />
+        <Route path="/mobile-money" component={MobileMoneyDashboard} />
+        <Route path="/chama" component={ChamaGroupLending} />
+        <Route path="/distributor-network" component={DistributorNetwork} />
+        <Route path="/distributor-map" component={DistributorMap} />
+        <Route path="/distributor-onboarding" component={DistributorOnboarding} />
+        <Route path="/cold-chain" component={ColdChainMonitoring} />
+        <Route path="/price-alerts" component={PriceAlertsDashboard} />
+        <Route path="/subscriptions" component={SubscriptionBoxes} />
+        {/* === Next-Gen AI Equipment & LLM Pages === */}
+        <Route path="/drone-operations" component={DroneFlightDashboard} />
+        <Route path="/drone-flights">{() => <Redirect to="/drone-operations" />}</Route>
+        <Route path="/equipment-fleet" component={EquipmentFleetDashboard} />
+        <Route path="/iot-sensors" component={IoTSensorDashboard} />
+        <Route path="/ai-advisor" component={AIAdvisorDashboard} />
+        {/* === KYC/KYB Verification === */}
+        <Route path="/kyc" component={KycVerification} />
+        <Route path="/admin/kyc" component={KycAdminDashboard} />
+        {/* === Soil Analysis === */}
+        <Route path="/soil-analysis" component={SoilAnalysis} />
+        <Route path="/retail/store" component={RetailStoreDashboard} />
+        <Route path="/retail/demand" component={RetailStoreDashboard} />
+        <Route path="/retail/standing-orders" component={RetailStoreDashboard} />
+        <Route path="/retail/invoices" component={RetailStoreDashboard} />
+        <Route path="/retail/bulk-order" component={RetailStoreDashboard} />
+        <Route path="/returns" component={OrderReturns} />
+        <Route path="/freshness" component={FreshnessTracking} />
+        <Route path="/weather-alerts" component={WeatherAlerts} />
+        <Route path="/payment-reconciliation" component={PaymentReconciliation} />
+        <Route path="/voice-navigation" component={VoiceNavigation} />
+        <Route path="/cooperative-dashboard" component={CooperativeDashboard} />
+        <Route path="/aggregation-hub" component={AggregationHub} />
+        <Route path="/aquaculture" component={AquacultureDashboard} />
+        <Route path="/aquaculture/feed" component={AquacultureFeed} />
+        <Route path="/aquaculture/ai" component={AquacultureAI} />
+        <Route path="/farmer-onboarding" component={FarmerOnboardingWizard} />
+        <Route path="/home" component={HomeDashboard} />
+        <Route path="/login-keycloak" component={LoginKeycloak} />
+        <Route path="/offline-conflicts" component={OfflineConflictResolution} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -269,6 +343,7 @@ function AppShell() {
   const appContent = (
     <TutorialProvider>
       <Toaster />
+      {!isAuthRoute && <ConnectionBanner />}
       {!isAuthRoute && <OnlineStatusIndicator />}
       <Router />
       {!isAuthRoute && (
@@ -302,11 +377,13 @@ function App() {
           <AuthProvider>
             <LocalizationProvider>
               <ThemeProvider defaultTheme="light">
-                <TooltipProvider>
-                  <WebSocketProvider>
-                    <AppShell />
-                  </WebSocketProvider>
-                </TooltipProvider>
+                <LowBandwidthProvider>
+                  <TooltipProvider>
+                    <WebSocketProvider>
+                      <AppShell />
+                    </WebSocketProvider>
+                  </TooltipProvider>
+                </LowBandwidthProvider>
               </ThemeProvider>
             </LocalizationProvider>
           </AuthProvider>

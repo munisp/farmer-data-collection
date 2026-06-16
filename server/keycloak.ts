@@ -1,10 +1,18 @@
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
+import { logger } from './logger.js';
+import { CircuitBreaker } from './services/circuit-breaker.js';
 
 const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
 const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'farmer-realm';
 const KEYCLOAK_CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID || 'farmer-api';
 const KEYCLOAK_CLIENT_SECRET = process.env.KEYCLOAK_CLIENT_SECRET;
+
+const keycloakBreaker = new CircuitBreaker({ name: 'keycloak', failureThreshold: 5, resetTimeoutMs: 30_000, timeoutMs: 8_000 });
+
+// Cached service account token
+let _cachedServiceToken: string | null = null;
+let _tokenExpiresAt = 0;
 
 // JWKS client for token verification
 const jwksClientInstance = jwksClient({
@@ -18,8 +26,8 @@ const jwksClientInstance = jwksClient({
 /**
  * Get signing key from Keycloak JWKS
  */
-function getKey(header: any, callback: (err: Error | null, key?: string) => void) {
-  jwksClientInstance.getSigningKey(header.kid, (err: Error | null, key: any) => {
+function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
+  jwksClientInstance.getSigningKey(header.kid, (err, key) => {
     if (err) {
       callback(err);
       return;
@@ -54,9 +62,9 @@ export async function verifyKeycloakToken(token: string): Promise<KeycloakUser |
         issuer: `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`,
         audience: KEYCLOAK_CLIENT_ID,
       },
-      (err, decoded: any) => {
+      (err, decoded) => {
         if (err) {
-          console.error('[Keycloak] Token verification failed:', err.message);
+          logger.warn('[Keycloak] Token verification failed', { error: err.message });
           resolve(null);
           return;
         }
@@ -66,14 +74,15 @@ export async function verifyKeycloakToken(token: string): Promise<KeycloakUser |
           return;
         }
 
-        // Extract user information from token
+        const payload = decoded as Record<string, unknown>;
+        const realmAccess = payload.realm_access as { roles?: string[] } | undefined;
         const user: KeycloakUser = {
-          id: decoded.sub,
-          email: decoded.email || decoded.preferred_username,
-          firstName: decoded.given_name,
-          lastName: decoded.family_name,
-          username: decoded.preferred_username || decoded.email,
-          roles: decoded.realm_access?.roles || [],
+          id: String(payload.sub || ''),
+          email: String(payload.email || payload.preferred_username || ''),
+          firstName: String(payload.given_name || ''),
+          lastName: String(payload.family_name || ''),
+          username: String(payload.preferred_username || payload.email || ''),
+          roles: realmAccess?.roles || [],
         };
 
         resolve(user);
@@ -87,35 +96,43 @@ export async function verifyKeycloakToken(token: string): Promise<KeycloakUser |
  */
 export async function getServiceAccountToken(): Promise<string | null> {
   if (!KEYCLOAK_CLIENT_SECRET) {
-    console.error('[Keycloak] Client secret not configured');
+    logger.warn('[Keycloak] Client secret not configured');
     return null;
   }
 
+  // Return cached token if still valid (with 30s buffer)
+  if (_cachedServiceToken && Date.now() < _tokenExpiresAt - 30_000) {
+    return _cachedServiceToken;
+  }
+
   try {
-    const response = await fetch(
-      `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: KEYCLOAK_CLIENT_ID,
-          client_secret: KEYCLOAK_CLIENT_SECRET,
-        }),
-      }
+    const response = await keycloakBreaker.execute(() =>
+      fetch(
+        `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'client_credentials',
+            client_id: KEYCLOAK_CLIENT_ID,
+            client_secret: KEYCLOAK_CLIENT_SECRET,
+          }),
+          signal: AbortSignal.timeout(8000),
+        }
+      )
     );
 
     if (!response.ok) {
-      console.error('[Keycloak] Failed to get service account token:', response.statusText);
+      logger.warn('[Keycloak] Failed to get service account token', { status: response.status });
       return null;
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as { access_token: string; expires_in: number };
+    _cachedServiceToken = data.access_token;
+    _tokenExpiresAt = Date.now() + data.expires_in * 1000;
     return data.access_token;
   } catch (error) {
-    console.error('[Keycloak] Error getting service account token:', error);
+    logger.error('[Keycloak] Error getting service account token', { error: (error as Error).message });
     return null;
   }
 }
@@ -123,42 +140,38 @@ export async function getServiceAccountToken(): Promise<string | null> {
 /**
  * Introspect token (validate and get user info)
  */
-export async function introspectToken(token: string): Promise<any | null> {
+export async function introspectToken(token: string): Promise<Record<string, unknown> | null> {
   if (!KEYCLOAK_CLIENT_SECRET) {
-    console.error('[Keycloak] Client secret not configured');
+    logger.warn('[Keycloak] Client secret not configured');
     return null;
   }
 
   try {
-    const response = await fetch(
-      `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token/introspect`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          token,
-          client_id: KEYCLOAK_CLIENT_ID,
-          client_secret: KEYCLOAK_CLIENT_SECRET,
-        }),
-      }
+    const response = await keycloakBreaker.execute(() =>
+      fetch(
+        `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token/introspect`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            token,
+            client_id: KEYCLOAK_CLIENT_ID,
+            client_secret: KEYCLOAK_CLIENT_SECRET,
+          }),
+          signal: AbortSignal.timeout(5000),
+        }
+      )
     );
 
     if (!response.ok) {
-      console.error('[Keycloak] Token introspection failed:', response.statusText);
+      logger.warn('[Keycloak] Token introspection failed', { status: response.status });
       return null;
     }
 
-    const data = await response.json();
-    
-    if (!data.active) {
-      return null;
-    }
-
-    return data;
+    const data = (await response.json()) as { active: boolean; [key: string]: unknown };
+    return data.active ? data : null;
   } catch (error) {
-    console.error('[Keycloak] Error introspecting token:', error);
+    logger.error('[Keycloak] Error introspecting token', { error: (error as Error).message });
     return null;
   }
 }
@@ -166,27 +179,32 @@ export async function introspectToken(token: string): Promise<any | null> {
 /**
  * Get user info from Keycloak
  */
-export async function getUserInfo(token: string): Promise<any | null> {
+export async function getUserInfo(token: string): Promise<Record<string, unknown> | null> {
   try {
-    const response = await fetch(
-      `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await keycloakBreaker.execute(() =>
+      fetch(
+        `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(5000),
+        }
+      )
     );
 
     if (!response.ok) {
-      console.error('[Keycloak] Failed to get user info:', response.statusText);
+      logger.warn('[Keycloak] Failed to get user info', { status: response.status });
       return null;
     }
 
-    return await response.json();
+    return (await response.json()) as Record<string, unknown>;
   } catch (error) {
-    console.error('[Keycloak] Error getting user info:', error);
+    logger.error('[Keycloak] Error getting user info', { error: (error as Error).message });
     return null;
   }
+}
+
+export function isKeycloakHealthy(): boolean {
+  return keycloakBreaker.getState().state !== 'OPEN';
 }
 
 /**
@@ -223,8 +241,4 @@ export const keycloakConfig = {
   hasClientSecret: !!KEYCLOAK_CLIENT_SECRET,
 };
 
-console.log('[Keycloak] Configuration loaded:');
-console.log(`  URL: ${KEYCLOAK_URL}`);
-console.log(`  Realm: ${KEYCLOAK_REALM}`);
-console.log(`  Client ID: ${KEYCLOAK_CLIENT_ID}`);
-console.log(`  Client Secret: ${KEYCLOAK_CLIENT_SECRET ? 'Configured' : 'Not configured'}`);
+logger.info('[Keycloak] Configuration loaded', { url: KEYCLOAK_URL, realm: KEYCLOAK_REALM, clientId: KEYCLOAK_CLIENT_ID, hasSecret: !!KEYCLOAK_CLIENT_SECRET });

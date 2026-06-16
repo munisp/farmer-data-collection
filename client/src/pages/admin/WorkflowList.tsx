@@ -1,9 +1,11 @@
+import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 
+import DashboardLayout from "@/components/DashboardLayout";
 export default function WorkflowList() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
@@ -29,7 +31,8 @@ export default function WorkflowList() {
   });
 
   return (
-    <div className="container mx-auto py-8">
+    <DashboardLayout>
+      <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">All Workflows</h1>
         <Button onClick={() => setLocation("/admin")}>Back to Dashboard</Button>
@@ -76,7 +79,7 @@ export default function WorkflowList() {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="w-32">
-                      <div className="h-2 bg-gray-200 rounded-full">
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
                         <div
                           className={`h-2 rounded-full ${
                             wf.status === "completed" ? "bg-green-500" :
@@ -88,10 +91,10 @@ export default function WorkflowList() {
                       <div className="text-xs text-center mt-1">{wf.progress}%</div>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm ${
-                      wf.status === "completed" ? "bg-green-100 text-green-800" :
-                      wf.status === "failed" ? "bg-red-100 text-red-800" :
-                      wf.status === "pending" ? "bg-gray-100 text-gray-800" :
-                      "bg-blue-100 text-blue-800"
+                      wf.status === "completed" ? "bg-green-100 dark:bg-green-900 text-green-800" :
+                      wf.status === "failed" ? "bg-red-100 dark:bg-red-900 text-red-800" :
+                      wf.status === "pending" ? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100" :
+                      "bg-blue-100 dark:bg-blue-900 text-blue-800"
                     }`}>
                       {wf.status}
                     </span>
@@ -109,5 +112,6 @@ export default function WorkflowList() {
         </div>
       )}
     </div>
-  );
+  
+    </DashboardLayout>);
 }

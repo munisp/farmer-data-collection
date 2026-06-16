@@ -1,0 +1,332 @@
+# FarmConnect Istio Service Mesh Configuration
+# Enables mTLS, traffic management, resilience, and observability
+---
+# 1. PeerAuthentication — Enforce mTLS across the namespace
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: farmconnect-mtls
+  namespace: farmconnect
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# 2. AuthorizationPolicy — Default deny, then allow specific paths
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny
+  namespace: farmconnect
+spec:
+  {}  # empty spec = deny all
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-api-ingress
+  namespace: farmconnect
+spec:
+  selector:
+    matchLabels:
+      app: farmconnect-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+      to:
+        - operation:
+            ports: ["3001"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-api-to-polyglot
+  namespace: farmconnect
+spec:
+  selector:
+    matchLabels:
+      tier: polyglot
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/farmconnect/sa/farmconnect-api"]
+      to:
+        - operation:
+            ports: ["8110", "8111", "8112", "8113", "8114", "8115", "8116", "8117", "8118", "8098"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-api-to-grpc
+  namespace: farmconnect
+spec:
+  selector:
+    matchLabels:
+      tier: polyglot
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/farmconnect/sa/farmconnect-api"]
+      to:
+        - operation:
+            ports: ["9090", "9091", "9092", "9093", "9094", "9095", "9096", "9097", "9098",
+                     "9110", "9111", "9112", "9113", "9114", "9115", "9116", "9117", "9118"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-api-to-data
+  namespace: farmconnect
+spec:
+  selector:
+    matchLabels:
+      tier: data
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/farmconnect/sa/farmconnect-api"]
+      to:
+        - operation:
+            ports: ["5432", "6379", "9092", "3000"]
+
+---
+# 3. DestinationRule — Circuit breaker + connection pool for API
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: farmconnect-api-circuit-breaker
+  namespace: farmconnect
+spec:
+  host: farmconnect-api.farmconnect.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 1000
+        connectTimeout: 5s
+      http:
+        h2UpgradePolicy: DEFAULT
+        maxRequestsPerConnection: 100
+        maxRetries: 3
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+
+---
+# 4. DestinationRules for polyglot services
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: polyglot-circuit-breaker
+  namespace: farmconnect
+spec:
+  host: "*.farmconnect.svc.cluster.local"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+        connectTimeout: 3s
+      http:
+        maxRequestsPerConnection: 50
+        maxRetries: 2
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 15s
+      baseEjectionTime: 15s
+      maxEjectionPercent: 30
+
+---
+# 5. VirtualService — Retry + timeout policies
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: farmconnect-api-routing
+  namespace: farmconnect
+spec:
+  hosts:
+    - farmconnect-api.farmconnect.svc.cluster.local
+  http:
+    - match:
+        - uri:
+            prefix: /api/trpc
+      route:
+        - destination:
+            host: farmconnect-api.farmconnect.svc.cluster.local
+            port:
+              number: 3001
+      timeout: 30s
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes
+        retryRemoteLocalities: true
+
+    - match:
+        - uri:
+            prefix: /health
+        - uri:
+            prefix: /readyz
+        - uri:
+            prefix: /metrics
+      route:
+        - destination:
+            host: farmconnect-api.farmconnect.svc.cluster.local
+            port:
+              number: 3001
+      timeout: 5s
+
+---
+# 6. VirtualService — Financial services get stricter timeouts
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: tigerbeetle-routing
+  namespace: farmconnect
+spec:
+  hosts:
+    - tigerbeetle.farmconnect.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: tigerbeetle.farmconnect.svc.cluster.local
+            port:
+              number: 3000
+      timeout: 5s
+      retries:
+        attempts: 2
+        perTryTimeout: 2s
+        retryOn: connect-failure,refused-stream
+
+---
+# 7. Gateway — Ingress configuration
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: farmconnect-gateway
+  namespace: farmconnect
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "api.farmconnect.app"
+        - "*.farmconnect.app"
+      tls:
+        mode: SIMPLE
+        credentialName: farmconnect-tls-cert
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "api.farmconnect.app"
+      tls:
+        httpsRedirect: true
+
+---
+# 8. VirtualService — Route external traffic through gateway
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: farmconnect-external
+  namespace: farmconnect
+spec:
+  hosts:
+    - "api.farmconnect.app"
+  gateways:
+    - farmconnect-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/
+      route:
+        - destination:
+            host: farmconnect-api.farmconnect.svc.cluster.local
+            port:
+              number: 3001
+      corsPolicy:
+        allowOrigins:
+          - exact: "https://farmconnect.app"
+          - exact: "https://admin.farmconnect.app"
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        allowHeaders: ["Authorization", "Content-Type", "X-Request-ID", "X-Trace-ID"]
+        maxAge: "86400s"
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: farmconnect-frontend.farmconnect.svc.cluster.local
+            port:
+              number: 80
+
+---
+# 9. ServiceEntry — External services (S3, payment gateways)
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-s3
+  namespace: farmconnect
+spec:
+  hosts:
+    - "*.s3.amazonaws.com"
+    - "s3.amazonaws.com"
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: TLS
+  resolution: DNS
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-payment-gateways
+  namespace: farmconnect
+spec:
+  hosts:
+    - "api.flutterwave.com"
+    - "api.paystack.co"
+    - "sandbox.momodeveloper.mtn.com"
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: TLS
+  resolution: DNS
+
+---
+# 10. Telemetry — Enable access logging + tracing
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: farmconnect-telemetry
+  namespace: farmconnect
+spec:
+  accessLogging:
+    - providers:
+        - name: envoy
+  tracing:
+    - providers:
+        - name: opentelemetry
+      randomSamplingPercentage: 10
+      customTags:
+        farmconnect.service:
+          environment:
+            name: SERVICE_NAME
