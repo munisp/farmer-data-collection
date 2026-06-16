@@ -115,6 +115,7 @@ import { chamaSavingsRouter } from "./routers/chama-savings-router.js";
 import { exportChainRouter } from "./routers/export-chain-router.js";
 import { dataPipelineRouter } from "./routers/data-pipeline-router.js";
 import { distributorNetworkRouter } from "./routers/distributor-network-router.js";
+import { spatialAnalysisRouter } from "./routers/spatial-analysis-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -268,6 +269,7 @@ export const appRouter = router({
   exportChain: exportChainRouter,
   dataPipeline: dataPipelineRouter,
   distributorNetwork: distributorNetworkRouter,
+  spatialAnalysis: spatialAnalysisRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)

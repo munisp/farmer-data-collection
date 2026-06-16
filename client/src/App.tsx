@@ -133,6 +133,12 @@ const ChamaGroupLending = lazy(() => import("./pages/ChamaGroupLending"));
 const DistributorNetwork = lazy(() => import("./pages/DistributorNetwork"));
 const DistributorMap = lazy(() => import("./pages/DistributorMap"));
 const DistributorOnboarding = lazy(() => import("./pages/DistributorOnboarding"));
+const GISWorkspace = lazy(() => import("./pages/GISWorkspace"));
+const SpatialFieldCollection = lazy(() => import("./pages/SpatialFieldCollection"));
+const SpatialSpectralIndex = lazy(() => import("./pages/SpatialSpectralIndex"));
+const SpatialH3Analysis = lazy(() => import("./pages/SpatialH3Analysis"));
+const SpatialVectorAnalysis = lazy(() => import("./pages/SpatialVectorAnalysis"));
+const SpatialTileCache = lazy(() => import("./pages/SpatialTileCache"));
 const ColdChainMonitoring = lazy(() => import("./pages/ColdChainMonitoring"));
 const PriceAlertsDashboard = lazy(() => import("./pages/PriceAlertsDashboard"));
 const SubscriptionBoxes = lazy(() => import("./pages/SubscriptionBoxes"));
@@ -285,6 +291,12 @@ function Router() {
         <Route path="/distributor-network" component={DistributorNetwork} />
         <Route path="/distributor-map" component={DistributorMap} />
         <Route path="/distributor-onboarding" component={DistributorOnboarding} />
+        <Route path="/gis-workspace" component={GISWorkspace} />
+        <Route path="/spatial-field-collection" component={SpatialFieldCollection} />
+        <Route path="/spatial-spectral-index" component={SpatialSpectralIndex} />
+        <Route path="/spatial-h3-analysis" component={SpatialH3Analysis} />
+        <Route path="/spatial-vector-analysis" component={SpatialVectorAnalysis} />
+        <Route path="/spatial-tile-cache" component={SpatialTileCache} />
         <Route path="/cold-chain" component={ColdChainMonitoring} />
         <Route path="/price-alerts" component={PriceAlertsDashboard} />
         <Route path="/subscriptions" component={SubscriptionBoxes} />

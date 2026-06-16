@@ -95,6 +95,12 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
         { href: "/land-suitability", label: "Land Suitability", icon: Leaf, description: "Soil assessment" },
         { href: "/crop-yield", label: "Crop Yield", icon: BarChart3, description: "Yield analytics" },
         { href: "/crops/dashboard", label: "Crop Dashboard", icon: Sprout, description: "Crop overview" },
+        { href: "/gis-workspace", label: "GIS Workspace", icon: Globe, description: "GeoLibre spatial tools", badge: "NEW" },
+        { href: "/spatial-field-collection", label: "Field Collection", icon: MapPin, description: "GPS farm capture", badge: "NEW" },
+        { href: "/spatial-spectral-index", label: "Spectral Index", icon: Satellite, description: "NDVI crop health", badge: "NEW" },
+        { href: "/spatial-h3-analysis", label: "H3 Grid", icon: Target, description: "Hex coverage analysis", badge: "NEW" },
+        { href: "/spatial-vector-analysis", label: "Vector Analysis", icon: Leaf, description: "Buffer, clip, dissolve", badge: "NEW" },
+        { href: "/spatial-tile-cache", label: "Offline Tiles", icon: WifiOff, description: "Cache for offline", badge: "NEW" },
       ],
     },
     {
