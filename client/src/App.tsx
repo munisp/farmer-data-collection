@@ -164,6 +164,16 @@ const HomeDashboard = lazy(() => import("./pages/Home"));
 const LoginKeycloak = lazy(() => import("./pages/LoginKeycloak"));
 const OfflineConflictResolution = lazy(() => import("./pages/OfflineConflictResolution"));
 
+// === Dairy Management (SmartAlex) ===
+const DairyDashboard = lazy(() => import("./pages/DairyDashboard"));
+const DairyHerd = lazy(() => import("./pages/DairyHerd"));
+const DairyMilk = lazy(() => import("./pages/DairyMilk"));
+const DairyBreeding = lazy(() => import("./pages/DairyBreeding"));
+const DairyHealth = lazy(() => import("./pages/DairyHealth"));
+const DairySuppliers = lazy(() => import("./pages/DairySuppliers"));
+const DairyMarket = lazy(() => import("./pages/DairyMarket"));
+const DairyAnalytics = lazy(() => import("./pages/DairyAnalytics"));
+
 function Router() {
   return (
     <ErrorBoundary>
@@ -330,6 +340,16 @@ function Router() {
         <Route path="/home" component={HomeDashboard} />
         <Route path="/login-keycloak" component={LoginKeycloak} />
         <Route path="/offline-conflicts" component={OfflineConflictResolution} />
+        {/* === Dairy Management (SmartAlex) === */}
+        <Route path="/dairy" component={DairyDashboard} />
+        <Route path="/dairy-herd" component={DairyHerd} />
+        <Route path="/dairy-milk" component={DairyMilk} />
+        <Route path="/dairy-breeding" component={DairyBreeding} />
+        <Route path="/dairy-health" component={DairyHealth} />
+        <Route path="/dairy-suppliers" component={DairySuppliers} />
+        <Route path="/dairy-market" component={DairyMarket} />
+        <Route path="/dairy-analytics" component={DairyAnalytics} />
+        <Route path="/dairy-collection" component={DairyMarket} />
         <Route path="/:rest*" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

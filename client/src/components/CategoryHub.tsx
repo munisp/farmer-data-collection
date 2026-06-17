@@ -10,7 +10,8 @@ import {
   DollarSign, ArrowUpDown, Phone, Home, Settings, Trophy, Mic,
   Activity, Droplets, Fish, AlertTriangle, Store, RotateCcw,
   Apple, ChevronDown, WifiOff, CheckCircle, Mail, Workflow,
-  PieChart, GanttChart, Archive, Warehouse, Scale, Landmark
+  PieChart, GanttChart, Archive, Warehouse, Scale, Landmark,
+  Milk, Beef, Heart, Baby, Syringe, Factory
 } from "lucide-react";
 
 interface FeatureCard {
@@ -109,6 +110,19 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
         { href: "/aquaculture", label: "Aquaculture", icon: Fish, description: "Fish farming" },
         { href: "/aquaculture/feed", label: "Feed Mgmt", icon: Droplets, description: "Feed schedules" },
         { href: "/aquaculture/ai", label: "Aqua AI", icon: Brain, description: "AI predictions" },
+      ],
+    },
+    {
+      title: "Dairy Management",
+      cards: [
+        { href: "/dairy", label: "Dairy Dashboard", icon: Milk, description: "SmartAlex dairy hub", badge: "NEW" },
+        { href: "/dairy-herd", label: "Herd Management", icon: Beef, description: "Cow profiles & tracking", badge: "NEW" },
+        { href: "/dairy-milk", label: "Milk Production", icon: Milk, description: "Daily yield recording", badge: "NEW" },
+        { href: "/dairy-breeding", label: "Breeding Records", icon: Baby, description: "AI, pregnancy & calving", badge: "NEW" },
+        { href: "/dairy-health", label: "Health Monitoring", icon: Heart, description: "Vaccinations & treatments", badge: "NEW" },
+        { href: "/dairy-suppliers", label: "Supplier Market", icon: Store, description: "Feed, drugs & services", badge: "NEW" },
+        { href: "/dairy-market", label: "Processors & Buyers", icon: Factory, description: "Sell milk, schedule pickup", badge: "NEW" },
+        { href: "/dairy-analytics", label: "Dairy Analytics", icon: BarChart3, description: "Yield trends & profit", badge: "NEW" },
       ],
     },
     {

@@ -841,3 +841,69 @@
     border-radius: 4px;
   }
 }
+
+/* ============================================
+   SMARTALEX DAIRY DESIGN SYSTEM
+   Warm illustrative style — sandy-brown / sky-blue
+   Circular teal iconography
+   ============================================ */
+
+/* Hero banner gradient — warm sandy tones to teal */
+.dairy-hero {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #115e59 100%);
+  position: relative;
+}
+.dark .dairy-hero {
+  background: linear-gradient(135deg, #134e4a 0%, #0f4c47 40%, #0c3e3a 100%);
+}
+
+/* Cards with subtle warm shadow + rounded corners */
+.dairy-card {
+  border-radius: 12px;
+  border: 1px solid oklch(0.92 0.005 250);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.dairy-card:hover {
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
+}
+.dark .dairy-card {
+  border-color: oklch(0.28 0.015 250);
+}
+.dark .dairy-card:hover {
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
+}
+
+/* Challenge section — sandy/warm background */
+.dairy-challenge-bg {
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a20 100%);
+}
+.dark .dairy-challenge-bg {
+  background: linear-gradient(180deg, rgba(180, 83, 9, 0.12) 0%, rgba(180, 83, 9, 0.04) 100%);
+}
+
+/* Solution section — cool blue/teal background */
+.dairy-solution-bg {
+  background: linear-gradient(180deg, #ccfbf1 0%, #99f6e420 100%);
+}
+.dark .dairy-solution-bg {
+  background: linear-gradient(180deg, rgba(13, 148, 136, 0.12) 0%, rgba(13, 148, 136, 0.04) 100%);
+}
+
+/* Primary action button — teal */
+.dairy-btn-primary {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
+  color: white !important;
+  border: none !important;
+  font-weight: 600;
+  transition: opacity 0.15s ease;
+}
+.dairy-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Tabs styled for dairy section */
+.dairy-tabs [data-state="active"] {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: white;
+  font-weight: 600;
+}
