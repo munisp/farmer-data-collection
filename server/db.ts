@@ -4,9 +4,12 @@ const { Pool } = pkg;
 import * as schema from "../drizzle/schema.js";
 import * as financialSchema from "../drizzle/financial-schema.js";
 import * as platformExtSchema from "../drizzle/platform-extensions-schema.js";
+import * as honestSchema from "../drizzle/schema-honest-implementation.js";
+import * as dairySchema from "../drizzle/schema-dairy.js";
+import * as spatialSchema from "../drizzle/schema-spatial-analysis.js";
 import { logger } from "./logger.js";
 
-const fullSchema = { ...schema, ...financialSchema, ...platformExtSchema };
+const fullSchema = { ...schema, ...financialSchema, ...platformExtSchema, ...honestSchema, ...dairySchema, ...spatialSchema };
 
 export type AppDatabase = ReturnType<typeof drizzle<typeof fullSchema>>;
 export type DbClient = AppDatabase;

@@ -4,9 +4,9 @@
  * Supports parametric/weather-indexed insurance with automatic payouts
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { insurancePolicies, insuranceClaims } from "../../drizzle/schema-honest-implementation.js";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
@@ -204,9 +204,32 @@ const DEFAULT_TRIGGERS: Record<InsurancePeril, InsuranceTrigger> = {
   },
 };
 
+type InsurancePolicyRow = typeof insurancePolicies.$inferSelect;
+
 class CropInsuranceService {
-  private policies: BoundedMap<string, InsurancePolicy> = new BoundedMap(5000, 86400_000);
   private monitoringInterval: NodeJS.Timeout | null = null;
+
+  private rowToPolicy(row: InsurancePolicyRow): InsurancePolicy {
+    const triggers = (row.triggerConditions ?? []) as InsuranceTrigger[];
+    return {
+      id: row.policyNumber,
+      farmerId: row.userId,
+      farmId: row.farmId ?? 0,
+      cropId: row.cropId ?? undefined,
+      policyType: row.policyType as InsurancePolicyType,
+      perils: triggers.map(t => t.peril),
+      coverageAmount: Number(row.coverageAmount),
+      premium: Number(row.premiumAmount),
+      deductible: Number(row.deductible ?? 0),
+      startDate: row.coverageStartDate,
+      endDate: row.coverageEndDate,
+      status: row.status as InsurancePolicy["status"],
+      triggers,
+      payoutHistory: [],
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
 
   /**
    * Get insurance quote based on farm and crop details
@@ -313,7 +336,24 @@ class CropInsuranceService {
       updatedAt: new Date(),
     };
 
-    this.policies.set(policyId, policy);
+    // Persist policy to PostgreSQL
+    const db = await getDb();
+    if (db) {
+      await db.insert(insurancePolicies).values({
+        userId: farmerId,
+        farmId: farmId,
+        cropId: cropId ?? null,
+        policyNumber: policyId,
+        policyType: quote.policyType,
+        coverageAmount: String(quote.coverageAmount),
+        premiumAmount: String(quote.premium),
+        deductible: String(quote.deductible),
+        coverageStartDate: startDate,
+        coverageEndDate: endDate,
+        status: "active",
+        triggerConditions: policy.triggers,
+      });
+    }
 
     // Record premium payment in TigerBeetle
     try {
@@ -369,7 +409,12 @@ class CropInsuranceService {
     triggeredPerils: InsurancePeril[];
     triggerData: Record<string, unknown>;
   }> {
-    const policy = this.policies.get(policyId);
+    const db = await getDb();
+    let policy: InsurancePolicy | undefined;
+    if (db) {
+      const [row] = await db.select().from(insurancePolicies).where(eq(insurancePolicies.policyNumber, policyId)).limit(1);
+      if (row) policy = this.rowToPolicy(row);
+    }
     if (!policy || policy.status !== 'active') {
       return { triggered: false, triggeredPerils: [], triggerData: {} };
     }
@@ -403,7 +448,12 @@ class CropInsuranceService {
    * Process automatic payout when triggers are met
    */
   async processAutomaticPayout(policyId: string, triggeredPeril: InsurancePeril, triggerData: Record<string, unknown>): Promise<InsurancePayout | null> {
-    const policy = this.policies.get(policyId);
+    const db = await getDb();
+    let policy: InsurancePolicy | undefined;
+    if (db) {
+      const [row] = await db.select().from(insurancePolicies).where(eq(insurancePolicies.policyNumber, policyId)).limit(1);
+      if (row) policy = this.rowToPolicy(row);
+    }
     if (!policy || policy.status !== 'active') {
       return null;
     }
@@ -475,14 +525,20 @@ class CropInsuranceService {
    * Get all policies for a farmer
    */
   async getFarmerPolicies(farmerId: number): Promise<InsurancePolicy[]> {
-    return Array.from(this.policies.values()).filter(p => p.farmerId === farmerId);
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db.select().from(insurancePolicies).where(eq(insurancePolicies.userId, farmerId)).orderBy(desc(insurancePolicies.createdAt));
+    return rows.map(r => this.rowToPolicy(r));
   }
 
   /**
    * Get policy by ID
    */
   async getPolicy(policyId: string): Promise<InsurancePolicy | null> {
-    return this.policies.get(policyId) || null;
+    const db = await getDb();
+    if (!db) return null;
+    const [row] = await db.select().from(insurancePolicies).where(eq(insurancePolicies.policyNumber, policyId)).limit(1);
+    return row ? this.rowToPolicy(row) : null;
   }
 
   /**
@@ -536,18 +592,19 @@ class CropInsuranceService {
     this.monitoringInterval = setInterval(async () => {
       logger.info('[Insurance] Running trigger check for all active policies...');
       
-      for (const [policyId, policy] of this.policies) {
-        if (policy.status !== 'active') continue;
-
+      const db = await getDb();
+      if (!db) return;
+      const activePolicies = await db.select().from(insurancePolicies).where(eq(insurancePolicies.status, "active"));
+      for (const row of activePolicies) {
         try {
-          const result = await this.checkTriggers(policyId);
+          const result = await this.checkTriggers(row.policyNumber);
           if (result.triggered) {
             for (const peril of result.triggeredPerils) {
-              await this.processAutomaticPayout(policyId, peril, result.triggerData);
+              await this.processAutomaticPayout(row.policyNumber, peril, result.triggerData);
             }
           }
         } catch (error) {
-          logger.error(`[Insurance] Error checking policy ${policyId}:`, error);
+          logger.error(`[Insurance] Error checking policy ${row.policyNumber}:`, error);
         }
       }
     }, intervalMs);

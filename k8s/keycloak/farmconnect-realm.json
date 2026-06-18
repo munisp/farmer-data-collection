@@ -1,0 +1,102 @@
+{
+  "realm": "farmconnect",
+  "enabled": true,
+  "displayName": "FarmConnect",
+  "displayNameHtml": "<div>FarmConnect</div>",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "roles": {
+    "realm": [
+      { "name": "farmer", "description": "Smallholder farmer" },
+      { "name": "buyer", "description": "Commodity buyer or processor" },
+      { "name": "seller", "description": "Marketplace seller" },
+      { "name": "distributor", "description": "Produce distributor" },
+      { "name": "extension_worker", "description": "Agricultural extension agent" },
+      { "name": "admin", "description": "Platform administrator" },
+      { "name": "auditor", "description": "Read-only compliance auditor" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "farmconnect-pwa",
+      "name": "FarmConnect PWA",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:3000/*",
+        "https://farmconnect.app/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://farmconnect.app"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "access.token.lifespan": "3600",
+        "client.session.max.lifespan": "86400"
+      },
+      "defaultClientScopes": ["openid", "profile", "email", "roles"],
+      "optionalClientScopes": ["phone", "address"]
+    },
+    {
+      "clientId": "farmconnect-api",
+      "name": "FarmConnect API Backend",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "300"
+      }
+    },
+    {
+      "clientId": "farmconnect-mobile",
+      "name": "FarmConnect Mobile App",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "farmconnect://callback",
+        "exp://*/--/callback"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "defaultDefaultClientScopes": ["openid", "profile", "email"],
+  "passwordPolicy": "length(8) and maxLength(128) and upperCase(1) and lowerCase(1) and digits(1)",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "smtpServer": {
+    "host": "",
+    "port": "587",
+    "starttls": "true",
+    "auth": "true",
+    "from": "noreply@farmconnect.app",
+    "fromDisplayName": "FarmConnect"
+  }
+}
