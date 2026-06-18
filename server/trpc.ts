@@ -116,6 +116,7 @@ import { exportChainRouter } from "./routers/export-chain-router.js";
 import { dataPipelineRouter } from "./routers/data-pipeline-router.js";
 import { distributorNetworkRouter } from "./routers/distributor-network-router.js";
 import { spatialAnalysisRouter } from "./routers/spatial-analysis-router.js";
+import { dairyManagementRouter } from "./routers/dairy-management-router.js";
 
 import { authRouter as authRouterSimple } from "./auth-router-simple.js";
 
@@ -270,6 +271,7 @@ export const appRouter = router({
   dataPipeline: dataPipelineRouter,
   distributorNetwork: distributorNetworkRouter,
   spatialAnalysis: spatialAnalysisRouter,
+  dairy: dairyManagementRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)

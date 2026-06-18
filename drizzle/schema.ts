@@ -723,3 +723,6 @@ export * from './schema-subsidy';
 
 // Export spatial analysis schema (GeoLibre integration)
 export * from './schema-spatial-analysis';
+
+// Export dairy management schema (SmartAlex integration)
+export * from './schema-dairy';
