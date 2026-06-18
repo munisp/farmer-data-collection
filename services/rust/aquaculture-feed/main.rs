@@ -843,3 +843,23 @@ mod tests {
         assert!((sample.condition_factor - 1.28).abs() < 0.01, "K factor should be ~1.28, got {}", sample.condition_factor);
     }
 }
+
+// PostgreSQL persistence layer
+async fn get_db_pool() -> Option<tokio_postgres::Client> {
+    let dsn = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "host=localhost port=5432 user=farmconnect password=farmconnect dbname=farmconnect".to_string());
+    match tokio_postgres::connect(&dsn, tokio_postgres::NoTls).await {
+        Ok((client, connection)) => {
+            tokio::spawn(async move {
+                if let Err(e) = connection.await {
+                    eprintln!("[DB] connection error: {}", e);
+                }
+            });
+            Some(client)
+        }
+        Err(e) => {
+            eprintln!("[DB] Failed to connect: {}", e);
+            None
+        }
+    }
+}

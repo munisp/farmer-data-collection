@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+
+	_ "github.com/lib/pq"
 )
 
 /*
@@ -145,6 +148,37 @@ var (
 	accounts  = make(map[int]*Account)
 	transfers = make([]Transfer, 0)
 )
+
+
+func initDB() {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			envOrDef("DB_HOST", "localhost"), envOrDef("DB_PORT", "5432"),
+			envOrDef("DB_USER", "farmconnect"), envOrDef("DB_PASSWORD", "farmconnect"),
+			envOrDef("DB_NAME", "farmconnect"))
+	}
+	var err error
+	dbConn, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Printf("[DB] Connection error for tigerbeetle_service: %v", err)
+		return
+	}
+	dbConn.SetMaxOpenConns(10)
+	if err = dbConn.Ping(); err != nil {
+		log.Printf("[DB] Ping failed for tigerbeetle_service: %v (cache-only mode)", err)
+		dbConn = nil
+		return
+	}
+	log.Println("[DB] PostgreSQL connected for tigerbeetle_service")
+}
+
+func envOrDef(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
 
 func main() {
 	port := os.Getenv("PORT")

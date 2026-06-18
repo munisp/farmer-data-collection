@@ -19,6 +19,7 @@
 package main
 
 import (
+	"database/sql"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -33,6 +34,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 // ============================================================================
@@ -887,6 +890,37 @@ func (s *Store) setupRoutes() *http.ServeMux {
 // ============================================================================
 // Main
 // ============================================================================
+
+
+func initDB() {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			envOrDef("DB_HOST", "localhost"), envOrDef("DB_PORT", "5432"),
+			envOrDef("DB_USER", "farmconnect"), envOrDef("DB_PASSWORD", "farmconnect"),
+			envOrDef("DB_NAME", "farmconnect"))
+	}
+	var err error
+	dbConn, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Printf("[DB] Connection error for aquaculture_pond: %v", err)
+		return
+	}
+	dbConn.SetMaxOpenConns(10)
+	if err = dbConn.Ping(); err != nil {
+		log.Printf("[DB] Ping failed for aquaculture_pond: %v (cache-only mode)", err)
+		dbConn = nil
+		return
+	}
+	log.Println("[DB] PostgreSQL connected for aquaculture_pond")
+}
+
+func envOrDef(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
 
 func main() {
 	cfg := loadConfig()

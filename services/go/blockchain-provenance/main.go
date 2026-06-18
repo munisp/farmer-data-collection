@@ -10,6 +10,7 @@
 package main
 
 import (
+	"database/sql"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -22,6 +23,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 // ============================================================================
@@ -540,6 +543,37 @@ func jsonResponse(w http.ResponseWriter, status int, data interface{}) {
 
 func errorResponse(w http.ResponseWriter, status int, msg string) {
 	jsonResponse(w, status, map[string]string{"error": msg})
+}
+
+
+func initDB() {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			envOrDef("DB_HOST", "localhost"), envOrDef("DB_PORT", "5432"),
+			envOrDef("DB_USER", "farmconnect"), envOrDef("DB_PASSWORD", "farmconnect"),
+			envOrDef("DB_NAME", "farmconnect"))
+	}
+	var err error
+	dbConn, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Printf("[DB] Connection error for blockchain_provenance: %v", err)
+		return
+	}
+	dbConn.SetMaxOpenConns(10)
+	if err = dbConn.Ping(); err != nil {
+		log.Printf("[DB] Ping failed for blockchain_provenance: %v (cache-only mode)", err)
+		dbConn = nil
+		return
+	}
+	log.Println("[DB] PostgreSQL connected for blockchain_provenance")
+}
+
+func envOrDef(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
 func main() {

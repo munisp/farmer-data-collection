@@ -274,3 +274,23 @@ static SHUTDOWN: AtomicBool = AtomicBool::new(false);
 extern "C" fn signal_handler(_: libc::c_int) {
     SHUTDOWN.store(true, Ordering::Relaxed);
 }
+
+// PostgreSQL persistence layer
+async fn get_db_pool() -> Option<tokio_postgres::Client> {
+    let dsn = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "host=localhost port=5432 user=farmconnect password=farmconnect dbname=farmconnect".to_string());
+    match tokio_postgres::connect(&dsn, tokio_postgres::NoTls).await {
+        Ok((client, connection)) => {
+            tokio::spawn(async move {
+                if let Err(e) = connection.await {
+                    eprintln!("[DB] connection error: {}", e);
+                }
+            });
+            Some(client)
+        }
+        Err(e) => {
+            eprintln!("[DB] Failed to connect: {}", e);
+            None
+        }
+    }
+}
