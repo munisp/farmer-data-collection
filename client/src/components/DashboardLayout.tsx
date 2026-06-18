@@ -349,9 +349,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
-      {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
-        <h1 className="text-lg font-bold text-card-foreground">{APP_TITLE}</h1>
+      {/* Mobile Header — SmartAlex teal gradient */}
+      <div className="md:hidden flex items-center justify-between p-4 border-b border-teal-200 bg-gradient-to-r from-teal-600 to-teal-500 text-white">
+        <h1 className="text-lg font-bold">{APP_TITLE}</h1>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 hover:bg-accent rounded-lg transition-colors"
@@ -366,13 +366,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         "w-full md:w-64 border-r border-border bg-card transition-all duration-300 md:block",
         mobileMenuOpen ? "block fixed inset-0 z-50 overflow-y-auto" : "hidden md:block"
       )}>
-        {/* Desktop Header */}
-        <div className="hidden md:block p-6 border-b border-border">
-          <h1 className="text-xl font-bold text-card-foreground">{APP_TITLE}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t('appTagline')}</p>
+        {/* Desktop Header — SmartAlex branding */}
+        <div className="hidden md:block p-6 border-b border-teal-200/30 bg-gradient-to-b from-teal-600 to-teal-700 text-white">
+          <h1 className="text-xl font-bold">{APP_TITLE}</h1>
+          <p className="text-sm text-teal-100 mt-1">{t('appTagline')}</p>
           
           {/* Currency & Language Selectors */}
-          <div className="mt-3 pt-3 border-t border-border space-y-2">
+          <div className="mt-3 pt-3 border-t border-teal-500/30 space-y-2">
             <div className="flex items-center gap-2">
               <Coins className="w-4 h-4 text-muted-foreground" />
               <select
@@ -571,10 +571,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </nav>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto flex flex-col pb-16 md:pb-0">
+      {/* Main Content — SmartAlex consistent layout */}
+      <main className="flex-1 overflow-auto flex flex-col pb-16 md:pb-0 bg-gradient-to-br from-gray-50 to-teal-50/30 dark:from-gray-950 dark:to-teal-950/10">
         <SyncStatus />
-        <div className="container py-4 md:py-8 flex-1 px-4">
+        <div className="container py-4 md:py-8 flex-1 px-4 max-w-7xl mx-auto">
           {showCategoryHub ? <CategoryHub category={activeCategory} /> : children}
         </div>
       </main>
