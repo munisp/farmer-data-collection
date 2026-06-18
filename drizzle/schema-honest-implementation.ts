@@ -527,10 +527,237 @@ export const auditLog = pgTable("audit_log", {
 export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
 export type NewAnalyticsEvent = typeof analyticsEvents.$inferInsert;
 export type AquaculturePond = typeof aquaculturePonds.$inferSelect;
+// ============================================================================
+// HARVEST FORECASTING (was: BoundedMap forecasts/marketOpportunities/contractOffers)
+// ============================================================================
+
+export const harvestForecasts = pgTable("harvest_forecasts", {
+  id: serial("id").primaryKey(),
+  farmerId: integer("farmer_id").references(() => users.id),
+  farmId: integer("farm_id").references(() => farms.id),
+  cropId: integer("crop_id").references(() => crops.id),
+  expectedYieldKg: decimal("expected_yield_kg", { precision: 12, scale: 2 }),
+  expectedHarvestDate: timestamp("expected_harvest_date"),
+  confidenceScore: real("confidence_score"),
+  forecastModel: varchar("forecast_model", { length: 50 }),
+  factors: json("factors"),
+  status: varchar("status", { length: 20 }).default("active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  farmerIdx: index("harvest_forecasts_farmer_idx").on(table.farmerId),
+}));
+
+export const contractFarmingOffers = pgTable("contract_farming_offers", {
+  id: serial("id").primaryKey(),
+  buyerId: integer("buyer_id").references(() => users.id),
+  cropType: varchar("crop_type", { length: 100 }).notNull(),
+  quantityKg: decimal("quantity_kg", { precision: 12, scale: 2 }).notNull(),
+  pricePerKg: decimal("price_per_kg", { precision: 10, scale: 2 }).notNull(),
+  deliveryDate: timestamp("delivery_date"),
+  location: varchar("location", { length: 255 }),
+  status: varchar("status", { length: 20 }).default("open"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  statusIdx: index("contract_offers_status_idx").on(table.status),
+}));
+
+// ============================================================================
+// KNOWLEDGE SHARING (was: BoundedMap articles/comments/votes)
+// ============================================================================
+
+export const knowledgeArticles = pgTable("knowledge_articles", {
+  id: serial("id").primaryKey(),
+  authorId: integer("author_id").references(() => users.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 50 }).notNull(),
+  tags: json("tags"),
+  viewCount: integer("view_count").default(0),
+  likeCount: integer("like_count").default(0),
+  status: varchar("status", { length: 20 }).default("published"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  authorIdx: index("knowledge_articles_author_idx").on(table.authorId),
+  categoryIdx: index("knowledge_articles_category_idx").on(table.category),
+}));
+
+export const knowledgeComments = pgTable("knowledge_comments", {
+  id: serial("id").primaryKey(),
+  articleId: integer("article_id").notNull().references(() => knowledgeArticles.id),
+  authorId: integer("author_id").references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  articleIdx: index("knowledge_comments_article_idx").on(table.articleId),
+}));
+
+// ============================================================================
+// LABOR MANAGEMENT (was: BoundedMap workers/tasks/assignments)
+// ============================================================================
+
+export const laborWorkers = pgTable("labor_workers", {
+  id: serial("id").primaryKey(),
+  farmerId: integer("farmer_id").references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  phoneNumber: varchar("phone_number", { length: 20 }),
+  skills: json("skills"),
+  dailyRate: decimal("daily_rate", { precision: 10, scale: 2 }),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  farmerIdx: index("labor_workers_farmer_idx").on(table.farmerId),
+}));
+
+export const laborTasks = pgTable("labor_tasks", {
+  id: serial("id").primaryKey(),
+  farmId: integer("farm_id").references(() => farms.id),
+  workerId: integer("worker_id").references(() => laborWorkers.id),
+  taskType: varchar("task_type", { length: 50 }).notNull(),
+  description: text("description"),
+  scheduledDate: timestamp("scheduled_date"),
+  completedDate: timestamp("completed_date"),
+  hoursWorked: decimal("hours_worked", { precision: 6, scale: 2 }),
+  paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }),
+  status: varchar("status", { length: 20 }).default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  farmIdx: index("labor_tasks_farm_idx").on(table.farmId),
+  statusIdx: index("labor_tasks_status_idx").on(table.status),
+}));
+
+// ============================================================================
+// PEST & DISEASE WARNING (was: BoundedMap alerts/reports/subscriptions)
+// ============================================================================
+
+export const pestDiseaseAlerts = pgTable("pest_disease_alerts", {
+  id: serial("id").primaryKey(),
+  reportedBy: integer("reported_by").references(() => users.id),
+  pestOrDisease: varchar("pest_or_disease", { length: 100 }).notNull(),
+  cropAffected: varchar("crop_affected", { length: 100 }),
+  severity: varchar("severity", { length: 20 }).notNull(),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  region: varchar("region", { length: 100 }),
+  description: text("description"),
+  imageUrl: varchar("image_url", { length: 500 }),
+  status: varchar("status", { length: 20 }).default("active"),
+  confirmedCount: integer("confirmed_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  regionIdx: index("pest_alerts_region_idx").on(table.region),
+  statusIdx: index("pest_alerts_status_idx").on(table.status),
+}));
+
+// ============================================================================
+// POST-HARVEST (was: BoundedMap storage/losses/processing)
+// ============================================================================
+
+export const postHarvestRecords = pgTable("post_harvest_records", {
+  id: serial("id").primaryKey(),
+  farmerId: integer("farmer_id").references(() => users.id),
+  cropType: varchar("crop_type", { length: 100 }).notNull(),
+  harvestQuantityKg: decimal("harvest_quantity_kg", { precision: 12, scale: 2 }),
+  storedQuantityKg: decimal("stored_quantity_kg", { precision: 12, scale: 2 }),
+  lossQuantityKg: decimal("loss_quantity_kg", { precision: 12, scale: 2 }),
+  lossReason: varchar("loss_reason", { length: 100 }),
+  storageMethod: varchar("storage_method", { length: 50 }),
+  storageLocation: varchar("storage_location", { length: 255 }),
+  processingType: varchar("processing_type", { length: 50 }),
+  qualityGrade: varchar("quality_grade", { length: 10 }),
+  harvestDate: timestamp("harvest_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  farmerIdx: index("post_harvest_farmer_idx").on(table.farmerId),
+}));
+
+// ============================================================================
+// CARBON CREDITS (was: BoundedMap projects/credits/trades)
+// ============================================================================
+
+export const carbonCreditProjects = pgTable("carbon_credit_projects", {
+  id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").references(() => users.id),
+  projectCode: varchar("project_code", { length: 50 }).notNull().unique(),
+  projectType: varchar("project_type", { length: 50 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  areaHectares: decimal("area_hectares", { precision: 10, scale: 2 }),
+  estimatedCreditsPerYear: decimal("estimated_credits_per_year", { precision: 10, scale: 2 }),
+  verificationStandard: varchar("verification_standard", { length: 50 }),
+  status: varchar("status", { length: 20 }).default("pending"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  ownerIdx: index("carbon_projects_owner_idx").on(table.ownerId),
+  statusIdx: index("carbon_projects_status_idx").on(table.status),
+}));
+
+export const carbonCreditTrades = pgTable("carbon_credit_trades", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => carbonCreditProjects.id),
+  sellerId: integer("seller_id").references(() => users.id),
+  buyerId: integer("buyer_id").references(() => users.id),
+  creditsAmount: decimal("credits_amount", { precision: 10, scale: 2 }).notNull(),
+  pricePerCredit: decimal("price_per_credit", { precision: 10, scale: 2 }).notNull(),
+  totalAmount: decimal("total_amount", { precision: 15, scale: 2 }).notNull(),
+  tokenId: varchar("token_id", { length: 100 }),
+  status: varchar("status", { length: 20 }).default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  sellerIdx: index("carbon_trades_seller_idx").on(table.sellerId),
+}));
+
+// ============================================================================
+// VOICE ADVISORY (was: BoundedMap sessions/conversations/recommendations)
+// ============================================================================
+
+export const voiceAdvisorySessions = pgTable("voice_advisory_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  language: varchar("language", { length: 20 }).default("english"),
+  topic: varchar("topic", { length: 100 }),
+  transcription: text("transcription"),
+  aiResponse: text("ai_response"),
+  audioUrl: varchar("audio_url", { length: 500 }),
+  durationSeconds: integer("duration_seconds"),
+  satisfactionRating: integer("satisfaction_rating"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("voice_sessions_user_idx").on(table.userId),
+}));
+
+// ============================================================================
+// WATER / IRRIGATION MANAGEMENT (was: BoundedMap schedules/readings)
+// ============================================================================
+
+export const irrigationRecords = pgTable("irrigation_records", {
+  id: serial("id").primaryKey(),
+  farmId: integer("farm_id").references(() => farms.id),
+  method: varchar("method", { length: 50 }).notNull(),
+  waterUsedLiters: decimal("water_used_liters", { precision: 12, scale: 2 }),
+  durationMinutes: integer("duration_minutes"),
+  soilMoistureBefore: real("soil_moisture_before"),
+  soilMoistureAfter: real("soil_moisture_after"),
+  scheduledAt: timestamp("scheduled_at"),
+  completedAt: timestamp("completed_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  farmIdx: index("irrigation_records_farm_idx").on(table.farmId),
+}));
+
+// ============================================================================
+// TYPE EXPORTS
+// ============================================================================
+
 export type NewAquaculturePond = typeof aquaculturePonds.$inferInsert;
 export type LandAssessment = typeof landAssessments.$inferSelect;
 export type RiskProfile = typeof riskProfiles.$inferSelect;
-export type InsurancePolicy = typeof insurancePolicies.$inferSelect;
+export type InsurancePolicyRow = typeof insurancePolicies.$inferSelect;
 export type WeatherReading = typeof weatherReadings.$inferSelect;
 export type SoilAnalysisResult = typeof soilAnalysisResults.$inferSelect;
 export type MarketPriceRecord = typeof marketPriceHistory.$inferSelect;
@@ -540,3 +767,12 @@ export type FinancialTransaction = typeof financialTransactions.$inferSelect;
 export type RegulatoryReport = typeof regulatoryReports.$inferSelect;
 export type UserSession = typeof userSessions.$inferSelect;
 export type AuditLogEntry = typeof auditLog.$inferSelect;
+export type HarvestForecastRow = typeof harvestForecasts.$inferSelect;
+export type KnowledgeArticle = typeof knowledgeArticles.$inferSelect;
+export type LaborWorker = typeof laborWorkers.$inferSelect;
+export type LaborTask = typeof laborTasks.$inferSelect;
+export type PestDiseaseAlert = typeof pestDiseaseAlerts.$inferSelect;
+export type PostHarvestRecord = typeof postHarvestRecords.$inferSelect;
+export type CarbonCreditProject = typeof carbonCreditProjects.$inferSelect;
+export type VoiceAdvisorySession = typeof voiceAdvisorySessions.$inferSelect;
+export type IrrigationRecord = typeof irrigationRecords.$inferSelect;

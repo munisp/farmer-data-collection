@@ -4,8 +4,8 @@
  * Integrates with environmental impact reporting and premium market access
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from '../logger.js';
 const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
@@ -236,9 +236,9 @@ const CERTIFICATION_REQUIREMENTS: Record<CertificationType, CertificationRequire
 };
 
 class CarbonCreditService {
-  private carbonFootprints: BoundedMap<string, CarbonFootprint> = new BoundedMap(2000, 86400_000);
-  private carbonCredits: BoundedMap<string, CarbonCredit> = new BoundedMap(5000, 86400_000);
-  private sustainabilityScores: BoundedMap<number, SustainabilityScore> = new BoundedMap(5000, 86400_000);
+  private carbonFootprints: Map<string, CarbonFootprint> = new Map();
+  private carbonCredits: Map<string, CarbonCredit> = new Map();
+  private sustainabilityScores: Map<number, SustainabilityScore> = new Map();
 
   /**
    * Calculate carbon footprint for a farm

@@ -4,8 +4,8 @@
  * Provides yield predictions and price trend analysis
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
 import { weatherService } from "./weather-service.js";
 import { predictYield } from "./yieldPredictionService.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
@@ -146,9 +146,9 @@ const SEASONAL_MULTIPLIERS: Record<string, number[]> = {
 };
 
 class HarvestForecastingService {
-  private forecasts: BoundedMap<string, HarvestForecast> = new BoundedMap(2000, 86400_000);
-  private marketOpportunities: BoundedMap<string, MarketOpportunity> = new BoundedMap(1000, 43200_000);
-  private contractOffers: BoundedMap<string, ContractFarmingOffer> = new BoundedMap(1000, 86400_000);
+  private forecasts: Map<string, HarvestForecast> = new Map();
+  private marketOpportunities: Map<string, MarketOpportunity> = new Map();
+  private contractOffers: Map<string, ContractFarmingOffer> = new Map();
 
   /**
    * Generate harvest forecast for a crop
