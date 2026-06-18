@@ -35,6 +35,7 @@ export type FarmStackParamList = {
   Aquaculture: undefined;
   PrecisionAg: undefined;
   DroneFlights: undefined;
+  DairyDashboard: undefined;
 };
 
 export type MarketStackParamList = {
@@ -181,6 +182,9 @@ import DroneFlightScreen from '@/screens/analytics/DroneFlightScreen';
 import SupplyChainScreen from '@/screens/supply-chain/SupplyChainScreen';
 import CreditScoreScreen from '@/screens/credit/CreditScoreScreen';
 
+// Dairy screens
+import DairyDashboardScreen from '@/screens/dairy/DairyDashboardScreen';
+
 // Admin screens
 import AdminDashboardScreen from '@/screens/admin/AdminDashboardScreen';
 import WorkflowListScreen from '@/screens/admin/WorkflowListScreen';
@@ -248,6 +252,7 @@ function FarmStack() {
       <Stack.Screen name="Aquaculture" component={AquacultureScreen} />
       <Stack.Screen name="PrecisionAg" component={PrecisionAgScreen} />
       <Stack.Screen name="DroneFlights" component={DroneFlightScreen} />
+      <Stack.Screen name="DairyDashboard" component={DairyDashboardScreen} />
     </Stack.Navigator>
   );
 }

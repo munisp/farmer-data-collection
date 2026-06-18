@@ -22,6 +22,7 @@ export default function HomeScreen() {
       accessibilityLabel="Home screen"
       accessibilityRole="scrollbar"
     >
+      {/* SmartAlex Teal Branded Header */}
       <View style={styles.header} accessibilityRole="header">
         <Text
           style={styles.title}
@@ -30,8 +31,8 @@ export default function HomeScreen() {
         >
           Welcome, {user?.name}
         </Text>
-        <Text style={styles.subtitle} accessibilityLabel="Farmer Data Collection application">
-          Farmer Data Collection
+        <Text style={styles.subtitle} accessibilityLabel="FarmConnect Agricultural Finance Platform">
+          FarmConnect
         </Text>
       </View>
 
@@ -161,6 +162,16 @@ export default function HomeScreen() {
           <Text style={styles.actionTitle}>🛡️ Crop Insurance</Text>
           <Text style={styles.actionSubtitle}>Protect your harvest</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('Farm', { screen: 'DairyDashboard' })}
+          accessibilityLabel="Dairy Management"
+          accessibilityHint="Navigate to dairy herd management"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionTitle}>🐄 Dairy Management</Text>
+          <Text style={styles.actionSubtitle}>Herd, milk & breeding</Text>
+        </TouchableOpacity>
       </View>
 
       <Button
@@ -176,10 +187,10 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { padding: 24, paddingTop: 40 },
-  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
-  subtitle: { fontSize: 16, color: COLORS.textLight, marginTop: 4 },
+  container: { flex: 1, backgroundColor: '#f0fdfa' },
+  header: { padding: 24, paddingTop: 48, paddingBottom: 24, backgroundColor: COLORS.primary, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#ffffff' },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
   syncCard: { margin: 16, padding: 16, backgroundColor: colors.gray50, borderRadius: 12 },
   cardTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginBottom: 12 },
   syncInfo: { fontSize: 14, color: COLORS.textLight, marginBottom: 4 },
