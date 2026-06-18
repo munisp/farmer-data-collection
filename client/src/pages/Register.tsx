@@ -3,9 +3,9 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, UserPlus } from "lucide-react";
 import { APP_TITLE } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,16 +59,19 @@ export default function Register() {
   };
 
   return (
-    <div role="main" aria-label="Page content" className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">{APP_TITLE}</CardTitle>
-          <CardDescription className="text-center">
-            Create an account to get started
-          </CardDescription>
-        </CardHeader>
+    <div role="main" aria-label="Page content" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-teal-50 dark:from-gray-950 dark:via-gray-900 dark:to-teal-950 p-4">
+      <Card className="w-full max-w-md overflow-hidden shadow-xl border-teal-100 dark:border-teal-900">
+        {/* SmartAlex Teal Gradient Header */}
+        <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-6 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm mb-3">
+            <UserPlus className="w-7 h-7 text-white" />
+          </div>
+          <h1 className="text-xl font-bold text-white">{APP_TITLE}</h1>
+          <p className="text-teal-100 text-sm mt-1">Create an account to get started</p>
+        </div>
+
         <form aria-label="Submit form" onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-6">
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -138,10 +141,10 @@ export default function Register() {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4 pb-6">
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 text-white shadow-md"
               disabled={registerMutation.isPending}
             >
               {registerMutation.isPending && (
@@ -154,7 +157,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setLocation("/login")}
-                className="text-primary hover:underline font-medium"
+                className="text-teal-600 hover:text-teal-700 hover:underline font-medium"
               >
                 Sign in
               </button>

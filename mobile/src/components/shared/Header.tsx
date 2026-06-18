@@ -30,9 +30,9 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack, rightAction }) 
 };
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingTop: 48, backgroundColor: COLORS.primary },
   backButton: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
-  title: { flex: 1, fontSize: 18, fontWeight: '600', color: COLORS.text },
-  rightAction: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
+  backText: { fontSize: 24, color: '#ffffff' },
+  title: { flex: 1, fontSize: 18, fontWeight: '600', color: '#ffffff' },
+  rightAction: { fontSize: 16, color: '#ffffff', fontWeight: '600' },
 });

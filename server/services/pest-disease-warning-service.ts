@@ -4,8 +4,8 @@
  * Provides real-time alerts and treatment recommendations
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
@@ -670,9 +670,9 @@ const DISEASE_DATABASE: Record<DiseaseType, {
 };
 
 class PestDiseaseWarningService {
-  private alerts: BoundedMap<string, PestDiseaseAlert> = new BoundedMap(5000, 86400_000);
-  private outbreakReports: BoundedMap<string, OutbreakReport> = new BoundedMap(2000, 86400_000);
-  private farmAssessments: BoundedMap<number, FarmRiskAssessment> = new BoundedMap(5000, 43200_000);
+  private alerts: Map<string, PestDiseaseAlert> = new Map();
+  private outbreakReports: Map<string, OutbreakReport> = new Map();
+  private farmAssessments: Map<number, FarmRiskAssessment> = new Map();
   private monitoringInterval: NodeJS.Timeout | null = null;
 
   /**

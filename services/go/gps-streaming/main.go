@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,6 +18,8 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+
+	_ "github.com/lib/pq"
 )
 
 // Real-time GPS Delivery Tracking via WebSocket
@@ -471,6 +474,37 @@ func corsMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+
+func initDB() {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			envOrDef("DB_HOST", "localhost"), envOrDef("DB_PORT", "5432"),
+			envOrDef("DB_USER", "farmconnect"), envOrDef("DB_PASSWORD", "farmconnect"),
+			envOrDef("DB_NAME", "farmconnect"))
+	}
+	var err error
+	dbConn, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Printf("[DB] Connection error for gps_streaming: %v", err)
+		return
+	}
+	dbConn.SetMaxOpenConns(10)
+	if err = dbConn.Ping(); err != nil {
+		log.Printf("[DB] Ping failed for gps_streaming: %v (cache-only mode)", err)
+		dbConn = nil
+		return
+	}
+	log.Println("[DB] PostgreSQL connected for gps_streaming")
+}
+
+func envOrDef(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
 func main() {

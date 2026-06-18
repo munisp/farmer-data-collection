@@ -4,8 +4,8 @@
  * Integrates with marketplace and logistics services
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from '../logger.js';
 const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
@@ -436,9 +436,9 @@ const PACKAGING_RECOMMENDATIONS: Record<string, PackagingRecommendation> = {
 };
 
 class PostHarvestService {
-  private bookings: BoundedMap<string, StorageBooking> = new BoundedMap(2000, 86400_000);
-  private logisticsBookings: BoundedMap<string, LogisticsBooking> = new BoundedMap(2000, 86400_000);
-  private qualityAssessments: BoundedMap<string, QualityAssessment> = new BoundedMap(5000, 86400_000);
+  private bookings: Map<string, StorageBooking> = new Map();
+  private logisticsBookings: Map<string, LogisticsBooking> = new Map();
+  private qualityAssessments: Map<string, QualityAssessment> = new Map();
 
   /**
    * Find available storage facilities

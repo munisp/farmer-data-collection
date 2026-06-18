@@ -4,6 +4,7 @@
 package main
 
 import (
+	"database/sql"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 // ============================================================================
@@ -349,6 +352,37 @@ func (s *FleetService) SearchNearbyEquipment(lat, lon, radiusKm float64, equipTy
 // ============================================================================
 // HTTP Handlers
 // ============================================================================
+
+
+func initDB() {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			envOrDef("DB_HOST", "localhost"), envOrDef("DB_PORT", "5432"),
+			envOrDef("DB_USER", "farmconnect"), envOrDef("DB_PASSWORD", "farmconnect"),
+			envOrDef("DB_NAME", "farmconnect"))
+	}
+	var err error
+	dbConn, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Printf("[DB] Connection error for equipment_fleet_service: %v", err)
+		return
+	}
+	dbConn.SetMaxOpenConns(10)
+	if err = dbConn.Ping(); err != nil {
+		log.Printf("[DB] Ping failed for equipment_fleet_service: %v (cache-only mode)", err)
+		dbConn = nil
+		return
+	}
+	log.Println("[DB] PostgreSQL connected for equipment_fleet_service")
+}
+
+func envOrDef(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
 
 func main() {
 	svc := NewFleetService()

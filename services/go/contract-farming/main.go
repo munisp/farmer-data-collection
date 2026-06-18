@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -16,6 +17,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 // ─── Domain Models ──────────────────────────────────────────────────
@@ -106,16 +109,105 @@ type PerformanceMetric struct {
 	TotalExpectedKg  float64 `json:"totalExpectedKg"`
 }
 
-// ─── In-Memory Store (Production: PostgreSQL + Dapr state) ──────────
+// ─── PostgreSQL-backed store with in-memory cache ──────────
 
 var (
 	contracts  = make(map[string]*Contract)
 	offtakers  = make(map[string]*Offtaker)
 	templates  = make(map[string]*ContractTemplate)
 	mu         sync.RWMutex
+	dbConn     *sql.DB
 )
 
+func initDB() {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			envOr("DB_HOST", "localhost"), envOr("DB_PORT", "5432"),
+			envOr("DB_USER", "farmconnect"), envOr("DB_PASSWORD", "farmconnect"),
+			envOr("DB_NAME", "farmconnect"))
+	}
+	var err error
+	dbConn, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Printf("[DB] Failed to connect: %v", err)
+		return
+	}
+	dbConn.SetMaxOpenConns(10)
+	if err = dbConn.Ping(); err != nil {
+		log.Printf("[DB] Ping failed: %v (using cache only)", err)
+		dbConn = nil
+		return
+	}
+	log.Println("[DB] PostgreSQL connected for contract-farming")
+	initSchema()
+}
+
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
+
+func initSchema() {
+	if dbConn == nil {
+		return
+	}
+	schema := `
+	CREATE TABLE IF NOT EXISTS contract_farming_contracts (
+		id VARCHAR(50) PRIMARY KEY,
+		farmer_id VARCHAR(50) NOT NULL,
+		offtaker_id VARCHAR(50) NOT NULL,
+		crop_type VARCHAR(100) NOT NULL,
+		quantity_kg DECIMAL(12,2) NOT NULL,
+		price_per_kg DECIMAL(10,2) NOT NULL,
+		currency VARCHAR(10) DEFAULT 'KES',
+		status VARCHAR(20) DEFAULT 'draft',
+		start_date TIMESTAMP,
+		end_date TIMESTAMP,
+		delivery_schedule JSONB,
+		quality_standards JSONB,
+		penalty_clauses JSONB,
+		created_at TIMESTAMP DEFAULT NOW(),
+		updated_at TIMESTAMP DEFAULT NOW()
+	);
+	CREATE TABLE IF NOT EXISTS contract_farming_offtakers (
+		id VARCHAR(50) PRIMARY KEY,
+		name VARCHAR(255) NOT NULL,
+		type VARCHAR(50),
+		location VARCHAR(255),
+		rating DECIMAL(3,1),
+		contracts_active INT DEFAULT 0,
+		volume_kg DECIMAL(15,2) DEFAULT 0,
+		payment_term_days INT DEFAULT 30,
+		crops_accepted JSONB,
+		created_at TIMESTAMP DEFAULT NOW()
+	);`
+	if _, err := dbConn.Exec(schema); err != nil {
+		log.Printf("[DB] Schema init error: %v", err)
+	}
+}
+
+func persistContract(c *Contract) {
+	if dbConn == nil {
+		return
+	}
+	deliveryJSON, _ := json.Marshal(c.DeliverySchedule)
+	qualityJSON, _ := json.Marshal(c.QualityStandards)
+	penaltyJSON, _ := json.Marshal(c.PenaltyClauses)
+	_, err := dbConn.Exec(`INSERT INTO contract_farming_contracts (id, farmer_id, offtaker_id, crop_type, quantity_kg, price_per_kg, currency, status, start_date, end_date, delivery_schedule, quality_standards, penalty_clauses, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+		ON CONFLICT (id) DO UPDATE SET status=$8, updated_at=$15, delivery_schedule=$11`,
+		c.ID, c.FarmerID, c.OfftakerID, c.CropType, c.QuantityKg, c.PricePerKg, c.Currency, c.Status,
+		c.StartDate, c.EndDate, deliveryJSON, qualityJSON, penaltyJSON, c.CreatedAt, c.UpdatedAt)
+	if err != nil {
+		log.Printf("[DB] Failed to persist contract %s: %v", c.ID, err)
+	}
+}
+
 func init() {
+	initDB()
 	seedData()
 }
 
@@ -346,6 +438,7 @@ func handleCreateContract(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contracts[id] = c
+	persistContract(c)
 	writeJSON(w, 201, map[string]interface{}{"contract": c})
 }
 

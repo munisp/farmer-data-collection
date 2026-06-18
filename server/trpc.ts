@@ -118,7 +118,7 @@ import { distributorNetworkRouter } from "./routers/distributor-network-router.j
 import { spatialAnalysisRouter } from "./routers/spatial-analysis-router.js";
 import { dairyManagementRouter } from "./routers/dairy-management-router.js";
 
-import { authRouter as authRouterSimple } from "./auth-router-simple.js";
+import { authRouter as authRouterReal } from "./routers/auth-router.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -131,8 +131,7 @@ if (!JWT_SECRET) {
 // Re-export createContext, middleware, router, and procedures for server setup
 export { createContext, middleware, router, protectedProcedure, publicProcedure };
 
-// Auth router - use simple version that bypasses Drizzle ORM schema issues
-const authRouter = authRouterSimple;
+const authRouter = authRouterReal;
 
 export const appRouter = router({
   auth: authRouter,

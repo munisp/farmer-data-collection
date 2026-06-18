@@ -4,8 +4,8 @@
  * Integrates with weather, pest alerts, and market information
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
 import { weatherService } from "./weather-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from '../logger.js';
@@ -300,11 +300,11 @@ const IVR_MENUS: Record<SupportedLanguage, IVRMenu> = {
 };
 
 class VoiceAdvisoryService {
-  private advisories: BoundedMap<string, VoiceAdvisory> = new BoundedMap(2000, 86400_000);
-  private calls: BoundedMap<string, VoiceCall> = new BoundedMap(5000, 43200_000);
-  private callbackRequests: BoundedMap<string, CallbackRequest> = new BoundedMap(1000, 86400_000);
-  private smsAlerts: BoundedMap<string, SMSAlert> = new BoundedMap(5000, 86400_000);
-  private farmerPreferences: BoundedMap<number, FarmerPreferences> = new BoundedMap(5000, 86400_000);
+  private advisories: Map<string, VoiceAdvisory> = new Map();
+  private calls: Map<string, VoiceCall> = new Map();
+  private callbackRequests: Map<string, CallbackRequest> = new Map();
+  private smsAlerts: Map<string, SMSAlert> = new Map();
+  private farmerPreferences: Map<number, FarmerPreferences> = new Map();
 
   /**
    * Get IVR menu for a language

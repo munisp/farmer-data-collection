@@ -36,10 +36,10 @@ export const IMAGE_QUALITY = 0.8;
 // Pagination
 export const PAGE_SIZE = 20;
 
-// Colors (matching web platform)
+// Colors (matching web platform — SmartAlex teal)
 export const COLORS = {
-  primary: '#10b981',
-  primaryDark: '#059669',
+  primary: '#0d9488',
+  primaryDark: '#0f766e',
   secondary: '#3b82f6',
   background: '#ffffff',
   backgroundDark: '#1f2937',
@@ -49,7 +49,7 @@ export const COLORS = {
   border: '#e5e7eb',
   error: '#ef4444',
   warning: '#f59e0b',
-  success: '#10b981',
+  success: '#0d9488',
   info: '#3b82f6',
 } as const;
 

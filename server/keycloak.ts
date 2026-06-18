@@ -4,8 +4,8 @@ import { logger } from './logger.js';
 import { CircuitBreaker } from './services/circuit-breaker.js';
 
 const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
-const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'farmer-realm';
-const KEYCLOAK_CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID || 'farmer-api';
+const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'farmconnect';
+const KEYCLOAK_CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID || 'farmconnect-api';
 const KEYCLOAK_CLIENT_SECRET = process.env.KEYCLOAK_CLIENT_SECRET;
 
 const keycloakBreaker = new CircuitBreaker({ name: 'keycloak', failureThreshold: 5, resetTimeoutMs: 30_000, timeoutMs: 8_000 });

@@ -4,8 +4,8 @@
  * Supports pre-approved credit lines, bulk purchasing, and supplier management
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
 import { createTemporalService, TemporalWorkflowService } from "./temporal-workflow-service.js";
 import { publishEvent, createEvent } from "../kafka.js";
@@ -251,8 +251,8 @@ const INPUT_CATALOG: Record<InputCategory, Array<{
 };
 
 class InputFinancingService {
-  private creditLines: BoundedMap<string, CreditLine> = new BoundedMap(5000, 86400_000);
-  private bulkGroups: BoundedMap<string, BulkPurchaseGroup> = new BoundedMap(2000, 86400_000);
+  private creditLines: Map<string, CreditLine> = new Map();
+  private bulkGroups: Map<string, BulkPurchaseGroup> = new Map();
 
   /**
    * Check pre-approval eligibility for a farmer
