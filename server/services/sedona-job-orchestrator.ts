@@ -9,7 +9,7 @@
  * - Manual job triggering via API
  */
 
-import { BoundedMap } from '../cache/bounded-map.js';
+import { getDb } from '../db.js';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import { logger } from '../logger.js';
@@ -80,8 +80,8 @@ const GPS_JOBS: JobConfig[] = [
 ];
 
 class SedonaJobOrchestrator {
-  private jobs: BoundedMap<string, JobConfig> = new BoundedMap(500, 86400_000);
-  private schedules: BoundedMap<string, JobSchedule> = new BoundedMap(500, 86400_000);
+  private jobs: Map<string, JobConfig> = new Map();
+  private schedules: Map<string, JobSchedule> = new Map();
   private runHistory: JobRun[] = [];
   private activeRuns: Map<string, JobRun> = new Map();
   private schedulerInterval: NodeJS.Timeout | null = null;

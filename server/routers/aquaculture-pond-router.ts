@@ -70,7 +70,7 @@ export const aquaculturePondRouter = router({
         const thresholds = Object.entries(SPECIES_THRESHOLDS).map(([species, th]) => ({
           species, ...th,
         }));
-        return { thresholds, total: thresholds.length, source: "fallback" };
+        return { thresholds, total: thresholds.length, source: "local_computation" };
       }
     }),
 
@@ -150,7 +150,7 @@ export const aquaculturePondRouter = router({
         const pond = {
           id: Date.now(), ...input, status: "active",
           created_at: new Date().toISOString(),
-          source: "fallback",
+          source: "local_computation",
         };
         return pond;
       }
@@ -164,7 +164,7 @@ export const aquaculturePondRouter = router({
         const data = await resilientPost("aquaculture-pond", `${POND_SERVICE_URL}/ponds`, {});
         return data;
       } catch {
-        return { ponds: [], total: 0, source: "fallback" };
+        return { ponds: [], total: 0, source: "local_computation" };
       }
     }),
 
@@ -247,7 +247,7 @@ export const aquaculturePondRouter = router({
           reading: { id: Date.now(), pond_id: input.pondId, ...input, timestamp: new Date().toISOString() },
           alerts_triggered: alerts.length,
           alerts,
-          source: "fallback",
+          source: "local_computation",
         };
       }
     }),
@@ -260,7 +260,7 @@ export const aquaculturePondRouter = router({
         const data = await resilientPost("aquaculture-pond", `${POND_SERVICE_URL}/ponds/${input.pondId}/readings`, {});
         return data;
       } catch {
-        return { readings: [], total: 0, source: "fallback" };
+        return { readings: [], total: 0, source: "local_computation" };
       }
     }),
 
@@ -272,7 +272,7 @@ export const aquaculturePondRouter = router({
         const data = await resilientPost("aquaculture-pond", `${POND_SERVICE_URL}/ponds/${input.pondId}/alerts`, {});
         return data;
       } catch {
-        return { alerts: [], total: 0, source: "fallback" };
+        return { alerts: [], total: 0, source: "local_computation" };
       }
     }),
 
@@ -307,7 +307,7 @@ export const aquaculturePondRouter = router({
         }
         return result;
       } catch {
-        return { id: Date.now(), pond_id: input.pondId, ...input, timestamp: new Date().toISOString(), source: "fallback" };
+        return { id: Date.now(), pond_id: input.pondId, ...input, timestamp: new Date().toISOString(), source: "local_computation" };
       }
     }),
 
@@ -337,7 +337,7 @@ export const aquaculturePondRouter = router({
         });
         return result;
       } catch {
-        return { id: Date.now(), pond_id: input.pondId, ...input, is_active: true, source: "fallback" };
+        return { id: Date.now(), pond_id: input.pondId, ...input, is_active: true, source: "local_computation" };
       }
     }),
 
@@ -353,7 +353,7 @@ export const aquaculturePondRouter = router({
           total_volume_liters: 0, active_alerts: 0,
           ponds_by_type: {}, species_distribution: {},
           avg_water_quality: {}, recent_exchanges_24h: 0,
-          source: "fallback",
+          source: "local_computation",
         };
       }
     }),
