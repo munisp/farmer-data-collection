@@ -70,7 +70,11 @@ import {
   ArrowRightLeft,
   Warehouse,
   Fish,
-  Droplets
+  Droplets,
+  Fingerprint,
+  Navigation,
+  Fence,
+  Link2
 } from "lucide-react";
 
 // Navigation sections organized by domain
@@ -182,6 +186,10 @@ const navSections = [
       { href: "/weather", label: "Weather Dashboard", icon: Cloud },
       { href: "/weather-alerts", label: "Weather Alerts", icon: AlertTriangle },
       { href: "/precision-agriculture", label: "Precision Agriculture", icon: Target },
+      { href: "/provenance-explorer", label: "Provenance Explorer", icon: Fingerprint },
+      { href: "/fleet-tracker", label: "Fleet Tracker", icon: Navigation },
+      { href: "/geofence-manager", label: "Geofence Manager", icon: Fence },
+      { href: "/supply-chain-provenance", label: "Supply Chain Provenance", icon: Link2 },
     ]
   },
   {
