@@ -139,6 +139,10 @@ const SpatialSpectralIndex = lazy(() => import("./pages/SpatialSpectralIndex"));
 const SpatialH3Analysis = lazy(() => import("./pages/SpatialH3Analysis"));
 const SpatialVectorAnalysis = lazy(() => import("./pages/SpatialVectorAnalysis"));
 const SpatialTileCache = lazy(() => import("./pages/SpatialTileCache"));
+const ProvenanceExplorer = lazy(() => import("./pages/ProvenanceExplorer"));
+const FleetTracker = lazy(() => import("./pages/FleetTracker"));
+const GeofenceManager = lazy(() => import("./pages/GeofenceManager"));
+const SupplyChainProvenance = lazy(() => import("./pages/SupplyChainProvenance"));
 const ColdChainMonitoring = lazy(() => import("./pages/ColdChainMonitoring"));
 const PriceAlertsDashboard = lazy(() => import("./pages/PriceAlertsDashboard"));
 const SubscriptionBoxes = lazy(() => import("./pages/SubscriptionBoxes"));
@@ -307,6 +311,11 @@ function Router() {
         <Route path="/spatial-h3-analysis" component={SpatialH3Analysis} />
         <Route path="/spatial-vector-analysis" component={SpatialVectorAnalysis} />
         <Route path="/spatial-tile-cache" component={SpatialTileCache} />
+        {/* === MobyDB + latlng Spatial Engine Pages === */}
+        <Route path="/provenance-explorer" component={ProvenanceExplorer} />
+        <Route path="/fleet-tracker" component={FleetTracker} />
+        <Route path="/geofence-manager" component={GeofenceManager} />
+        <Route path="/supply-chain-provenance" component={SupplyChainProvenance} />
         <Route path="/cold-chain" component={ColdChainMonitoring} />
         <Route path="/price-alerts" component={PriceAlertsDashboard} />
         <Route path="/subscriptions" component={SubscriptionBoxes} />
