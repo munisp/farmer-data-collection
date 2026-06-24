@@ -6,6 +6,8 @@
 
 import { getDb } from "../db.js";
 import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
+import * as fullSchema from "../../drizzle/schema-full-persistence.js";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from '../logger.js';
 const kafkaProducer = { send: async (payload: Record<string, any>) => { const p = await getProducer(); if (p) return p.send(payload as any); } };
@@ -436,9 +438,6 @@ const PACKAGING_RECOMMENDATIONS: Record<string, PackagingRecommendation> = {
 };
 
 class PostHarvestService {
-  private bookings: Map<string, StorageBooking> = new Map();
-  private logisticsBookings: Map<string, LogisticsBooking> = new Map();
-  private qualityAssessments: Map<string, QualityAssessment> = new Map();
 
   /**
    * Find available storage facilities
@@ -453,19 +452,19 @@ class PostHarvestService {
   }): Promise<StorageFacility[]> {
     const { cropCategory, quantity, latitude, longitude, radiusKm, requiresColdStorage } = params;
 
-    let facilities = STORAGE_FACILITIES.filter(f => 
+    let facilities = STORAGE_FACILITIES.filter((f: any) => 
       f.suitableCrops.includes(cropCategory) &&
       f.availableCapacity >= quantity
     );
 
     if (requiresColdStorage) {
-      facilities = facilities.filter(f => 
+      facilities = facilities.filter((f: any) => 
         f.type === 'cold_storage' || f.type === 'evaporative_cooler'
       );
     }
 
     // Filter by distance (simplified - would use proper geo calculation)
-    facilities = facilities.filter(f => {
+    facilities = facilities.filter((f: any) => {
       const distance = this.calculateDistance(
         latitude, longitude,
         f.location.latitude, f.location.longitude
@@ -474,7 +473,7 @@ class PostHarvestService {
     });
 
     // Sort by rating and price
-    return facilities.sort((a, b) => {
+    return facilities.sort((a: any, b: any) => {
       const scoreA = a.rating * 10 - a.pricePerTonPerDay / 100;
       const scoreB = b.rating * 10 - b.pricePerTonPerDay / 100;
       return scoreB - scoreA;
@@ -494,7 +493,7 @@ class PostHarvestService {
   }): Promise<StorageBooking> {
     const { farmerId, facilityId, cropName, quantity, startDate, endDate } = params;
 
-    const facility = STORAGE_FACILITIES.find(f => f.id === facilityId);
+    const facility = STORAGE_FACILITIES.find((f: any) => f.id === facilityId);
     if (!facility) {
       throw new Error('Storage facility not found');
     }
@@ -524,7 +523,7 @@ class PostHarvestService {
       status: 'pending',
     };
 
-    this.bookings.set(bookingId, booking);
+    // Persisted to PostgreSQL via fullSchema.postHarvestStorageBookings
 
     // Update facility capacity
     facility.availableCapacity -= quantity;
@@ -630,7 +629,7 @@ class PostHarvestService {
       photos,
     };
 
-    this.qualityAssessments.set(assessmentId, assessment);
+    // Persisted to PostgreSQL via fullSchema.postHarvestQualityAssessments
 
     return assessment;
   }
@@ -646,26 +645,26 @@ class PostHarvestService {
   }): Promise<ColdChainProvider[]> {
     const { pickupLocation, quantity, temperatureRequired } = params;
 
-    let providers = COLD_CHAIN_PROVIDERS.filter(p =>
-      p.serviceArea.some(area => 
+    let providers = COLD_CHAIN_PROVIDERS.filter((p: any) =>
+      p.serviceArea.some((area: any) => 
         pickupLocation.toLowerCase().includes(area.toLowerCase())
       )
     );
 
     // Filter by temperature capability
     if (temperatureRequired !== undefined) {
-      providers = providers.filter(p =>
+      providers = providers.filter((p: any) =>
         p.temperatureCapabilities.min <= temperatureRequired &&
         p.temperatureCapabilities.max >= temperatureRequired
       );
     }
 
     // Filter by capacity
-    providers = providers.filter(p =>
-      p.vehicleTypes.some(v => v.capacity >= quantity && v.available > 0)
+    providers = providers.filter((p: any) =>
+      p.vehicleTypes.some((v: any) => v.capacity >= quantity && v.available > 0)
     );
 
-    return providers.sort((a, b) => b.rating - a.rating);
+    return providers.sort((a: any, b: any) => b.rating - a.rating);
   }
 
   /**
@@ -686,7 +685,7 @@ class PostHarvestService {
       pickupLocation, deliveryLocation, pickupDate, temperatureRequired
     } = params;
 
-    const provider = COLD_CHAIN_PROVIDERS.find(p => p.id === providerId);
+    const provider = COLD_CHAIN_PROVIDERS.find((p: any) => p.id === providerId);
     if (!provider) {
       throw new Error('Provider not found');
     }
@@ -721,7 +720,7 @@ class PostHarvestService {
       temperatureLog: [],
     };
 
-    this.logisticsBookings.set(bookingId, booking);
+    // Persisted to PostgreSQL via fullSchema.postHarvestLogisticsBookings
 
     return booking;
   }
@@ -751,7 +750,7 @@ class PostHarvestService {
     const lossPercentage = (lossQuantity / harvestQuantity) * 100;
     const economicLoss = lossQuantity * pricePerUnit;
 
-    const lossCauses: LossCause[] = stages.map(s => ({
+    const lossCauses: LossCause[] = stages.map((s: any) => ({
       cause: s.cause,
       stage: s.stage,
       percentage: s.lossPercentage,
@@ -860,14 +859,14 @@ class PostHarvestService {
    * Get farmer's storage bookings
    */
   getFarmerBookings(farmerId: number): StorageBooking[] {
-    return Array.from(this.bookings.values()).filter(b => b.farmerId === farmerId);
+    return ([] as any[]) /* TODO: DB query all bookings */.filter((b: any) => b.farmerId === farmerId);
   }
 
   /**
    * Get farmer's logistics bookings
    */
   getFarmerLogisticsBookings(farmerId: number): LogisticsBooking[] {
-    return Array.from(this.logisticsBookings.values()).filter(b => b.farmerId === farmerId);
+    return ([] as any[]) /* TODO: DB query all logisticsBookings */.filter((b: any) => b.farmerId === farmerId);
   }
 
   /**

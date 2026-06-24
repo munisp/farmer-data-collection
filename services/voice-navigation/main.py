@@ -72,6 +72,62 @@ TTS_RESPONSES = {
     },
 }
 
+
+# PostgreSQL persistence
+import psycopg2
+import psycopg2.extras
+
+_db_conn = None
+
+def get_db():
+    global _db_conn
+    if _db_conn is None:
+        try:
+            db_url = os.environ.get("DATABASE_URL", "postgresql://localhost:5432/farmerdb")
+            _db_conn = psycopg2.connect(db_url)
+            _db_conn.autocommit = True
+            with _db_conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS voice_interactions (
+                        id SERIAL PRIMARY KEY,
+                        interaction_id TEXT UNIQUE,
+                        command TEXT,
+                        language TEXT,
+                        matched BOOLEAN,
+                        data JSONB,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """)
+            print("[DB] PostgreSQL connected for voice-navigation")
+        except Exception as e:
+            print(f"[DB] Connection failed: {e}")
+            _db_conn = None
+    return _db_conn
+
+def db_persist_interaction(entry: dict):
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO voice_interactions (interaction_id, command, language, matched, data) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (interaction_id) DO NOTHING",
+                    (entry.get("id", ""), entry.get("command", ""), entry.get("language", ""), entry.get("matched", False), json.dumps(entry))
+                )
+        except Exception as e:
+            print(f"[DB] Persist error: {e}")
+
+def db_get_interactions() -> list:
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute("SELECT data FROM voice_interactions ORDER BY created_at DESC LIMIT 100")
+                return [row["data"] for row in cur.fetchall()]
+        except Exception as e:
+            print(f"[DB] Query error: {e}")
+    return interaction_log
+
+
 interaction_log: list[dict[str, Any]] = []
 
 

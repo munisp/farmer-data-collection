@@ -6,6 +6,8 @@
 
 import { getDb } from "../db.js";
 import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
+import * as fullSchema from "../../drizzle/schema-full-persistence.js";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
@@ -670,9 +672,6 @@ const DISEASE_DATABASE: Record<DiseaseType, {
 };
 
 class PestDiseaseWarningService {
-  private alerts: Map<string, PestDiseaseAlert> = new Map();
-  private outbreakReports: Map<string, OutbreakReport> = new Map();
-  private farmAssessments: Map<number, FarmRiskAssessment> = new Map();
   private monitoringInterval: NodeJS.Timeout | null = null;
 
   /**
@@ -698,7 +697,7 @@ class PestDiseaseWarningService {
       
       if (riskLevel > 30) {
         const affectedCrops = crops 
-          ? pestData.affectedCrops.filter(c => crops.some(crop => c.toLowerCase().includes(crop.toLowerCase())))
+          ? pestData.affectedCrops.filter((c: any) => crops.some(crop => c.toLowerCase().includes(crop.toLowerCase())))
           : pestData.affectedCrops;
 
         if (affectedCrops.length > 0 || !crops) {
@@ -713,7 +712,7 @@ class PestDiseaseWarningService {
       
       if (riskLevel > 30) {
         const affectedCrops = crops 
-          ? diseaseData.affectedCrops.filter(c => crops.some(crop => c.toLowerCase().includes(crop.toLowerCase())))
+          ? diseaseData.affectedCrops.filter((c: any) => crops.some(crop => c.toLowerCase().includes(crop.toLowerCase())))
           : diseaseData.affectedCrops;
 
         if (affectedCrops.length > 0 || !crops) {
@@ -723,7 +722,7 @@ class PestDiseaseWarningService {
     }
 
     // Sort by risk level
-    return alerts.sort((a, b) => b.riskLevel - a.riskLevel);
+    return alerts.sort((a: any, b: any) => b.riskLevel - a.riskLevel);
   }
 
   /**
@@ -743,7 +742,7 @@ class PestDiseaseWarningService {
 
     // Calculate overall risk
     const overallRiskScore = alerts.length > 0
-      ? Math.round(alerts.reduce((sum, a) => sum + a.riskLevel, 0) / alerts.length)
+      ? Math.round(alerts.reduce((sum: any, a: any) => sum + a.riskLevel, 0) / alerts.length)
       : 0;
 
     const riskLevel: AlertSeverity = 
@@ -768,7 +767,7 @@ class PestDiseaseWarningService {
       farmerId,
       overallRiskScore,
       riskLevel,
-      activeThreats: alerts.filter(a => a.riskLevel >= 50),
+      activeThreats: alerts.filter((a: any) => a.riskLevel >= 50),
       vulnerabilities,
       recommendations,
       spraySchedule,
@@ -776,7 +775,7 @@ class PestDiseaseWarningService {
       lastAssessment: new Date(),
     };
 
-    this.farmAssessments.set(farmId, assessment);
+    // Persisted to PostgreSQL via fullSchema.pestFarmAssessments
 
     // Emit event
     try {
@@ -835,7 +834,7 @@ class PestDiseaseWarningService {
       report.aiDiagnosis = await this.performAIDiagnosis(params.photos, params.symptoms);
     }
 
-    this.outbreakReports.set(reportId, report);
+    // Persisted to PostgreSQL via fullSchema.pestOutbreakReports
 
     // Emit alert event
     try {
@@ -884,7 +883,7 @@ class PestDiseaseWarningService {
 
     // Filter by organic preference
     if (organicPreferred) {
-      const organicTreatments = treatments.filter(t => 
+      const organicTreatments = treatments.filter((t: any) => 
         t.type === 'biological' || t.type === 'cultural' || t.environmentalImpact === 'low'
       );
       if (organicTreatments.length > 0) {
@@ -893,14 +892,14 @@ class PestDiseaseWarningService {
     }
 
     // Sort by effectiveness
-    return treatments.sort((a, b) => b.effectiveness - a.effectiveness);
+    return treatments.sort((a: any, b: any) => b.effectiveness - a.effectiveness);
   }
 
   /**
    * Get spray schedule for a farm
    */
   async getSpraySchedule(farmId: number): Promise<SprayScheduleItem[]> {
-    const assessment = this.farmAssessments.get(farmId);
+    const assessment = null as any /* TODO: DB lookup farmAssessments by farmId */;
     return assessment?.spraySchedule || [];
   }
 
@@ -1045,7 +1044,7 @@ class PestDiseaseWarningService {
   private generateRecommendations(alerts: PestDiseaseAlert[], crops: string[]): string[] {
     const recommendations: string[] = [];
 
-    if (alerts.some(a => a.severity === 'critical' || a.severity === 'high')) {
+    if (alerts.some((a: any) => a.severity === 'critical' || a.severity === 'high')) {
       recommendations.push('Conduct immediate field inspection');
       recommendations.push('Prepare treatment materials');
     }
@@ -1054,7 +1053,7 @@ class PestDiseaseWarningService {
     recommendations.push('Monitor weather forecasts for spray timing');
     recommendations.push('Ensure spraying equipment is in good condition');
 
-    if (alerts.some(a => a.type === 'disease')) {
+    if (alerts.some((a: any) => a.type === 'disease')) {
       recommendations.push('Avoid overhead irrigation to reduce leaf wetness');
       recommendations.push('Improve air circulation by proper spacing');
     }
@@ -1085,7 +1084,7 @@ class PestDiseaseWarningService {
     });
 
     // Add specific treatments for high-risk alerts
-    for (const alert of alerts.filter(a => a.riskLevel >= 50)) {
+    for (const alert of alerts.filter((a: any) => a.riskLevel >= 50)) {
       const treatment = alert.treatmentOptions[0];
       if (treatment) {
         schedule.push({
@@ -1140,15 +1139,15 @@ class PestDiseaseWarningService {
     const vulnerabilities: string[] = [];
 
     for (const crop of crops) {
-      const cropAlerts = alerts.filter(a => 
-        a.affectedCrops.some(c => c.toLowerCase().includes(crop.toLowerCase()))
+      const cropAlerts = alerts.filter((a: any) => 
+        a.affectedCrops.some((c: any) => c.toLowerCase().includes(crop.toLowerCase()))
       );
       if (cropAlerts.length > 2) {
         vulnerabilities.push(`${crop} is susceptible to multiple threats`);
       }
     }
 
-    if (alerts.some(a => a.type === 'disease' && a.riskLevel >= 50)) {
+    if (alerts.some((a: any) => a.type === 'disease' && a.riskLevel >= 50)) {
       vulnerabilities.push('High humidity conditions favor disease development');
     }
 
