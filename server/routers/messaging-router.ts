@@ -49,6 +49,7 @@ if (AT_API_KEY) {
 
 // Redis-backed rate limiting with in-memory fallback
 import { PersistentStateStore } from '../services/redis-state-store.js';
+import { publishKafkaEvent, KAFKA_TOPICS, recordLedgerEntry, withRedisCache, indexDocument, streamEvent, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
 const rateLimitStore = new PersistentStateStore<{ count: number; resetAt: number }>('msg:ratelimit', 120);
 
 // ============================================================================

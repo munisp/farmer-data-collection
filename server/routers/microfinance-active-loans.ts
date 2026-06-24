@@ -5,6 +5,7 @@ import { getDb } from "../db.js";
 import { loans } from "../../drizzle/financial-schema";
 import { users } from "../../drizzle/schema";
 import { eq, and, sql, or } from "drizzle-orm";
+import { publishKafkaEvent, KAFKA_TOPICS, recordLedgerEntry, withRedisCache, indexDocument, streamEvent, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
 
 export const microfinanceActiveLoansRouter = router({
   /**

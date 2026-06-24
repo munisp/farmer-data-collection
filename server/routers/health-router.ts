@@ -4,6 +4,7 @@ import { publicProcedure, router } from "../_core/trpc-base";
 import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { sql } from "drizzle-orm";
+import { publishKafkaEvent, KAFKA_TOPICS, recordLedgerEntry, withRedisCache, indexDocument, streamEvent, writeToLakehouse } from "../integrations/middleware-router-hooks.js";
 
 // Health check response schema
 const healthCheckResponse = z.object({
