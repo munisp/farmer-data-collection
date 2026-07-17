@@ -1054,6 +1054,9 @@ export const voiceAdvisoryRouter = router({
     .input(z.object({
       farmerId: z.number(),
       preferredLanguage: z.enum(['english', 'yoruba', 'hausa', 'igbo', 'pidgin', 'fulfulde', 'kanuri', 'tiv']),
+      preferredChannel: z.string().optional().default('voice'),
+      smsOptIn: z.boolean().optional().default(true),
+      callOptIn: z.boolean().optional().default(true),
       preferredCallTime: z.string(),
       subscribedCategories: z.array(z.enum(['weather', 'pest_alert', 'market_prices', 'planting_tips', 'harvesting_tips', 'storage_tips', 'livestock', 'finance', 'general'])),
       crops: z.array(z.string()),

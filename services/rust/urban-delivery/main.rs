@@ -714,7 +714,37 @@ fn handle_request(
 // Simple HTTP server using std::net (no external deps)
 // ============================================================================
 
+
+fn init_db() -> Option<postgres::Client> {
+    let db_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://localhost:5432/farmerdb".to_string());
+    match postgres::Client::connect(&db_url, postgres::NoTls) {
+        Ok(client) => {
+            eprintln!("[DB] PostgreSQL connected");
+            Some(client)
+        }
+        Err(e) => {
+            eprintln!("[DB] Connection failed (will use in-memory fallback): {}", e);
+            None
+        }
+    }
+}
+
+fn db_persist(client: &mut Option<postgres::Client>, table: &str, id: &str, data: &str) {
+    if let Some(ref mut c) = client {
+        let query = format!(
+            "INSERT INTO {} (external_id, data, created_at) VALUES ($1, $2, NOW()) ON CONFLICT (external_id) DO UPDATE SET data = $2",
+            table
+        );
+        if let Err(e) = c.execute(&*query, &[&id, &data]) {
+            eprintln!("[DB] Persist error for {}/{}: {}", table, id, e);
+        }
+    }
+}
+
 fn main() {
+    let mut _db_conn = init_db();
+    eprintln!("[startup] DB initialized: {}", _db_conn.is_some());
     let port = std::env::var("PORT").unwrap_or_else(|_| "8111".to_string());
     let store = Arc::new(RwLock::new(Store::new()));
 
@@ -868,6 +898,24 @@ mod tests {
 }
 
 // PostgreSQL persistence layer
+
+async fn db_persist(pool: &Option<sqlx::PgPool>, table: &str, id: &str, data: &serde_json::Value) {
+    if let Some(pool) = pool {
+        let query = format!(
+            "INSERT INTO {} (external_id, data, created_at) VALUES ($1, $2, NOW()) ON CONFLICT (external_id) DO UPDATE SET data = $2",
+            table
+        );
+        if let Err(e) = sqlx::query(&query)
+            .bind(id)
+            .bind(data)
+            .execute(pool)
+            .await
+        {
+            eprintln!("[DB] persist error for {}/{}: {}", table, id, e);
+        }
+    }
+}
+
 async fn get_db_pool() -> Option<tokio_postgres::Client> {
     let dsn = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "host=localhost port=5432 user=farmconnect password=farmconnect dbname=farmconnect".to_string());

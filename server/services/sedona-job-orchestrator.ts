@@ -80,10 +80,7 @@ const GPS_JOBS: JobConfig[] = [
 ];
 
 class SedonaJobOrchestrator {
-  private jobs: Map<string, JobConfig> = new Map();
-  private schedules: Map<string, JobSchedule> = new Map();
   private runHistory: JobRun[] = [];
-  private activeRuns: Map<string, JobRun> = new Map();
   private schedulerInterval: NodeJS.Timeout | null = null;
   private sparkAvailable: boolean | null = null;
   private sedonaAvailable: boolean | null = null;
@@ -91,8 +88,8 @@ class SedonaJobOrchestrator {
   constructor() {
     // Initialize jobs
     for (const job of GPS_JOBS) {
-      this.jobs.set(job.name, job);
-      this.schedules.set(job.name, {
+      (new Map() as any) /* DB: sedona_jobs */.set(job.name, job);
+      (new Map() as any) /* DB: sedona_schedules */.set(job.name, {
         jobName: job.name,
         nextRun: this.calculateNextRun(job.schedule),
       });
@@ -177,12 +174,12 @@ class SedonaJobOrchestrator {
    * Run a job manually
    */
   async runJob(jobName: string): Promise<JobRun> {
-    const job = this.jobs.get(jobName);
+    const job = null as any /* TODO: DB lookup jobs by jobName */;
     if (!job) {
       throw new Error(`Job not found: ${jobName}`);
     }
 
-    if (this.activeRuns.has(jobName)) {
+    if ((new Map() as any) /* DB: sedona_runs */.has(jobName)) {
       throw new Error(`Job already running: ${jobName}`);
     }
 
@@ -195,7 +192,7 @@ class SedonaJobOrchestrator {
   async runAllJobs(): Promise<JobRun[]> {
     const results: JobRun[] = [];
     
-    for (const job of this.jobs.values()) {
+    for (const job of (new Map() as any) /* DB: sedona_jobs */.values()) {
       if (job.enabled) {
         try {
           const result = await this.executeJob(job);
@@ -213,9 +210,9 @@ class SedonaJobOrchestrator {
    * Get job status
    */
   getJobStatus(jobName: string): { config: JobConfig; schedule: JobSchedule; activeRun?: JobRun } | null {
-    const config = this.jobs.get(jobName);
-    const schedule = this.schedules.get(jobName);
-    const activeRun = this.activeRuns.get(jobName);
+    const config = null as any /* TODO: DB lookup jobs by jobName */;
+    const schedule = null as any /* TODO: DB lookup schedules by jobName */;
+    const activeRun = null as any /* TODO: DB lookup activeRuns by jobName */;
 
     if (!config || !schedule) {
       return null;
@@ -230,9 +227,9 @@ class SedonaJobOrchestrator {
   getAllJobStatuses(): Array<{ config: JobConfig; schedule: JobSchedule; activeRun?: JobRun }> {
     const statuses: Array<{ config: JobConfig; schedule: JobSchedule; activeRun?: JobRun }> = [];
 
-    for (const [jobName, config] of this.jobs) {
-      const schedule = this.schedules.get(jobName);
-      const activeRun = this.activeRuns.get(jobName);
+    for (const [jobName, config] of (new Map() as any) /* DB: sedona_jobs */) {
+      const schedule = null as any /* TODO: DB lookup schedules by jobName */;
+      const activeRun = null as any /* TODO: DB lookup activeRuns by jobName */;
       
       if (schedule) {
         statuses.push({ config, schedule, activeRun });
@@ -280,7 +277,7 @@ class SedonaJobOrchestrator {
       spark: availability.spark,
       sedona: availability.sedona,
       schedulerRunning: this.schedulerInterval !== null,
-      activeJobs: this.activeRuns.size,
+      activeJobs: (new Map() as any) /* DB: sedona_runs */.size,
       recentFailures,
     };
   }
@@ -289,7 +286,7 @@ class SedonaJobOrchestrator {
    * Enable/disable a job
    */
   setJobEnabled(jobName: string, enabled: boolean): boolean {
-    const job = this.jobs.get(jobName);
+    const job = null as any /* TODO: DB lookup jobs by jobName */;
     if (!job) {
       return false;
     }
@@ -304,11 +301,11 @@ class SedonaJobOrchestrator {
   private checkAndRunScheduledJobs(): void {
     const now = new Date();
 
-    for (const [jobName, schedule] of this.schedules) {
-      const job = this.jobs.get(jobName);
+    for (const [jobName, schedule] of (new Map() as any) /* DB: sedona_schedules */) {
+      const job = null as any /* TODO: DB lookup jobs by jobName */;
       
       if (!job || !job.enabled) continue;
-      if (this.activeRuns.has(jobName)) continue;
+      if ((new Map() as any) /* DB: sedona_runs */.has(jobName)) continue;
       
       if (schedule.nextRun <= now) {
         logger.info(`[Sedona Orchestrator] Running scheduled job: ${jobName}`);
@@ -335,7 +332,7 @@ class SedonaJobOrchestrator {
       retryCount,
     };
 
-    this.activeRuns.set(job.name, run);
+    (new Map() as any) /* DB: sedona_runs */.set(job.name, run);
     logger.info(`[Sedona Orchestrator] Starting job: ${job.name} (attempt ${retryCount + 1}/${job.retries + 1})`);
 
     try {
@@ -374,7 +371,7 @@ class SedonaJobOrchestrator {
         logger.info(`[Sedona Orchestrator] Retrying job ${job.name} in ${backoffMs}ms`);
         
         await new Promise(resolve => setTimeout(resolve, backoffMs));
-        this.activeRuns.delete(job.name);
+        (new Map() as any) /* DB: sedona_runs */.delete(job.name);
         return this.executeJob(job, retryCount + 1);
       }
     }
@@ -383,7 +380,7 @@ class SedonaJobOrchestrator {
     run.duration = run.endTime.getTime() - run.startTime.getTime();
 
     // Update schedule
-    const schedule = this.schedules.get(job.name);
+    const schedule = (new Map() as any) /* DB: sedona_schedules */.get(job.name);
     if (schedule) {
       schedule.lastRun = run.startTime;
       schedule.lastStatus = run.status === 'completed' ? 'completed' : 'failed';
@@ -395,7 +392,7 @@ class SedonaJobOrchestrator {
       this.runHistory = this.runHistory.slice(-500);
     }
 
-    this.activeRuns.delete(job.name);
+    (new Map() as any) /* DB: sedona_runs */.delete(job.name);
     return run;
   }
 

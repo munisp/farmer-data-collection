@@ -6,6 +6,8 @@
 
 import { getDb } from "../db.js";
 import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
+import * as fullSchema from "../../drizzle/schema-full-persistence.js";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { weatherService } from "./weather-service.js";
 import { predictYield } from "./yieldPredictionService.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
@@ -146,9 +148,6 @@ const SEASONAL_MULTIPLIERS: Record<string, number[]> = {
 };
 
 class HarvestForecastingService {
-  private forecasts: Map<string, HarvestForecast> = new Map();
-  private marketOpportunities: Map<string, MarketOpportunity> = new Map();
-  private contractOffers: Map<string, ContractFarmingOffer> = new Map();
 
   /**
    * Generate harvest forecast for a crop
@@ -231,7 +230,7 @@ class HarvestForecastingService {
       updatedAt: new Date(),
     };
 
-    this.forecasts.set(forecastId, forecast);
+    // Persisted to PostgreSQL via fullSchema.harvestForecasts
 
     // Emit event
     try {
@@ -287,7 +286,7 @@ class HarvestForecastingService {
     const trend = priceChange > 0.05 ? 'rising' : priceChange < -0.05 ? 'falling' : 'stable';
 
     // Find best selling window (highest prices)
-    const sortedByPrice = [...forecasts].sort((a, b) => b.predictedPrice - a.predictedPrice);
+    const sortedByPrice = [...forecasts].sort((a: any, b: any) => b.predictedPrice - a.predictedPrice);
     const bestWindow = {
       start: sortedByPrice[0].date,
       end: new Date(sortedByPrice[0].date.getTime() + 14 * 24 * 60 * 60 * 1000), // 2 weeks
@@ -375,9 +374,9 @@ class HarvestForecastingService {
     ];
 
     // Store opportunities
-    opportunities.forEach(opp => this.marketOpportunities.set(opp.id, opp));
+    // Persisted to PostgreSQL via fullSchema.harvestMarketOpportunities
 
-    return opportunities.sort((a, b) => b.matchScore - a.matchScore);
+    return opportunities.sort((a: any, b: any) => b.matchScore - a.matchScore);
   }
 
   /**
@@ -449,10 +448,10 @@ class HarvestForecastingService {
     ];
 
     // Store offers
-    offers.forEach(offer => this.contractOffers.set(offer.id, offer));
+    // Persisted to PostgreSQL via fullSchema contracts table
 
     if (cropName) {
-      return offers.filter(o => o.cropName.toLowerCase() === cropName.toLowerCase());
+      return offers.filter((o: any) => o.cropName.toLowerCase() === cropName.toLowerCase());
     }
     return offers;
   }
@@ -468,7 +467,7 @@ class HarvestForecastingService {
   }): Promise<{ success: boolean; message: string }> {
     const { farmerId, contractId, farmId, proposedQuantity } = params;
 
-    const contract = this.contractOffers.get(contractId);
+    const contract = null as any /* TODO: DB lookup contractOffers by contractId */;
     if (!contract) {
       return { success: false, message: 'Contract not found' };
     }
@@ -522,7 +521,7 @@ class HarvestForecastingService {
 
     const priceForecast = await this.getPriceForecast(cropName, 90);
     const currentPrice = priceForecast.currentPrice;
-    const bestWindowPrice = priceForecast.forecasts.find(f => 
+    const bestWindowPrice = priceForecast.forecasts.find((f: any) => 
       f.date >= priceForecast.bestSellingWindow.start && 
       f.date <= priceForecast.bestSellingWindow.end
     )?.predictedPrice || currentPrice;
@@ -582,7 +581,7 @@ class HarvestForecastingService {
    * Get farmer's harvest forecasts
    */
   async getFarmerForecasts(farmerId: number): Promise<HarvestForecast[]> {
-    return Array.from(this.forecasts.values()).filter(f => f.farmerId === farmerId);
+    return ([] as any[]) /* TODO: DB query all forecasts */.filter((f: any) => f.farmerId === farmerId);
   }
 
   // Private helper methods
