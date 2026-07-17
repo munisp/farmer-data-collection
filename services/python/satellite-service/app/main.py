@@ -29,6 +29,50 @@ import httpx
 import numpy as np
 from functools import lru_cache
 
+# PostgreSQL persistence
+import os as _os
+import logging as _logging
+
+_db_pool = None
+_db_logger = _logging.getLogger("db")
+
+async def get_db_pool():
+    global _db_pool
+    if _db_pool is not None:
+        return _db_pool
+    try:
+        import asyncpg
+        dsn = _os.getenv("DATABASE_URL", "postgresql://farmconnect:farmconnect@localhost:5432/farmconnect")
+        _db_pool = await asyncpg.create_pool(dsn=dsn, min_size=2, max_size=10)
+        _db_logger.info(f"[DB] asyncpg pool created for app")
+        return _db_pool
+    except Exception as e:
+        _db_logger.warning(f"[DB] Pool creation failed for app: {e}")
+        return None
+
+async def db_execute(query: str, *args):
+    pool = await get_db_pool()
+    if pool is None:
+        return None
+    try:
+        async with pool.acquire() as conn:
+            return await conn.fetch(query, *args)
+    except Exception as e:
+        _db_logger.error(f"[DB] Query error: {e}")
+        return None
+
+async def db_execute_cmd(query: str, *args) -> bool:
+    pool = await get_db_pool()
+    if pool is None:
+        return False
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(query, *args)
+            return True
+    except Exception as e:
+        _db_logger.error(f"[DB] Command error: {e}")
+        return False
+
 # Lakehouse service URL for vegetation indices persistence
 LAKEHOUSE_SERVICE_URL = os.getenv("LAKEHOUSE_SERVICE_URL", "http://localhost:8085")
 

@@ -64,9 +64,9 @@
 }
 
 :root {
-  /* Primary: Deep Forest Green - Trust, Growth, Agriculture */
-  --primary: oklch(0.45 0.12 145);
-  --primary-foreground: oklch(0.98 0.01 145);
+  /* Primary: SmartAlex Teal - Trust, Innovation, Agriculture */
+  --primary: oklch(0.55 0.11 175);
+  --primary-foreground: oklch(0.98 0.01 175);
   
   /* Accent: Warm Gold/Amber - Harvest, Prosperity, Finance */
   --accent: oklch(0.75 0.15 75);
@@ -111,7 +111,7 @@
   /* Sidebar */
   --sidebar: oklch(0.18 0.03 250);
   --sidebar-foreground: oklch(0.92 0.01 250);
-  --sidebar-primary: oklch(0.55 0.12 145);
+  --sidebar-primary: oklch(0.55 0.11 175);
   --sidebar-primary-foreground: oklch(0.98 0.01 145);
   --sidebar-accent: oklch(0.25 0.03 250);
   --sidebar-accent-foreground: oklch(0.92 0.01 250);
@@ -133,13 +133,13 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
-  --shadow-glow: 0 0 20px -5px oklch(0.45 0.12 145 / 0.3);
+  --shadow-glow: 0 0 20px -5px oklch(0.55 0.11 175 / 0.3);
 }
 
 .dark {
-  /* Primary: Lighter green for dark mode */
-  --primary: oklch(0.6 0.12 145);
-  --primary-foreground: oklch(0.15 0.02 145);
+  /* Primary: SmartAlex Teal for dark mode */
+  --primary: oklch(0.65 0.11 175);
+  --primary-foreground: oklch(0.15 0.02 175);
   
   /* Accent: Warm Gold */
   --accent: oklch(0.7 0.12 75);
@@ -191,7 +191,7 @@
   /* Sidebar */
   --sidebar: oklch(0.12 0.02 250);
   --sidebar-foreground: oklch(0.88 0.01 250);
-  --sidebar-primary: oklch(0.6 0.12 145);
+  --sidebar-primary: oklch(0.6 0.11 175);
   --sidebar-primary-foreground: oklch(0.15 0.02 145);
   --sidebar-accent: oklch(0.2 0.02 250);
   --sidebar-accent-foreground: oklch(0.92 0.01 250);
@@ -438,7 +438,7 @@
      ============================================ */
   
   .gradient-primary {
-    background: linear-gradient(135deg, oklch(0.45 0.12 145) 0%, oklch(0.35 0.1 145) 100%);
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
   }
   
   .gradient-accent {
@@ -840,6 +840,112 @@
     outline-offset: 2px;
     border-radius: 4px;
   }
+}
+
+/* ============================================
+   SMARTALEX UNIFIED DESIGN SYSTEM
+   Applied platform-wide for visual consistency.
+   Teal gradients, warm illustrative style,
+   circular iconography, consistent spacing.
+   ============================================ */
+
+/* SmartAlex Hero — used across ALL feature pages */
+.sa-hero {
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #2dd4bf 100%);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.sa-hero::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 60%;
+  height: 200%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.dark .sa-hero {
+  background: linear-gradient(135deg, #134e4a 0%, #0f4c47 50%, #0c3e3a 100%);
+}
+
+/* SmartAlex Card — consistent card styling */
+.sa-card {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.sa-card:hover {
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.1);
+}
+.dark .sa-card {
+  border-color: #374151;
+  background: #1f2937;
+}
+.dark .sa-card:hover {
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.2);
+}
+
+/* SmartAlex Primary Button */
+.sa-btn-primary {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+.sa-btn-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.sa-btn-primary:active {
+  transform: translateY(0);
+}
+.sa-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* SmartAlex Tab */
+.sa-tab {
+  transition: all 0.15s ease;
+}
+
+/* SmartAlex Icon Container */
+.sa-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sa-icon-teal {
+  background: #f0fdfa;
+  color: #0d9488;
+}
+.sa-icon-amber {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+.sa-icon-emerald {
+  background: #ecfdf5;
+  color: #10b981;
+}
+.sa-icon-red {
+  background: #fef2f2;
+  color: #ef4444;
+}
+.dark .sa-icon-teal {
+  background: rgba(13, 148, 136, 0.15);
+}
+.dark .sa-icon-amber {
+  background: rgba(245, 158, 11, 0.15);
 }
 
 /* ============================================

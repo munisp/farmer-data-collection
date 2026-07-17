@@ -207,6 +207,45 @@ links.forEach(href => {
 });
 ```
 
+### 13. MobyDB + latlng Spatial Pages
+
+4 pages added by the MobyDB/latlng integration. All use SmartAlex teal design with fallback status badges when engines are unavailable.
+
+**Provenance Explorer (`/provenance-explorer`):**
+- Hero: "Provenance Explorer" + "MobyDB Spacetime Provenance"
+- Status badge: "MobyDB Offline — PostgreSQL Fallback" (when no MobyDB server)
+- 5 tabs: Overview, Records, Epochs, Supply Chains, Verify
+- Overview: 6 KPI cards + Spacetime Address Model (WHERE/WHEN/WHO) + My Provenance Keys
+- Records: "Search by H3 Cell" input
+- Verify: form with H3 Cell, Epoch, Public Key inputs + "Generate Merkle Proof" button
+- Tab switching via JS `button.click()` may be more reliable than devinid click
+
+**Fleet Tracker (`/fleet-tracker`):**
+- Hero: "Fleet Tracker" + "latlng Real-Time Tracking"
+- 5 tabs: Live Map, Fleet, Cold Chain, Distributors, Sensors
+- 5 collection KPI cards + empty state: "No Objects Tracked Yet" + 3 bottom stats
+
+**Geofence Manager (`/geofence-manager`):**
+- Hero: "Geofence Manager" + "latlng Geofencing"
+- 3 tabs: Zones, Events, Create Zone
+- 7 zone type filters + empty state + Create Zone form with GeoJSON textarea
+
+**Supply Chain Provenance (`/supply-chain-provenance`):**
+- Hero: "Supply Chain Provenance" + "MobyDB Cryptographic Traceability"
+- 5 step cards: Harvest → Delivery
+- Chain search input + "How Provenance Works" split (amber vs teal) + flow diagram
+
+**Sidebar verification (all 4 links):**
+```javascript
+const links = ['/provenance-explorer', '/fleet-tracker', '/geofence-manager', '/supply-chain-provenance'];
+links.forEach(href => {
+  const el = document.querySelector(`nav a[href="${href}"]`);
+  console.log(href + ': ' + (el ? el.textContent.trim() : 'MISSING'));
+});
+```
+
+**CategoryHub (Farm tab → Spatial & Weather):** All 4 cards have NEW badges.
+
 ## Known Behaviors
 - Dashboard may show "Loading dashboard..." spinner when no backend is running — tRPC queries timeout
 - Service worker does NOT register in Vite dev mode — only in production builds
@@ -218,6 +257,7 @@ links.forEach(href => {
 - `alert()` dialogs (e.g., "List on Exchange") may be auto-dismissed by browser automation — use `window.alert` override to capture the message content for verification
 - The `sql.js` WASM module may throw `RuntimeError: Aborted(both async and sync fetching of the wasm failed)` in the console — this is a non-blocking error from the offline SQLite WASM module and does not affect UI functionality
 - Currency selector defaults to NGN but might show USD if previously changed — the currency is user-selectable from 8 options in the sidebar
+- Vite dev server may auto-increment port if 3000-3003 are in use — check actual port from Vite startup output
 
 ## Testing Tips
 - Use JavaScript console queries to verify DOM elements exist rather than relying solely on visual inspection — pages can be long and elements may be offscreen

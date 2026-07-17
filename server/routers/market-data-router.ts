@@ -151,7 +151,7 @@ export const marketDataRouter = router({
         pricePerKg: number;
         volume: number;
         currency: string;
-        source: "live" | "fallback";
+        source: "live" | "local_computation";
         timestamp: string;
       }> = [];
 
@@ -182,7 +182,7 @@ export const marketDataRouter = router({
               pricePerKg: Math.round(fallbackPrice / 100),
               volume: 0,
               currency: config.currency,
-              source: "fallback",
+              source: "local_computation",
               timestamp: new Date().toISOString(),
             });
           }

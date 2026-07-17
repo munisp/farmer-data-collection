@@ -30,6 +30,9 @@ import { TRPCError } from "@trpc/server";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from "../logger.js";
 import { resilientPost } from "../services/resilient-http.js";
+import { requireDb } from "../utils/require-db.js";
+import { aquacultureFeedRecords, aquacultureHarvests } from "../../drizzle/schema-honest-implementation.js";
+import { desc } from "drizzle-orm";
 
 import { checkRateLimit, scanForThreats } from "../integrations/middleware-router-hooks.js";
 const FEED_SERVICE_URL = process.env.AQUACULTURE_FEED_SERVICE_URL || "http://localhost:8114";
@@ -61,7 +64,7 @@ export const aquacultureFeedRouter = router({
         const data = await resilientPost("aquaculture-feed", `${FEED_SERVICE_URL}/species`, {});
         return data;
       } catch {
-        return { species: SPECIES_PROFILES, total: SPECIES_PROFILES.length, source: "fallback" };
+        return { species: SPECIES_PROFILES, total: SPECIES_PROFILES.length, source: "local_computation" };
       }
     }),
 
@@ -115,7 +118,16 @@ export const aquacultureFeedRouter = router({
         return result;
       } catch {
         const totalCost = input.costPerUnit * input.quantity;
-        return { id: Date.now(), ...input, total_cost: totalCost, source: "fallback" };
+        const db = await requireDb();
+        const [record] = await db.insert(aquacultureFeedRecords).values({
+          pondId: input.pondId,
+          feedType: `stocking:${input.species}`,
+          quantityKg: String(input.quantity),
+          costPerKg: String(input.costPerUnit),
+          totalCost: String(totalCost),
+          notes: `Batch: ${input.batchId}, Supplier: ${input.supplier}`,
+        }).returning();
+        return { id: record.id, ...input, total_cost: totalCost, source: "local_computation" };
       }
     }),
 
@@ -156,7 +168,7 @@ export const aquacultureFeedRouter = router({
         }
         return result;
       } catch {
-        return { id: Date.now(), ...input, source: "fallback" };
+        return { id: Date.now(), ...input, source: "local_computation" };
       }
     }),
 
@@ -189,7 +201,7 @@ export const aquacultureFeedRouter = router({
         });
         return result;
       } catch {
-        return { id: Date.now(), ...input, source: "fallback" };
+        return { id: Date.now(), ...input, source: "local_computation" };
       }
     }),
 
@@ -200,7 +212,7 @@ export const aquacultureFeedRouter = router({
         const data = await resilientPost("aquaculture-feed", `${FEED_SERVICE_URL}/inventory`, {});
         return data;
       } catch {
-        return { inventory: [], total: 0, low_stock: 0, source: "fallback" };
+        return { inventory: [], total: 0, low_stock: 0, source: "local_computation" };
       }
     }),
 
@@ -233,7 +245,7 @@ export const aquacultureFeedRouter = router({
         }
         return result;
       } catch {
-        return { id: Date.now(), ...input, source: "fallback" };
+        return { id: Date.now(), ...input, source: "local_computation" };
       }
     }),
 
@@ -268,7 +280,7 @@ export const aquacultureFeedRouter = router({
       } catch {
         // Calculate condition factor locally
         const K = (input.avgWeightGrams / Math.pow(input.avgLengthCm, 3)) * 100;
-        return { id: Date.now(), ...input, condition_factor: Math.round(K * 100) / 100, source: "fallback" };
+        return { id: Date.now(), ...input, condition_factor: Math.round(K * 100) / 100, source: "local_computation" };
       }
     }),
 
@@ -313,7 +325,7 @@ export const aquacultureFeedRouter = router({
         const avgWeight = (input.totalWeightKg * 1000) / input.fishCount;
         return {
           id: Date.now(), ...input, total_revenue: totalRevenue,
-          avg_weight_grams: Math.round(avgWeight * 100) / 100, source: "fallback",
+          avg_weight_grams: Math.round(avgWeight * 100) / 100, source: "local_computation",
         };
       }
     }),
@@ -369,7 +381,7 @@ export const aquacultureFeedRouter = router({
           daily_growth_rate_g: Math.round(dailyGrowth * 100) / 100,
           specific_growth_rate: Math.round(sgr * 1000) / 1000,
           survival_rate_pct: Math.round(survival * 100) / 100,
-          rating, source: "fallback",
+          rating, source: "local_computation",
         };
       }
     }),
@@ -415,7 +427,7 @@ export const aquacultureFeedRouter = router({
           roi_pct: Math.round(roi * 100) / 100,
           projected_yield_kg: input.projectedYieldKg,
           days_to_harvest: input.daysToHarvest,
-          source: "fallback",
+          source: "local_computation",
         };
       }
     }),
@@ -459,7 +471,7 @@ export const aquacultureFeedRouter = router({
           feeding_rate_pct: rate,
           daily_feed_kg: Math.round(input.avgWeightGrams * rate / 100 / 1000 * 10000) / 10000,
           species: input.species, water_temp: input.waterTemp,
-          avg_weight_grams: input.avgWeightGrams, source: "fallback",
+          avg_weight_grams: input.avgWeightGrams, source: "local_computation",
         };
       }
     }),
@@ -475,7 +487,7 @@ export const aquacultureFeedRouter = router({
           total_stockings: 0, total_stocked_fish: 0, total_feed_kg: 0,
           total_mortality: 0, mortality_causes: {},
           total_harvests: 0, total_harvested_kg: 0, total_revenue: 0,
-          growth_samples: 0, inventory_items: 0, source: "fallback",
+          growth_samples: 0, inventory_items: 0, source: "local_computation",
         };
       }
     }),

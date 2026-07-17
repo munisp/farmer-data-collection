@@ -11,7 +11,8 @@ import {
   Activity, Droplets, Fish, AlertTriangle, Store, RotateCcw,
   Apple, ChevronDown, WifiOff, CheckCircle, Mail, Workflow,
   PieChart, GanttChart, Archive, Warehouse, Scale, Landmark,
-  Milk, Beef, Heart, Baby, Syringe, Factory
+  Milk, Beef, Heart, Baby, Syringe, Factory,
+  Fingerprint, Navigation, Radio, Fence, Link2, Key
 } from "lucide-react";
 
 interface FeatureCard {
@@ -102,6 +103,10 @@ const categoryFeatures: Record<NavCategory, FeatureSection[]> = {
         { href: "/spatial-h3-analysis", label: "H3 Grid", icon: Target, description: "Hex coverage analysis", badge: "NEW" },
         { href: "/spatial-vector-analysis", label: "Vector Analysis", icon: Leaf, description: "Buffer, clip, dissolve", badge: "NEW" },
         { href: "/spatial-tile-cache", label: "Offline Tiles", icon: WifiOff, description: "Cache for offline", badge: "NEW" },
+        { href: "/provenance-explorer", label: "Provenance Explorer", icon: Fingerprint, description: "MobyDB spacetime proofs", badge: "NEW" },
+        { href: "/fleet-tracker", label: "Fleet Tracker", icon: Navigation, description: "latlng real-time tracking", badge: "NEW" },
+        { href: "/geofence-manager", label: "Geofence Manager", icon: Fence, description: "Zone monitoring & alerts", badge: "NEW" },
+        { href: "/supply-chain-provenance", label: "Supply Chain", icon: Link2, description: "Verifiable farm-to-table", badge: "NEW" },
       ],
     },
     {

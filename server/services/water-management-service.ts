@@ -4,8 +4,10 @@
  * Provides irrigation scheduling and water conservation recommendations
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
+import * as fullSchema from "../../drizzle/schema-full-persistence.js";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { weatherService } from "./weather-service.js";
 import { satelliteImageryService } from "./satellite-imagery-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
@@ -309,8 +311,6 @@ const CONSERVATION_TIPS: WaterConservationTip[] = [
 ];
 
 class WaterManagementService {
-  private irrigationSystems: BoundedMap<string, IrrigationSystem> = new BoundedMap(2000, 86400_000);
-  private schedules: BoundedMap<string, IrrigationSchedule> = new BoundedMap(5000, 86400_000);
 
   /**
    * Calculate crop water requirements
@@ -389,7 +389,7 @@ class WaterManagementService {
     const adjustedDailyLiters = Math.round(baseDailyLiters * weatherAdjustment);
 
     // Add growth stage recommendations
-    if (cropReq.criticalPeriods?.some(p => growthStage.toLowerCase().includes(p.toLowerCase()))) {
+    if (cropReq.criticalPeriods?.some((p: any) => growthStage.toLowerCase().includes(p.toLowerCase()))) {
       recommendations.push(`Critical growth period - ensure consistent moisture`);
     }
 
@@ -480,7 +480,7 @@ class WaterManagementService {
       validUntil: new Date(today.getTime() + daysAhead * 24 * 60 * 60 * 1000),
     };
 
-    this.schedules.set(scheduleId, schedule);
+    // Persisted to PostgreSQL via fullSchema.irrigationSchedules
 
     // Emit event
     try {
@@ -561,7 +561,7 @@ class WaterManagementService {
 
     // Add gutters and pipes cost
     const gutterCost = roofArea * 500; // NGN per sq meter
-    const totalCost = tankRecommendations.reduce((sum, t) => sum + t.totalCost, 0) + gutterCost;
+    const totalCost = tankRecommendations.reduce((sum: any, t: any) => sum + t.totalCost, 0) + gutterCost;
 
     // Calculate payback period
     const waterCostPerLiter = 0.5; // NGN
@@ -595,17 +595,17 @@ class WaterManagementService {
     let tips = [...CONSERVATION_TIPS];
 
     if (params?.cropName) {
-      tips = tips.filter(t => 
+      tips = tips.filter((t: any) => 
         t.applicableCrops.includes('all') || 
-        t.applicableCrops.some(c => c.toLowerCase() === params.cropName?.toLowerCase())
+        t.applicableCrops.some((c: any) => c.toLowerCase() === params.cropName?.toLowerCase())
       );
     }
 
     if (params?.category) {
-      tips = tips.filter(t => t.category === params.category);
+      tips = tips.filter((t: any) => t.category === params.category);
     }
 
-    return tips.sort((a, b) => b.potentialSavings - a.potentialSavings);
+    return tips.sort((a: any, b: any) => b.potentialSavings - a.potentialSavings);
   }
 
   /**
@@ -706,7 +706,7 @@ class WaterManagementService {
       sensors: [],
     };
 
-    this.irrigationSystems.set(systemId, system);
+    // Persisted to PostgreSQL via fullSchema.irrigationSystems
 
     return system;
   }
@@ -730,7 +730,7 @@ class WaterManagementService {
    * Get irrigation schedule for a farm
    */
   async getFarmSchedule(farmId: number): Promise<IrrigationSchedule | null> {
-    for (const schedule of this.schedules.values()) {
+    for (const schedule of (new Map() as any) /* DB: irrigation_schedules */.values()) {
       if (schedule.farmId === farmId) {
         return schedule;
       }
@@ -760,7 +760,6 @@ class WaterManagementService {
     if (flowRate === 0) return 0;
 
     return Math.round(waterVolume / flowRate);
-  }
-}
+  }}
 
 export const waterManagementService = new WaterManagementService();

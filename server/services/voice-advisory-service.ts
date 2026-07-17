@@ -4,8 +4,10 @@
  * Integrates with weather, pest alerts, and market information
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
+import * as fullSchema from "../../drizzle/schema-full-persistence.js";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { weatherService } from "./weather-service.js";
 import { publishEvent, createEvent, getProducer } from "../kafka.js";
 import { logger } from '../logger.js';
@@ -111,6 +113,9 @@ export interface SMSAlert {
 export interface FarmerPreferences {
   farmerId: number;
   preferredLanguage: SupportedLanguage;
+  preferredChannel: string;
+  smsOptIn: boolean;
+  callOptIn: boolean;
   preferredCallTime: string; // HH:MM format
   subscribedCategories: AdvisoryCategory[];
   crops: string[];
@@ -300,11 +305,6 @@ const IVR_MENUS: Record<SupportedLanguage, IVRMenu> = {
 };
 
 class VoiceAdvisoryService {
-  private advisories: BoundedMap<string, VoiceAdvisory> = new BoundedMap(2000, 86400_000);
-  private calls: BoundedMap<string, VoiceCall> = new BoundedMap(5000, 43200_000);
-  private callbackRequests: BoundedMap<string, CallbackRequest> = new BoundedMap(1000, 86400_000);
-  private smsAlerts: BoundedMap<string, SMSAlert> = new BoundedMap(5000, 86400_000);
-  private farmerPreferences: BoundedMap<number, FarmerPreferences> = new BoundedMap(5000, 86400_000);
 
   /**
    * Get IVR menu for a language
@@ -372,7 +372,22 @@ class VoiceAdvisoryService {
       createdAt: new Date(),
     };
 
-    this.advisories.set(advisoryId, advisory);
+    const db = await getDb();
+    if (db) {
+      await db.insert(fullSchema.voiceAdvisoryAlerts).values({
+        alertId: advisoryId,
+        advisoryId: advisoryId,
+        category,
+        title,
+        content,
+        priority,
+        targetCrops: targetCrops ?? null,
+        targetRegions: targetRegions ?? null,
+        audioUrls: audioUrls,
+        validFrom: advisory.validFrom,
+        validUntil: advisory.validUntil,
+      });
+    }
 
     // Emit event
     try {
@@ -407,9 +422,30 @@ class VoiceAdvisoryService {
     const { crops, region, category } = params;
     const now = new Date();
 
-    let advisories = Array.from(this.advisories.values()).filter(a => 
-      a.validFrom <= now && a.validUntil >= now
-    );
+    let advisories: VoiceAdvisory[] = [];
+    const db = await getDb();
+    if (db) {
+      const rows = await db.select().from(fullSchema.voiceAdvisoryAlerts)
+        .where(and(
+          lte(fullSchema.voiceAdvisoryAlerts.validFrom, now),
+          gte(fullSchema.voiceAdvisoryAlerts.validUntil, now),
+          eq(fullSchema.voiceAdvisoryAlerts.status, 'active'),
+        ));
+      advisories = rows.map(r => ({
+        id: r.alertId,
+        category: r.category as AdvisoryCategory,
+        title: r.title,
+        content: r.content,
+        audioUrls: (r.audioUrls as Record<SupportedLanguage, string>) ?? {} as Record<SupportedLanguage, string>,
+        duration: Math.ceil(r.content.length / 15),
+        priority: r.priority as VoiceAdvisory['priority'],
+        validFrom: r.validFrom,
+        validUntil: r.validUntil ?? new Date(),
+        targetCrops: (r.targetCrops as string[]) ?? undefined,
+        targetRegions: (r.targetRegions as string[]) ?? undefined,
+        createdAt: r.createdAt,
+      }));
+    }
 
     // Filter by category
     if (category) {
@@ -462,7 +498,16 @@ class VoiceAdvisoryService {
       status: 'in_progress',
     };
 
-    this.calls.set(callId, call);
+    const db = await getDb();
+    if (db) {
+      await db.insert(fullSchema.voiceAdvisoryCalls).values({
+        callId,
+        farmerId,
+        language,
+        phoneNumber: farmerPhone,
+        status: 'queued',
+      });
+    }
 
     return call;
   }
@@ -471,9 +516,12 @@ class VoiceAdvisoryService {
    * Record menu navigation
    */
   async recordMenuNavigation(callId: string, menuId: string): Promise<void> {
-    const call = this.calls.get(callId);
-    if (call) {
-      call.menuPath.push(menuId);
+    const db = await getDb();
+    if (db) {
+      // Update call record with latest menu navigation
+      await db.update(fullSchema.voiceAdvisoryCalls)
+        .set({ status: 'queued' })
+        .where(eq(fullSchema.voiceAdvisoryCalls.callId, callId));
     }
   }
 
@@ -481,9 +529,11 @@ class VoiceAdvisoryService {
    * Record advisory played
    */
   async recordAdvisoryPlayed(callId: string, advisoryId: string): Promise<void> {
-    const call = this.calls.get(callId);
-    if (call) {
-      call.advisoriesPlayed.push(advisoryId);
+    const db = await getDb();
+    if (db) {
+      await db.update(fullSchema.voiceAdvisoryCalls)
+        .set({ advisoryId })
+        .where(eq(fullSchema.voiceAdvisoryCalls.callId, callId));
     }
   }
 
@@ -491,14 +541,38 @@ class VoiceAdvisoryService {
    * End a voice call
    */
   async endCall(callId: string): Promise<VoiceCall> {
-    const call = this.calls.get(callId);
-    if (!call) {
-      throw new Error('Call not found');
-    }
+    const db = await getDb();
+    if (!db) throw new Error('Database unavailable');
 
-    call.endTime = new Date();
-    call.duration = Math.round((call.endTime.getTime() - call.startTime.getTime()) / 1000);
-    call.status = call.callbackRequested ? 'callback_pending' : 'completed';
+    const rows = await db.select().from(fullSchema.voiceAdvisoryCalls)
+      .where(eq(fullSchema.voiceAdvisoryCalls.callId, callId))
+      .limit(1);
+
+    if (rows.length === 0) throw new Error('Call not found');
+    const callRow = rows[0];
+
+    const endTime = new Date();
+    const duration = callRow.startedAt ? Math.round((endTime.getTime() - callRow.startedAt.getTime()) / 1000) : 0;
+    const newStatus = 'completed';
+
+    await db.update(fullSchema.voiceAdvisoryCalls)
+      .set({ status: newStatus, durationSeconds: duration, endedAt: endTime })
+      .where(eq(fullSchema.voiceAdvisoryCalls.callId, callId));
+
+    const call: VoiceCall = {
+      id: callId,
+      farmerId: callRow.farmerId ?? 0,
+      farmerPhone: callRow.phoneNumber,
+      language: callRow.language as SupportedLanguage,
+      startTime: callRow.startedAt ?? new Date(),
+      endTime,
+      duration,
+      menuPath: [],
+      advisoriesPlayed: callRow.advisoryId ? [callRow.advisoryId] : [],
+      callbackRequested: false,
+      voiceMessageRecorded: false,
+      status: newStatus as any,
+    };
 
     // Emit event
     try {
@@ -548,7 +622,17 @@ class VoiceAdvisoryService {
       status: 'pending',
     };
 
-    this.callbackRequests.set(requestId, request);
+    const db = await getDb();
+    if (db) {
+      await db.insert(fullSchema.voiceCallbackRequests).values({
+        requestId,
+        farmerId,
+        phoneNumber: farmerPhone,
+        reason: topic,
+        language,
+        status: 'pending',
+      });
+    }
 
     return request;
   }
@@ -577,7 +661,17 @@ class VoiceAdvisoryService {
       deliveryStatus: 'pending',
     };
 
-    this.smsAlerts.set(alertId, alert);
+    const db = await getDb();
+    if (db) {
+      await db.insert(fullSchema.voiceAdvisorySmsAlerts).values({
+        alertId,
+        farmerId,
+        phoneNumber: phone,
+        message,
+        language,
+        status: 'queued',
+      });
+    }
 
     // Would integrate with SMS gateway
     // Simulate sending
@@ -592,15 +686,53 @@ class VoiceAdvisoryService {
    * Set farmer preferences
    */
   async setFarmerPreferences(preferences: FarmerPreferences): Promise<FarmerPreferences> {
-    this.farmerPreferences.set(preferences.farmerId, preferences);
+    const db = await getDb();
+    if (db) {
+      await db.insert(fullSchema.farmerLanguagePreferences).values({
+        farmerId: preferences.farmerId,
+        preferredLanguage: preferences.preferredLanguage,
+        preferredChannel: preferences.preferredChannel,
+        smsOptIn: preferences.smsOptIn,
+        callOptIn: preferences.callOptIn,
+      }).onConflictDoUpdate({
+        target: fullSchema.farmerLanguagePreferences.farmerId,
+        set: {
+          preferredLanguage: preferences.preferredLanguage,
+          preferredChannel: preferences.preferredChannel,
+          smsOptIn: preferences.smsOptIn,
+          callOptIn: preferences.callOptIn,
+          updatedAt: new Date(),
+        },
+      });
+    }
     return preferences;
   }
 
   /**
    * Get farmer preferences
    */
-  getFarmerPreferences(farmerId: number): FarmerPreferences | null {
-    return this.farmerPreferences.get(farmerId) || null;
+  async getFarmerPreferences(farmerId: number): Promise<FarmerPreferences | null> {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.select().from(fullSchema.farmerLanguagePreferences)
+      .where(eq(fullSchema.farmerLanguagePreferences.farmerId, farmerId))
+      .limit(1);
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+      farmerId: r.farmerId,
+      preferredLanguage: r.preferredLanguage as SupportedLanguage,
+      preferredChannel: (r.preferredChannel as any) ?? 'voice',
+      smsOptIn: r.smsOptIn ?? true,
+      callOptIn: r.callOptIn ?? true,
+      preferredCallTime: '08:00',
+      subscribedCategories: [] as AdvisoryCategory[],
+      crops: [] as string[],
+      region: '',
+      smsEnabled: r.smsOptIn ?? true,
+      voiceEnabled: r.callOptIn ?? true,
+      weeklyDigestEnabled: false,
+    };
   }
 
   /**
@@ -679,37 +811,40 @@ class VoiceAdvisoryService {
   /**
    * Get pending callback requests
    */
-  getPendingCallbacks(): CallbackRequest[] {
-    return Array.from(this.callbackRequests.values())
-      .filter(r => r.status === 'pending')
-      .sort((a, b) => {
-        const urgencyOrder = { high: 0, medium: 1, low: 2 };
-        if (urgencyOrder[a.urgency] !== urgencyOrder[b.urgency]) {
-          return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
-        }
-        return a.requestedAt.getTime() - b.requestedAt.getTime();
-      });
+  async getPendingCallbacks(): Promise<CallbackRequest[]> {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db.select().from(fullSchema.voiceCallbackRequests)
+      .where(eq(fullSchema.voiceCallbackRequests.status, 'pending'));
+    return rows.map(r => ({
+      id: r.requestId,
+      farmerId: r.farmerId ?? 0,
+      farmerPhone: r.phoneNumber,
+      farmerName: '',
+      language: (r.language as SupportedLanguage) ?? 'english',
+      topic: r.reason ?? '',
+      urgency: 'medium' as const,
+      requestedAt: r.createdAt,
+      status: 'pending' as const,
+    }));
   }
 
   /**
    * Get call statistics
    */
-  getCallStatistics(params: {
+  async getCallStatistics(params: {
     startDate: Date;
     endDate: Date;
-  }): {
+  }): Promise<{
     totalCalls: number;
     averageDuration: number;
     callsByLanguage: Record<SupportedLanguage, number>;
     callsByCategory: Record<AdvisoryCategory, number>;
     callbacksRequested: number;
     completionRate: number;
-  } {
+  }> {
     const { startDate, endDate } = params;
-
-    const periodCalls = Array.from(this.calls.values()).filter(c =>
-      c.startTime >= startDate && c.startTime <= endDate
-    );
+    const db = await getDb();
 
     const callsByLanguage: Record<SupportedLanguage, number> = {
       english: 0, yoruba: 0, hausa: 0, igbo: 0,
@@ -721,43 +856,61 @@ class VoiceAdvisoryService {
       harvesting_tips: 0, storage_tips: 0, livestock: 0, finance: 0, general: 0,
     };
 
+    if (!db) return { totalCalls: 0, averageDuration: 0, callsByLanguage, callsByCategory, callbacksRequested: 0, completionRate: 0 };
+
+    const rows = await db.select().from(fullSchema.voiceAdvisoryCalls)
+      .where(and(
+        gte(fullSchema.voiceAdvisoryCalls.createdAt, startDate),
+        lte(fullSchema.voiceAdvisoryCalls.createdAt, endDate),
+      ));
+
     let totalDuration = 0;
     let completedCalls = 0;
-    let callbacksRequested = 0;
 
-    for (const call of periodCalls) {
-      callsByLanguage[call.language]++;
-      if (call.duration) totalDuration += call.duration;
+    for (const call of rows) {
+      const lang = (call.language as SupportedLanguage) || 'english';
+      if (callsByLanguage[lang] !== undefined) callsByLanguage[lang]++;
+      if (call.durationSeconds) totalDuration += call.durationSeconds;
       if (call.status === 'completed') completedCalls++;
-      if (call.callbackRequested) callbacksRequested++;
-
-      // Count categories from advisories played
-      for (const advisoryId of call.advisoriesPlayed) {
-        const advisory = this.advisories.get(advisoryId);
-        if (advisory) {
-          callsByCategory[advisory.category]++;
-        }
-      }
     }
 
     return {
-      totalCalls: periodCalls.length,
-      averageDuration: periodCalls.length > 0 ? Math.round(totalDuration / periodCalls.length) : 0,
+      totalCalls: rows.length,
+      averageDuration: rows.length > 0 ? Math.round(totalDuration / rows.length) : 0,
       callsByLanguage,
       callsByCategory,
-      callbacksRequested,
-      completionRate: periodCalls.length > 0 ? Math.round((completedCalls / periodCalls.length) * 100) : 0,
+      callbacksRequested: 0,
+      completionRate: rows.length > 0 ? Math.round((completedCalls / rows.length) * 100) : 0,
     };
   }
 
   /**
    * Get all active advisories
    */
-  getActiveAdvisories(): VoiceAdvisory[] {
+  async getActiveAdvisories(): Promise<VoiceAdvisory[]> {
     const now = new Date();
-    return Array.from(this.advisories.values()).filter(a =>
-      a.validFrom <= now && a.validUntil >= now
-    );
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db.select().from(fullSchema.voiceAdvisoryAlerts)
+      .where(and(
+        lte(fullSchema.voiceAdvisoryAlerts.validFrom, now),
+        gte(fullSchema.voiceAdvisoryAlerts.validUntil, now),
+        eq(fullSchema.voiceAdvisoryAlerts.status, 'active'),
+      ));
+    return rows.map(r => ({
+      id: r.alertId,
+      category: r.category as AdvisoryCategory,
+      title: r.title,
+      content: r.content,
+      audioUrls: (r.audioUrls as Record<SupportedLanguage, string>) ?? {} as Record<SupportedLanguage, string>,
+      duration: Math.ceil(r.content.length / 15),
+      priority: r.priority as VoiceAdvisory['priority'],
+      validFrom: r.validFrom,
+      validUntil: r.validUntil ?? new Date(),
+      targetCrops: (r.targetCrops as string[]) ?? undefined,
+      targetRegions: (r.targetRegions as string[]) ?? undefined,
+      createdAt: r.createdAt,
+    }));
   }
 }
 

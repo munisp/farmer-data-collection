@@ -5,10 +5,10 @@
  */
 
 export const colors = {
-  // Primary palette
-  primary: '#10b981',
-  primaryDark: '#059669',
-  primaryLight: '#d1fae5',
+  // Primary palette (SmartAlex teal)
+  primary: '#0d9488',
+  primaryDark: '#0f766e',
+  primaryLight: '#ccfbf1',
 
   // Secondary palette
   secondary: '#3b82f6',
@@ -30,7 +30,7 @@ export const colors = {
   black: '#000000',
 
   // Semantic colors
-  success: '#10b981',
+  success: '#0d9488',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#3b82f6',
@@ -52,13 +52,13 @@ export const colors = {
   divider: '#f3f4f6',
 
   // Status colors
-  statusActive: '#10b981',
+  statusActive: '#0d9488',
   statusPending: '#f59e0b',
   statusInactive: '#9ca3af',
   statusDanger: '#ef4444',
 
   // Chart colors
-  chart1: '#10b981',
+  chart1: '#0d9488',
   chart2: '#3b82f6',
   chart3: '#f59e0b',
   chart4: '#ef4444',

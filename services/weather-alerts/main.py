@@ -50,6 +50,97 @@ CROP_THRESHOLDS = {
     "pepper": {"min_temp": 18, "max_temp": 35, "max_wind": 35, "drought_days": 5},
 }
 
+
+# PostgreSQL persistence
+import psycopg2
+import psycopg2.extras
+
+_db_conn = None
+
+def get_db():
+    global _db_conn
+    if _db_conn is None:
+        try:
+            db_url = os.environ.get("DATABASE_URL", "postgresql://localhost:5432/farmerdb")
+            _db_conn = psycopg2.connect(db_url)
+            _db_conn.autocommit = True
+            # Create table if not exists
+            with _db_conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS weather_alerts_log (
+                        id SERIAL PRIMARY KEY,
+                        alert_id TEXT UNIQUE NOT NULL,
+                        region TEXT,
+                        alert_type TEXT,
+                        severity TEXT,
+                        data JSONB,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS weather_subscriptions (
+                        id SERIAL PRIMARY KEY,
+                        farmer_id TEXT NOT NULL,
+                        region TEXT,
+                        crops JSONB,
+                        phone TEXT,
+                        data JSONB,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """)
+            print("[DB] PostgreSQL connected for weather-alerts")
+        except Exception as e:
+            print(f"[DB] Connection failed: {e}")
+            _db_conn = None
+    return _db_conn
+
+def db_persist_alert(alert: dict):
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO weather_alerts_log (alert_id, region, alert_type, severity, data) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (alert_id) DO NOTHING",
+                    (alert.get("id", ""), alert.get("region", ""), alert.get("type", ""), alert.get("severity", ""), json.dumps(alert))
+                )
+        except Exception as e:
+            print(f"[DB] Persist alert error: {e}")
+
+def db_persist_subscription(sub: dict):
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO weather_subscriptions (farmer_id, region, crops, phone, data) VALUES (%s, %s, %s, %s, %s)",
+                    (sub.get("farmer_id", ""), sub.get("region", ""), json.dumps(sub.get("crops", [])), sub.get("phone", ""), json.dumps(sub))
+                )
+        except Exception as e:
+            print(f"[DB] Persist subscription error: {e}")
+
+def db_get_alerts() -> list:
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute("SELECT data FROM weather_alerts_log ORDER BY created_at DESC LIMIT 100")
+                return [row["data"] for row in cur.fetchall()]
+        except Exception as e:
+            print(f"[DB] Query alerts error: {e}")
+    return alert_history
+
+def db_get_subscriptions() -> list:
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute("SELECT data FROM weather_subscriptions ORDER BY created_at DESC LIMIT 1000")
+                return [row["data"] for row in cur.fetchall()]
+        except Exception as e:
+            print(f"[DB] Query subscriptions error: {e}")
+    return subscriptions
+
+
 alert_history: list[dict[str, Any]] = []
 subscriptions: list[dict[str, Any]] = []
 

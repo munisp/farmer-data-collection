@@ -16,56 +16,12 @@ import { logger } from '../logger.js';
 export { router, middleware } from "./trpc-init.js";
 export type { Context, AuthenticatedContext } from "./trpc-init.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  logger.error("[SECURITY] JWT_SECRET environment variable is not set. Using temporary development key.");
-  return "dev-only-secret-do-not-use-in-production";
-})();
-
-const demoUsers = [
-  {
-    id: 900001,
-    email: "demo@farmer.com",
-    firstName: "Demo",
-    lastName: "Farmer",
-    role: "farmer",
-    isActive: true,
-  },
-  {
-    id: 900002,
-    email: "buyer@agrifinance.com",
-    firstName: "Demo",
-    lastName: "Buyer",
-    role: "buyer",
-    isActive: true,
-  },
-  {
-    id: 900003,
-    email: "seller@agrifinance.com",
-    firstName: "Demo",
-    lastName: "Seller",
-    role: "seller",
-    isActive: true,
-  },
-] as const;
-
-function getDemoUserFromToken(decoded: { userId: number; email: string; role: string }): User | null {
-  const demoUser = demoUsers.find(
-    (user) => user.id === decoded.userId && user.email === decoded.email && user.role === decoded.role && user.isActive
-  );
-
-  if (!demoUser) {
-    return null;
-  }
-
-  return {
-    id: demoUser.id,
-    email: demoUser.email,
-    firstName: demoUser.firstName,
-    lastName: demoUser.lastName,
-    role: demoUser.role as User["role"],
-    isActive: true,
-  } as User;
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  logger.error("[SECURITY] JWT_SECRET environment variable is REQUIRED. Generate with: openssl rand -base64 32");
 }
+
+// No demo users — all auth must go through real Keycloak or JWT+DB lookup
 
 // Create context with token from Authorization header and Keycloak user
 export const createContext = async ({ req }: CreateExpressContextOptions): Promise<Context> => {
@@ -125,6 +81,7 @@ export const protectedProcedure = baseProcedure
   // Try JWT token first
   if (ctx.token && !ctx.keycloakUser) {
     try {
+      if (!JWT_SECRET) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "JWT_SECRET not configured" });
       const decoded = jwt.verify(ctx.token, JWT_SECRET) as { userId: number; email: string; role: string };
       const db = await getDb();
       if (db) {
@@ -139,15 +96,8 @@ export const protectedProcedure = baseProcedure
         }
       }
 
-      const demoUser = getDemoUserFromToken(decoded);
-      if (demoUser) {
-        return next({
-          ctx: {
-            ...ctx,
-            user: demoUser,
-          } as AuthenticatedContext,
-        });
-      }
+      // No demo user fallback — user must exist in DB
+      logger.warn("[Auth] JWT valid but user not found in DB", { userId: decoded.userId });
     } catch (error) {
       // JWT verification failed, continue to check Keycloak
     }

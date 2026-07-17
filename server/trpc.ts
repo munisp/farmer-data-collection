@@ -117,8 +117,10 @@ import { dataPipelineRouter } from "./routers/data-pipeline-router.js";
 import { distributorNetworkRouter } from "./routers/distributor-network-router.js";
 import { spatialAnalysisRouter } from "./routers/spatial-analysis-router.js";
 import { dairyManagementRouter } from "./routers/dairy-management-router.js";
+import { mobydbRouter } from "./routers/mobydb-router.js";
+import { latlngRouter } from "./routers/latlng-router.js";
 
-import { authRouter as authRouterSimple } from "./auth-router-simple.js";
+import { authRouter as authRouterReal } from "./routers/auth-router.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -131,8 +133,7 @@ if (!JWT_SECRET) {
 // Re-export createContext, middleware, router, and procedures for server setup
 export { createContext, middleware, router, protectedProcedure, publicProcedure };
 
-// Auth router - use simple version that bypasses Drizzle ORM schema issues
-const authRouter = authRouterSimple;
+const authRouter = authRouterReal;
 
 export const appRouter = router({
   auth: authRouter,
@@ -272,6 +273,8 @@ export const appRouter = router({
   distributorNetwork: distributorNetworkRouter,
   spatialAnalysis: spatialAnalysisRouter,
   dairy: dairyManagementRouter,
+  mobydb: mobydbRouter,
+  latlng: latlngRouter,
   sync: router({
     push: protectedProcedure
       .input(syncRequestSchemaExport)

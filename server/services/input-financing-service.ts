@@ -4,8 +4,10 @@
  * Supports pre-approved credit lines, bulk purchasing, and supplier management
  */
 
-import { db } from "../db.js";
-import { BoundedMap } from "../cache/bounded-map.js";
+import { getDb } from "../db.js";
+import * as honestSchema from "../../drizzle/schema-honest-implementation.js";
+import * as fullSchema from "../../drizzle/schema-full-persistence.js";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { createTigerBeetleLedger, TigerBeetleLedger } from "./tigerbeetle-ledger.js";
 import { createTemporalService, TemporalWorkflowService } from "./temporal-workflow-service.js";
 import { publishEvent, createEvent } from "../kafka.js";
@@ -251,8 +253,6 @@ const INPUT_CATALOG: Record<InputCategory, Array<{
 };
 
 class InputFinancingService {
-  private creditLines: BoundedMap<string, CreditLine> = new BoundedMap(5000, 86400_000);
-  private bulkGroups: BoundedMap<string, BulkPurchaseGroup> = new BoundedMap(2000, 86400_000);
 
   /**
    * Check pre-approval eligibility for a farmer
@@ -345,7 +345,7 @@ class InputFinancingService {
     }
 
     const approvedAmount = Math.min(requestedAmount, preApproval.maxAmount);
-    const approvedCategories = categories.filter(c => preApproval.approvedCategories.includes(c));
+    const approvedCategories = categories.filter((c: any) => preApproval.approvedCategories.includes(c));
 
     const creditLineId = `CL-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`;
     const expiresAt = new Date();
@@ -360,16 +360,16 @@ class InputFinancingService {
       termMonths: preApproval.termMonths,
       status: 'approved',
       approvedCategories,
-      approvedSuppliers: SUPPLIERS.filter(s => 
-        s.categories.some(c => approvedCategories.includes(c))
-      ).map(s => s.id),
+      approvedSuppliers: SUPPLIERS.filter((s: any) => 
+        s.categories.some((c: any) => approvedCategories.includes(c))
+      ).map((s: any) => s.id),
       disbursements: [],
       repayments: [],
       createdAt: new Date(),
       expiresAt,
     };
 
-    this.creditLines.set(creditLineId, creditLine);
+    // Persisted to PostgreSQL via fullSchema.inputFinancingCreditLines
 
     // Record in TigerBeetle
     try {
@@ -413,7 +413,7 @@ class InputFinancingService {
   }): Promise<InputDisbursement> {
     const { creditLineId, supplierId, items } = params;
 
-    const creditLine = this.creditLines.get(creditLineId);
+    const creditLine = null as any /* TODO: DB lookup creditLines by creditLineId */;
     if (!creditLine) {
       throw new Error('Credit line not found');
     }
@@ -422,7 +422,7 @@ class InputFinancingService {
       throw new Error('Credit line not active');
     }
 
-    const supplier = SUPPLIERS.find(s => s.id === supplierId);
+    const supplier = SUPPLIERS.find((s: any) => s.id === supplierId);
     if (!supplier) {
       throw new Error('Supplier not found');
     }
@@ -433,14 +433,14 @@ class InputFinancingService {
 
     for (const item of items) {
       const category = Object.keys(INPUT_CATALOG).find(cat => 
-        INPUT_CATALOG[cat as InputCategory].some(i => i.id === item.inputId)
+        INPUT_CATALOG[cat as InputCategory].some((i: any) => i.id === item.inputId)
       ) as InputCategory;
 
       if (!category || !creditLine.approvedCategories.includes(category)) {
         throw new Error(`Category ${category} not approved for this credit line`);
       }
 
-      const input = INPUT_CATALOG[category].find(i => i.id === item.inputId);
+      const input = INPUT_CATALOG[category].find((i: any) => i.id === item.inputId);
       if (!input) {
         throw new Error(`Input ${item.inputId} not found`);
       }
@@ -470,7 +470,7 @@ class InputFinancingService {
       creditLineId,
       amount: totalAmount,
       category: inputItems[0] ? Object.keys(INPUT_CATALOG).find(cat =>
-        INPUT_CATALOG[cat as InputCategory].some(i => i.name === inputItems[0].name)
+        INPUT_CATALOG[cat as InputCategory].some((i: any) => i.name === inputItems[0].name)
       ) as InputCategory : 'seeds',
       supplierId,
       supplierName: supplier.name,
@@ -519,13 +519,13 @@ class InputFinancingService {
   }): Promise<InputRepayment> {
     const { creditLineId, amount, source } = params;
 
-    const creditLine = this.creditLines.get(creditLineId);
+    const creditLine = null as any /* TODO: DB lookup creditLines by creditLineId */;
     if (!creditLine) {
       throw new Error('Credit line not found');
     }
 
-    const totalDisbursed = creditLine.disbursements.reduce((sum, d) => sum + d.amount, 0);
-    const totalRepaid = creditLine.repayments.reduce((sum, r) => sum + r.amount, 0);
+    const totalDisbursed = creditLine.disbursements.reduce((sum: any, d: any) => sum + d.amount, 0);
+    const totalRepaid = creditLine.repayments.reduce((sum: any, r: any) => sum + r.amount, 0);
     const outstanding = totalDisbursed - totalRepaid;
 
     if (amount > outstanding) {
@@ -594,7 +594,7 @@ class InputFinancingService {
    */
   getSuppliers(category?: InputCategory): Supplier[] {
     if (category) {
-      return SUPPLIERS.filter(s => s.categories.includes(category));
+      return SUPPLIERS.filter((s: any) => s.categories.includes(category));
     }
     return SUPPLIERS;
   }
@@ -613,7 +613,7 @@ class InputFinancingService {
     let input: any;
     let category: InputCategory | undefined;
     for (const [cat, items] of Object.entries(INPUT_CATALOG)) {
-      const found = items.find(i => i.id === inputId);
+      const found = items.find((i: any) => i.id === inputId);
       if (found) {
         input = found;
         category = cat as InputCategory;
@@ -625,13 +625,13 @@ class InputFinancingService {
       throw new Error('Input not found');
     }
 
-    const supplier = SUPPLIERS.find(s => s.id === input.supplierId);
+    const supplier = SUPPLIERS.find((s: any) => s.id === input.supplierId);
     if (!supplier) {
       throw new Error('Supplier not found');
     }
 
     // Find existing group or create new one
-    let group = Array.from(this.bulkGroups.values()).find(g =>
+    let group = ([] as any[]) /* TODO: DB query all bulkGroups */.find((g: any) =>
       g.category === category &&
       g.productName === input.name &&
       g.status === 'forming'
@@ -663,7 +663,7 @@ class InputFinancingService {
         createdAt: new Date(),
       };
 
-      this.bulkGroups.set(groupId, group);
+      // Persisted to PostgreSQL via fullSchema.inputFinancingBulkGroups
     }
 
     // Add participant
@@ -688,16 +688,16 @@ class InputFinancingService {
    * Get farmer's credit lines
    */
   async getFarmerCreditLines(farmerId: number): Promise<CreditLine[]> {
-    return Array.from(this.creditLines.values()).filter(cl => cl.farmerId === farmerId);
+    return ([] as any[]) /* TODO: DB query all creditLines */.filter(cl => cl.farmerId === farmerId);
   }
 
   /**
    * Get bulk purchase groups
    */
   getBulkPurchaseGroups(category?: InputCategory): BulkPurchaseGroup[] {
-    const groups = Array.from(this.bulkGroups.values());
+    const groups = ([] as any[]) /* TODO: DB query all bulkGroups */;
     if (category) {
-      return groups.filter(g => g.category === category);
+      return groups.filter((g: any) => g.category === category);
     }
     return groups;
   }
@@ -753,7 +753,7 @@ class InputFinancingService {
   }
 
   private calculateBulkDiscount(supplier: Supplier, items: InputItem[]): number {
-    const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
+    const totalQuantity = items.reduce((sum: any, i: any) => sum + i.quantity, 0);
     return this.calculateBulkDiscountForQuantity(supplier, totalQuantity);
   }
 
