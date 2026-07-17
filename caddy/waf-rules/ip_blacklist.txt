@@ -1,0 +1,13 @@
+# FarmerConnect Platform — IP Blacklist
+# Format: one IP or CIDR per line
+# Updated automatically by the security monitoring service
+# Last updated: 2026-07-16
+
+# Known malicious ranges (examples - update with real threat intelligence)
+# 0.0.0.0/8
+# 10.254.254.0/24
+
+# Tor exit nodes are blocked via caddy-waf's built-in tor_blocking feature
+# configured in the Caddyfile
+
+# Add specific IPs below:

@@ -118,6 +118,7 @@ import { distributorNetworkRouter } from "./routers/distributor-network-router.j
 import { spatialAnalysisRouter } from "./routers/spatial-analysis-router.js";
 import { dairyManagementRouter } from "./routers/dairy-management-router.js";
 import { mobydbRouter } from "./routers/mobydb-router.js";
+import { caddyRouter } from "./routers/caddy-router.js";
 import { latlngRouter } from "./routers/latlng-router.js";
 
 import { authRouter as authRouterReal } from "./routers/auth-router.js";
@@ -274,6 +275,7 @@ export const appRouter = router({
   spatialAnalysis: spatialAnalysisRouter,
   dairy: dairyManagementRouter,
   mobydb: mobydbRouter,
+    caddy: caddyRouter,
   latlng: latlngRouter,
   sync: router({
     push: protectedProcedure

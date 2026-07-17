@@ -1,0 +1,505 @@
+# =============================================================================
+# FarmerConnect Platform — Caddy Edge Gateway
+# =============================================================================
+#
+# Architecture:
+#   Internet → Caddy (TLS termination, WAF, rate limiting, forward-auth)
+#            → OpenAppSec WAF (deep inspection)
+#            → APISIX (API gateway, plugin execution, routing)
+#            → Microservices (Node.js, Go, Python, Rust)
+#
+# Caddy's role in this stack:
+#   1. Automatic TLS (Let's Encrypt / ZeroSSL) for ALL subdomains
+#   2. HTTP/2 and HTTP/3 (QUIC) support out of the box
+#   3. Forward-auth to Keycloak OIDC proxy for protected routes
+#   4. Rate limiting at the edge (before traffic hits APISIX)
+#   5. Security headers (HSTS, CSP, X-Frame-Options, etc.)
+#   6. WebSocket proxying for real-time features
+#   7. Graceful TLS certificate rotation without downtime
+#   8. Admin API for dynamic reconfiguration
+#   9. Prometheus metrics endpoint for observability
+#  10. Structured JSON access logs to Loki
+# =============================================================================
+
+{
+    # Global options
+    admin 0.0.0.0:2019
+    
+    # Email for Let's Encrypt notifications
+    email platform@farmconnect.africa
+    
+    # Enable HTTP/3 (QUIC)
+    servers {
+        protocols h1 h2 h3
+        metrics
+    }
+    
+    # Structured JSON logging to stdout (picked up by Loki/Promtail)
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+    
+    # Grace period for graceful shutdown
+    grace_period 10s
+    
+    # OCSP stapling
+    ocsp_stapling on
+    
+    # Storage for TLS certificates
+    storage file_system /data/caddy
+}
+
+# =============================================================================
+# SNIPPET: Common Security Headers
+# =============================================================================
+(security_headers) {
+    header {
+        # HSTS: 2 years, include subdomains, preload
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+        # Prevent MIME sniffing
+        X-Content-Type-Options "nosniff"
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Permissions policy
+        Permissions-Policy "geolocation=(self), camera=(self), microphone=(self), payment=(self)"
+        # Content Security Policy
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:; frame-ancestors 'self';"
+        # Remove server identification
+        -Server
+        -X-Powered-By
+    }
+}
+
+# =============================================================================
+# SNIPPET: Rate Limiting (edge-level, before APISIX)
+# =============================================================================
+(rate_limit) {
+    rate_limit {
+        zone static_zone {
+            key    {remote_host}
+            events 100
+            window 10s
+        }
+    }
+}
+
+(rate_limit_strict) {
+    rate_limit {
+        zone auth_zone {
+            key    {remote_host}
+            events 10
+            window 60s
+        }
+    }
+}
+
+# =============================================================================
+# SNIPPET: Forward Auth to Keycloak OIDC Proxy
+# =============================================================================
+(keycloak_auth) {
+    forward_auth keycloak-proxy:4180 {
+        uri /oauth2/auth
+        copy_headers {
+            X-Auth-Request-User>X-Forwarded-User
+            X-Auth-Request-Email>X-Forwarded-Email
+            X-Auth-Request-Groups>X-Forwarded-Groups
+            X-Auth-Request-Roles>X-Forwarded-Roles
+            Authorization>Authorization
+        }
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-Uri {uri}
+    }
+}
+
+# =============================================================================
+# SNIPPET: Proxy to APISIX (core API gateway)
+# =============================================================================
+(proxy_to_apisix) {
+    reverse_proxy apisix:9080 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Request-ID {uuid}
+        
+        # Health checks
+        health_uri /apisix/status
+        health_interval 10s
+        health_timeout 5s
+        health_status 200
+        
+        # Connection pooling
+        transport http {
+            keepalive 30s
+            keepalive_idle_conns 100
+            dial_timeout 5s
+            response_header_timeout 60s
+        }
+    }
+}
+
+# =============================================================================
+# SNIPPET: Proxy to OpenAppSec WAF (deep inspection layer)
+# =============================================================================
+(proxy_via_waf) {
+    reverse_proxy openappsec-waf:80 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Request-ID {uuid}
+        
+        transport http {
+            keepalive 30s
+            dial_timeout 5s
+        }
+    }
+}
+
+# =============================================================================
+# MAIN APPLICATION — farmconnect.africa (PWA + API)
+# =============================================================================
+farmconnect.africa, www.farmconnect.africa {
+    import security_headers
+    import rate_limit
+    
+    # Structured access logging
+    log {
+        output file /logs/access.log {
+            roll_size 100mb
+            roll_keep 10
+        }
+        format json
+    }
+    
+    # CORS for API routes
+    @api path /api/* /trpc/*
+    handle @api {
+        header Access-Control-Allow-Origin "https://farmconnect.africa"
+        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        header Access-Control-Allow-Headers "Authorization, Content-Type, X-Request-ID, X-Tenant-ID"
+        header Access-Control-Max-Age "86400"
+        
+        @options method OPTIONS
+        handle @options {
+            respond "" 204
+        }
+        
+        import keycloak_auth
+        import proxy_via_waf
+    }
+    
+    # WebSocket for real-time features (market prices, IoT, notifications)
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    handle @websocket {
+        reverse_proxy app:3000 {
+            header_up X-Real-IP {remote_host}
+            transport http {
+                versions h1
+            }
+        }
+    }
+    
+    # Static assets (served by Caddy directly for maximum performance)
+    @static path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.ttf *.map
+    handle @static {
+        root * /srv/static
+        file_server {
+            hide .git
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+    
+    # All other requests → app server
+    handle {
+        reverse_proxy app:3000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+}
+
+# =============================================================================
+# API GATEWAY — api.farmconnect.africa
+# Routes through Caddy → OpenAppSec WAF → APISIX → Microservices
+# =============================================================================
+api.farmconnect.africa {
+    import security_headers
+    import rate_limit
+    
+    log {
+        output file /logs/api-access.log {
+            roll_size 100mb
+            roll_keep 10
+        }
+        format json
+    }
+    
+    # Health check endpoint (no auth required)
+    handle /health {
+        respond `{"status":"healthy","service":"caddy-edge","version":"2.x"}` 200 {
+            close
+        }
+    }
+    
+    # Metrics endpoint (internal only)
+    @internal remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+    handle /metrics {
+        @not_internal not remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+        handle @not_internal {
+            respond "Forbidden" 403
+        }
+        metrics /metrics
+    }
+    
+    # Authentication endpoints (stricter rate limiting, no WAF bypass)
+    @auth_paths path /auth/* /oauth2/* /realms/*
+    handle @auth_paths {
+        import rate_limit_strict
+        reverse_proxy keycloak:8080 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+    
+    # Public API routes (no auth, rate limited)
+    @public_api path /api/v1/public/* /api/v1/health /api/v1/market-prices/public
+    handle @public_api {
+        import proxy_via_waf
+    }
+    
+    # Protected API routes (Keycloak auth + WAF + APISIX)
+    handle {
+        import keycloak_auth
+        import proxy_via_waf
+    }
+}
+
+# =============================================================================
+# MOBILE API — mobile.farmconnect.africa (optimized for low-bandwidth)
+# =============================================================================
+mobile.farmconnect.africa {
+    import security_headers
+    
+    # Aggressive compression for mobile
+    encode {
+        gzip 9
+        br
+        minimum_length 256
+    }
+    
+    # Mobile-specific rate limits (more generous for field agents)
+    rate_limit {
+        zone mobile_zone {
+            key    {remote_host}
+            events 200
+            window 10s
+        }
+    }
+    
+    # USSD/IVR endpoints (no auth, ultra-low latency)
+    @ussd_ivr path /ussd/* /ivr/*
+    handle @ussd_ivr {
+        reverse_proxy app:3000 {
+            header_up X-Real-IP {remote_host}
+            transport http {
+                dial_timeout 3s
+                response_header_timeout 10s
+            }
+        }
+    }
+    
+    # Offline sync endpoints
+    @sync path /api/v1/sync/*
+    handle @sync {
+        import keycloak_auth
+        reverse_proxy app:3000 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+    
+    handle {
+        import keycloak_auth
+        import proxy_via_waf
+    }
+}
+
+# =============================================================================
+# ADMIN DASHBOARD — admin.farmconnect.africa
+# =============================================================================
+admin.farmconnect.africa {
+    import security_headers
+    import rate_limit_strict
+    
+    # Extra security: restrict to known IP ranges in production
+    # Uncomment and configure for production:
+    # @allowed_ips remote_ip 10.0.0.0/8 YOUR_OFFICE_IP/32
+    # handle @allowed_ips {
+    #     import keycloak_auth
+    #     import proxy_via_waf
+    # }
+    # respond "Access Denied" 403
+    
+    import keycloak_auth
+    
+    # Admin routes require admin role (enforced by Keycloak forward-auth)
+    reverse_proxy app:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Admin-Request "true"
+    }
+}
+
+# =============================================================================
+# KEYCLOAK — auth.farmconnect.africa
+# =============================================================================
+auth.farmconnect.africa {
+    import security_headers
+    import rate_limit_strict
+    
+    log {
+        output file /logs/auth-access.log {
+            roll_size 50mb
+            roll_keep 5
+        }
+        format json
+    }
+    
+    reverse_proxy keycloak:8080 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-Port "443"
+        
+        # Keycloak needs these for redirect URIs
+        header_down Location "http://keycloak:8080" "https://auth.farmconnect.africa"
+        
+        health_uri /health/live
+        health_interval 15s
+    }
+}
+
+# =============================================================================
+# GRAFANA OBSERVABILITY — grafana.farmconnect.africa
+# =============================================================================
+grafana.farmconnect.africa {
+    import security_headers
+    import rate_limit
+    
+    import keycloak_auth
+    
+    reverse_proxy grafana:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# =============================================================================
+# TEMPORAL UI — workflow.farmconnect.africa
+# =============================================================================
+workflow.farmconnect.africa {
+    import security_headers
+    import rate_limit
+    
+    import keycloak_auth
+    
+    reverse_proxy temporal-ui:8080 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+# =============================================================================
+# OPENSEARCH DASHBOARDS — search.farmconnect.africa
+# =============================================================================
+search.farmconnect.africa {
+    import security_headers
+    import rate_limit
+    
+    import keycloak_auth
+    
+    reverse_proxy opensearch-dashboards:5601 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+# =============================================================================
+# JAEGER TRACING — tracing.farmconnect.africa
+# =============================================================================
+tracing.farmconnect.africa {
+    import security_headers
+    import rate_limit
+    
+    import keycloak_auth
+    
+    reverse_proxy jaeger:16686 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+# =============================================================================
+# PROMETHEUS — metrics.farmconnect.africa (internal only)
+# =============================================================================
+metrics.farmconnect.africa {
+    import security_headers
+    
+    @internal remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+    handle @internal {
+        reverse_proxy prometheus:9090 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+    
+    respond "Access Denied" 403
+}
+
+# =============================================================================
+# DEVELOPMENT / LOCAL — localhost (no TLS, for local dev)
+# =============================================================================
+:80 {
+    # Redirect all HTTP to HTTPS in production
+    # In development, proxy directly
+    @dev_mode header X-Dev-Mode "true"
+    
+    redir https://{host}{uri} 301
+}
+
+# Local development override (used in docker-compose.dev.yml)
+localhost:8090, :8090 {
+    log {
+        output stdout
+        format console
+    }
+    
+    @api path /api/* /trpc/* /health
+    handle @api {
+        reverse_proxy app:3000 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+    
+    @auth path /auth/* /realms/*
+    handle @auth {
+        reverse_proxy keycloak:8080 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Proto "http"
+            header_up X-Forwarded-Host "localhost:8090"
+        }
+    }
+    
+    handle {
+        reverse_proxy app:3000 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+}

@@ -209,6 +209,72 @@ services:
     restart: unless-stopped
 
   # ============================================================================
+  # Caddy Edge Gateway (TLS termination, WAF, forward-auth, HTTP/3)
+  # ============================================================================
+  caddy:
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    container_name: farmer-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (QUIC)
+      - "2019:2019"     # Caddy Admin API
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/config:/etc/caddy/config:ro
+      - ./caddy/waf-rules:/etc/caddy/waf-rules:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - caddy-logs:/logs
+    environment:
+      CADDY_ADMIN_URL: http://caddy:2019
+      ACME_EMAIL: ${ACME_EMAIL:-platform@farmconnect.africa}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+    depends_on:
+      - app
+      - apisix
+      - keycloak
+      - openappsec-waf
+      - keycloak-proxy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2019/config/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=2019"
+      - "prometheus.path=/metrics"
+
+  # Keycloak OAuth2 Proxy (sits between Caddy forward-auth and Keycloak)
+  keycloak-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    container_name: farmer-keycloak-proxy
+    ports:
+      - "4180:4180"
+      - "9116:9116"   # Metrics
+    command:
+      - --config=/etc/oauth2-proxy/oauth2-proxy.cfg
+    volumes:
+      - ./caddy/config/oauth2-proxy.cfg:/etc/oauth2-proxy/oauth2-proxy.cfg:ro
+    environment:
+      OAUTH2_PROXY_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-farmconnect-caddy-proxy-secret-change-in-production}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_COOKIE_SECRET:-farmconnect-cookie-secret-32-bytes!!}
+    depends_on:
+      - keycloak
+      - redis
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4180/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
   # API Gateway & Security
   # ============================================================================
 
