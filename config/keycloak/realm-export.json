@@ -1,0 +1,149 @@
+{
+  "realm": "farmer-data-collection",
+  "displayName": "FarmConnect Platform",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 30,
+  "accessTokenLifespan": 3600,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": false,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "roles": {
+    "realm": [
+      { "name": "farmer", "description": "Smallholder and commercial farmer" },
+      { "name": "buyer", "description": "Produce buyer, trader, or retailer" },
+      { "name": "admin", "description": "Platform administrator" },
+      { "name": "agent", "description": "Field agent or extension officer" },
+      { "name": "cooperative_admin", "description": "Cooperative or chama administrator" },
+      { "name": "financial_officer", "description": "Loan officer or financial institution" },
+      { "name": "government_official", "description": "Government or regulatory official" },
+      { "name": "logistics_provider", "description": "Delivery or logistics provider" },
+      { "name": "input_supplier", "description": "Agri-input supplier or distributor" },
+      { "name": "processor", "description": "Food processor or manufacturer" },
+      { "name": "exporter", "description": "Export trader or freight forwarder" },
+      { "name": "insurer", "description": "Insurance provider" },
+      { "name": "researcher", "description": "Agricultural researcher or data scientist" },
+      { "name": "developer", "description": "Third-party API developer" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "farmer-web-app",
+      "name": "FarmConnect Web Application",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": false,
+      "redirectUris": ["http://localhost:3000/*", "http://localhost:3001/*", "https://*.farmconnect.io/*"],
+      "webOrigins": ["http://localhost:3000", "http://localhost:3001", "https://*.farmconnect.io"],
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "3600",
+        "client.secret.creation.time": "1700000000"
+      },
+      "protocolMappers": [
+        {
+          "name": "user-role-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "phone-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "phone",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "phone",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "farmer-id-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "farmerId",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "farmerId",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "farmer-mobile-app",
+      "name": "FarmConnect Mobile Application",
+      "enabled": true,
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["farmconnect://auth/*", "exp://localhost:8081/*"],
+      "webOrigins": ["*"],
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "farmer-backend-service",
+      "name": "FarmConnect Backend Service",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "identityProviders": [],
+  "userFederationProviders": [],
+  "passwordPolicy": "length(8) and digits(1) and lowerCase(1) and upperCase(1) and specialChars(1) and notUsername(undefined)",
+  "smtpServer": {
+    "host": "${SMTP_HOST:smtp.gmail.com}",
+    "port": "587",
+    "from": "noreply@farmconnect.io",
+    "fromDisplayName": "FarmConnect Platform",
+    "starttls": "true",
+    "auth": "true",
+    "user": "${SMTP_USER}",
+    "password": "${SMTP_PASSWORD}"
+  }
+}

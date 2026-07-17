@@ -1,108 +1,304 @@
-// Permify Authorization Schema for Farmer Data Collection
-// This schema defines entities, relations, and permissions
+// ============================================================================
+// Permify Authorization Schema for FarmConnect Platform
+// Covers all 14 stakeholder roles and all platform entities
+// ============================================================================
 
 entity user {}
 
 entity organization {
-    // Relations
     relation admin @user
     relation member @user
-    
-    // Permissions
-    permission view = admin or member
-    permission edit = admin
+    relation viewer @user
+
+    permission view = admin or member or viewer
+    permission edit = admin or member
     permission delete = admin
     permission invite_member = admin
+    permission manage_roles = admin
+    permission view_reports = admin or member
+    permission export_data = admin
 }
 
 entity farmer {
-    // Relations
     relation owner @user
     relation organization @organization
     relation viewer @user
-    
-    // Permissions
-    permission view = owner or viewer or organization.member
-    permission edit = owner or organization.admin
+    relation agent @user
+
+    permission view = owner or viewer or organization.member or agent
+    permission edit = owner or organization.admin or agent
     permission delete = owner or organization.admin
     permission share = owner or organization.admin
+    permission view_financial = owner or organization.admin
+    permission apply_loan = owner
+    permission purchase_insurance = owner
+    permission join_chama = owner
+    permission trade = owner
+    permission export_produce = owner
 }
 
 entity farm {
-    // Relations
     relation owner @user
     relation farmer @farmer
     relation organization @organization
     relation viewer @user
-    
-    // Permissions
-    permission view = owner or viewer or farmer.owner or organization.member
-    permission edit = owner or farmer.owner or organization.admin
+    relation agent @user
+
+    permission view = owner or viewer or farmer.owner or organization.member or agent
+    permission edit = owner or farmer.owner or organization.admin or agent
     permission delete = owner or farmer.owner or organization.admin
-    permission manage_crops = owner or farmer.owner
-    permission manage_livestock = owner or farmer.owner
+    permission manage_crops = owner or farmer.owner or agent
+    permission manage_livestock = owner or farmer.owner or agent
+    permission view_iot = owner or farmer.owner or organization.member or agent
+    permission manage_iot = owner or farmer.owner or organization.admin
+    permission run_simulation = owner or farmer.owner
+    permission view_analytics = owner or farmer.owner or organization.admin or agent
 }
 
 entity crop {
-    // Relations
     relation owner @user
     relation farm @farm
     relation organization @organization
-    
-    // Permissions
+
     permission view = owner or farm.owner or organization.member
     permission edit = owner or farm.owner or organization.admin
     permission delete = owner or farm.owner or organization.admin
     permission record_harvest = owner or farm.owner
+    permission apply_treatment = owner or farm.owner
+    permission view_predictions = owner or farm.owner or organization.member
 }
 
 entity livestock {
-    // Relations
     relation owner @user
     relation farm @farm
     relation organization @organization
-    
-    // Permissions
+
     permission view = owner or farm.owner or organization.member
     permission edit = owner or farm.owner or organization.admin
     permission delete = owner or farm.owner or organization.admin
     permission record_health = owner or farm.owner
+    permission record_production = owner or farm.owner
+    permission sell = owner or farm.owner
 }
 
 entity harvest {
-    // Relations
     relation owner @user
     relation crop @crop
     relation organization @organization
-    
-    // Permissions
+
     permission view = owner or crop.owner or organization.member
     permission edit = owner or crop.owner or organization.admin
     permission delete = owner or crop.owner or organization.admin
+    permission list_for_sale = owner or crop.owner
+    permission export = owner or crop.owner
 }
 
-entity expense {
-    // Relations
+entity marketplace_listing {
+    relation seller @user
+    relation organization @organization
+
+    permission view = seller or organization.member
+    permission edit = seller or organization.admin
+    permission delete = seller or organization.admin
+    permission purchase = seller or organization.member
+    permission negotiate = seller or organization.member
+    permission make_offer = seller or organization.member
+}
+
+entity order {
+    relation buyer @user
+    relation seller @user
+    relation organization @organization
+    relation logistics @user
+
+    permission view = buyer or seller or organization.admin or logistics
+    permission edit = seller or organization.admin
+    permission cancel = buyer or seller or organization.admin
+    permission fulfill = seller or logistics
+    permission dispute = buyer or seller
+    permission refund = seller or organization.admin
+}
+
+entity payment {
+    relation payer @user
+    relation payee @user
+    relation organization @organization
+    relation financial_officer @user
+
+    permission view = payer or payee or organization.admin or financial_officer
+    permission initiate = payer
+    permission approve = financial_officer or organization.admin
+    permission reverse = financial_officer or organization.admin
+    permission view_audit = organization.admin or financial_officer
+}
+
+entity loan_application {
+    relation applicant @user
+    relation organization @organization
+    relation financial_officer @user
+
+    permission view = applicant or organization.admin or financial_officer
+    permission edit = applicant
+    permission submit = applicant
+    permission approve = financial_officer or organization.admin
+    permission reject = financial_officer or organization.admin
+    permission disburse = financial_officer
+    permission view_credit_score = applicant or financial_officer or organization.admin
+}
+
+entity chama {
+    relation chairperson @user
+    relation treasurer @user
+    relation secretary @user
+    relation member @user
+    relation organization @organization
+
+    permission view = chairperson or treasurer or secretary or member or organization.member
+    permission edit = chairperson or organization.admin
+    permission delete = chairperson or organization.admin
+    permission contribute = member or chairperson or treasurer
+    permission request_loan = member
+    permission approve_loan = chairperson or treasurer
+    permission disburse_loan = treasurer
+    permission view_financials = chairperson or treasurer or secretary
+    permission add_member = chairperson or secretary
+    permission remove_member = chairperson
+    permission run_merry_go_round = chairperson or treasurer
+}
+
+entity insurance_policy {
+    relation policyholder @user
+    relation insurer @user
+    relation organization @organization
+
+    permission view = policyholder or insurer or organization.admin
+    permission edit = insurer or organization.admin
+    permission cancel = policyholder or insurer or organization.admin
+    permission file_claim = policyholder
+    permission assess_claim = insurer
+    permission approve_claim = insurer or organization.admin
+    permission payout_claim = insurer
+}
+
+entity carbon_project {
+    relation owner @user
+    relation verifier @user
+    relation organization @organization
+
+    permission view = owner or verifier or organization.member
+    permission edit = owner or organization.admin
+    permission delete = owner or organization.admin
+    permission submit_for_verification = owner
+    permission verify = verifier
+    permission issue_credits = verifier or organization.admin
+    permission retire_credits = owner or organization.admin
+    permission trade_credits = owner
+}
+
+entity export_shipment {
+    relation exporter @user
+    relation buyer @user
+    relation freight_forwarder @user
+    relation organization @organization
+
+    permission view = exporter or buyer or freight_forwarder or organization.member
+    permission edit = exporter or organization.admin
+    permission delete = exporter or organization.admin
+    permission add_certification = exporter or freight_forwarder
+    permission track = exporter or buyer or freight_forwarder
+    permission complete = freight_forwarder or organization.admin
+    permission dispute = exporter or buyer
+}
+
+entity cooperative {
+    relation admin @user
+    relation member @user
+    relation viewer @user
+
+    permission view = admin or member or viewer
+    permission edit = admin
+    permission delete = admin
+    permission add_member = admin
+    permission remove_member = admin
+    permission vote = member or admin
+    permission view_financials = admin or member
+    permission distribute_dividends = admin
+    permission manage_inputs = admin or member
+    permission bulk_sell = admin or member
+}
+
+entity iot_device {
     relation owner @user
     relation farm @farm
     relation organization @organization
-    
-    // Permissions
+
     permission view = owner or farm.owner or organization.member
     permission edit = owner or farm.owner or organization.admin
     permission delete = owner or farm.owner or organization.admin
-    permission approve = organization.admin
+    permission configure = owner or farm.owner
+    permission view_readings = owner or farm.owner or organization.member
+    permission set_rules = owner or farm.owner or organization.admin
+}
+
+entity digital_twin {
+    relation owner @user
+    relation farm @farm
+    relation organization @organization
+    relation researcher @user
+
+    permission view = owner or farm.owner or organization.member or researcher
+    permission edit = owner or farm.owner or organization.admin
+    permission run_simulation = owner or farm.owner or researcher
+    permission export_data = owner or farm.owner or organization.admin
+    permission share = owner or farm.owner
 }
 
 entity report {
-    // Relations
     relation owner @user
     relation organization @organization
     relation viewer @user
-    
-    // Permissions
-    permission view = owner or viewer or organization.member
+    relation government_official @user
+
+    permission view = owner or viewer or organization.member or government_official
     permission edit = owner or organization.admin
     permission delete = owner or organization.admin
-    permission export = owner or organization.admin
+    permission export = owner or organization.admin or government_official
+    permission submit_regulatory = owner or organization.admin
+}
+
+entity subsidy {
+    relation applicant @user
+    relation government_official @user
+    relation organization @organization
+
+    permission view = applicant or government_official or organization.admin
+    permission apply = applicant
+    permission approve = government_official
+    permission reject = government_official
+    permission disburse = government_official
+    permission audit = government_official or organization.admin
+}
+
+entity api_key {
+    relation owner @user
+    relation organization @organization
+
+    permission view = owner or organization.admin
+    permission create = owner or organization.admin
+    permission revoke = owner or organization.admin
+    permission use = owner
+}
+
+entity warehouse_receipt {
+    relation depositor @user
+    relation warehouse_operator @user
+    relation organization @organization
+    relation financial_officer @user
+
+    permission view = depositor or warehouse_operator or organization.member or financial_officer
+    permission issue = warehouse_operator
+    permission transfer = depositor
+    permission redeem = depositor
+    permission use_as_collateral = depositor or financial_officer
+    permission audit = organization.admin or financial_officer
 }

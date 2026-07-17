@@ -1,0 +1,16 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-binding
+spec:
+  type: bindings.kafka
+  version: v1
+  metadata:
+  - name: brokers
+    value: "kafka:9092"
+  - name: topics
+    value: "farmer.events,payment.events,iot.readings,market.prices"
+  - name: consumerGroup
+    value: "dapr-binding-group"
+  - name: authType
+    value: "none"

@@ -430,3 +430,137 @@ export async function getMiddlewareStatus(): Promise<Record<string, { connected:
     dapr: daprStatus, apisix: apisixStatus, openappsec: oasStatus,
   };
 }
+
+// ─── Lakehouse Client (Apache Iceberg / Delta Lake via REST) ────────
+class LakehouseClient {
+  private endpoint: string;
+  private catalog: string;
+
+  constructor() {
+    this.endpoint = process.env.LAKEHOUSE_URL || "http://localhost:8181";
+    this.catalog = process.env.LAKEHOUSE_CATALOG || "farmconnect";
+  }
+
+  async writeRecords(
+    layer: "bronze" | "silver" | "gold",
+    tableName: string,
+    records: Array<Record<string, unknown>>,
+  ): Promise<void> {
+    try {
+      await fetch(`${this.endpoint}/v1/catalogs/${this.catalog}/namespaces/${layer}/tables/${tableName}/records`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ records, timestamp: new Date().toISOString() }),
+        signal: AbortSignal.timeout(5000),
+      });
+      logger.debug(`[Lakehouse] Wrote ${records.length} records to ${layer}.${tableName}`);
+    } catch (err) {
+      logger.warn(`[Lakehouse] Write failed for ${layer}.${tableName}`, { error: String(err) });
+    }
+  }
+
+  async queryTable(
+    layer: "bronze" | "silver" | "gold",
+    tableName: string,
+    filter?: Record<string, unknown>,
+  ): Promise<Array<Record<string, unknown>>> {
+    try {
+      const url = `${this.endpoint}/v1/catalogs/${this.catalog}/namespaces/${layer}/tables/${tableName}/scan`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filter }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        return data.records || [];
+      }
+    } catch (err) {
+      logger.warn(`[Lakehouse] Query failed for ${layer}.${tableName}`, { error: String(err) });
+    }
+    return [];
+  }
+
+  async createTableIfNotExists(
+    layer: "bronze" | "silver" | "gold",
+    tableName: string,
+    schema: Record<string, string>,
+  ): Promise<void> {
+    try {
+      await fetch(`${this.endpoint}/v1/catalogs/${this.catalog}/namespaces/${layer}/tables`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: tableName, schema }),
+        signal: AbortSignal.timeout(5000),
+      });
+    } catch { /* Lakehouse unavailable */ }
+  }
+}
+
+export const lakehouse = new LakehouseClient();
+
+// ─── Enhanced Fluvio Client with topic management ───────────────────
+class EnhancedFluvioClient {
+  private endpoint: string;
+  private topics: Set<string> = new Set();
+
+  constructor() {
+    this.endpoint = process.env.FLUVIO_URL || "http://localhost:9003";
+  }
+
+  async produce(topic: string, key: string, value: Record<string, unknown>): Promise<void> {
+    try {
+      await fetch(`${this.endpoint}/produce/${topic}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, value, timestamp: Date.now() }),
+        signal: AbortSignal.timeout(3000),
+      });
+      logger.debug(`[Fluvio] Produced to ${topic}`, { key });
+    } catch (err) {
+      logger.warn(`[Fluvio] Produce failed for ${topic}`, { error: String(err) });
+    }
+  }
+
+  async consume(
+    topic: string,
+    partition: number = 0,
+    offset: number = 0,
+    limit: number = 100,
+  ): Promise<Array<{ key: string; value: unknown; offset: number; timestamp: number }>> {
+    try {
+      const resp = await fetch(
+        `${this.endpoint}/consume/${topic}?partition=${partition}&offset=${offset}&limit=${limit}`,
+        { signal: AbortSignal.timeout(5000) },
+      );
+      if (resp.ok) return await resp.json();
+    } catch (err) {
+      logger.warn(`[Fluvio] Consume failed for ${topic}`, { error: String(err) });
+    }
+    return [];
+  }
+
+  async createTopic(topic: string, partitions: number = 1, replication: number = 1): Promise<void> {
+    if (this.topics.has(topic)) return;
+    try {
+      await fetch(`${this.endpoint}/topics`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: topic, partitions, replication }),
+        signal: AbortSignal.timeout(5000),
+      });
+      this.topics.add(topic);
+    } catch { /* Fluvio unavailable */ }
+  }
+
+  async getTopics(): Promise<string[]> {
+    try {
+      const resp = await fetch(`${this.endpoint}/topics`, { signal: AbortSignal.timeout(3000) });
+      if (resp.ok) return await resp.json();
+    } catch { /* Fluvio unavailable */ }
+    return [];
+  }
+}
+
+export const fluvioEnhanced = new EnhancedFluvioClient();

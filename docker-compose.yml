@@ -128,7 +128,12 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
-    command: start-dev
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+    command: start-dev --import-realm
+    volumes:
+      - ./config/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,7 +142,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 60s
     restart: unless-stopped
 
   permify:
@@ -752,6 +757,41 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  temporal-worker:
+    build:
+      context: ./services/python/temporal-workflows
+      dockerfile: Dockerfile
+    container_name: farmer-temporal-worker
+    environment:
+      TEMPORAL_HOST: temporal:7233
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/farmer_db
+      KAFKA_BROKERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      temporal:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - farmer-network
+
+  openappsec-waf:
+    image: openappsec/agent:latest
+    container_name: farmer-openappsec
+    environment:
+      OPENAPPSEC_TOKEN: ${OPENAPPSEC_TOKEN:-local-dev-token}
+      OPENAPPSEC_BACKEND: https://inext-agents.cloud.openappsec.io
+      user_email: ${OPENAPPSEC_EMAIL:-admin@farmconnect.io}
+    volumes:
+      - ./config/openappsec:/etc/cp/conf:ro
+      - openappsec-data:/etc/cp/data
+    network_mode: host
+    restart: unless-stopped
+    profiles:
+      - waf
+
 
 volumes:
   postgres-data:

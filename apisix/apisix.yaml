@@ -1,16 +1,65 @@
+# ============================================================================
+# APISIX Routes Configuration for FarmConnect Platform
+# Covers: Main App, tRPC API, Go Microservices, Python Services,
+#         Feature Flags, Search, Weather, Keycloak Auth, WebSockets
+# ============================================================================
+
 routes:
-  # Main App
-  - uri: /*
+  # ── Main App (Vite/React) ──────────────────────────────────────────────────
+  - id: main-app
+    uri: /*
+    upstream:
+      type: roundrobin
+      nodes:
+        "app:3000": 1
+    plugins:
+      cors:
+        allow_origins: "*"
+        allow_methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        allow_headers: "Content-Type, Authorization, X-Requested-With"
+      limit-req:
+        rate: 200
+        burst: 100
+        key_type: var
+        key: remote_addr
+
+  # ── tRPC API (Node.js Backend) ─────────────────────────────────────────────
+  - id: trpc-api
+    uri: /trpc/*
     upstream:
       type: roundrobin
       nodes:
         "app:3001": 1
     plugins:
       proxy-rewrite:
-        regex_uri: ["^/api/(.*)", "/$1"]
+        regex_uri: ["^/trpc/(.*)", "/trpc/$1"]
       limit-req:
-        rate: 100
-        burst: 50
+        rate: 500
+        burst: 200
+        key_type: var
+        key: remote_addr
+      cors:
+        allow_origins: "*"
+        allow_methods: "GET, POST, OPTIONS"
+        allow_headers: "Content-Type, Authorization, X-Trpc-Source"
+      response-rewrite:
+        headers:
+          set:
+            X-Powered-By: "FarmConnect-APISIX"
+
+  # ── REST API ───────────────────────────────────────────────────────────────
+  - id: rest-api
+    uri: /api/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "app:3001": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/api/(.*)", "/api/$1"]
+      limit-req:
+        rate: 300
+        burst: 150
         key_type: var
         key: remote_addr
       cors:
@@ -18,41 +67,199 @@ routes:
         allow_methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         allow_headers: "Content-Type, Authorization"
 
-  # Feature Flags
-  - uri: /api/flags/*
+  # ── WebSocket Hub ──────────────────────────────────────────────────────────
+  - id: websocket-hub
+    uri: /ws/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "app:3001": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/ws/(.*)", "/ws/$1"]
+      limit-conn:
+        conn: 1000
+        burst: 200
+        key_type: var
+        key: remote_addr
+
+  # ── Feature Flags Service ──────────────────────────────────────────────────
+  - id: feature-flags
+    uri: /flags/*
     upstream:
       type: roundrobin
       nodes:
         "feature-flags:8101": 1
     plugins:
       proxy-rewrite:
-        regex_uri: ["^/api/flags/(.*)", "/$1"]
+        regex_uri: ["^/flags/(.*)", "/$1"]
+      proxy-cache:
+        cache_key: ["$uri", "$args"]
+        cache_ttl: 30
 
-  # Search
-  - uri: /api/search/*
+  # ── Search Proxy ───────────────────────────────────────────────────────────
+  - id: search-proxy
+    uri: /search/*
     upstream:
       type: roundrobin
       nodes:
         "search-proxy:8104": 1
     plugins:
       proxy-rewrite:
-        regex_uri: ["^/api/search/(.*)", "/$1"]
+        regex_uri: ["^/search/(.*)", "/$1"]
       proxy-cache:
         cache_key: ["$uri", "$args"]
         cache_ttl: 60
+      limit-req:
+        rate: 50
+        burst: 20
+        key_type: var
+        key: remote_addr
 
-  # Weather
-  - uri: /api/weather/*
+  # ── Weather Alerts Service ─────────────────────────────────────────────────
+  - id: weather-alerts
+    uri: /weather/*
     upstream:
       type: roundrobin
       nodes:
         "weather-alerts:8107": 1
     plugins:
       proxy-rewrite:
-        regex_uri: ["^/api/weather/(.*)", "/$1"]
+        regex_uri: ["^/weather/(.*)", "/$1"]
+      proxy-cache:
+        cache_key: ["$uri", "$args"]
+        cache_ttl: 300
 
-  # Static Assets CDN
-  - uri: /assets/*
+  # ── Go: TigerBeetle Ledger Service ────────────────────────────────────────
+  - id: tigerbeetle-ledger
+    uri: /ledger/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "tigerbeetle-service:8200": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/ledger/(.*)", "/$1"]
+      limit-req:
+        rate: 200
+        burst: 50
+        key_type: var
+        key: remote_addr
+      response-rewrite:
+        headers:
+          set:
+            X-Service: "tigerbeetle-ledger"
+
+  # ── Go: Dapr Sidecar ──────────────────────────────────────────────────────
+  - id: dapr-sidecar
+    uri: /dapr/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "dapr-sidecar:3500": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/dapr/(.*)", "/$1"]
+      limit-req:
+        rate: 100
+        burst: 50
+        key_type: var
+        key: remote_addr
+
+  # ── Go: IVR/Voice Service ─────────────────────────────────────────────────
+  - id: ivr-service
+    uri: /ivr/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "ivr-service:8300": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/ivr/(.*)", "/$1"]
+      limit-req:
+        rate: 50
+        burst: 20
+        key_type: var
+        key: remote_addr
+
+  # ── Go: GPS/Geofencing Service ────────────────────────────────────────────
+  - id: gps-service
+    uri: /gps/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "gps-service:8400": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/gps/(.*)", "/$1"]
+      proxy-cache:
+        cache_key: ["$uri", "$args"]
+        cache_ttl: 10
+
+  # ── Python: ML Inference Service ──────────────────────────────────────────
+  - id: ml-inference
+    uri: /ml/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "ml-inference:8500": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/ml/(.*)", "/$1"]
+      limit-req:
+        rate: 30
+        burst: 10
+        key_type: var
+        key: remote_addr
+      proxy-cache:
+        cache_key: ["$uri", "$request_body"]
+        cache_ttl: 120
+
+  # ── Python: Temporal Workflows ────────────────────────────────────────────
+  - id: temporal-api
+    uri: /temporal/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "temporal-worker:8600": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/temporal/(.*)", "/$1"]
+      limit-req:
+        rate: 50
+        burst: 20
+        key_type: var
+        key: remote_addr
+
+  # ── Fluvio Streaming Proxy ────────────────────────────────────────────────
+  - id: fluvio-proxy
+    uri: /stream/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "fluvio:9003": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/stream/(.*)", "/$1"]
+
+  # ── Keycloak Auth Proxy ───────────────────────────────────────────────────
+  - id: keycloak-auth
+    uri: /auth/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "keycloak:8080": 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/auth/(.*)", "/$1"]
+      cors:
+        allow_origins: "*"
+        allow_methods: "GET, POST, OPTIONS"
+        allow_headers: "Content-Type, Authorization"
+
+  # ── Static Assets CDN ─────────────────────────────────────────────────────
+  - id: static-assets
+    uri: /assets/*
     upstream:
       type: roundrobin
       nodes:
@@ -66,5 +273,16 @@ routes:
         headers:
           set:
             Cache-Control: "public, max-age=31536000, immutable"
+
+  # ── Health Check ──────────────────────────────────────────────────────────
+  - id: health-check
+    uri: /health
+    upstream:
+      type: roundrobin
+      nodes:
+        "app:3001": 1
+    plugins:
+      proxy-rewrite:
+        uri: "/api/health"
 
 #END
