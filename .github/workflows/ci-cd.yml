@@ -723,7 +723,7 @@ jobs:
   branch-protection:
     name: Branch Protection Gate
     runs-on: ubuntu-latest
-    needs: [lint, test, build, security, microservice-tests, production-audit, smoke-tests]
+    needs: [lint, test, build, security, microservice-tests, production-readiness, smoke-tests]
     if: github.event_name == 'pull_request'
     steps:
       - name: All required checks passed
