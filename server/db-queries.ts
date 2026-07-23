@@ -125,9 +125,9 @@ export const FarmerQueries = {
     if (params.search) {
       conditions.push(
         or(
-          ilike(users.name, `%${params.search}%`),
+          ilike(users.firstName, `%${params.search}%`),
+          ilike(users.lastName, `%${params.search}%`),
           ilike(users.email, `%${params.search}%`),
-          ilike(users.phone, `%${params.search}%`),
         ),
       );
     }
@@ -165,19 +165,20 @@ export const FarmerQueries = {
 
     const farmIds = userFarms.map((f) => f.id);
 
-    const conditions = [inArray(harvests.farmId, farmIds)];
+    void farmIds;
+    const conditions = [eq(harvests.userId, userId)];
     if (year) {
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year + 1, 0, 1);
-      conditions.push(gte(harvests.harvestDate, startDate.toISOString().split("T")[0]));
-      conditions.push(lte(harvests.harvestDate, endDate.toISOString().split("T")[0]));
+      conditions.push(gte(harvests.harvestDate, startDate));
+      conditions.push(lte(harvests.harvestDate, endDate));
     }
 
     const [stats] = await db
       .select({
         totalHarvests: count(),
         totalYield: sum(harvests.quantity),
-        totalRevenue: sum(harvests.totalValue),
+        totalRevenue: sum(harvests.revenue),
       })
       .from(harvests)
       .where(and(...conditions));
@@ -252,7 +253,9 @@ export const FinancialQueries = {
     const limit = Math.min(params.limit ?? 20, 100);
     const offset = (page - 1) * limit;
 
-    const conditions = [eq(paymentTransactions.userId, userId)];
+    const conditions = [
+      or(eq(paymentTransactions.senderId, userId), eq(paymentTransactions.receiverId, userId)),
+    ];
     if (params.type) conditions.push(eq(paymentTransactions.type, params.type));
     if (params.status) conditions.push(eq(paymentTransactions.status, params.status));
     if (params.fromDate) conditions.push(gte(paymentTransactions.createdAt, params.fromDate));
@@ -310,15 +313,13 @@ export const MarketQueries = {
         priceDate: marketPrices.priceDate,
         price: marketPrices.price,
         market: marketPrices.market,
-        priceChange: marketPrices.priceChange,
-        priceChangePct: marketPrices.priceChangePct,
       })
       .from(marketPrices)
       .where(
         and(
           eq(marketPrices.commodity, commodity),
           eq(marketPrices.market, market),
-          gte(marketPrices.priceDate, fromDate.toISOString().split("T")[0]),
+          gte(marketPrices.priceDate, fromDate),
         ),
       )
       .orderBy(asc(marketPrices.priceDate));
@@ -345,7 +346,7 @@ export const MarketQueries = {
       .where(
         and(
           eq(marketPrices.commodity, commodity),
-          gte(marketPrices.priceDate, fromDate.toISOString().split("T")[0]),
+          gte(marketPrices.priceDate, fromDate),
         ),
       );
 
@@ -373,7 +374,7 @@ export const IoTQueries = {
     if (!db) return [];
 
     const deviceConditions = [eq(iotDevices.farmId, farmId)];
-    if (deviceType) deviceConditions.push(eq(iotDevices.deviceType, deviceType));
+    if (deviceType) deviceConditions.push(eq(iotDevices.type, deviceType));
 
     const devices = await db
       .select({ id: iotDevices.id })
@@ -414,10 +415,10 @@ export const IoTQueries = {
 
     const [stats] = await db
       .select({
-        avgSoilMoisture: avg(iotReadings.soilMoisture),
-        avgAirTemp: avg(iotReadings.airTemperature),
-        avgHumidity: avg(iotReadings.humidity),
-        totalRainfall: sum(iotReadings.rainfall),
+        avgSoilMoisture: sql<number>`AVG(CASE WHEN ${iotReadings.metric} = 'soil_moisture' THEN ${iotReadings.value}::numeric END)`,
+        avgAirTemp: sql<number>`AVG(CASE WHEN ${iotReadings.metric} = 'air_temperature' THEN ${iotReadings.value}::numeric END)`,
+        avgHumidity: sql<number>`AVG(CASE WHEN ${iotReadings.metric} = 'humidity' THEN ${iotReadings.value}::numeric END)`,
+        totalRainfall: sql<number>`SUM(CASE WHEN ${iotReadings.metric} = 'rainfall' THEN ${iotReadings.value}::numeric ELSE 0 END)`,
         readingCount: count(),
       })
       .from(iotReadings)
@@ -487,7 +488,9 @@ export const InsuranceQueries = {
         pendingClaims: count(sql`CASE WHEN ${insuranceClaims.status} = 'pending' THEN 1 END`),
         approvedClaims: count(sql`CASE WHEN ${insuranceClaims.status} = 'approved' THEN 1 END`),
         totalClaimAmount: sum(insuranceClaims.claimAmount),
-        totalApprovedAmount: sum(insuranceClaims.approvedAmount),
+        totalApprovedAmount: sum(
+          sql`CASE WHEN ${insuranceClaims.status} = 'approved' THEN ${insuranceClaims.claimAmount}::numeric ELSE 0 END`,
+        ),
       })
       .from(insuranceClaims);
 
@@ -519,15 +522,14 @@ export const CarbonQueries = {
     const [creditStats] = await db
       .select({
         totalAvailable: sum(
-          sql`CASE WHEN ${carbonCredits.status} = 'available' THEN ${carbonCredits.quantity}::numeric ELSE 0 END`,
+          sql`CASE WHEN ${carbonCredits.status} = 'available' THEN ${carbonCredits.tonnes}::numeric ELSE 0 END`,
         ),
         totalSold: sum(
-          sql`CASE WHEN ${carbonCredits.status} = 'sold' THEN ${carbonCredits.quantity}::numeric ELSE 0 END`,
+          sql`CASE WHEN ${carbonCredits.status} = 'sold' THEN ${carbonCredits.tonnes}::numeric ELSE 0 END`,
         ),
         totalRetired: sum(
-          sql`CASE WHEN ${carbonCredits.status} = 'retired' THEN ${carbonCredits.quantity}::numeric ELSE 0 END`,
+          sql`CASE WHEN ${carbonCredits.status} = 'retired' THEN ${carbonCredits.tonnes}::numeric ELSE 0 END`,
         ),
-        avgPrice: avg(carbonCredits.pricePerTon),
       })
       .from(carbonCredits)
       .where(eq(carbonCredits.projectId, projectId));
@@ -538,7 +540,7 @@ export const CarbonQueries = {
         available: Number(creditStats?.totalAvailable ?? 0),
         sold: Number(creditStats?.totalSold ?? 0),
         retired: Number(creditStats?.totalRetired ?? 0),
-        avgPricePerTon: Number(creditStats?.avgPrice ?? 0),
+        avgPricePerTon: Number(project.pricePerTonne ?? 0),
       },
     };
   },
@@ -579,12 +581,11 @@ export const ExportQueries = {
         commodity: exportShipments.commodity,
         totalShipments: count(),
         totalQuantity: sum(exportShipments.quantity),
-        totalValueUsd: sum(exportShipments.totalValueUsd),
         avgQuantity: avg(exportShipments.quantity),
       })
       .from(exportShipments)
       .groupBy(exportShipments.commodity)
-      .orderBy(desc(sum(exportShipments.totalValueUsd)));
+      .orderBy(desc(sum(exportShipments.quantity)));
   },
 };
 
@@ -612,8 +613,12 @@ export const PipelineQueries = {
 
     const [aggMetrics] = await db
       .select({
-        totalRecordsProcessed: sum(pipelineMetrics.recordsWritten),
-        avgThroughput: avg(pipelineMetrics.throughputRps),
+        totalRecordsProcessed: sum(
+          sql`CASE WHEN ${pipelineMetrics.metricName} = 'records_written' THEN ${pipelineMetrics.metricValue}::numeric ELSE 0 END`,
+        ),
+        avgThroughput: avg(
+          sql`CASE WHEN ${pipelineMetrics.metricName} = 'throughput_rps' THEN ${pipelineMetrics.metricValue}::numeric END`,
+        ),
         totalRuns: count(),
       })
       .from(pipelineMetrics)
@@ -654,8 +659,8 @@ export const FederatedLearningQueries = {
     const [stats] = await db
       .select({
         activeParticipants: count(sql`CASE WHEN ${federatedParticipants.status} = 'active' THEN 1 END`),
-        avgContribution: avg(federatedParticipants.contributionScore),
-        totalDataSize: sum(federatedParticipants.localDataSize),
+        avgContribution: avg(federatedParticipants.localAccuracy),
+        totalDataSize: sum(federatedParticipants.dataPoints),
       })
       .from(federatedParticipants)
       .where(eq(federatedParticipants.modelId, modelId));
@@ -734,7 +739,6 @@ export const BatchOperations = {
       .set({
         memberCount: Number(memberCount?.count ?? 0),
         totalSavings: String(txnStats?.totalSavings ?? "0"),
-        updatedAt: new Date(),
       })
       .where(eq(chamaGroups.id, chamaId));
   },
@@ -754,23 +758,23 @@ export const SearchQueries = {
 
     const [farmers, farmsResult, commodities] = await Promise.all([
       db
-        .select({ id: users.id, name: users.name, email: users.email, role: users.role })
+        .select({ id: users.id, name: users.firstName, email: users.email, role: users.role })
         .from(users)
         .where(
           or(
-            ilike(users.name, `%${query}%`),
+            ilike(users.firstName, `%${query}%`),
+            ilike(users.lastName, `%${query}%`),
             ilike(users.email, `%${query}%`),
-            ilike(users.phone, `%${query}%`),
           ),
         )
         .limit(limit),
 
       db
-        .select({ id: farms.id, name: farms.name, location: farms.location })
+        .select({ id: farms.id, name: farms.farmName, location: farms.location })
         .from(farms)
         .where(
           or(
-            ilike(farms.name, `%${query}%`),
+            ilike(farms.farmName, `%${query}%`),
             ilike(farms.location, `%${query}%`),
           ),
         )
@@ -815,11 +819,11 @@ export const AnalyticsQueries = {
         .from(chamaGroups)
         .where(eq(chamaGroups.isActive, true)),
       db
-        .select({ total: count(), totalSequestration: sum(carbonProjects.annualSequestration) })
+        .select({ total: count(), totalSequestration: sum(carbonProjects.annualCredits) })
         .from(carbonProjects)
         .where(eq(carbonProjects.status, "active")),
       db
-        .select({ total: count(), totalValue: sum(exportShipments.totalValueUsd) })
+        .select({ total: count(), totalValue: sum(exportShipments.quantity) })
         .from(exportShipments),
       db
         .select({ total: count(), active: count(sql`CASE WHEN ${pipelineJobs.status} = 'running' THEN 1 END`) })

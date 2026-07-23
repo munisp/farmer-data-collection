@@ -155,7 +155,7 @@ export class DrizzleQueryCache {
         await this.redis.expire(`${this.tagPrefix}${tag}`, ttl * 2);
       }
     } catch (err) {
-      logger.warn({ err }, "DrizzleQueryCache.set failed");
+      logger.warn("DrizzleQueryCache.set failed", { err });
     }
   }
 
@@ -169,7 +169,7 @@ export class DrizzleQueryCache {
       }
       await this.redis.del(tagKey);
     } catch (err) {
-      logger.warn({ err }, "DrizzleQueryCache.invalidateByTag failed");
+      logger.warn("DrizzleQueryCache.invalidateByTag failed", { err });
     }
   }
 
@@ -181,7 +181,7 @@ export class DrizzleQueryCache {
         await Promise.all(keys.map((k: string) => this.redis.del(k)));
       }
     } catch (err) {
-      logger.warn({ err }, "DrizzleQueryCache.invalidateByPattern failed");
+      logger.warn("DrizzleQueryCache.invalidateByPattern failed", { err });
     }
   }
 
@@ -235,7 +235,7 @@ export class DrizzleBatchProcessor {
         const result = await (q as any).execute();
         totalInserted += chunk.length;
       } catch (err) {
-        logger.error({ err, chunkSize: chunk.length }, "bulkInsert chunk failed");
+        logger.error("bulkInsert chunk failed", { err, chunkSize: chunk.length });
         throw err;
       }
     }
@@ -345,7 +345,7 @@ export class DrizzleAuditTrail {
         ON CONFLICT DO NOTHING
       `);
     } catch (err) {
-      logger.warn({ err, count: entries.length }, "AuditTrail flush failed");
+      logger.warn("AuditTrail flush failed", { err, count: entries.length });
     }
   }
 
@@ -754,7 +754,7 @@ export class DatabaseHealthMonitor {
       const latencyMs = Date.now() - start;
 
       // Connection stats
-      const [connStats] = await this.db.execute(sql`
+      const { rows: connRows } = await this.db.execute(sql`
         SELECT
           count(*) FILTER (WHERE state = 'active') AS active,
           (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') AS max_conn
@@ -763,7 +763,7 @@ export class DatabaseHealthMonitor {
       `);
 
       // Cache hit ratio
-      const [cacheStats] = await this.db.execute(sql`
+      const { rows: cacheRows } = await this.db.execute(sql`
         SELECT
           ROUND(
             100.0 * sum(heap_blks_hit) / NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0),
@@ -773,7 +773,7 @@ export class DatabaseHealthMonitor {
       `);
 
       // Deadlocks and slow queries
-      const [lockStats] = await this.db.execute(sql`
+      const { rows: lockRows } = await this.db.execute(sql`
         SELECT
           deadlocks,
           (SELECT count(*) FROM pg_stat_activity WHERE state = 'active' AND query_start < NOW() - INTERVAL '5 seconds') AS slow_queries
@@ -784,11 +784,11 @@ export class DatabaseHealthMonitor {
       const status: DbHealthStatus = {
         connected: true,
         latencyMs,
-        activeConnections: Number((connStats as any)?.active ?? 0),
-        maxConnections: Number((connStats as any)?.max_conn ?? 100),
-        cacheHitRatio: Number((cacheStats as any)?.cache_hit_ratio ?? 0),
-        deadlocks: Number((lockStats as any)?.deadlocks ?? 0),
-        slowQueries: Number((lockStats as any)?.slow_queries ?? 0),
+        activeConnections: Number((connRows[0] as any)?.active ?? 0),
+        maxConnections: Number((connRows[0] as any)?.max_conn ?? 100),
+        cacheHitRatio: Number((cacheRows[0] as any)?.cache_hit_ratio ?? 0),
+        deadlocks: Number((lockRows[0] as any)?.deadlocks ?? 0),
+        slowQueries: Number((lockRows[0] as any)?.slow_queries ?? 0),
         timestamp: new Date(),
       };
 
@@ -806,7 +806,7 @@ export class DatabaseHealthMonitor {
         timestamp: new Date(),
       };
       this.lastStatus = status;
-      logger.error({ err }, "Database health check failed");
+      logger.error("Database health check failed", { err });
       return status;
     }
   }
@@ -890,7 +890,7 @@ export class QueryPerformanceAnalyzer {
     if (this.queryLog.length > 1000) this.queryLog.shift();
 
     if (isSlowQuery) {
-      logger.warn({ queryName, durationMs, threshold: this.slowQueryThresholdMs }, "Slow query detected");
+      logger.warn("Slow query detected", { queryName, durationMs, threshold: this.slowQueryThresholdMs });
     }
 
     return { result, durationMs, isSlowQuery };
@@ -904,7 +904,7 @@ export class QueryPerformanceAnalyzer {
     rawSql: string,
   ): Promise<string> {
     const result = await db.execute(sql.raw(`EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) ${rawSql}`));
-    return (result as any[]).map((r) => Object.values(r)[0]).join("\n");
+    return (result.rows as any[]).map((r) => Object.values(r)[0]).join("\n");
   }
 
   getSlowQueries(limit = 10): typeof this.queryLog {

@@ -94,7 +94,7 @@ export const caddyRouter = router({
         ],
       });
 
-      logger.info({ routeId: input.routeId, host: input.host }, "Dynamic route added by admin");
+      logger.info("Dynamic route added by admin", { routeId: input.routeId, host: input.host });
       return { success: true, routeId: input.routeId };
     }),
 
@@ -137,10 +137,7 @@ export const caddyRouter = router({
       }
 
       await blockIP(input.ip, input.reason);
-      logger.warn(
-        { ip: input.ip, reason: input.reason, blockedBy: ctx.user?.id },
-        "IP blocked at Caddy edge",
-      );
+      logger.warn("IP blocked at Caddy edge", { ip: input.ip, reason: input.reason, blockedBy: ctx.user?.id });
       return { success: true, ip: input.ip, blockedAt: new Date().toISOString() };
     }),
 
@@ -155,7 +152,7 @@ export const caddyRouter = router({
       }
 
       await unblockIP(input.ip);
-      logger.info({ ip: input.ip, unblockedBy: ctx.user?.id }, "IP unblocked at Caddy edge");
+      logger.info("IP unblocked at Caddy edge", { ip: input.ip, unblockedBy: ctx.user?.id });
       return { success: true };
     }),
 
@@ -210,10 +207,7 @@ export const caddyRouter = router({
       }
 
       await switchDeployment(input.target, input.servicePort);
-      logger.info(
-        { target: input.target, servicePort: input.servicePort, switchedBy: ctx.user?.id },
-        "Blue/green deployment switched",
-      );
+      logger.info("Blue/green deployment switched", { target: input.target, servicePort: input.servicePort, switchedBy: ctx.user?.id });
       return {
         success: true,
         activeDeployment: input.target,
