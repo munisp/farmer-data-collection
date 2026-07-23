@@ -641,13 +641,13 @@ jobs:
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: TypeScript check
-        run: npx tsc --noEmit || echo "WARN: Mobile TS check had issues (non-blocking)"
+        run: 'npx tsc --noEmit || echo "WARN: Mobile TS check had issues (non-blocking)"'
 
       - name: Run mobile tests
-        run: npx jest --passWithNoTests || echo "WARN: Mobile tests had issues (non-blocking)"
+        run: 'npx jest --passWithNoTests || echo "WARN: Mobile tests had issues (non-blocking)"'
 
       - name: Expo doctor
-        run: npx expo-doctor || echo "WARN: expo-doctor found issues (non-blocking)"
+        run: 'npx expo-doctor || echo "WARN: expo-doctor found issues (non-blocking)"'
 
       - name: Build validation
         run: |
