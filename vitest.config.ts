@@ -1,6 +1,14 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // The real @dapr/dapr ships an ESM proto file inside a CommonJS package,
+      // which Vitest's loader cannot parse. Alias to a lightweight stub for tests.
+      '@dapr/dapr': fileURLToPath(new URL('./tests/mocks/dapr-stub.ts', import.meta.url)),
+    },
+  },
   test: {
     globals: true,
     environment: 'node',

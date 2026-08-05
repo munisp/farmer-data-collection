@@ -113,7 +113,7 @@ export async function getCaddyHealth(): Promise<CaddyHealthStatus> {
       latencyMs: Date.now() - start,
     };
   } catch (err) {
-    logger.warn({ err }, "Caddy health check failed");
+    logger.warn("Caddy health check failed", { err });
     return {
       available: false,
       adminUrl: CADDY_ADMIN_URL,
@@ -145,7 +145,7 @@ export async function addRoute(serverId: string, route: CaddyRoute): Promise<voi
     `/config/apps/http/servers/${serverId}/routes/`,
     route,
   );
-  logger.info({ serverId, routeId: route.id }, "Caddy route added");
+  logger.info("Caddy route added", { serverId, routeId: route.id });
 }
 
 /**
@@ -153,7 +153,7 @@ export async function addRoute(serverId: string, route: CaddyRoute): Promise<voi
  */
 export async function removeRoute(serverId: string, routeId: string): Promise<void> {
   await caddyRequest("DELETE", `/config/apps/http/servers/${serverId}/routes/${routeId}`);
-  logger.info({ serverId, routeId }, "Caddy route removed");
+  logger.info("Caddy route removed", { serverId, routeId });
 }
 
 /**
@@ -170,7 +170,7 @@ export async function updateUpstream(
     `/config/apps/http/servers/${serverId}/routes/${routeIndex}/handle/${handlerIndex}/upstreams`,
     upstreams,
   );
-  logger.info({ serverId, routeIndex, upstreams }, "Caddy upstream updated");
+  logger.info("Caddy upstream updated", { serverId, routeIndex, upstreams });
 }
 
 // ============================================================================
@@ -182,7 +182,7 @@ export async function updateUpstream(
  */
 export async function renewCertificate(domain: string): Promise<void> {
   await caddyRequest("POST", `/pki/ca/local/certificates`, { domain });
-  logger.info({ domain }, "Caddy TLS certificate renewal triggered");
+  logger.info("Caddy TLS certificate renewal triggered", { domain });
 }
 
 /**
@@ -215,7 +215,7 @@ export async function loadCustomCertificate(
       },
     },
   });
-  logger.info({ tags }, "Custom TLS certificate loaded into Caddy");
+  logger.info("Custom TLS certificate loaded into Caddy", { tags });
 }
 
 // ============================================================================
@@ -248,7 +248,7 @@ export async function updateRateLimitZone(
       },
     ],
   });
-  logger.info({ zoneName, eventsPerWindow, windowSeconds }, "Caddy rate limit zone updated");
+  logger.info("Caddy rate limit zone updated", { zoneName, eventsPerWindow, windowSeconds });
 }
 
 // ============================================================================
@@ -260,7 +260,7 @@ export async function updateRateLimitZone(
  * Integrates with the security monitoring service for automatic blocking.
  */
 export async function blockIP(ip: string, reason: string): Promise<void> {
-  logger.warn({ ip, reason }, "Blocking IP via Caddy");
+  logger.warn("Blocking IP via Caddy", { ip, reason });
   // In production, this would update the WAF rules file and trigger a reload
   // For now, we log and let the WAF handle it
 }
@@ -269,7 +269,7 @@ export async function blockIP(ip: string, reason: string): Promise<void> {
  * Unblock a previously blocked IP.
  */
 export async function unblockIP(ip: string): Promise<void> {
-  logger.info({ ip }, "Unblocking IP via Caddy");
+  logger.info("Unblocking IP via Caddy", { ip });
 }
 
 // ============================================================================
@@ -285,7 +285,7 @@ export async function updateOidcConfig(config: {
   clientId: string;
   clientSecret: string;
 }): Promise<void> {
-  logger.info({ issuerUrl: config.issuerUrl, clientId: config.clientId }, "Updating Caddy OIDC config");
+  logger.info("Updating Caddy OIDC config", { issuerUrl: config.issuerUrl, clientId: config.clientId });
   // The oauth2-proxy reads config from file; trigger a reload via SIGHUP
   // In Docker, this is done via the oauth2-proxy's --config flag reload
 }
@@ -305,7 +305,7 @@ export async function collectMetrics(): Promise<string> {
     });
     return response.text();
   } catch (err) {
-    logger.warn({ err }, "Failed to collect Caddy metrics");
+    logger.warn("Failed to collect Caddy metrics", { err });
     return "";
   }
 }
@@ -324,7 +324,7 @@ export async function switchDeployment(
 ): Promise<void> {
   const upstreams: CaddyUpstream[] = [{ dial: `app-${target}:${servicePort}` }];
   await updateUpstream("srv0", 0, 0, upstreams);
-  logger.info({ target, servicePort }, `Traffic switched to ${target} deployment`);
+  logger.info(`Traffic switched to ${target} deployment`, { target, servicePort });
 }
 
 /**
@@ -341,7 +341,7 @@ export async function setCanaryWeight(
     { dial: `app-canary:${canaryPort}`, max_requests: canaryWeightPercent },
   ];
   await updateUpstream("srv0", 0, 0, upstreams);
-  logger.info({ stablePort, canaryPort, canaryWeightPercent }, "Canary deployment configured");
+  logger.info("Canary deployment configured", { stablePort, canaryPort, canaryWeightPercent });
 }
 
 // ============================================================================
@@ -398,7 +398,7 @@ export async function registerMicroservice(config: {
   };
 
   await addRoute("srv0", route);
-  logger.info({ subdomain, serviceHost, servicePort, requireAuth }, "Microservice registered with Caddy");
+  logger.info("Microservice registered with Caddy", { subdomain, serviceHost, servicePort, requireAuth });
 }
 
 /**
@@ -406,5 +406,5 @@ export async function registerMicroservice(config: {
  */
 export async function deregisterMicroservice(subdomain: string): Promise<void> {
   await removeRoute("srv0", `microservice-${subdomain}`);
-  logger.info({ subdomain }, "Microservice deregistered from Caddy");
+  logger.info("Microservice deregistered from Caddy", { subdomain });
 }

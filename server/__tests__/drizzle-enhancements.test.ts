@@ -504,10 +504,10 @@ describe("QueryPerformanceAnalyzer", () => {
 
 describe("DatabaseHealthMonitor", () => {
   it("should report connected status on successful check", async () => {
-    mockExecute.mockResolvedValueOnce([{ "?column?": 1 }]); // SELECT 1
-    mockExecute.mockResolvedValueOnce([{ active: 5, max_conn: 100 }]);
-    mockExecute.mockResolvedValueOnce([{ cache_hit_ratio: 98.5 }]);
-    mockExecute.mockResolvedValueOnce([{ deadlocks: 0, slow_queries: 0 }]);
+    mockExecute.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // SELECT 1
+    mockExecute.mockResolvedValueOnce({ rows: [{ active: 5, max_conn: 100 }] });
+    mockExecute.mockResolvedValueOnce({ rows: [{ cache_hit_ratio: 98.5 }] });
+    mockExecute.mockResolvedValueOnce({ rows: [{ deadlocks: 0, slow_queries: 0 }] });
 
     const monitor = new DatabaseHealthMonitor(mockDb, 999999);
     const status = await monitor.check();
